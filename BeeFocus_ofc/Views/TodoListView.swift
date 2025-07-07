@@ -40,6 +40,7 @@ struct TodoListView: View {
     @State private var showingSettings = false
     @State private var showingCategoryEdit = false
     @State private var isPlusPressed = false
+    @State private var showSuccessToast = false
 
     // MARK: - Computed Properties
     var backgroundColor: Color {
@@ -155,6 +156,23 @@ struct TodoListView: View {
                 CategoryEditView()
                     .environmentObject(todoStore)
             }
+            .overlay(
+                Group {
+                    if showSuccessToast {
+                        VStack {
+                            Spacer()
+                            Text("Zum Kalender hinzugefügt")
+                                .font(.subheadline)
+                                .padding()
+                                .background(BlurView(style: .systemMaterial))
+                                .cornerRadius(12)
+                                .padding(.bottom, 50)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .animation(.easeInOut(duration: 0.3), value: showSuccessToast)
+                        }
+                    }
+                }
+            )
     }
 
     private var mainContentView: some View {

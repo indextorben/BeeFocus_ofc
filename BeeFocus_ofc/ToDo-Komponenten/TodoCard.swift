@@ -119,21 +119,29 @@ struct TodoCard: View {
                 HStack(spacing: 13) {
                     if !todo.subTasks.isEmpty {
                         Button {
-                            showingSubTasks = true
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showingSubTasks = true
+                            }
                         } label: {
                             Image(systemName: "list.bullet")
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(.blue)
+                                .scaleEffect(showingSubTasks ? 1.1 : 1.0)
+                                .animation(.easeInOut(duration: 0.2), value: showingSubTasks)
                         }
                     }
                     
                     if !todo.imageDataArray.isEmpty {
                         Button {
-                            showingImages = true
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showingImages = true
+                            }
                         } label: {
                             Image(systemName: "photo.on.rectangle")
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(.blue)
+                                .scaleEffect(showingImages ? 1.1 : 1.0)
+                                .animation(.easeInOut(duration: 0.2), value: showingImages)
                         }
                     }
                     
@@ -160,6 +168,7 @@ struct TodoCard: View {
             )
             .scaleEffect(isPressed ? 0.97 : 1.0)
             .animation(.easeInOut(duration: 0.15), value: isPressed)
+            .transition(.scale)
             .onTapGesture {
                 withAnimation {
                     isPressed = true
@@ -170,9 +179,11 @@ struct TodoCard: View {
             }
             .sheet(isPresented: $showingSubTasks) {
                 SubTasksView(todo: todo)
+                    .transition(.move(edge: .bottom))
             }
             .sheet(isPresented: $showingImages) {
                 ImagesView(images: todo.imageDataArray)
+                    .transition(.move(edge: .bottom))
             }
             
             PriorityBadge(text: priorityText, color: priorityColor)
