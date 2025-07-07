@@ -158,12 +158,12 @@ class TodoStore: ObservableObject {
         // Benachrichtigung planen, falls Fälligkeitsdatum vorhanden
         if let dueDate = todo.dueDate {
             let timeInterval = dueDate.timeIntervalSinceNow
-            // Nur planen, wenn Fälligkeitsdatum in der Zukunft liegt
             if timeInterval > 0 {
                 let title = "Fällige Aufgabe: \(todo.title)"
                 let body = todo.description.isEmpty ? "Deine Aufgabe ist fällig." : todo.description
                 
                 NotificationManager.shared.scheduleTimerNotification(
+                    id: todo.id.uuidString,
                     title: title,
                     body: body,
                     duration: timeInterval
@@ -176,11 +176,32 @@ class TodoStore: ObservableObject {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index] = todo
             saveTodos()
+            deleteCalendarEvent(for: todo) // Altes Ereignis entfernen
+            addCalendarEvent(for: todo)    // Neues Ereignis hinzufügen
+            
+            NotificationManager.shared.cancelNotification(id: todo.id.uuidString) // Alte Benachrichtigung löschen
+            
+            // Neue Benachrichtigung planen, falls Fälligkeitsdatum vorhanden
+            if let dueDate = todo.dueDate {
+                let timeInterval = dueDate.timeIntervalSinceNow
+                if timeInterval > 0 {
+                    let title = "Fällige Aufgabe: \(todo.title)"
+                    let body = todo.description.isEmpty ? "Deine Aufgabe ist fällig." : todo.description
+                    
+                    NotificationManager.shared.scheduleTimerNotification(
+                        id: todo.id.uuidString,
+                        title: title,
+                        body: body,
+                        duration: timeInterval
+                    )
+                }
+            }
         }
     }
     
     func deleteTodo(_ todo: TodoItem) {
         deleteCalendarEvent(for: todo)
+        NotificationManager.shared.cancelNotification(id: todo.id.uuidString)
         todos.removeAll { $0.id == todo.id }
         saveTodos()
     }

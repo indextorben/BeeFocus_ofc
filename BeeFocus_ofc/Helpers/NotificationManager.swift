@@ -29,7 +29,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         center.delegate = self
     }
     
-    /// Planen einer Timer-Benachrichtigung nach gegebener Dauer
+    /// Planen einer Timer-Benachrichtigung nach gegebener Dauer (vorgegebene ID)
     func scheduleTimerNotification(title: String, body: String, duration: TimeInterval) {
         guard duration > 1 else {
             print("⛔️ Fehler: Dauer zu kurz für Notification (\(duration) Sek.) – keine Benachrichtigung geplant.")
@@ -47,6 +47,29 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         
         let request = UNNotificationRequest(
             identifier: timerNotificationID,
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request)
+    }
+    
+    /// Planen einer Timer-Benachrichtigung mit eigener ID (z. B. für Todos)
+    func scheduleTimerNotification(id: String, title: String, body: String, duration: TimeInterval) {
+        guard duration > 1 else {
+            print("⛔️ Fehler: Dauer zu kurz für Notification (\(duration) Sek.) – keine Benachrichtigung geplant.")
+            return
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
+        
+        let request = UNNotificationRequest(
+            identifier: id,
             content: content,
             trigger: trigger
         )
@@ -75,6 +98,11 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// Abbrechen laufender Timer-Benachrichtigung
     func cancelTimerNotification() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [timerNotificationID])
+    }
+    
+    /// Abbrechen einer beliebigen Benachrichtigung per ID
+    func cancelNotification(id: String) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
     }
     
     /// Manuelle Testbenachrichtigung (z. B. über Button)
