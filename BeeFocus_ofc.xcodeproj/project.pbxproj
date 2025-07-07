@@ -6,6 +6,23 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4C8B69602E1C82D800C30F43 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 4C8B695F2E1C82D800C30F43 /* Lottie */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4C84FD962E1C7DC400DEF053 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocus_ofc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,16 +40,25 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C8B69602E1C82D800C30F43 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4C84FD8E2E1C561600DEF053 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		4CCA1DC42DFF618A007F640D = {
 			isa = PBXGroup;
 			children = (
 				4CCA1DCF2DFF618A007F640D /* BeeFocus_ofc */,
+				4C84FD8E2E1C561600DEF053 /* Frameworks */,
 				4CCA1DCE2DFF618A007F640D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -55,6 +81,7 @@
 				4CCA1DC92DFF618A007F640D /* Sources */,
 				4CCA1DCA2DFF618A007F640D /* Frameworks */,
 				4CCA1DCB2DFF618A007F640D /* Resources */,
+				4C84FD962E1C7DC400DEF053 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -65,6 +92,7 @@
 			);
 			name = BeeFocus_ofc;
 			packageProductDependencies = (
+				4C8B695F2E1C82D800C30F43 /* Lottie */,
 			);
 			productName = BeeFocus_ofc;
 			productReference = 4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */;
@@ -94,6 +122,9 @@
 			);
 			mainGroup = 4CCA1DC42DFF618A007F640D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4C8B695E2E1C82D800C30F43 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4CCA1DCE2DFF618A007F640D /* Products */;
 			projectDirPath = "";
@@ -344,6 +375,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4C8B695E2E1C82D800C30F43 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4C8B695F2E1C82D800C30F43 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C8B695E2E1C82D800C30F43 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4CCA1DC52DFF618A007F640D /* Project object */;
 }
