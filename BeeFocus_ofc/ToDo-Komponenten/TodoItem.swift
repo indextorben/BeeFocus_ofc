@@ -14,18 +14,16 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var description: String
     var isCompleted: Bool = false
     var dueDate: Date?
-    var category: Category?            // ✅ Optionaler Typ für farbige Kategorien
+    var category: Category?
     var priority: TodoPriority = .medium
     var subTasks: [SubTask]
     let createdAt: Date
     var completedAt: Date?
     var lastResetDate: Date?
-    
+    var calendarEventIdentifier: String? // 🗓 Event ID für Synchronisation
     var focusTimeInMinutes: Double? = nil
-    
-    // ✅ NEU: Bilddaten, als Array von Data (z. B. JPEG oder PNG)
     var imageDataArray: [Data] = []
-    
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -38,7 +36,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
         createdAt: Date = Date(),
         completedAt: Date? = nil,
         lastResetDate: Date? = nil,
-        imageDataArray: [Data] = [] // ✅ NEU
+        calendarEventIdentifier: String? = nil,
+        imageDataArray: [Data] = []
     ) {
         self.id = id
         self.title = title
@@ -51,20 +50,20 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.createdAt = createdAt
         self.completedAt = completedAt
         self.lastResetDate = lastResetDate
-        self.imageDataArray = imageDataArray // ✅ NEU
+        self.calendarEventIdentifier = calendarEventIdentifier
+        self.imageDataArray = imageDataArray
     }
-    
+
     var isOverdue: Bool {
         guard let dueDate = dueDate else { return false }
         return !isCompleted && dueDate < Date()
     }
-    
+
     var progress: Double {
         guard !subTasks.isEmpty else { return isCompleted ? 1.0 : 0.0 }
         return Double(subTasks.filter { $0.isCompleted }.count) / Double(subTasks.count)
     }
-    
-    // MARK: - Equatable
+
     static func == (lhs: TodoItem, rhs: TodoItem) -> Bool {
         return lhs.id == rhs.id
     }
