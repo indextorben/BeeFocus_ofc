@@ -24,6 +24,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var focusTimeInMinutes: Double? = nil
     var imageDataArray: [Data] = []
 
+    var calendarEnabled: Bool = false // ✅ NEU: expliziter Schalter für Kalendereintrag
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -37,7 +39,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
         completedAt: Date? = nil,
         lastResetDate: Date? = nil,
         calendarEventIdentifier: String? = nil,
-        imageDataArray: [Data] = []
+        imageDataArray: [Data] = [],
+        calendarEnabled: Bool = false // ✅ auch im Initializer
     ) {
         self.id = id
         self.title = title
@@ -52,6 +55,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.lastResetDate = lastResetDate
         self.calendarEventIdentifier = calendarEventIdentifier
         self.imageDataArray = imageDataArray
+        self.calendarEnabled = calendarEnabled
     }
 
     var isOverdue: Bool {

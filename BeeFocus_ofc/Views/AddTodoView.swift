@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import EventKit
 
 // MARK: - IdentifiableUIImage
 struct IdentifiableUIImage: Identifiable, Equatable {
@@ -91,12 +92,16 @@ struct AddTodoView: View {
     @State private var showCamera = false
     @State private var showCameraPermissionAlert = false
 
+    @State private var addToCalendar = false
+    @State private var calendarAccessDenied = false
+
     var body: some View {
         NavigationView {
             Form {
                 basicInfoSection
                 categoryAndPrioritySection
                 dueDateSection
+                calendarToggleSection
                 imagesSection
                 subTasksSection
             }
@@ -121,6 +126,11 @@ struct AddTodoView: View {
                 deleteImageAlertButtons(for: image)
             } message: { _ in
                 Text("Möchten Sie dieses Bild wirklich löschen?")
+            }
+            .alert("Kalender-Zugriff verweigert", isPresented: $calendarAccessDenied) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.")
             }
         }
     }
@@ -157,6 +167,12 @@ struct AddTodoView: View {
                 DatePicker("Datum & Uhrzeit", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
             }
+        }
+    }
+
+    private var calendarToggleSection: some View {
+        Section {
+            Toggle("In Systemkalender eintragen", isOn: $addToCalendar)
         }
     }
 
@@ -330,7 +346,35 @@ struct AddTodoView: View {
         )
 
         todoStore.addTodo(todo)
+
+        if addToCalendar && hasDueDate {
+            requestCalendarAccessAndAddEvent()
+        }
+
         dismiss()
+    }
+
+    private func requestCalendarAccessAndAddEvent() {
+        let eventStore = EKEventStore()
+        eventStore.requestAccess(to: .event) { granted, _ in
+            if granted {
+                let event = EKEvent(eventStore: eventStore)
+                event.title = title
+                event.notes = description
+                event.startDate = dueDate
+                event.endDate = dueDate.addingTimeInterval(3600) // 1 Stunde
+                event.calendar = eventStore.defaultCalendarForNewEvents
+                do {
+                    try eventStore.save(event, span: .thisEvent)
+                } catch {
+                    print("Fehler beim Speichern des Kalender-Eintrags: \(error)")
+                }
+            } else {
+                DispatchQueue.main.async {
+                    calendarAccessDenied = true
+                }
+            }
+        }
     }
 }
 

@@ -153,7 +153,10 @@ class TodoStore: ObservableObject {
     func addTodo(_ todo: TodoItem) {
         todos.append(todo)
         saveTodos()
-        addCalendarEvent(for: todo)
+
+        if todo.calendarEnabled {
+            addCalendarEvent(for: todo)
+        }
         
         // Benachrichtigung planen, falls Fälligkeitsdatum vorhanden
         if let dueDate = todo.dueDate {
@@ -176,12 +179,15 @@ class TodoStore: ObservableObject {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index] = todo
             saveTodos()
-            deleteCalendarEvent(for: todo) // Altes Ereignis entfernen
-            addCalendarEvent(for: todo)    // Neues Ereignis hinzufügen
             
-            NotificationManager.shared.cancelNotification(id: todo.id.uuidString) // Alte Benachrichtigung löschen
+            // Kalender: Nur wenn aktiviert
+            deleteCalendarEvent(for: todo)
+            if todo.calendarEnabled {
+                addCalendarEvent(for: todo)
+            }
             
-            // Neue Benachrichtigung planen, falls Fälligkeitsdatum vorhanden
+            NotificationManager.shared.cancelNotification(id: todo.id.uuidString)
+            
             if let dueDate = todo.dueDate {
                 let timeInterval = dueDate.timeIntervalSinceNow
                 if timeInterval > 0 {
