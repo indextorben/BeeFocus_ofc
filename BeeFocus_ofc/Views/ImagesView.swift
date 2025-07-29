@@ -1,17 +1,10 @@
-//
-//  ImagesView.swift
-//  BeeFocus_ofc
-//
-//  Created by Torben Lehneke on 01.07.25.
-//
-
 import Foundation
 import SwiftUI
 import PhotosUI
 import AVFoundation
 
 struct ImagesView: View {
-    @State private var images: [Data]
+    @Binding var images: [Data]
     @State private var selectedIndex: Int? = nil
     @Environment(\.dismiss) var dismiss
     
@@ -20,9 +13,10 @@ struct ImagesView: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
     
-    init(images: [Data]) {
-        _images = State(wrappedValue: images)
-    }
+    @State private var selectedItems: [PhotosPickerItem] = []
+    @State private var selectedImages: [IdentifiableUIImage] = []
+    @State private var selectedImageForPreview: IdentifiableUIImage?
+    @State private var imageToDelete: IdentifiableUIImage?
     
     var body: some View {
         NavigationStack {
@@ -55,8 +49,8 @@ struct ImagesView: View {
                 }
             }
             .photosPicker(isPresented: $showPhotoPicker,
-                         selection: $selectedPhoto,
-                         matching: .images)
+                          selection: $selectedPhoto,
+                          matching: .images)
             .fullScreenCover(isPresented: $showCamera) {
                 if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
                     ImagePicker(onImagePicked: handleImagePicked)
@@ -112,9 +106,9 @@ struct ImagesView: View {
     private func deleteButton(index: Int) -> some View {
         Button(action: {
             withAnimation(.easeInOut) {
-                var mutableImages = images
-                mutableImages.remove(at: index)
-                images = mutableImages
+                var tempImages = images
+                tempImages.remove(at: index)
+                images = tempImages
             }
         }) {
             Image(systemName: "xmark.circle.fill")
@@ -169,7 +163,7 @@ struct ImagesView: View {
     }
     
     private func handleImagePicked(_ image: UIImage) {
-        if let data = image.pngData() {
+        if let data = image.jpegData(compressionQuality: 0.8) {
             withAnimation {
                 images.append(data)
             }
@@ -214,14 +208,12 @@ struct FullscreenImageViewer: View {
     private var dragGesture: some Gesture {
         DragGesture()
             .onEnded { value in
-                // Horizontales Wischen für Navigation
                 if value.translation.width < -100 && currentIndex < images.count - 1 {
                     currentIndex += 1
                 } else if value.translation.width > 100 && currentIndex > 0 {
                     currentIndex -= 1
                 }
                 
-                // Vertikales Wischen zum Schließen
                 if value.translation.height > 100 {
                     dismiss()
                 }
@@ -275,7 +267,7 @@ struct FullscreenImageViewer: View {
     }
 }
 
-// MARK: - Zoomable Image Component
+// MARK: - Zoomable Image View
 struct ZoomableImageView: View {
     let image: Image
     @Binding var isZoomed: Bool
@@ -299,7 +291,6 @@ struct ZoomableImageView: View {
             }
     }
     
-    // MARK: - Gestures
     private var doubleTapGesture: some Gesture {
         TapGesture(count: 2).onEnded {
             if scale > 1.0 {
@@ -341,7 +332,6 @@ struct ZoomableImageView: View {
             }
     }
     
-    // MARK: - Zoom Functions
     private func resetZoom() {
         withAnimation(.spring()) {
             scale = 1.0
@@ -361,7 +351,30 @@ struct ZoomableImageView: View {
     }
 }
 
-// MARK: - ImagePicker für Kamera
+// MARK: - Kamera-Zugriffs-Hinweis
+struct CameraAccessView: View {
+    var body: some View {
+        VStack {
+            Text("Kamera-Zugriff benötigt")
+                .font(.headline)
+                .padding()
+            
+            Text("Bitte erlaube den Kamerazugriff in den Einstellungen")
+                .multilineTextAlignment(.center)
+                .padding()
+            
+            Button("Zu Einstellungen") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .padding()
+        }
+    }
+}
+
+// MARK: - Kamera-Picker
 struct ImagePicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) var dismiss
     var onImagePicked: (UIImage) -> Void
@@ -387,7 +400,7 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
         
         func imagePickerController(_ picker: UIImagePickerController,
-                                  didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.onImagePicked(image)
             }
@@ -396,29 +409,6 @@ struct ImagePicker: UIViewControllerRepresentable {
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
-        }
-    }
-}
-
-// MARK: - Kamera-Berechtigungsanzeige
-struct CameraAccessView: View {
-    var body: some View {
-        VStack {
-            Text("Kamera-Zugriff benötigt")
-                .font(.headline)
-                .padding()
-            
-            Text("Bitte erlaube den Kamerazugriff in den Einstellungen")
-                .multilineTextAlignment(.center)
-                .padding()
-            
-            Button("Zu Einstellungen") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .padding()
         }
     }
 }

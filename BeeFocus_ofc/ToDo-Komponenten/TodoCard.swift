@@ -39,6 +39,9 @@ struct TodoCard: View {
     @State private var showLottie = false
     @State private var lottieTrigger = false
     @Environment(\.colorScheme) private var colorScheme
+    
+    // Neu: lokale Kopie der Bilder als @State, um Binding zu ermöglichen
+    @State private var images: [Data] = []
 
     var baseGradient: LinearGradient {
         switch todo.priority {
@@ -155,6 +158,8 @@ struct TodoCard: View {
 
                     if !todo.imageDataArray.isEmpty {
                         Button {
+                            // Hier: Kopiere Bilder in @State images vor dem Anzeigen
+                            images = todo.imageDataArray
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                                 showingImages = true
                             }
@@ -203,7 +208,7 @@ struct TodoCard: View {
                 SubTasksView(todo: todo)
             }
             .sheet(isPresented: $showingImages) {
-                ImagesView(images: todo.imageDataArray)
+                ImagesView(images: $images)  // Binding an ImagesView übergeben
             }
 
             PriorityBadge(text: priorityText, color: priorityColor)
