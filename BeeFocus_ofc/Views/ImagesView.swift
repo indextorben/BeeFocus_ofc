@@ -26,7 +26,6 @@ struct ImagesView: View {
                         gridImageItem(imageData: imageData, index: index)
                     }
                     
-                    addImageButton
                 }
                 .padding()
             }
@@ -53,7 +52,6 @@ struct ImagesView: View {
                           matching: .images)
             .fullScreenCover(isPresented: $showCamera) {
                 if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
-                    ImagePicker(onImagePicked: handleImagePicked)
                 } else {
                     CameraAccessView()
                 }
@@ -88,8 +86,6 @@ struct ImagesView: View {
             } else {
                 placeholderView
             }
-            
-            deleteButton(index: index)
         }
     }
     
@@ -101,47 +97,6 @@ struct ImagesView: View {
                 Image(systemName: "photo")
                     .foregroundColor(.white)
             )
-    }
-    
-    private func deleteButton(index: Int) -> some View {
-        Button(action: {
-            withAnimation(.easeInOut) {
-                var tempImages = images
-                tempImages.remove(at: index)
-                images = tempImages
-            }
-        }) {
-            Image(systemName: "xmark.circle.fill")
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, .red)
-                .font(.system(size: 24))
-                .background(Circle().fill(.white))
-        }
-        .offset(x: 8, y: -8)
-    }
-    
-    private var addImageButton: some View {
-        Button(action: { showImageSourceDialog = true }) {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                .frame(width: 100, height: 100)
-                .overlay(
-                    Image(systemName: "plus")
-                        .font(.largeTitle)
-                        .foregroundColor(.blue)
-                )
-        }
-        .confirmationDialog("Bildquelle", isPresented: $showImageSourceDialog) {
-            Button("Kamera") {
-                checkCameraPermission()
-            }
-            
-            Button("Galerie") {
-                showPhotoPicker = true
-            }
-            
-            Button("Abbrechen", role: .cancel) {}
-        }
     }
     
     // MARK: - Helper Functions
@@ -223,21 +178,10 @@ struct FullscreenImageViewer: View {
     // MARK: - Controls
     private var controlsOverlay: some View {
         HStack(spacing: 16) {
-            deleteButton
             closeButton
         }
-        .padding()
-    }
-    
-    private var deleteButton: some View {
-        Button(action: deleteCurrentImage) {
-            Image(systemName: "trash")
-                .font(.system(size: 24))
-                .foregroundColor(.white)
-                .padding(12)
-                .background(Color.black.opacity(0.3))
-                .clipShape(Circle())
-        }
+        .padding(.top, 40)
+        .padding(.horizontal)
     }
     
     private var closeButton: some View {
@@ -245,24 +189,9 @@ struct FullscreenImageViewer: View {
             Image(systemName: "xmark")
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(.white)
-                .padding(12)
+                .padding(15)
                 .background(Color.black.opacity(0.3))
                 .clipShape(Circle())
-        }
-    }
-    
-    // MARK: - Functions
-    private func deleteCurrentImage() {
-        guard images.indices.contains(currentIndex) else { return }
-        
-        withAnimation {
-            images.remove(at: currentIndex)
-            
-            if images.isEmpty {
-                dismiss()
-            } else {
-                currentIndex = min(currentIndex, images.count - 1)
-            }
         }
     }
 }
@@ -370,45 +299,6 @@ struct CameraAccessView: View {
             }
             .buttonStyle(.borderedProminent)
             .padding()
-        }
-    }
-}
-
-// MARK: - Kamera-Picker
-struct ImagePicker: UIViewControllerRepresentable {
-    @Environment(\.dismiss) var dismiss
-    var onImagePicked: (UIImage) -> Void
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ImagePicker
-        
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.onImagePicked(image)
-            }
-            parent.dismiss()
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
         }
     }
 }
