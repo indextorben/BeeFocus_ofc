@@ -2,7 +2,7 @@
  ToDoListView.swift
  BeeFocus_ofc
  Created by Torben Lehneke on 16.06.25.
-*/
+ */
 
 import Foundation
 import SwiftUI
@@ -12,11 +12,11 @@ import UserNotifications
 // MARK: - BlurView (UIKit Wrapper für SwiftUI)
 struct BlurView: UIViewRepresentable {
     var style: UIBlurEffect.Style = .systemMaterial
-
+    
     func makeUIView(context: Context) -> UIVisualEffectView {
         UIVisualEffectView(effect: UIBlurEffect(style: style))
     }
-
+    
     func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
         uiView.effect = UIBlurEffect(style: style)
     }
@@ -41,26 +41,68 @@ struct TodoListView: View {
     @State private var showingCategoryEdit = false
     @State private var isPlusPressed = false
     @State private var showSuccessToast = false
-
+    @State private var showingSortOptions = false
+    @State private var sortOption: SortOption = .dueDateAsc
+    
     // MARK: - Computed Properties
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
     }
+    
+    enum SortOption: CaseIterable, Hashable {
+        case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc
 
+        var displayName: String {
+            switch self {
+            case .dueDateAsc: return "Fälligkeitsdatum ↑"
+            case .dueDateDesc: return "Fälligkeitsdatum ↓"
+            case .titleAsc: return "Alphabetisch A–Z"
+            case .titleDesc: return "Alphabetisch Z–A"
+            case .createdDesc: return "Erstellungsdatum neu → alt"
+            }
+        }
+    }
+    
+    var sortedTodos: [TodoItem] {
+        let todos = filteredTodos
+        switch sortOption {
+        case .dueDateAsc:
+            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
+                (a.dueDate ?? Date.distantFuture) < (b.dueDate ?? Date.distantFuture)
+            })
+        case .dueDateDesc:
+            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
+                (a.dueDate ?? Date.distantPast) > (b.dueDate ?? Date.distantPast)
+            })
+        case .titleAsc:
+            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
+                a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+            })
+        case .titleDesc:
+            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
+                a.title.localizedCaseInsensitiveCompare(b.title) == .orderedDescending
+            })
+        case .createdDesc:
+            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
+                (a.createdAt ?? Date.distantPast) > (b.createdAt ?? Date.distantPast)
+            })
+        }
+    }
+    
     var filteredTodos: [TodoItem] {
         todoStore.todos.filter { todo in
             let matchesSearch = searchText.isEmpty ||
-                todo.title.localizedCaseInsensitiveContains(searchText) ||
-                todo.description.localizedCaseInsensitiveContains(searchText)
-
+            todo.title.localizedCaseInsensitiveContains(searchText) ||
+            todo.description.localizedCaseInsensitiveContains(searchText)
+            
             let matchesCategory = selectedCategory == nil || todo.category == selectedCategory
-
+            
             let isNotCompleted = !todo.isCompleted
-
+            
             return matchesSearch && matchesCategory && isNotCompleted
         }
     }
-
+    
     // MARK: - Main View
     var body: some View {
         mainContentView
@@ -88,7 +130,28 @@ struct TodoListView: View {
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.blue)
                         }
-
+                        
+                        Button {
+                            showingSortOptions = true
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(14)
+                                .background(
+                                    BlurView(style: .systemUltraThinMaterialDark)
+                                        .clipShape(Circle())
+                                )
+                                .shadow(color: Color.blue.opacity(0.5), radius: 6, x: 0, y: 3)
+                        }
+                        .confirmationDialog("Sortieren nach", isPresented: $showingSortOptions) {
+                            Button("Fälligkeitsdatum ↑") { sortOption = .dueDateAsc }
+                            Button("Fälligkeitsdatum ↓") { sortOption = .dueDateDesc }
+                            Button("Alphabetisch A–Z") { sortOption = .titleAsc }
+                            Button("Alphabetisch Z–A") { sortOption = .titleDesc }
+                            Button("Erstellungsdatum neu → alt") { sortOption = .createdDesc }
+                        }
+                        
                         Button(action: {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                 showingAddTodo = true
@@ -174,7 +237,7 @@ struct TodoListView: View {
                 }
             )
     }
-
+    
     private var mainContentView: some View {
         ZStack {
             backgroundColor.ignoresSafeArea()
@@ -184,7 +247,7 @@ struct TodoListView: View {
             }
         }
     }
-
+    
     // MARK: - Subviews
     private var categoryBar: some View {
         ScrollViewReader { proxy in
@@ -197,14 +260,14 @@ struct TodoListView: View {
                     ) {
                         selectedCategory = nil
                     }
-
+                    
                     ForEach(todoStore.categories, id: \.self) { category in
                         categoryButton(for: category)
                     }
                     .onMove { source, destination in
                         todoStore.moveCategory(from: source, to: destination)
                     }
-
+                    
                     Button(action: {
                         showingAddCategory = true
                     }) {
@@ -237,7 +300,7 @@ struct TodoListView: View {
             .padding(.top, 8)
         }
     }
-
+    
     private func categoryButton(for category: Category) -> some View {
         CategoryButton(
             title: category.name,
@@ -252,7 +315,7 @@ struct TodoListView: View {
             }) {
                 Label("Umbenennen", systemImage: "pencil")
             }
-
+            
             Button(role: .destructive, action: {
                 categoryToDelete = category
                 showingDeleteCategoryAlert = true
@@ -261,7 +324,7 @@ struct TodoListView: View {
             }
         }
     }
-
+    
     private var contentView: some View {
         Group {
             if filteredTodos.isEmpty {
@@ -272,18 +335,18 @@ struct TodoListView: View {
         }
         .frame(maxHeight: .infinity)
     }
-
+    
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle")
                 .font(.system(size: 60))
                 .foregroundColor(.blue.opacity(0.5))
-
+            
             Text("Keine Aufgaben")
                 .font(.title2)
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
-
+            
             Text("Fügen Sie eine neue Aufgabe hinzu")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -291,11 +354,11 @@ struct TodoListView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }
-
+    
     private var todoListView: some View {
         ScrollView {
             LazyVStack(spacing: 15) {
-                ForEach(filteredTodos) { todo in
+                ForEach(sortedTodos) { todo in
                     TodoCard(todo: todo) {
                         withAnimation {
                             todoStore.complete(todo: todo)
@@ -315,7 +378,7 @@ struct TodoListView: View {
                             Label("Erledigt", systemImage: "checkmark")
                         }
                         .tint(.green)
-
+                        
                         Button(role: .destructive) {
                             todoToDelete = todo
                             showingDeleteAlert = true
@@ -338,7 +401,7 @@ struct CategoryButton: View {
     let isSelected: Bool
     let color: Color
     let action: () -> Void
-
+    
     var body: some View {
         Button(action: action) {
             Text(title)
