@@ -22,10 +22,12 @@ struct EinstellungenView: View {
         NavigationView {
             ZStack {
                 Form {
+                    // Anzeige
                     Section(header: Text(localizer.localizedString(forKey: "section_display"))) {
                         Toggle(localizer.localizedString(forKey: "Darkmode"), isOn: $darkModeEnabled)
                     }
 
+                    // Sprache
                     Section(header: Text(localizer.localizedString(forKey: "section_language"))) {
                         Picker(localizer.localizedString(forKey: "Sprache"), selection: $selectedLanguage) {
                             ForEach(languages, id: \.self) { lang in
@@ -35,6 +37,7 @@ struct EinstellungenView: View {
                         .pickerStyle(MenuPickerStyle())
                     }
 
+                    // Benachrichtigungen
                     Section(header: Text(localizer.localizedString(forKey: "section_notifications"))) {
                         Toggle(localizer.localizedString(forKey: "Benachrichtigungen"), isOn: $notificationsEnabled)
                             .onChange(of: notificationsEnabled) {
@@ -43,13 +46,7 @@ struct EinstellungenView: View {
                                 }
                             }
                     }
-
-                    Section {
-                        Button(localizer.localizedString(forKey: "Cache löschen")) {
-                            clearCache()
-                        }
-                        .foregroundColor(.red)
-                    }
+                    
                 }
                 .navigationTitle(localizer.localizedString(forKey: "Einstellungen"))
                 .toolbar {
@@ -60,6 +57,7 @@ struct EinstellungenView: View {
                     }
                 }
 
+                // Banner
                 if showNotificationBanner {
                     VStack {
                         HStack {
@@ -112,11 +110,5 @@ struct EinstellungenView: View {
             }
         }
     }
-
-    private func clearCache() {
-        UserDefaults.standard.removeObject(forKey: "todos")
-        UserDefaults.standard.removeObject(forKey: "categories")
-        UserDefaults.standard.removeObject(forKey: "dailyStats")
-        showBanner(message: localizer.localizedString(forKey: "cache_cleared"))
-    }
 }
+
