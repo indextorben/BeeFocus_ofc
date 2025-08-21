@@ -28,7 +28,7 @@ struct PriorityBadge: View {
 }
 
 struct TodoCard: View {
-    let todo: TodoItem
+    @Binding var todo: TodoItem
     let onToggle: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -40,7 +40,6 @@ struct TodoCard: View {
     @State private var lottieTrigger = false
     @Environment(\.colorScheme) private var colorScheme
     
-    // Neu: lokale Kopie der Bilder als @State, um Binding zu ermöglichen
     @State private var images: [Data] = []
 
     var baseGradient: LinearGradient {
@@ -77,12 +76,13 @@ struct TodoCard: View {
         case .high: return "Hoch"
         }
     }
-    
+
     let lottieSize: CGFloat = UIScreen.main.bounds.width < 400 ? 100 : 140
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             HStack(alignment: .center, spacing: 12) {
+                // MARK: - Checkmark
                 ZStack {
                     if showLottie {
                         Color.black.opacity(0.1)
@@ -103,9 +103,7 @@ struct TodoCard: View {
                             showLottie = true
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                            withAnimation {
-                                showLottie = false
-                            }
+                            withAnimation { showLottie = false }
                         }
                     }) {
                         Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -116,6 +114,7 @@ struct TodoCard: View {
                     }
                 }
 
+                // MARK: - Title & Description
                 VStack(alignment: .leading, spacing: 6) {
                     Text(todo.title)
                         .font(.headline)
@@ -143,6 +142,7 @@ struct TodoCard: View {
 
                 Spacer()
 
+                // MARK: - Action Buttons (Subtasks, Images, Edit, Delete)
                 HStack(spacing: 13) {
                     if !todo.subTasks.isEmpty {
                         Button {
@@ -158,7 +158,6 @@ struct TodoCard: View {
 
                     if !todo.imageDataArray.isEmpty {
                         Button {
-                            // Hier: Kopiere Bilder in @State images vor dem Anzeigen
                             images = todo.imageDataArray
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                                 showingImages = true
@@ -194,27 +193,30 @@ struct TodoCard: View {
             .opacity(isPressed ? 0.95 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
             .onTapGesture {
-                withAnimation(.linear(duration: 10.0)) {
-                    isPressed = true
-                }
+                withAnimation(.linear(duration: 10.0)) { isPressed = true }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
-                    withAnimation(.linear(duration: 10.0)) {
-                        isPressed = false
-                    }
+                    withAnimation(.linear(duration: 10.0)) { isPressed = false }
                 }
             }
             .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
-            .sheet(isPresented: $showingSubTasks) {
-                SubTasksView(todo: todo)
-            }
-            .sheet(isPresented: $showingImages) {
-                ImagesView(images: $images)  // Binding an ImagesView übergeben
-            }
+            .sheet(isPresented: $showingSubTasks) { SubTasksView(todo: todo) }
+            .sheet(isPresented: $showingImages) { ImagesView(images: $images) }
 
-            PriorityBadge(text: priorityText, color: priorityColor)
-                .padding(10)
-                .offset(y: -4)
-                .transition(.opacity)
+            // MARK: - Priority + Favorite nebeneinander
+            HStack(spacing: 6) {
+                PriorityBadge(text: priorityText, color: priorityColor)
+
+                Button(action: { todo.isFavorite.toggle() }) {
+                    Image(systemName: todo.isFavorite ? "star.fill" : "star")
+                        .foregroundColor(todo.isFavorite ? .yellow : .gray)
+                        .padding(6)
+                        .background(Color.black.opacity(0.05))
+                        .clipShape(Circle())
+                }
+            }
+            .padding(10)
+            .offset(y: -10)
+            .transition(.opacity)
         }
         .padding(.vertical, 2)
         .animation(.easeOut(duration: 10.0), value: todo.id)

@@ -4,13 +4,15 @@ import Foundation
 
 struct EinstellungenView: View {
     @Environment(\.dismiss) private var dismiss
-
+    @EnvironmentObject var todoStore: TodoStore   // 🔹 Zugriff auf Kategorien
+    
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("selectedLanguage") private var selectedLanguage = "Deutsch"
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
 
     @State private var showNotificationBanner = false
     @State private var notificationMessage = ""
+    @State private var showingCategoryEdit = false   // 🔹 für CategoryEditView-Sheet
 
     let languages = ["Deutsch", "Englisch", "Französisch", "Spanisch"]
 
@@ -47,6 +49,12 @@ struct EinstellungenView: View {
                             }
                     }
                     
+                    // Kategorien verwalten
+                    Section(header: Text(localizer.localizedString(forKey: "section_tasks"))) {
+                        Button(localizer.localizedString(forKey: "Kategorien verwalten")) {
+                            showingCategoryEdit = true
+                        }
+                    }
                 }
                 .navigationTitle(localizer.localizedString(forKey: "Einstellungen"))
                 .toolbar {
@@ -55,6 +63,10 @@ struct EinstellungenView: View {
                             dismiss()
                         }
                     }
+                }
+                .sheet(isPresented: $showingCategoryEdit) {
+                    CategoryEditView()
+                        .environmentObject(todoStore)
                 }
 
                 // Banner
@@ -111,4 +123,3 @@ struct EinstellungenView: View {
         }
     }
 }
-

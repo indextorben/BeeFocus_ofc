@@ -65,28 +65,25 @@ struct TodoListView: View {
     
     var sortedTodos: [TodoItem] {
         let todos = filteredTodos
-        switch sortOption {
-        case .dueDateAsc:
-            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
-                (a.dueDate ?? Date.distantFuture) < (b.dueDate ?? Date.distantFuture)
-            })
-        case .dueDateDesc:
-            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
-                (a.dueDate ?? Date.distantPast) > (b.dueDate ?? Date.distantPast)
-            })
-        case .titleAsc:
-            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
-                a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
-            })
-        case .titleDesc:
-            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
-                a.title.localizedCaseInsensitiveCompare(b.title) == .orderedDescending
-            })
-        case .createdDesc:
-            return todos.sorted(by: { (a: TodoItem, b: TodoItem) -> Bool in
-                (a.createdAt ?? Date.distantPast) > (b.createdAt ?? Date.distantPast)
-            })
+        let favorites = todos.filter { $0.isFavorite }
+        let normal = todos.filter { !$0.isFavorite }
+
+        func sort(_ array: [TodoItem]) -> [TodoItem] {
+            switch sortOption {
+            case .dueDateAsc:
+                return array.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+            case .dueDateDesc:
+                return array.sorted { ($0.dueDate ?? Date.distantPast) > ($1.dueDate ?? Date.distantPast) }
+            case .titleAsc:
+                return array.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            case .titleDesc:
+                return array.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedDescending }
+            case .createdDesc:
+                return array.sorted { ($0.createdAt ?? Date.distantPast) > ($1.createdAt ?? Date.distantPast) }
+            }
         }
+
+        return sort(favorites) + sort(normal)
     }
     
     var filteredTodos: [TodoItem] {
@@ -114,11 +111,6 @@ struct TodoListView: View {
                         showingSettings.toggle()
                     } label: {
                         Image(systemName: "gearshape")
-                    }
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Kategorien") {
-                        showingCategoryEdit = true
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -214,10 +206,6 @@ struct TodoListView: View {
             ))
             .sheet(isPresented: $showingSettings) {
                 EinstellungenView()
-            }
-            .sheet(isPresented: $showingCategoryEdit) {
-                CategoryEditView()
-                    .environmentObject(todoStore)
             }
             .overlay(
                 Group {
@@ -358,36 +346,39 @@ struct TodoListView: View {
     private var todoListView: some View {
         ScrollView {
             LazyVStack(spacing: 15) {
-                ForEach(sortedTodos) { todo in
-                    TodoCard(todo: todo) {
-                        withAnimation {
-                            todoStore.complete(todo: todo)
-                        }
-                    } onEdit: {
-                        editingTodo = todo
-                    } onDelete: {
-                        todoToDelete = todo
-                        showingDeleteAlert = true
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button {
+                ForEach($todoStore.todos) { $todo in
+                    // Filter & Sortierung
+                    if filteredTodos.contains(todo) {
+                        TodoCard(todo: $todo) {  // <--- Binding übergeben
                             withAnimation {
                                 todoStore.complete(todo: todo)
                             }
-                        } label: {
-                            Label("Erledigt", systemImage: "checkmark")
-                        }
-                        .tint(.green)
-                        
-                        Button(role: .destructive) {
+                        } onEdit: {
+                            editingTodo = todo
+                        } onDelete: {
                             todoToDelete = todo
                             showingDeleteAlert = true
-                        } label: {
-                            Label("Löschen", systemImage: "trash")
                         }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button {
+                                withAnimation {
+                                    todoStore.complete(todo: todo)
+                                }
+                            } label: {
+                                Label("Erledigt", systemImage: "checkmark")
+                            }
+                            .tint(.green)
+                            
+                            Button(role: .destructive) {
+                                todoToDelete = todo
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Löschen", systemImage: "trash")
+                            }
+                        }
+                        .strikethrough(todo.isCompleted, color: .gray)
+                        .opacity(todo.isCompleted ? 0.6 : 1.0)
                     }
-                    .strikethrough(todo.isCompleted, color: .gray)
-                    .opacity(todo.isCompleted ? 0.6 : 1.0)
                 }
             }
             .padding()

@@ -25,6 +25,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var imageDataArray: [Data] = []
 
     var calendarEnabled: Bool = false // ✅ NEU: expliziter Schalter für Kalendereintrag
+    var isFavorite: Bool = false
 
     init(
         id: UUID = UUID(),
