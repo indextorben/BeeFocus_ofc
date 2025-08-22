@@ -71,15 +71,15 @@ struct TodoListView: View {
         func sort(_ array: [TodoItem]) -> [TodoItem] {
             switch sortOption {
             case .dueDateAsc:
-                return array.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+                return array.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
             case .dueDateDesc:
-                return array.sorted { ($0.dueDate ?? Date.distantPast) > ($1.dueDate ?? Date.distantPast) }
+                return array.sorted { ($0.dueDate ?? .distantPast) > ($1.dueDate ?? .distantPast) }
             case .titleAsc:
                 return array.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
             case .titleDesc:
                 return array.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedDescending }
             case .createdDesc:
-                return array.sorted { ($0.createdAt ?? Date.distantPast) > ($1.createdAt ?? Date.distantPast) }
+                return array.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
             }
         }
 
@@ -346,42 +346,54 @@ struct TodoListView: View {
     private var todoListView: some View {
         ScrollView {
             LazyVStack(spacing: 15) {
-                ForEach($todoStore.todos) { $todo in
-                    // Filter & Sortierung
-                    if filteredTodos.contains(todo) {
-                        TodoCard(todo: $todo) {  // <--- Binding übergeben
-                            withAnimation {
+                ForEach(sortedTodos) { todo in
+                    // Binding zu dem Element im Store herstellen (über die id)
+                    let binding = Binding<TodoItem>(
+                        get: {
+                            todoStore.todos.first(where: { $0.id == todo.id }) ?? todo
+                        },
+                        set: { updated in
+                            if let idx = todoStore.todos.firstIndex(where: { $0.id == updated.id }) {
+                                todoStore.todos[idx] = updated
+                            }
+                        }
+                    )
+
+                    TodoCard(todo: binding) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            todoStore.complete(todo: todo)
+                        }
+                    } onEdit: {
+                        editingTodo = todo
+                    } onDelete: {
+                        todoToDelete = todo
+                        showingDeleteAlert = true
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                 todoStore.complete(todo: todo)
                             }
-                        } onEdit: {
-                            editingTodo = todo
-                        } onDelete: {
+                        } label: {
+                            Label("Erledigt", systemImage: "checkmark")
+                        }
+                        .tint(.green)
+
+                        Button(role: .destructive) {
                             todoToDelete = todo
                             showingDeleteAlert = true
+                        } label: {
+                            Label("Löschen", systemImage: "trash")
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button {
-                                withAnimation {
-                                    todoStore.complete(todo: todo)
-                                }
-                            } label: {
-                                Label("Erledigt", systemImage: "checkmark")
-                            }
-                            .tint(.green)
-                            
-                            Button(role: .destructive) {
-                                todoToDelete = todo
-                                showingDeleteAlert = true
-                            } label: {
-                                Label("Löschen", systemImage: "trash")
-                            }
-                        }
-                        .strikethrough(todo.isCompleted, color: .gray)
-                        .opacity(todo.isCompleted ? 0.6 : 1.0)
                     }
+                    .strikethrough(todo.isCompleted, color: .gray)
+                    .opacity(todo.isCompleted ? 0.6 : 1.0)
                 }
             }
             .padding()
+            // sanfte Reorder-Animation wenn isFavorite oder dueDate sich ändert
+            .animation(.spring(response: 0.35, dampingFraction: 0.85),
+                       value: sortedTodos.map(\.id))
         }
     }
 }
