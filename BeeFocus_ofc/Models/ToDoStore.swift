@@ -72,6 +72,9 @@ class TodoStore: ObservableObject {
     
     private let eventStore = EKEventStore()
     
+    // Für Undo/Redo merken wir uns die letzte rückgängig gemachte Aufgabe
+    private var lastUndoneTodoID: UUID?
+    
     init() {
         loadTodos()
         loadCategories()
@@ -90,7 +93,17 @@ class TodoStore: ObservableObject {
             if let index = todos.firstIndex(where: { $0.id == last.id }) {
                 todos[index].isCompleted = false
                 todos[index].completedAt = nil
+                lastUndoneTodoID = last.id   // merken für Redo
             }
+        }
+    }
+    
+    func redoLastCompleted() {
+        if let id = lastUndoneTodoID,
+           let index = todos.firstIndex(where: { $0.id == id }) {
+            todos[index].isCompleted = true
+            todos[index].completedAt = Date()
+            lastUndoneTodoID = nil // nur einmal Redo möglich
         }
     }
     

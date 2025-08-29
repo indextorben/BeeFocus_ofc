@@ -51,7 +51,7 @@ struct TodoListView: View {
     
     enum SortOption: CaseIterable, Hashable {
         case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc
-
+        
         var displayName: String {
             switch self {
             case .dueDateAsc: return "Fälligkeitsdatum ↑"
@@ -67,7 +67,7 @@ struct TodoListView: View {
         let todos = filteredTodos
         let favorites = todos.filter { $0.isFavorite }
         let normal = todos.filter { !$0.isFavorite }
-
+        
         func sort(_ array: [TodoItem]) -> [TodoItem] {
             switch sortOption {
             case .dueDateAsc:
@@ -82,7 +82,7 @@ struct TodoListView: View {
                 return array.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
             }
         }
-
+        
         return sort(favorites) + sort(normal)
     }
     
@@ -122,6 +122,13 @@ struct TodoListView: View {
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.blue)
                         }
+                        Button(action: {
+                            todoStore.redoLastCompleted()
+                        }) {
+                            Image(systemName: "arrow.uturn.forward")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.blue)
+                        }
                         
                         Button {
                             showingSortOptions = true
@@ -129,7 +136,7 @@ struct TodoListView: View {
                             Image(systemName: "arrow.up.arrow.down")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(14)
+                                .padding(8)
                                 .background(
                                     BlurView(style: .systemUltraThinMaterialDark)
                                         .clipShape(Circle())
@@ -358,7 +365,7 @@ struct TodoListView: View {
                             }
                         }
                     )
-
+                    
                     TodoCard(todo: binding) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             todoStore.complete(todo: todo)
@@ -378,7 +385,7 @@ struct TodoListView: View {
                             Label("Erledigt", systemImage: "checkmark")
                         }
                         .tint(.green)
-
+                        
                         Button(role: .destructive) {
                             todoToDelete = todo
                             showingDeleteAlert = true
