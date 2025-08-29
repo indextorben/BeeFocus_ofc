@@ -106,42 +106,19 @@ struct TodoListView: View {
             .searchable(text: $searchText, prompt: "Aufgaben suchen...")
             .navigationTitle("Aufgaben")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showingSettings.toggle()
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 20) {
-                        Button(action: {
-                            todoStore.undoLastCompleted()
-                        }) {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.blue)
-                        }
-                        Button(action: {
-                            todoStore.redoLastCompleted()
-                        }) {
-                            Image(systemName: "arrow.uturn.forward")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.blue)
+                // 🔹 Navigation links
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    HStack(spacing: 1) {
+                        Button {
+                            showingSettings.toggle()
+                        } label: {
+                            Image(systemName: "gearshape")
                         }
                         
                         Button {
                             showingSortOptions = true
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(
-                                    BlurView(style: .systemUltraThinMaterialDark)
-                                        .clipShape(Circle())
-                                )
-                                .shadow(color: Color.blue.opacity(0.5), radius: 6, x: 0, y: 3)
                         }
                         .confirmationDialog("Sortieren nach", isPresented: $showingSortOptions) {
                             Button("Fälligkeitsdatum ↑") { sortOption = .dueDateAsc }
@@ -150,49 +127,72 @@ struct TodoListView: View {
                             Button("Alphabetisch Z–A") { sortOption = .titleDesc }
                             Button("Erstellungsdatum neu → alt") { sortOption = .createdDesc }
                         }
+                    }
+                }
+                
+                // 🔹 Navigation rechts
+                ToolbarItemGroup(placement: .primaryAction) {
+                    // Undo + Redo nebeneinander
+                    HStack(spacing: 2) {
+                        Button(action: {
+                            todoStore.undoLastCompleted()
+                        }) {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.blue)
+                        }
                         
                         Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                showingAddTodo = true
-                                isPlusPressed.toggle()
-                            }
+                            todoStore.redoLastCompleted()
                         }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(14)
-                                .background(
-                                    ZStack {
-                                        BlurView(style: .systemUltraThinMaterialDark)
-                                            .clipShape(Circle())
-                                        Circle()
-                                            .fill(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [Color.blue.opacity(0.6), Color.red]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-                                            .blur(radius: 3)
-                                            .opacity(0.3)
-                                    }
-                                )
-                                .scaleEffect(isPlusPressed ? 1.1 : 1.0)
-                                .shadow(color: Color.blue.opacity(0.5), radius: 10, x: 0, y: 6)
-                                .overlay(
+                            Image(systemName: "arrow.uturn.forward")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    // Plusbutton alleine
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            showingAddTodo = true
+                            isPlusPressed.toggle()
+                        }
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(14)
+                            .background(
+                                ZStack {
+                                    BlurView(style: .systemUltraThinMaterialDark)
+                                        .clipShape(Circle())
                                     Circle()
-                                        .stroke(
+                                        .fill(
                                             LinearGradient(
-                                                gradient: Gradient(colors: [Color.white.opacity(0.4), Color.blue.opacity(0.4)]),
+                                                gradient: Gradient(colors: [Color.blue.opacity(0.6), Color.red]),
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
-                                            ),
-                                            lineWidth: 1.5
+                                            )
                                         )
-                                )
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                                        .blur(radius: 3)
+                                        .opacity(0.3)
+                                }
+                            )
+                            .scaleEffect(isPlusPressed ? 1.1 : 1.0)
+                            .shadow(color: Color.blue.opacity(0.5), radius: 10, x: 0, y: 6)
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.white.opacity(0.4), Color.blue.opacity(0.4)]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1.5
+                                    )
+                            )
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .modifier(SheetModifiers(
