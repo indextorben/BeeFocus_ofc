@@ -431,15 +431,17 @@ struct StatistikView: View {
                         .shadow(color: colorScheme == .dark ? .clear : Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
                         
                         // MARK: Jahresfortschritt
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(spacing: 12) {
                             Text("Jahresfortschritt")
                                 .font(.headline)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 15) {
+                            if UIDevice.current.userInterfaceIdiom == .pad {
+                                // iPad: Alle Monate sichtbar
+                                let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 6) // 6 Spalten pro Reihe
+                                LazyVGrid(columns: columns, spacing: 15) {
                                     ForEach(yearlyProgress, id: \.month) { data in
                                         VStack(spacing: 4) {
                                             Text(getGermanMonthAbbreviation((data.month) % 12))
@@ -458,12 +460,37 @@ struct StatistikView: View {
                                                 .font(.caption2)
                                                 .foregroundColor(textColor)
                                         }
-                                        .frame(width: 40)
                                     }
                                 }
-                                .padding(.horizontal, 5)
+                                .padding(.horizontal, 10)
+                            } else {
+                                // iPhone: Horizontal scrollen
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 15) {
+                                        ForEach(yearlyProgress, id: \.month) { data in
+                                            VStack(spacing: 4) {
+                                                Text(getGermanMonthAbbreviation((data.month) % 12))
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                VStack(spacing: 0) {
+                                                    Spacer()
+                                                    RoundedRectangle(cornerRadius: 4)
+                                                        .frame(width: 20, height: CGFloat(data.progress) * 60)
+                                                        .foregroundColor(.purple)
+                                                }
+                                                .frame(height: 60)
+                                                .background(Color.gray.opacity(0.2))
+                                                .cornerRadius(4)
+                                                Text("\(Int(data.progress * 100))%")
+                                                    .font(.caption2)
+                                                    .foregroundColor(textColor)
+                                            }
+                                            .frame(width: 40)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 8)
                             }
-                            .padding(.top, 8)
                         }
                         .padding()
                         .background(cardBackground)

@@ -13,29 +13,65 @@ import CloudKit
 struct ContentView: View {
     @StateObject private var todoStore = TodoStore()
     @State private var selectedTab = 0
+    @Environment(\.horizontalSizeClass) var sizeClass
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            NavigationView {
-                TodoListView()
-                    .environmentObject(todoStore)
+            
+            // MARK: - Aufgaben Tab
+            Group {
+                if sizeClass == .compact {
+                    NavigationView {
+                        TodoListView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                } else {
+                    NavigationStack {
+                        TodoListView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
             .tabItem {
                 Label("Aufgaben", systemImage: "list.bullet")
             }
             .tag(0)
             
-            NavigationView {
-                TimerView()
+            // MARK: - Timer Tab
+            Group {
+                if sizeClass == .compact {
+                    NavigationView {
+                        TimerView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                } else {
+                    NavigationStack {
+                        TimerView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
             .tabItem {
                 Label("Timer", systemImage: "timer")
             }
             .tag(1)
             
-            NavigationView {
-                StatistikView()
-                    .environmentObject(todoStore)
+            // MARK: - Statistik Tab
+            Group {
+                if sizeClass == .compact {
+                    NavigationView {
+                        StatistikView()
+                            .environmentObject(todoStore)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                } else {
+                    NavigationStack {
+                        StatistikView()
+                            .environmentObject(todoStore)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .navigationViewStyle(.stack)
+                }
             }
             .tabItem {
                 Label("Statistik", systemImage: "chart.bar")
@@ -44,6 +80,8 @@ struct ContentView: View {
         }
     }
 }
+
+// MARK: - Preview
 #Preview {
     ContentView()
 }

@@ -11,7 +11,7 @@ import UIKit
 @main
 struct BeeFocus_ofcApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = true
     @AppStorage("selectedLanguage") private var selectedLanguage = "Deutsch"
 
     var body: some Scene {
