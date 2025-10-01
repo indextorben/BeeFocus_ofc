@@ -438,6 +438,8 @@ struct StatistikView: View {
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
                             
+                            Spacer().frame(height: 10)
+                            
                             if UIDevice.current.userInterfaceIdiom == .pad {
                                 // iPad: Alle Monate sichtbar
                                 let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 6) // 6 Spalten pro Reihe
@@ -450,7 +452,7 @@ struct StatistikView: View {
                                             VStack(spacing: 0) {
                                                 Spacer()
                                                 RoundedRectangle(cornerRadius: 4)
-                                                    .frame(width: 20, height: CGFloat(data.progress) * 60)
+                                                    .frame(width: 20, height: CGFloat(data.progress) * 30)
                                                     .foregroundColor(.purple)
                                             }
                                             .frame(height: 60)
