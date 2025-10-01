@@ -15,6 +15,9 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @Environment(\.horizontalSizeClass) var sizeClass
     
+    // 🔹 Darkmode Einstellung aus AppStorage laden
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
+    
     var body: some View {
         TabView(selection: $selectedTab) {
             
@@ -78,6 +81,8 @@ struct ContentView: View {
             }
             .tag(2)
         }
+        // 🔹 HIER wird das Farbschema auf die ganze App angewendet
+        .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
     }
 }
 
