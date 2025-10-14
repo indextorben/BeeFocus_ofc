@@ -369,10 +369,12 @@ struct TodoListView: View {
                     TodoCard(todo: binding) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             todoStore.complete(todo: todo)
+                            todoStore.cancelNotification(for: todo) // 🔹 Notification abbrechen
                         }
                     } onEdit: {
                         editingTodo = todo
                     } onDelete: {
+                        todoStore.cancelNotification(for: todo) // 🔹 Notification abbrechen
                         todoToDelete = todo
                         showingDeleteAlert = true
                     }
@@ -387,6 +389,7 @@ struct TodoListView: View {
                         .tint(.green)
                         
                         Button(role: .destructive) {
+                            todoStore.cancelNotification(for: todo)
                             todoToDelete = todo
                             showingDeleteAlert = true
                         } label: {

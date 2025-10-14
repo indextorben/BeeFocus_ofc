@@ -220,7 +220,7 @@ class TodoStore: ObservableObject {
     
     func deleteTodo(_ todo: TodoItem) {
         deleteCalendarEvent(for: todo)
-        NotificationManager.shared.cancelNotification(id: todo.id.uuidString)
+        NotificationManager.shared.cancelNotification(id: todo.id.uuidString) // 🔹 Abbrechen der Benachrichtigung
         todos.removeAll { $0.id == todo.id }
         saveTodos()
     }
@@ -232,6 +232,9 @@ class TodoStore: ObservableObject {
             if updatedTodo.isCompleted {
                 updatedTodo.completedAt = Date()
                 updateStats(for: updatedTodo)
+                
+                // 🔹 Notification abbrechen
+                NotificationManager.shared.cancelNotification(id: updatedTodo.id.uuidString)
             } else {
                 updatedTodo.completedAt = nil
             }
@@ -247,6 +250,9 @@ class TodoStore: ObservableObject {
             todos[index].completedAt = Date()
             updateStats(for: todos[index])
             saveTodos()
+            
+            // 🔹 Notification abbrechen, damit sie nicht mehr losgeht
+            NotificationManager.shared.cancelNotification(id: todos[index].id.uuidString)
         }
     }
     

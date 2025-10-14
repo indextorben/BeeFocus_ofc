@@ -41,7 +41,7 @@ struct EinstellungenView: View {
                         Toggle(localizer.localizedString(forKey: "Benachrichtigungen"), isOn: $notificationsEnabled)
                             .onChange(of: notificationsEnabled) { enabled in
                                 if enabled {
-                                    requestNotificationPermission()
+                                    requestNotificationPermission() // Banner nur bei Klick
                                 } else {
                                     bannerColor = .red
                                     showBanner(message: localizer.localizedString(forKey: "Benachrichtigungen deaktiviert"))
@@ -53,6 +53,17 @@ struct EinstellungenView: View {
                     Section(header: Text(localizer.localizedString(forKey: "Kategorien"))) {
                         Button(localizer.localizedString(forKey: "Kategorien verwalten")) {
                             showingCategoryEdit = true
+                        }
+                    }
+                    
+                    // Feedback / Verbesserungen
+                    Section {
+                        Button(action: sendFeedbackEmail) {
+                            HStack {
+                                Image(systemName: "envelope")
+                                Text("Feedback / Verbesserungen")
+                            }
+                            .foregroundColor(.blue)
                         }
                     }
                 }
@@ -97,7 +108,7 @@ struct EinstellungenView: View {
 
     // MARK: - Notifications
     private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             DispatchQueue.main.async {
                 if granted {
                     bannerColor = .green
@@ -117,6 +128,19 @@ struct EinstellungenView: View {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation(.easeOut) { showNotificationBanner = false }
+        }
+    }
+    
+    // MARK: - Feedback Email
+    private func sendFeedbackEmail() {
+        let email = "lehneketorben@gmail.com"
+        let subject = "Feedback zur Todo-App"
+        let body = "Hallo,\n\nHier ist mein Feedback oder Verbesserungsvorschlag:\n"
+        
+        if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
         }
     }
 }
