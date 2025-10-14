@@ -91,11 +91,6 @@ struct EinstellungenView: View {
                     .zIndex(1)
                 }
             }
-            .onAppear {
-                if notificationsEnabled {
-                    requestNotificationPermission()
-                }
-            }
         }
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
     }

@@ -28,6 +28,11 @@ struct EditTodoView: View {
     @State private var showCamera = false
     @State private var showCameraPermissionAlert = false
     
+    // Neue Kategorie hinzufügen
+    @State private var showAddCategoryAlert = false
+    @State private var newCategoryName = ""
+    @State private var showCategoryAlert = false
+
     init(todo: TodoItem) {
         self.todo = todo
         _title = State(initialValue: todo.title)
@@ -73,6 +78,24 @@ struct EditTodoView: View {
             } message: { _ in
                 Text("Möchten Sie dieses Bild wirklich löschen?")
             }
+            .alert("Neue Kategorie", isPresented: $showAddCategoryAlert) {
+                VStack {
+                    TextField("Kategoriename", text: $newCategoryName)
+                }
+                Button("Abbrechen", role: .cancel) {
+                    newCategoryName = ""
+                }
+                Button("Hinzufügen") {
+                    addNewCategory()
+                }
+            } message: {
+                Text("Gib den Namen der neuen Kategorie ein.")
+            }
+            .alert("Kategorie fehlt", isPresented: $showCategoryAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Bitte wähle eine Kategorie aus, bevor du die Aufgabe speicherst.")
+            }
         }
     }
     
@@ -91,6 +114,13 @@ struct EditTodoView: View {
                 ForEach(todoStore.categories, id: \.self) { category in
                     Text(category.name).tag(category)
                 }
+            }
+            
+            Button {
+                showAddCategoryAlert = true
+            } label: {
+                Label("Kategorie hinzufügen", systemImage: "plus.circle")
+                    .foregroundColor(.blue)
             }
             
             Picker("Priorität", selection: $priority) {
@@ -292,7 +322,23 @@ struct EditTodoView: View {
         subTasks.removeAll { $0.id == subTask.id }
     }
     
+    private func addNewCategory() {
+        let trimmedName = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
+        let newCategory = Category(name: trimmedName, colorHex: randomColor)
+        todoStore.categories.append(newCategory)
+        category = newCategory
+        newCategoryName = ""
+    }
+    
     private func saveTodo() {
+        if todoStore.categories.isEmpty {
+            showCategoryAlert = true
+            return
+        }
+
         let imageDataArray = selectedImages.compactMap { $0.image.jpegData(compressionQuality: 0.8) }
         
         let updatedTodo = TodoItem(

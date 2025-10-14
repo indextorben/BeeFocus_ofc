@@ -1,0 +1,83 @@
+/* 
+  Localizable.strings
+  BeeFocus_ofc
+
+  Created by Torben Lehneke on 01.10.25.
+  
+*/
+
+"Einstellungen" = "Einstellungen";
+"Darkmode" = "Dunkelmodus";
+"Sprache" = "Sprache";
+"Benachrichtigungen" = "Benachrichtigungen";
+"Benachrichtigungen deaktiviert" = "Benachrichtigungen deaktiviert";
+"Benachrichtigung erlaubt" = "Benachrichtigung erlaubt";
+"Benachrichtigungen abgelehnt" = "Benachrichtigungen abgelehnt";
+"Kategorien" = "Kategorien";
+"Kategorien verwalten" = "Kategorien verwalten";
+"Fertig" = "Fertig";
+"Displaymodus" = "Displaymodus";
+"Aufgaben" = "Aufgaben";
+"Aufgaben suchen..." = "Aufgaben suchen...";
+"Pausiert" = "Pausiert";
+"Gesamtübersicht" = "Gesamtübersicht";
+"Statistik" = "Statistik";
+"Gesamt" = "Gesamt";
+"Erledigt" = "Erledigt";
+"Offen" = "Offen";
+"Überfällig" = "Überfällig";
+"Heutige Aktivität" = "Heutige Aktivität";
+"alle Aufgaben erledigt" = "Alle Aufgaben erledigt";
+"Heute erledigt" = "Heute erledigt";
+"Heute fällig" = "Heute fällig";
+"der heutigen Aktivitäten erledigt" = "der heutigen Aktivitäten erledigt";
+"Fokuszeit" = "Fokuszeit";
+"Mo" = "Mo";
+"Di" = "Di";
+"Mi" = "Mi";
+"Do" = "Do";
+"Fr" = "Fr";
+"Sa" = "Sa";
+"So" = "So";
+"Fortschrittübersicht" = "Fortschrittübersicht";
+"Wöchentlicher Fortschritt" = "Wöchentlicher Fortschritt";
+"Monatlicher Fortschritt" = "Monatlicher Fortschritt";
+"Jahresfortschritt" = "Jahresfortschritt";
+"Jan" = "Jan";
+"Feb" = "Feb";
+"Mär" = "Mär";
+"Apr" = "Apr";
+"Mai" = "Mai";
+"Jun" = "Jun";
+"Jul" = "Jul";
+"Aug" = "Aug";
+"Sep" = "Sep";
+"Okt" = "Okt";
+"Nov" = "Nov";
+"Dez" = "Dez";
+"Neue Kategorie" = "Neue Kategorie";
+"Bitte geben Sie einen Namen für die neue Kategorie ein." = "Bitte geben Sie einen Namen für die neue Kategorie ein.";
+"Kategoriename" = "Kategoriename";
+"Abbrechen" = "Abbrechen";
+"Hinzufügen" = "Hinzufügen";
+"Mittel" = "Mittel";
+"Aufgabentitel" = "Aufgabentitel";
+"Titel" = "Titel";
+"Kategoriesierung" = "Kategorisierung";
+"Kategorie" = "Kategorie";
+"Priorität" = "Priorität";
+"Fälligkeitsdatum aktivieren" = "Fälligkeitsdatum aktivieren";
+"Datum & Uhrzeit" = "Datum & Uhrzeit";
+"In Systemkalender eintragen" = "In Systemkalender eintragen";
+"Bilder" = "Bilder";
+"Aus Galerie auswählen" = "Aus Galerie auswählen";
+"Mit Kamera aufnehmen" = "Mit Kamera aufnehmen";
+"Unteraufgaben" = "Unteraufgaben";
+"Neue Unteraufgabe" = "Neue Unteraufgabe";
+"Speichern" = "Speichern";
+"Aufgabe bearbeiten" = "Aufgabe bearbeiten";
+"Fälligkeitsdatum" = "Fälligkeitsdatum";
+"Alphabetisch" = "Alphabetisch";
+"Erstellungsdatum" = "Erstellungsdatum";
+"neu" = "Neu";
+"alt" = "Alt";

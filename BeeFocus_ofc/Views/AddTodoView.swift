@@ -91,9 +91,13 @@ struct AddTodoView: View {
     @State private var showDeleteConfirmation = false
     @State private var showCamera = false
     @State private var showCameraPermissionAlert = false
-
     @State private var addToCalendar = false
     @State private var calendarAccessDenied = false
+    @State private var showCategoryAlert = false
+
+    // Neu für Kategorie hinzufügen
+    @State private var showAddCategoryAlert = false
+    @State private var newCategoryName = ""
 
     var body: some View {
         NavigationView {
@@ -132,6 +136,11 @@ struct AddTodoView: View {
             } message: {
                 Text("Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.")
             }
+            .alert("Kategorie fehlt", isPresented: $showCategoryAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Bitte wählen Sie eine Kategorie aus, bevor Sie die Aufgabe speichern.")
+            }
         }
     }
 
@@ -150,6 +159,26 @@ struct AddTodoView: View {
                 ForEach(todoStore.categories, id: \.self) { category in
                     Text(category.name).tag(Optional(category))
                 }
+            }
+
+            Button {
+                showAddCategoryAlert = true
+            } label: {
+                Label("Kategorie hinzufügen", systemImage: "plus.circle")
+                    .foregroundColor(.blue)
+            }
+            .alert("Neue Kategorie", isPresented: $showAddCategoryAlert) {
+                VStack {
+                    TextField("Kategoriename", text: $newCategoryName)
+                }
+                Button("Abbrechen", role: .cancel) {
+                    newCategoryName = ""
+                }
+                Button("Hinzufügen") {
+                    addNewCategory()
+                }
+            } message: {
+                Text("Gib den Namen der neuen Kategorie ein.")
             }
 
             Picker("Priorität", selection: $priority) {
@@ -242,7 +271,6 @@ struct AddTodoView: View {
         }
         ToolbarItem(placement: .confirmationAction) {
             Button("Hinzufügen") { saveTodo() }
-                .disabled(title.isEmpty || category == nil)
         }
     }
 
@@ -332,8 +360,29 @@ struct AddTodoView: View {
         subTasks.removeAll { $0.id == subTask.id }
     }
 
+    private func addNewCategory() {
+        let trimmedName = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        // Zufällige Farbe im Hex-Format erzeugen
+        let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
+
+        // Neue Kategorie mit Name und Farbe erstellen
+        let newCategory = Category(name: trimmedName, colorHex: randomColor)
+
+        // Kategorie zum Store hinzufügen und auswählen
+        todoStore.categories.append(newCategory)
+        category = newCategory
+        newCategoryName = ""
+    }
+
     private func saveTodo() {
-        guard let selectedCategory = category else { return }
+        if category == nil {
+            showCategoryAlert = true
+            return
+        }
+
+        guard !title.isEmpty, let selectedCategory = category else { return }
 
         let todo = TodoItem(
             title: title,
@@ -362,7 +411,7 @@ struct AddTodoView: View {
                 event.title = title
                 event.notes = description
                 event.startDate = dueDate
-                event.endDate = dueDate.addingTimeInterval(3600) // 1 Stunde
+                event.endDate = dueDate.addingTimeInterval(3600)
                 event.calendar = eventStore.defaultCalendarForNewEvents
                 do {
                     try eventStore.save(event, span: .thisEvent)
