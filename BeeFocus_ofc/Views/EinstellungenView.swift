@@ -15,7 +15,7 @@ struct EinstellungenView: View {
     @State private var showingCategoryEdit = false
 
     @ObservedObject private var localizer = LocalizationManager.shared
-    let languages = ["Deutsch", "Englisch", "Französisch", "Spanisch"]
+    let languages = ["Deutsch", "Englisch"]
 
     var body: some View {
         NavigationView {
