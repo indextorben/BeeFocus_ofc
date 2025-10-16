@@ -169,17 +169,19 @@ class TimerManager: ObservableObject {
             reset()
             return
         }
-        
+
         let timeSinceSave = -savedState.lastSaveDate.timeIntervalSinceNow
-        
-        isRunning = false
+
         currentSession = savedState.currentSession
         isBreak = savedState.isBreak
-        
-        if savedState.isRunning {
-            timeRemaining = max(0, savedState.remainingTime - timeSinceSave)
+        timeRemaining = savedState.remainingTime - timeSinceSave
+
+        if savedState.isRunning && timeRemaining > 0 {
+            isRunning = true
+            startTimer() // Timer wieder starten, Icon stimmt dann
         } else {
-            timeRemaining = savedState.remainingTime
+            isRunning = false
+            if timeRemaining < 0 { timeRemaining = 0 }
         }
     }
     
