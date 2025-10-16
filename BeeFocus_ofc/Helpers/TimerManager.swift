@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import SwiftUI
+import ActivityKit
 
 struct TimerState: Codable {
     var endDate: Date?
@@ -9,6 +10,15 @@ struct TimerState: Codable {
     var isBreak: Bool
     var remainingTime: TimeInterval
     var lastSaveDate: Date
+}
+
+struct TimerActivityAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        var timeRemaining: TimeInterval
+        var isBreak: Bool
+        var sessionNumber: Int
+        var totalSessions: Int
+    }
 }
 
 class TimerManager: ObservableObject {
@@ -20,7 +30,7 @@ class TimerManager: ObservableObject {
     @Published var currentSession = 1
     
     private var timer: Timer?
-    private var backgroundTime: Date?
+    private var activity: Activity<TimerActivityAttributes>? // Live Activity
     
     @AppStorage("focusTime") var focusTime: Int = 25
     @AppStorage("shortBreakTime") var shortBreakTime: Int = 5
@@ -52,17 +62,17 @@ class TimerManager: ObservableObject {
         isRunning = true
         startTimer()
         saveState()
-        
         scheduleNotification()
     }
     
     func pause() {
         guard isRunning else { return }
-        
         stopTimer()
         isRunning = false
         saveState()
         NotificationManager.shared.cancelTimerNotification()
+        
+        Task { await activity?.end(using: TimerActivityAttributes.ContentState(timeRemaining: timeRemaining, isBreak: isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)) }
     }
     
     func pauseAndSave() {
@@ -70,6 +80,8 @@ class TimerManager: ObservableObject {
             stopTimer()
             saveState()
             isRunning = false
+            
+            Task { await activity?.end(using: TimerActivityAttributes.ContentState(timeRemaining: timeRemaining, isBreak: isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)) }
         }
     }
     
@@ -87,11 +99,27 @@ class TimerManager: ObservableObject {
     
     private func startTimer() {
         stopTimer()
+        
+        // Live Activity starten
+        if ActivityAuthorizationInfo().areActivitiesEnabled {
+            let initialState = TimerActivityAttributes.ContentState(timeRemaining: timeRemaining, isBreak: isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)
+            activity = try? Activity<TimerActivityAttributes>.request(
+                attributes: TimerActivityAttributes(),
+                contentState: initialState,
+                pushType: nil
+            )
+        }
+        
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.timeRemaining -= 1
+            guard let self = self else { return }
+            self.timeRemaining -= 1
             
-            if self?.timeRemaining ?? 0 <= 0 {
-                self?.timerCompleted()
+            Task {
+                await self.activity?.update(using: TimerActivityAttributes.ContentState(timeRemaining: self.timeRemaining, isBreak: self.isBreak, sessionNumber: self.currentSession, totalSessions: self.sessionsUntilLongBreak))
+            }
+            
+            if self.timeRemaining <= 0 {
+                self.timerCompleted()
             }
         }
     }
@@ -103,6 +131,8 @@ class TimerManager: ObservableObject {
     
     private func timerCompleted() {
         stop()
+        
+        Task { await activity?.end(using: TimerActivityAttributes.ContentState(timeRemaining: 0, isBreak: self.isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)) }
         
         if isBreak {
             currentSession = (currentSession % sessionsUntilLongBreak) + 1
@@ -142,12 +172,11 @@ class TimerManager: ObservableObject {
         
         let timeSinceSave = -savedState.lastSaveDate.timeIntervalSinceNow
         
-        isRunning = false // Immer pausiert wiederherstellen
+        isRunning = false
         currentSession = savedState.currentSession
         isBreak = savedState.isBreak
         
         if savedState.isRunning {
-            // Berechne die verbleibende Zeit zum Zeitpunkt des Pausierens
             timeRemaining = max(0, savedState.remainingTime - timeSinceSave)
         } else {
             timeRemaining = savedState.remainingTime

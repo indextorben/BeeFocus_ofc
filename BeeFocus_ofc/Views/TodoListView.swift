@@ -52,7 +52,7 @@ struct TodoListView: View {
     enum SortOption: CaseIterable, Hashable {
         case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc
         
-        var displayName: String {
+        var displayName: LocalizedStringKey {
             switch self {
             case .dueDateAsc: return "Fälligkeitsdatum ↑"
             case .dueDateDesc: return "Fälligkeitsdatum ↓"
@@ -103,8 +103,8 @@ struct TodoListView: View {
     // MARK: - Main View
     var body: some View {
         mainContentView
-            .searchable(text: $searchText, prompt: "Aufgaben suchen...")
-            .navigationTitle("Aufgaben")
+            .searchable(text: $searchText, prompt: LocalizedStringKey("Aufgaben suchen..."))
+            .navigationTitle(LocalizedStringKey("Aufgaben"))
             .toolbar {
                 // 🔹 Navigation links
                 ToolbarItemGroup(placement: .navigationBarLeading) {
@@ -120,19 +120,16 @@ struct TodoListView: View {
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
                         }
-                        .confirmationDialog("Sortieren nach", isPresented: $showingSortOptions) {
-                            Button("Fälligkeitsdatum ↑") { sortOption = .dueDateAsc }
-                            Button("Fälligkeitsdatum ↓") { sortOption = .dueDateDesc }
-                            Button("Alphabetisch A–Z") { sortOption = .titleAsc }
-                            Button("Alphabetisch Z–A") { sortOption = .titleDesc }
-                            Button("Erstellungsdatum neu → alt") { sortOption = .createdDesc }
+                        .confirmationDialog(LocalizedStringKey("Sortieren nach"), isPresented: $showingSortOptions) {
+                            ForEach(SortOption.allCases, id: \.self) { option in
+                                Button(option.displayName) { sortOption = option }
+                            }
                         }
                     }
                 }
                 
                 // 🔹 Navigation rechts
                 ToolbarItemGroup(placement: .primaryAction) {
-                    // Undo + Redo nebeneinander
                     HStack(spacing: 2) {
                         Button(action: {
                             todoStore.undoLastCompleted()
@@ -151,7 +148,6 @@ struct TodoListView: View {
                         }
                     }
                     
-                    // Plusbutton alleine
                     Button(action: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             showingAddTodo = true
@@ -219,7 +215,7 @@ struct TodoListView: View {
                     if showSuccessToast {
                         VStack {
                             Spacer()
-                            Text("Zum Kalender hinzugefügt")
+                            Text(LocalizedStringKey("Zum Kalender hinzugefügt"))
                                 .font(.subheadline)
                                 .padding()
                                 .background(BlurView(style: .systemMaterial))
@@ -249,7 +245,7 @@ struct TodoListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     CategoryButton(
-                        title: "Alle",
+                        title: LocalizedStringKey("Alle"),
                         isSelected: selectedCategory == nil,
                         color: .blue
                     ) {
@@ -298,7 +294,7 @@ struct TodoListView: View {
     
     private func categoryButton(for category: Category) -> some View {
         CategoryButton(
-            title: category.name,
+            title: LocalizedStringKey(category.name),
             isSelected: selectedCategory == category,
             color: .blue
         ) {
@@ -308,14 +304,14 @@ struct TodoListView: View {
             Button(action: {
                 editingCategory = category
             }) {
-                Label("Umbenennen", systemImage: "pencil")
+                Label(LocalizedStringKey("Umbenennen"), systemImage: "pencil")
             }
             
             Button(role: .destructive, action: {
                 categoryToDelete = category
                 showingDeleteCategoryAlert = true
             }) {
-                Label("Löschen", systemImage: "trash")
+                Label(LocalizedStringKey("Löschen"), systemImage: "trash")
             }
         }
     }
@@ -337,12 +333,12 @@ struct TodoListView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.blue.opacity(0.5))
             
-            Text("Keine Aufgaben")
+            Text(LocalizedStringKey("Keine Aufgaben"))
                 .font(.title2)
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
             
-            Text("Fügen Sie eine neue Aufgabe hinzu")
+            Text(LocalizedStringKey("Fügen Sie eine neue Aufgabe hinzu"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -354,7 +350,6 @@ struct TodoListView: View {
         ScrollView {
             LazyVStack(spacing: 15) {
                 ForEach(sortedTodos) { todo in
-                    // Binding zu dem Element im Store herstellen (über die id)
                     let binding = Binding<TodoItem>(
                         get: {
                             todoStore.todos.first(where: { $0.id == todo.id }) ?? todo
@@ -382,7 +377,7 @@ struct TodoListView: View {
                                 todoStore.complete(todo: todo)
                             }
                         } label: {
-                            Label("Erledigt", systemImage: "checkmark")
+                            Label(LocalizedStringKey("Erledigt"), systemImage: "checkmark")
                         }
                         .tint(.green)
                         
@@ -390,7 +385,7 @@ struct TodoListView: View {
                             todoToDelete = todo
                             showingDeleteAlert = true
                         } label: {
-                            Label("Löschen", systemImage: "trash")
+                            Label(LocalizedStringKey("Löschen"), systemImage: "trash")
                         }
                     }
                     .strikethrough(todo.isCompleted, color: .gray)
@@ -398,7 +393,6 @@ struct TodoListView: View {
                 }
             }
             .padding()
-            // sanfte Reorder-Animation wenn isFavorite oder dueDate sich ändert
             .animation(.spring(response: 0.35, dampingFraction: 0.85),
                        value: sortedTodos.map(\.id))
         }
@@ -407,7 +401,7 @@ struct TodoListView: View {
 
 // MARK: - CategoryButton
 struct CategoryButton: View {
-    let title: String
+    let title: LocalizedStringKey
     let isSelected: Bool
     let color: Color
     let action: () -> Void

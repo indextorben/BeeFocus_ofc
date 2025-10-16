@@ -36,7 +36,7 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label("Aufgaben", systemImage: "list.bullet")
+                Label(LocalizedStringKey("Aufgaben"), systemImage: "list.bullet")
             }
             .tag(0)
             
@@ -55,7 +55,7 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label("Timer", systemImage: "timer")
+                Label(LocalizedStringKey("Timer"), systemImage: "timer")
             }
             .tag(1)
             
@@ -77,7 +77,7 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label("Statistik", systemImage: "chart.bar")
+                Label(LocalizedStringKey("Statistik"), systemImage: "chart.bar")
             }
             .tag(2)
         }
