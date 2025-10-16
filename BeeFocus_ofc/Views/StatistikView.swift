@@ -145,24 +145,26 @@ struct StatistikView: View {
     var yearlyProgress: [(month: Int, progress: Double)] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        
         var result: [(month: Int, progress: Double)] = []
-        
+
         for monthIndex in 0..<12 {
             guard let startOfMonth = calendar.date(byAdding: .month, value: -monthIndex, to: today) else { continue }
-            
+
+            // Filter nach erledigten Todos, basierend auf completedAt
             let monthTodos = todoStore.todos.filter { todo in
-                guard let due = todo.dueDate else { return false }
-                return due >= appStartDate && due <= today &&
-                calendar.isDate(due, equalTo: startOfMonth, toGranularity: .month)
+                guard let completed = todo.completedAt else { return false }
+                return calendar.isDate(completed, equalTo: startOfMonth, toGranularity: .month)
             }
-            
-            let completed = monthTodos.filter { $0.isCompleted }.count
-            let total = monthTodos.count
-            let progress = total > 0 ? Double(completed) / Double(total) : 0
+
+            let completedCount = monthTodos.count
+            let totalCount = todoStore.todos.filter { todo in
+                guard let due = todo.dueDate else { return false }
+                return calendar.isDate(due, equalTo: startOfMonth, toGranularity: .month)
+            }.count
+
+            let progress = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
             result.insert((month: 11 - monthIndex, progress: progress), at: 0)
         }
-        
         return result
     }
     

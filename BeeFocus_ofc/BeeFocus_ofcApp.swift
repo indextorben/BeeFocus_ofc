@@ -50,6 +50,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                     .environmentObject(timerManager)
             )
             shakeWindow.rootViewController = rootVC
+
+            // Closure beim Shake
+            shakeWindow.onShakeDetected = {
+                print("📳 Shake erkannt in AppDelegate!")
+                // z.B. Debug-Overlay anzeigen
+            }
+
             shakeWindow.makeKeyAndVisible()
             self.window = shakeWindow
         }
