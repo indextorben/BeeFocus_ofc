@@ -23,9 +23,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var calendarEventIdentifier: String? // 🗓 Event ID für Synchronisation
     var focusTimeInMinutes: Double? = nil
     var imageDataArray: [Data] = []
-
-    var calendarEnabled: Bool = false // ✅ NEU: expliziter Schalter für Kalendereintrag
-    var isFavorite: Bool = false
+    var calendarEnabled: Bool = false // ✅ Schalter für Kalendereintrag
+    var isFavorite: Bool = false      // ✅ Lieblingsaufgabe
 
     init(
         id: UUID = UUID(),
@@ -40,8 +39,10 @@ struct TodoItem: Identifiable, Codable, Equatable {
         completedAt: Date? = nil,
         lastResetDate: Date? = nil,
         calendarEventIdentifier: String? = nil,
+        focusTimeInMinutes: Double? = nil,
         imageDataArray: [Data] = [],
-        calendarEnabled: Bool = false // ✅ auch im Initializer
+        calendarEnabled: Bool = false,
+        isFavorite: Bool = false // ✅ hinzugefügt!
     ) {
         self.id = id
         self.title = title
@@ -55,8 +56,10 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.completedAt = completedAt
         self.lastResetDate = lastResetDate
         self.calendarEventIdentifier = calendarEventIdentifier
+        self.focusTimeInMinutes = focusTimeInMinutes
         self.imageDataArray = imageDataArray
         self.calendarEnabled = calendarEnabled
+        self.isFavorite = isFavorite
     }
 
     var isOverdue: Bool {
@@ -70,6 +73,6 @@ struct TodoItem: Identifiable, Codable, Equatable {
     }
 
     static func == (lhs: TodoItem, rhs: TodoItem) -> Bool {
-        return lhs.id == rhs.id
+        lhs.id == rhs.id
     }
 }
