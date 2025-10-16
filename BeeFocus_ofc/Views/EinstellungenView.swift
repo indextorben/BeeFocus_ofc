@@ -66,6 +66,17 @@ struct EinstellungenView: View {
                             .foregroundColor(.blue)
                         }
                     }
+                    
+                    // Version / Build anzeigen
+                    Section {
+                        HStack {
+                            Spacer()
+                            Text(Bundle.main.versionAndBuild)
+                                .font(.footnote)
+                                .foregroundColor(.gray)
+                            Spacer()
+                        }
+                    }
                 }
                 .navigationTitle(localizer.localizedString(forKey: "Einstellungen"))
                 .toolbar {
@@ -142,5 +153,18 @@ struct EinstellungenView: View {
                 UIApplication.shared.open(url)
             }
         }
+    }
+}
+
+// MARK: - Bundle Extension für Version/Build
+extension Bundle {
+    var appVersion: String {
+        infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+    }
+    var buildNumber: String {
+        infoDictionary?["CFBundleVersion"] as? String ?? "?"
+    }
+    var versionAndBuild: String {
+        "v\(appVersion)"
     }
 }
