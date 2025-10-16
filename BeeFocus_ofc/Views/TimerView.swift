@@ -49,8 +49,22 @@ struct TimerView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 30) {
+                // 🔹 Obere Buttons: Spotify links, Überspringen rechts
                 HStack {
+                    // Spotify-Button links
+                    Button(action: openSpotify) {
+                        Image(systemName: "music.note")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Color.green)
+                            .clipShape(Circle())
+                    }
+                    .padding(.leading, 20)
+                    
                     Spacer()
+                    
+                    // Überspringen-Button rechts
                     Button(action: {
                         showingSkipConfirmation = true
                     }) {
@@ -134,6 +148,17 @@ struct TimerView: View {
             timerManager.pause()
         } else {
             timerManager.resume()
+        }
+    }
+    
+    // MARK: - Spotify öffnen
+    private func openSpotify() {
+        if let url = URL(string: "spotify:") {
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            } else {
+                print("Spotify nicht installiert")
+            }
         }
     }
 }
