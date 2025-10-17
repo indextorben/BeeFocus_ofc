@@ -41,7 +41,7 @@ struct EinstellungenView: View {
                         Toggle(localizer.localizedString(forKey: "Benachrichtigungen"), isOn: $notificationsEnabled)
                             .onChange(of: notificationsEnabled) { enabled in
                                 if enabled {
-                                    requestNotificationPermission() // Banner nur bei Klick
+                                    requestNotificationPermission()
                                 } else {
                                     bannerColor = .red
                                     showBanner(message: localizer.localizedString(forKey: "Benachrichtigungen deaktiviert"))
@@ -53,6 +53,13 @@ struct EinstellungenView: View {
                     Section(header: Text(localizer.localizedString(forKey: "Kategorien"))) {
                         Button(localizer.localizedString(forKey: "Kategorien verwalten")) {
                             showingCategoryEdit = true
+                        }
+                    }
+
+                    // Tutorials
+                    Section(header: Text(localizer.localizedString(forKey: "Tutorials"))) {
+                        NavigationLink("Tutorials anzeigen") {
+                            TutorialListView()
                         }
                     }
                     
@@ -154,6 +161,14 @@ struct EinstellungenView: View {
             }
         }
     }
+
+    // MARK: - Tutorials öffnen
+    private func openTutorial(urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
 }
 
 // MARK: - Bundle Extension für Version/Build
@@ -165,6 +180,6 @@ extension Bundle {
         infoDictionary?["CFBundleVersion"] as? String ?? "?"
     }
     var versionAndBuild: String {
-        "v\(appVersion)"
+        "v\(appVersion) (\(buildNumber))"
     }
 }
