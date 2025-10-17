@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C5964352EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4C5964342EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist */; };
 		4C8B69602E1C82D800C30F43 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 4C8B695F2E1C82D800C30F43 /* Lottie */; };
 /* End PBXBuildFile section */
 
@@ -34,6 +35,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4C5964342EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "BeeFocus-ofc-Info.plist"; sourceTree = "<group>"; };
 		4C63FC752EA12A540062E93F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4C63FC772EA12A540062E93F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocus_ofc.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,6 +73,7 @@
 		4CCA1DC42DFF618A007F640D = {
 			isa = PBXGroup;
 			children = (
+				4C5964342EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist */,
 				4CCA1DCF2DFF618A007F640D /* BeeFocus_ofc */,
 				4C84FD8E2E1C561600DEF053 /* Frameworks */,
 				4CCA1DCE2DFF618A007F640D /* Products */,
@@ -157,6 +160,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C5964352EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

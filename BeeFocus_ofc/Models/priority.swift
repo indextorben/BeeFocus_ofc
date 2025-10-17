@@ -7,34 +7,31 @@
 
 import SwiftUI
 
-enum TodoPriority: String, CaseIterable, Codable, Identifiable {
-    case low = "Niedrig"
-    case medium = "Mittel"
-    case high = "Hoch"
-    
+enum TodoPriority: String, Codable, Identifiable, CaseIterable {
+    case low, medium, high
     var id: Self { self }
-    
-    var color: Color {
-        switch self {
-        case .low: return .green
-        case .medium: return .orange
-        case .high: return .red
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        switch value.lowercased() {
+        case "low", "niedrig": self = .low
+        case "medium", "mittel": self = .medium
+        case "high", "hoch": self = .high
+        default: self = .medium
         }
     }
     
-    var symbol: String {
-        switch self {
-        case .low: return "arrow.down"
-        case .medium: return "arrow.right"
-        case .high: return "arrow.up"
-        }
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.rawValue)
     }
-    
-    var rawValueShort: String {
+
+    var displayName: String {
         switch self {
-        case .low: return "low"
-        case .medium: return "medium"
-        case .high: return "high"
+        case .low: return "Niedrig"
+        case .medium: return "Mittel"
+        case .high: return "Hoch"
         }
     }
 }

@@ -256,7 +256,7 @@ class TodoStore: ObservableObject {
         }
     }
     
-    private func saveTodos() {
+    func saveTodos() {
         if let encoded = try? JSONEncoder().encode(todos) {
             UserDefaults.standard.set(encoded, forKey: saveKey)
         }

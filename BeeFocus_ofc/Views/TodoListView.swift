@@ -44,6 +44,10 @@ struct TodoListView: View {
     @State private var showingSortOptions = false
     @State private var sortOption: SortOption = .dueDateAsc
     
+    //Fileimporter
+    @State private var showingActionSheet = false
+    @State private var showingFileImporter = false
+    
     // MARK: - Computed Properties
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
@@ -131,28 +135,23 @@ struct TodoListView: View {
                 // 🔹 Navigation rechts
                 ToolbarItemGroup(placement: .primaryAction) {
                     HStack(spacing: 2) {
-                        Button(action: {
-                            todoStore.undoLastCompleted()
-                        }) {
+                        Button(action: { todoStore.undoLastCompleted() }) {
                             Image(systemName: "arrow.uturn.backward")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.blue)
                         }
                         
-                        Button(action: {
-                            todoStore.redoLastCompleted()
-                        }) {
+                        Button(action: { todoStore.redoLastCompleted() }) {
                             Image(systemName: "arrow.uturn.forward")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.blue)
                         }
                     }
                     
+                    // 🔹 Geänderter + Button mit Aktionssheet
                     Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            showingAddTodo = true
-                            isPlusPressed.toggle()
-                        }
+                        isPlusPressed.toggle()
+                        showingActionSheet = true
                     }) {
                         Image(systemName: "plus")
                             .font(.system(size: 14, weight: .bold))
@@ -189,6 +188,25 @@ struct TodoListView: View {
                             )
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .confirmationDialog("Was möchten Sie tun?", isPresented: $showingActionSheet) {
+                        Button("Neue Aufgabe hinzufügen") { showingAddTodo = true }
+                        Button("Importieren") { showingFileImporter = true }
+                        Button("Abbrechen", role: .cancel) { }
+                    }
+                    .fileImporter(
+                        isPresented: $showingFileImporter,
+                        allowedContentTypes: [.json],
+                        allowsMultipleSelection: false
+                    ) { result in
+                        switch result {
+                        case .success(let urls):
+                            if let url = urls.first {
+                                TodoImporter.importTodos(from: url, to: todoStore)
+                            }
+                        case .failure(let error):
+                            print("❌ Fehler beim File Import: \(error.localizedDescription)")
+                        }
+                    }
                 }
             }
             .modifier(SheetModifiers(
@@ -370,6 +388,8 @@ struct TodoListView: View {
                     } onDelete: {
                         todoToDelete = todo
                         showingDeleteAlert = true
+                    } onShare: {
+                        TodoShare.share(todo: todo) // NEU: Share-Callback
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button {
@@ -387,6 +407,13 @@ struct TodoListView: View {
                         } label: {
                             Label(LocalizedStringKey("Löschen"), systemImage: "trash")
                         }
+                        
+                        Button {
+                            TodoShare.share(todo: todo)
+                        } label: {
+                            Label(LocalizedStringKey("Teilen"), systemImage: "square.and.arrow.up")
+                        }
+                        .tint(.blue)
                     }
                     .strikethrough(todo.isCompleted, color: .gray)
                     .opacity(todo.isCompleted ? 0.6 : 1.0)

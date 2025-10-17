@@ -32,6 +32,7 @@ struct TodoCard: View {
     let onToggle: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onShare: (() -> Void)? // 🔹 Neu: Share-Closure
 
     @State private var showingSubTasks = false
     @State private var showingImages = false
@@ -196,6 +197,27 @@ struct TodoCard: View {
                 withAnimation(.linear(duration: 10.0)) { isPressed = true }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
                     withAnimation(.linear(duration: 10.0)) { isPressed = false }
+                }
+            }
+            .contextMenu {
+                if let onShare = onShare {
+                    Button {
+                        onShare()
+                    } label: {
+                        Label("Teilen", systemImage: "square.and.arrow.up")
+                    }
+                }
+                
+                Button {
+                    onEdit()
+                } label: {
+                    Label("Bearbeiten", systemImage: "pencil")
+                }
+                
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Löschen", systemImage: "trash")
                 }
             }
             .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
