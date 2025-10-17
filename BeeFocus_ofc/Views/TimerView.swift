@@ -118,12 +118,13 @@ struct TimerView: View {
             }
             timerManager.restoreTimer()
         }
-        .onChange(of: scenePhase) { newPhase in
-            switch newPhase {
+        // ✅ Korrigierte Version – kein `.terminated` mehr
+        .onChange(of: scenePhase) {
+            switch scenePhase {
             case .background, .inactive:
                 timerManager.pauseAndSave()
             case .active:
-                timerManager.restoreTimer()
+                break
             @unknown default:
                 break
             }

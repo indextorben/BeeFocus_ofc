@@ -2,6 +2,7 @@ import Foundation
 import UserNotifications
 import SwiftUI
 import ActivityKit
+import UIKit
 
 struct TimerState: Codable {
     var endDate: Date?
@@ -24,14 +25,18 @@ struct TimerActivityAttributes: ActivityAttributes {
 class TimerManager: ObservableObject {
     static let shared = TimerManager()
     
+    // MARK: - Published Properties
     @Published var timeRemaining: TimeInterval = 0
     @Published var isRunning = false
     @Published var isBreak = false
     @Published var currentSession = 1
     
+    // MARK: - Private Properties
     private var timer: Timer?
     private var activity: Activity<TimerActivityAttributes>? // Live Activity
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     
+    // MARK: - User Settings
     @AppStorage("focusTime") var focusTime: Int = 25
     @AppStorage("shortBreakTime") var shortBreakTime: Int = 5
     @AppStorage("longBreakTime") var longBreakTime: Int = 15
@@ -41,11 +46,14 @@ class TimerManager: ObservableObject {
         restoreTimer()
     }
     
+    // MARK: - Session Handling
     func startNewSession() {
         stop()
         
         timeRemaining = isBreak
-            ? (currentSession == sessionsUntilLongBreak ? TimeInterval(longBreakTime * 60) : TimeInterval(shortBreakTime * 60))
+            ? (currentSession == sessionsUntilLongBreak
+               ? TimeInterval(longBreakTime * 60)
+               : TimeInterval(shortBreakTime * 60))
             : TimeInterval(focusTime * 60)
         
         resume()
@@ -53,16 +61,19 @@ class TimerManager: ObservableObject {
     
     func resume() {
         guard !isRunning else { return }
-        
-        if timeRemaining <= 0 {
-            startNewSession()
-            return
-        }
-        
+        guard timeRemaining > 0 else { return }
+
         isRunning = true
         startTimer()
         saveState()
         scheduleNotification()
+        
+        // Hintergrundtask aktivieren, solange App nicht geschlossen wird
+        if backgroundTaskID == .invalid {
+            backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "PomodoroTimer") {
+                self.endBackgroundTask()
+            }
+        }
     }
     
     func pause() {
@@ -72,17 +83,17 @@ class TimerManager: ObservableObject {
         saveState()
         NotificationManager.shared.cancelTimerNotification()
         
-        Task { await activity?.end(using: TimerActivityAttributes.ContentState(timeRemaining: timeRemaining, isBreak: isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)) }
-    }
-    
-    func pauseAndSave() {
-        if isRunning {
-            stopTimer()
-            saveState()
-            isRunning = false
-            
-            Task { await activity?.end(using: TimerActivityAttributes.ContentState(timeRemaining: timeRemaining, isBreak: isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)) }
+        Task {
+            await activity?.end(using: TimerActivityAttributes.ContentState(
+                timeRemaining: timeRemaining,
+                isBreak: isBreak,
+                sessionNumber: currentSession,
+                totalSessions: sessionsUntilLongBreak
+            ))
         }
+        
+        // ❌ Hintergrundlaufzeit beenden
+        endBackgroundTask()
     }
     
     func stop() {
@@ -92,17 +103,25 @@ class TimerManager: ObservableObject {
     func reset() {
         stop()
         timeRemaining = isBreak
-            ? (currentSession == sessionsUntilLongBreak ? TimeInterval(longBreakTime * 60) : TimeInterval(shortBreakTime * 60))
+            ? (currentSession == sessionsUntilLongBreak
+               ? TimeInterval(longBreakTime * 60)
+               : TimeInterval(shortBreakTime * 60))
             : TimeInterval(focusTime * 60)
         saveState()
     }
     
+    // MARK: - Timer Control
     private func startTimer() {
         stopTimer()
         
-        // Live Activity starten
+        // 🔵 Live Activity starten
         if ActivityAuthorizationInfo().areActivitiesEnabled {
-            let initialState = TimerActivityAttributes.ContentState(timeRemaining: timeRemaining, isBreak: isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)
+            let initialState = TimerActivityAttributes.ContentState(
+                timeRemaining: timeRemaining,
+                isBreak: isBreak,
+                sessionNumber: currentSession,
+                totalSessions: sessionsUntilLongBreak
+            )
             activity = try? Activity<TimerActivityAttributes>.request(
                 attributes: TimerActivityAttributes(),
                 contentState: initialState,
@@ -112,10 +131,17 @@ class TimerManager: ObservableObject {
         
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            guard self.isRunning else { return } // ⛔️ Sicherheitscheck
+            
             self.timeRemaining -= 1
             
             Task {
-                await self.activity?.update(using: TimerActivityAttributes.ContentState(timeRemaining: self.timeRemaining, isBreak: self.isBreak, sessionNumber: self.currentSession, totalSessions: self.sessionsUntilLongBreak))
+                await self.activity?.update(using: TimerActivityAttributes.ContentState(
+                    timeRemaining: self.timeRemaining,
+                    isBreak: self.isBreak,
+                    sessionNumber: self.currentSession,
+                    totalSessions: self.sessionsUntilLongBreak
+                ))
             }
             
             if self.timeRemaining <= 0 {
@@ -132,7 +158,14 @@ class TimerManager: ObservableObject {
     private func timerCompleted() {
         stop()
         
-        Task { await activity?.end(using: TimerActivityAttributes.ContentState(timeRemaining: 0, isBreak: self.isBreak, sessionNumber: currentSession, totalSessions: sessionsUntilLongBreak)) }
+        Task {
+            await activity?.end(using: TimerActivityAttributes.ContentState(
+                timeRemaining: 0,
+                isBreak: self.isBreak,
+                sessionNumber: currentSession,
+                totalSessions: sessionsUntilLongBreak
+            ))
+        }
         
         if isBreak {
             currentSession = (currentSession % sessionsUntilLongBreak) + 1
@@ -140,11 +173,29 @@ class TimerManager: ObservableObject {
         } else {
             isBreak = true
         }
-
+        
         NotificationManager.shared.sendCompletionNotification(isBreak: isBreak)
         saveState()
-        
         startNewSession()
+    }
+    
+    // MARK: - State Management
+    func pauseAndSave() {
+        if isRunning {
+            stopTimer()
+            saveState()
+            isRunning = false
+            
+            Task {
+                await activity?.end(using: TimerActivityAttributes.ContentState(
+                    timeRemaining: timeRemaining,
+                    isBreak: isBreak,
+                    sessionNumber: currentSession,
+                    totalSessions: sessionsUntilLongBreak
+                ))
+            }
+        }
+        endBackgroundTask()
     }
     
     func saveState() {
@@ -170,27 +221,20 @@ class TimerManager: ObservableObject {
             return
         }
 
-        let timeSinceSave = -savedState.lastSaveDate.timeIntervalSinceNow
-
         currentSession = savedState.currentSession
         isBreak = savedState.isBreak
-        timeRemaining = savedState.remainingTime - timeSinceSave
-
-        if savedState.isRunning && timeRemaining > 0 {
-            isRunning = true
-            startTimer() // Timer wieder starten, Icon stimmt dann
-        } else {
-            isRunning = false
-            if timeRemaining < 0 { timeRemaining = 0 }
+        timeRemaining = savedState.remainingTime
+        isRunning = false // Timer läuft erst nach Startbutton
+    }
+    
+    private func endBackgroundTask() {
+        if backgroundTaskID != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTaskID)
+            backgroundTaskID = .invalid
         }
     }
     
-    func forceComplete() {
-        stop()
-        timeRemaining = 0
-        timerCompleted()
-    }
-    
+    // MARK: - Notifications
     private func scheduleNotification() {
         let title = isBreak ? "Pause beendet" : "Fokuszeit vorbei"
         let body = isBreak ? "Weiter geht's mit Fokus!" : "Zeit für eine Pause."
@@ -200,5 +244,11 @@ class TimerManager: ObservableObject {
             body: body,
             duration: timeRemaining
         )
+    }
+    
+    func forceComplete() {
+        stop()
+        timeRemaining = 0
+        timerCompleted()
     }
 }
