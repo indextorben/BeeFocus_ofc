@@ -16,10 +16,8 @@ struct TimerView: View {
     
     var sessionDisplay: String {
         if timerManager.isBreak {
-            if timerManager.currentSession > sessionsUntilLongBreak {
-                return "1/\(sessionsUntilLongBreak)"
-            }
-            return "\(timerManager.currentSession)/\(sessionsUntilLongBreak)"
+            let displaySession = min(timerManager.currentSession, sessionsUntilLongBreak)
+            return "\(displaySession)/\(sessionsUntilLongBreak)"
         } else {
             let displaySession = min(timerManager.currentSession, sessionsUntilLongBreak)
             return "\(displaySession)/\(sessionsUntilLongBreak)"
@@ -49,9 +47,7 @@ struct TimerView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 30) {
-                // 🔹 Obere Buttons: Spotify links, Überspringen rechts
                 HStack {
-                    // Spotify-Button links
                     Button(action: openSpotify) {
                         Image(systemName: "music.note")
                             .font(.system(size: 20))
@@ -64,7 +60,6 @@ struct TimerView: View {
                     
                     Spacer()
                     
-                    // Überspringen-Button rechts
                     Button(action: {
                         showingSkipConfirmation = true
                     }) {
@@ -88,13 +83,22 @@ struct TimerView: View {
                     .foregroundColor(.secondary)
                 
                 HStack(spacing: 40) {
+                    // Reset
                     TimerControlButton(systemName: "arrow.clockwise", size: 24, action: {
                         timerManager.reset()
                         NotificationManager.shared.cancelTimerNotification()
                     }, isPrimary: false)
                     
-                    TimerControlButton(systemName: timerManager.isRunning ? "pause.fill" : "play.fill", size: 30, action: toggleTimer, isPrimary: true)
+                    // Start / Pause
+                    TimerControlButton(systemName: timerManager.isRunning ? "pause.fill" : "play.fill", size: 30, action: {
+                        if timerManager.isRunning {
+                            timerManager.pause()
+                        } else {
+                            timerManager.resume()
+                        }
+                    }, isPrimary: true)
                     
+                    // Settings
                     TimerControlButton(systemName: "gearshape.fill", size: 24, action: {
                         showingSettings = true
                     }, isPrimary: false)
@@ -102,6 +106,7 @@ struct TimerView: View {
             }
             .padding()
         }
+        // Skip Alert
         .alert("Aktuelle Phase überspringen?", isPresented: $showingSkipConfirmation) {
             Button("Überspringen", role: .destructive) {
                 timerManager.forceComplete()
@@ -110,6 +115,7 @@ struct TimerView: View {
         } message: {
             Text("Möchten Sie die aktuelle \(timerManager.isBreak ? "Pause" : "Fokus-Session") wirklich überspringen?")
         }
+        // Notifications
         .onAppear {
             NotificationManager.shared.requestAuthorization { granted in
                 if !granted {
@@ -118,17 +124,23 @@ struct TimerView: View {
             }
             timerManager.restoreTimer()
         }
-        // ✅ Korrigierte Version – kein `.terminated` mehr
-        .onChange(of: scenePhase) {
-            switch scenePhase {
+        // ScenePhase: Hintergrund bleibt aktiv, nur Terminate pausiert
+        .onChange(of: scenePhase) { phase in
+            switch phase {
             case .background, .inactive:
-                timerManager.pauseAndSave()
+                // Timer läuft weiter im Hintergrund
+                break
             case .active:
                 break
             @unknown default:
                 break
             }
         }
+        // Terminate → Timer pausieren
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)) { _ in
+            timerManager.pauseAndSave()
+        }
+        // Settings Sheet
         .sheet(isPresented: $showingSettings) {
             PomodoroSettingsView(
                 focusTime: $focusTime,
@@ -137,6 +149,7 @@ struct TimerView: View {
                 sessionsUntilLongBreak: $sessionsUntilLongBreak
             )
         }
+        // Notification Alert
         .alert("Benachrichtigungen", isPresented: $showingNotificationAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -144,15 +157,6 @@ struct TimerView: View {
         }
     }
     
-    private func toggleTimer() {
-        if timerManager.isRunning {
-            timerManager.pause()
-        } else {
-            timerManager.resume()
-        }
-    }
-    
-    // MARK: - Spotify öffnen
     private func openSpotify() {
         if let url = URL(string: "spotify:") {
             if UIApplication.shared.canOpenURL(url) {
