@@ -14,11 +14,18 @@ struct BeeFocus_ofcApp: App {
     @AppStorage("darkModeEnabled") private var darkModeEnabled = true
     @AppStorage("selectedLanguage") private var selectedLanguage = "Deutsch"
 
+    @State private var showTutorial: Bool = !AppStateManager.hasSeenTutorial
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(appDelegate.todoStore)
                 .environmentObject(appDelegate.timerManager)
+                .sheet(isPresented: $showTutorial, onDismiss: {
+                    AppStateManager.hasSeenTutorial = true
+                }) {
+                    FullAppTutorialView() // <-- Dein Tutorial View
+                }
         }
     }
 }
@@ -51,10 +58,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             )
             shakeWindow.rootViewController = rootVC
 
-            // Closure beim Shake
+            // 📳 Shake detected handler
             shakeWindow.onShakeDetected = {
                 print("📳 Shake erkannt in AppDelegate!")
-                // z.B. Debug-Overlay anzeigen
             }
 
             shakeWindow.makeKeyAndVisible()

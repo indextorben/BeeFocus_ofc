@@ -13,6 +13,7 @@ struct EinstellungenView: View {
     @State private var notificationMessage = ""
     @State private var bannerColor: Color = .green
     @State private var showingCategoryEdit = false
+    @State private var showFullAppTutorial = false  // Neu für das Full-App-Tutorial
 
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
@@ -58,11 +59,15 @@ struct EinstellungenView: View {
 
                     // Tutorials
                     Section(header: Text(localizer.localizedString(forKey: "Tutorials"))) {
-                        NavigationLink("Tutorials anzeigen") {
+                        NavigationLink(localizer.localizedString(forKey: "Tutorials anzeigen")) {
                             TutorialListView()
                         }
+
+                        Button(localizer.localizedString(forKey: "Gesamtes App-Tutorial starten")) {
+                            showFullAppTutorial = true
+                        }
                     }
-                    
+
                     // Feedback / Verbesserungen
                     Section {
                         Button(action: sendFeedbackEmail) {
@@ -73,7 +78,7 @@ struct EinstellungenView: View {
                             .foregroundColor(.blue)
                         }
                     }
-                    
+
                     // Version / Build anzeigen
                     Section {
                         HStack {
@@ -96,6 +101,9 @@ struct EinstellungenView: View {
                 .sheet(isPresented: $showingCategoryEdit) {
                     CategoryEditView()
                         .environmentObject(todoStore)
+                }
+                .sheet(isPresented: $showFullAppTutorial) {
+                    FullAppTutorialView()
                 }
 
                 // Banner
@@ -159,14 +167,6 @@ struct EinstellungenView: View {
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
             }
-        }
-    }
-
-    // MARK: - Tutorials öffnen
-    private func openTutorial(urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        if UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
         }
     }
 }
