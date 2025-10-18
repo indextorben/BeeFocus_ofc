@@ -5,50 +5,7 @@ import AVKit
 struct TutorialView: View {
     let section: TutorialSection
     let tutorialTitle: String
-    
-    // 🔹 Mapping von Highlights → SubFunctionData
-    private var subFunctionMapping: [String: SubFunctionData] {
-        var mapping: [String: SubFunctionData] = [:]
-        if let highlights = section.highlights {
-            for highlight in highlights {
-                switch highlight {
-                case "Titel & Beschreibung":
-                    mapping[highlight] = SubFunctionData(
-                        title: "Titel & Beschreibung",
-                        text: """
-                        Gib deiner Aufgabe einen aussagekräftigen Titel, der den Inhalt kurz beschreibt. Optional kannst du eine detaillierte Beschreibung hinzufügen, um wichtige Informationen zu notieren. So behältst du den Überblick und kannst Aufgaben leichter priorisieren.
-                        """,
-                        imageName: "tutorial_add_task_title",
-                        videoName: "add_task_title_video",
-                        bulletPoints: [
-                            "Tippe auf den + Button, um eine neue Aufgabe zu erstellen",
-                            "Gib einen prägnanten Titel ein",
-                            "Optional: Füge eine Beschreibung hinzu",
-                            "Achte auf Vollständigkeit und Verständlichkeit"
-                        ]
-                    )
-                case "Unteraufgaben":
-                    mapping[highlight] = SubFunctionData(
-                        title: "Unteraufgaben erstellen",
-                        text: "Füge Teilaufgaben hinzu, um komplexe Aufgaben zu strukturieren.",
-                        imageName: "tutorial_subtasks",
-                        videoName: "subtasks_video",
-                        bulletPoints: ["Unteraufgaben hinzufügen", "Status verfolgen", "Abhaken"]
-                    )
-                default:
-                    mapping[highlight] = SubFunctionData(
-                        title: highlight,
-                        text: "Hier kannst du die Unterfunktion \(highlight) erklären.",
-                        imageName: nil,
-                        videoName: nil,
-                        bulletPoints: nil
-                    )
-                }
-            }
-        }
-        return mapping
-    }
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -63,13 +20,13 @@ struct TutorialView: View {
                     .foregroundColor(.secondary)
                 
                 // MARK: Highlights
-                if let highlights = section.highlights {
+                if let highlights = section.highlights, let highlightData = section.highlightData {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Highlights")
                             .font(.headline)
                         
                         ForEach(highlights, id: \.self) { highlight in
-                            if let data = subFunctionMapping[highlight] {
+                            if let data = highlightData[highlight] {
                                 NavigationLink {
                                     SubFunctionView(data: data)
                                 } label: {
@@ -90,10 +47,11 @@ struct TutorialView: View {
                 }
                 
                 // MARK: Bullet Points
-                if let bullets = section.bulletPoints {
+                if let bullets = section.bulletPoints, !bullets.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Was du lernst")
+                        Text("Zusammenfassung")
                             .font(.headline)
+                        
                         ForEach(bullets, id: \.self) { point in
                             HStack(alignment: .top, spacing: 12) {
                                 Image(systemName: "checkmark.seal.fill")
@@ -134,6 +92,7 @@ struct TutorialView: View {
     }
 }
 
+// MARK: - SubFunctionView
 struct SubFunctionView: View {
     let data: SubFunctionData
     
@@ -148,7 +107,8 @@ struct SubFunctionView: View {
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
                 
-                if let bullets = data.bulletPoints {
+                // Bullet Points
+                if let bullets = data.bulletPoints, !bullets.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(bullets, id: \.self) { point in
                             HStack(alignment: .top, spacing: 10) {
@@ -161,7 +121,8 @@ struct SubFunctionView: View {
                     .padding(.horizontal)
                 }
                 
-                if let imageName = data.imageName {
+                // Bild
+                if let imageName = data.imageName, !imageName.isEmpty {
                     Image(imageName)
                         .resizable()
                         .scaledToFit()
@@ -170,7 +131,8 @@ struct SubFunctionView: View {
                         .padding(.horizontal)
                 }
                 
-                if let videoName = data.videoName,
+                // Video
+                if let videoName = data.videoName, !videoName.isEmpty,
                    let url = Bundle.main.url(forResource: videoName, withExtension: "mp4") {
                     VideoPlayer(player: AVPlayer(url: url))
                         .frame(height: 250)
