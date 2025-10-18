@@ -12,7 +12,5 @@ struct SubFunctionData: Identifiable {
     let id = UUID()
     let title: String
     let text: String
-    let imageName: String?       // optionales Bild aus Assets
-    let videoName: String?       // optionales Video aus Bundle
     let bulletPoints: [String]?  // optionale Liste von Schritten
 }

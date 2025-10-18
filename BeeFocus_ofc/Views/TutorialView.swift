@@ -66,86 +66,10 @@ struct TutorialView: View {
                         }
                     }
                 }
-                
-                // MARK: Bild & Video
-                if let imageName = section.imageName {
-                    Image(imageName)
-                        .resizable()
-                        .scaledToFit()
-                        .cornerRadius(16)
-                        .shadow(radius: 4)
-                }
-                
-                if let videoName = section.videoName,
-                   let url = Bundle.main.url(forResource: videoName, withExtension: "mp4") {
-                    VideoPlayer(player: AVPlayer(url: url))
-                        .frame(height: 260)
-                        .cornerRadius(16)
-                        .shadow(radius: 4)
-                }
             }
             .padding()
         }
         .navigationTitle(tutorialTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
-    }
-}
-
-// MARK: - SubFunctionView
-struct SubFunctionView: View {
-    let data: SubFunctionData
-    
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text(data.title)
-                    .font(.largeTitle.bold())
-                    .padding()
-                
-                Text(data.text)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                
-                // Bullet Points
-                if let bullets = data.bulletPoints, !bullets.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(bullets, id: \.self) { point in
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text(point)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                
-                // Bild
-                if let imageName = data.imageName, !imageName.isEmpty {
-                    Image(imageName)
-                        .resizable()
-                        .scaledToFit()
-                        .cornerRadius(16)
-                        .shadow(radius: 5)
-                        .padding(.horizontal)
-                }
-                
-                // Video
-                if let videoName = data.videoName, !videoName.isEmpty,
-                   let url = Bundle.main.url(forResource: videoName, withExtension: "mp4") {
-                    VideoPlayer(player: AVPlayer(url: url))
-                        .frame(height: 250)
-                        .cornerRadius(16)
-                        .shadow(radius: 5)
-                        .padding(.horizontal)
-                }
-                
-                Spacer()
-            }
-            .padding(.top, 20)
-        }
-        .navigationTitle(data.title)
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
