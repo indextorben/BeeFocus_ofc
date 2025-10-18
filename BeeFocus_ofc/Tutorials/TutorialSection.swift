@@ -13,6 +13,6 @@ struct TutorialSection: Identifiable {
     let imageName: String?
     let videoName: String?
     let highlights: [String]?
-    var highlightTargets: [UUID]?
+    var highlightTargets: [SubFunctionData]?
     let bulletPoints: [String]?
 }
