@@ -245,14 +245,21 @@ class TodoStore: ObservableObject {
     
     func complete(todo: TodoItem) {
         guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
-        if !todos[index].isCompleted {
-            todos[index].isCompleted = true
-            todos[index].completedAt = Date()
-            updateStats(for: todos[index])
-            saveTodos()
-            
-            // 🔹 Notification abbrechen, damit sie nicht mehr losgeht
-            NotificationManager.shared.cancelNotification(id: todos[index].id.uuidString)
+        
+        // ✅ Todo direkt im Array mutieren, nicht als Kopie
+        todos[index].isCompleted = true
+        todos[index].completedAt = Date()
+        
+        // ✅ Statistik aktualisieren
+        updateStats(for: todos[index])
+        
+        // ✅ Notification abbrechen
+        NotificationManager.shared.cancelNotification(id: todos[index].id.uuidString)
+        
+        // ✅ Sofort speichern (ohne race conditions)
+        DispatchQueue.main.async {
+            self.saveTodos()
+            self.objectWillChange.send() // zwingt SwiftUI zur Neurenderung
         }
     }
     
