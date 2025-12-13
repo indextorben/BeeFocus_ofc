@@ -14,6 +14,9 @@ struct PomodoroTimer: View {
     @StateObject private var timer = PomodoroTimerModel()
     @Environment(\.colorScheme) private var colorScheme
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.2, blue: 0.3) : Color(red: 0.9, green: 0.95, blue: 1.0)
     }

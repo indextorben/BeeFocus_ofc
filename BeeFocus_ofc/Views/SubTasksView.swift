@@ -17,6 +17,9 @@ struct SubTasksView: View {
     @State private var subTasks: [SubTask]
     @State private var newSubTaskTitle = ""
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     init(todo: TodoItem) {
         self.todo = todo
         _subTasks = State(initialValue: todo.subTasks)

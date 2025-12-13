@@ -3,7 +3,6 @@
   BeeFocus_ofc
 
   Created by Torben Lehneke on 01.10.25.
-  
 */
 "Einstellungen" = "Settings";
 "Darkmode" = "Dark Mode";
@@ -80,3 +79,10 @@
 "Erstellungsdatum" = "Creation date";
 "neu" = "New";
 "alt" = "Old";
+"Tutorials anzeigen" = "Show Tutorials";
+"Gesamtes App-Tutorial starten" = "Start the entire app tutorial";
+"Verbesserungen" = "Feedback";
+"Neue Aufgabe hinzufügen" = "Add new task";
+"Aufgabe importieren" = "Import Task";
+"keine Aufgaben" = "No tasks";
+"Fügen Sie eine neue Aufgabe hinzu" = "Add a new Task";

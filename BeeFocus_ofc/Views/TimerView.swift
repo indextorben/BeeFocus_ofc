@@ -14,6 +14,9 @@ struct TimerView: View {
     @State private var showingSettings = false
     @State private var showingSkipConfirmation = false
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     var sessionDisplay: String {
         if timerManager.isBreak {
             let displaySession = min(timerManager.currentSession, sessionsUntilLongBreak)

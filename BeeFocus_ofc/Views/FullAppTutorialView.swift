@@ -12,6 +12,9 @@ struct FullAppTutorialView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedIndex = 0
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     // MARK: - Alle Tutorial-Seiten
     private let pages: [TutorialPage] = [
         TutorialPage(title: "Willkommen bei BeeFocus!", description: "Hier erfährst du, wie du Aufgaben organisierst, den Pomodoro Timer nutzt und deine Produktivität maximierst.", imageName: "tutorial_intro"),

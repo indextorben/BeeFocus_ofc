@@ -9,6 +9,10 @@ struct CategoryEditView: View {
     @FocusState private var focusedCategoryID: UUID?
 
     @State private var isEditing = false
+    
+    //Language
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
 
     var body: some View {
         NavigationView {

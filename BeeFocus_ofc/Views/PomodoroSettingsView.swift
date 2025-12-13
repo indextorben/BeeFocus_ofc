@@ -16,6 +16,9 @@ struct PomodoroSettingsView: View {
     @Binding var longBreakTime: Int
     @Binding var sessionsUntilLongBreak: Int
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     // Dismiss-Umgebung, um das Sheet zu schließen
     @Environment(\.dismiss) private var dismiss
     

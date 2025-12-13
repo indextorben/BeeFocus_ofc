@@ -5,6 +5,9 @@ struct StatistikView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var todoStore: TodoStore
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     // MARK: - Farben
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)

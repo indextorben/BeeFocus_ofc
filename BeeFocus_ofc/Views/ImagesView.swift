@@ -18,6 +18,9 @@ struct ImagesView: View {
     @State private var selectedImageForPreview: IdentifiableUIImage?
     @State private var imageToDelete: IdentifiableUIImage?
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     var body: some View {
         NavigationStack {
             ScrollView {

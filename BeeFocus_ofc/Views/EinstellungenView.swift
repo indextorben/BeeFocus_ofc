@@ -73,8 +73,7 @@ struct EinstellungenView: View {
                         Button(action: sendFeedbackEmail) {
                             HStack {
                                 Image(systemName: "envelope")
-                                Text("Feedback / Verbesserungen")
-                            }
+                                Text(localizer.localizedString(forKey: "Verbesserungen")) }
                             .foregroundColor(.blue)
                         }
                     }

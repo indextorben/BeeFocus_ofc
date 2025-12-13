@@ -48,6 +48,9 @@ struct TodoListView: View {
     @State private var showingActionSheet = false
     @State private var showingFileImporter = false
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+        let languages = ["Deutsch", "Englisch"]
+    
     // MARK: - Computed Properties
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
@@ -92,123 +95,37 @@ struct TodoListView: View {
     
     var filteredTodos: [TodoItem] {
         todoStore.todos.filter { todo in
-            let matchesSearch = searchText.isEmpty ||
-            todo.title.localizedCaseInsensitiveContains(searchText) ||
-            todo.description.localizedCaseInsensitiveContains(searchText)
-            
-            let matchesCategory = selectedCategory == nil || todo.category == selectedCategory
-            
+            // Break down into simpler booleans to help the type checker
+            let matchesSearch: Bool
+            if searchText.isEmpty {
+                matchesSearch = true
+            } else {
+                let inTitle = todo.title.localizedCaseInsensitiveContains(searchText)
+                let inDescription = todo.description.localizedCaseInsensitiveContains(searchText)
+                matchesSearch = inTitle || inDescription
+            }
+
+            let matchesCategory: Bool
+            if let selected = selectedCategory {
+                matchesCategory = (todo.category == selected)
+            } else {
+                matchesCategory = true
+            }
+
             let isNotCompleted = !todo.isCompleted
-            
+
             return matchesSearch && matchesCategory && isNotCompleted
         }
     }
     
     // MARK: - Main View
     var body: some View {
-        mainContentView
-            .searchable(text: $searchText, prompt: LocalizedStringKey("Aufgaben suchen..."))
-            .navigationTitle(LocalizedStringKey("Aufgaben"))
-            .toolbar {
-                // 🔹 Navigation links
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    HStack(spacing: 1) {
-                        Button {
-                            showingSettings.toggle()
-                        } label: {
-                            Image(systemName: "gearshape")
-                        }
-                        
-                        Button {
-                            showingSortOptions = true
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                        }
-                        .confirmationDialog(LocalizedStringKey("Sortieren nach"), isPresented: $showingSortOptions) {
-                            ForEach(SortOption.allCases, id: \.self) { option in
-                                Button(option.displayName) { sortOption = option }
-                            }
-                        }
-                    }
-                }
-                
-                // 🔹 Navigation rechts
-                ToolbarItemGroup(placement: .primaryAction) {
-                    HStack(spacing: 2) {
-                        Button(action: { todoStore.undoLastCompleted() }) {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.blue)
-                        }
-                        
-                        Button(action: { todoStore.redoLastCompleted() }) {
-                            Image(systemName: "arrow.uturn.forward")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    
-                    // 🔹 Geänderter + Button mit Aktionssheet
-                    Button(action: {
-                        isPlusPressed.toggle()
-                        showingActionSheet = true
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(14)
-                            .background(
-                                ZStack {
-                                    BlurView(style: .systemUltraThinMaterialDark)
-                                        .clipShape(Circle())
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [Color.blue.opacity(0.6), Color.red]),
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .blur(radius: 3)
-                                        .opacity(0.3)
-                                }
-                            )
-                            .scaleEffect(isPlusPressed ? 1.1 : 1.0)
-                            .shadow(color: Color.blue.opacity(0.5), radius: 10, x: 0, y: 6)
-                            .overlay(
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color.white.opacity(0.4), Color.blue.opacity(0.4)]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 1.5
-                                    )
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .confirmationDialog("Was möchten Sie tun?", isPresented: $showingActionSheet) {
-                        Button("Neue Aufgabe hinzufügen") { showingAddTodo = true }
-                        Button("Importieren") { showingFileImporter = true }
-                        Button("Abbrechen", role: .cancel) { }
-                    }
-                    .fileImporter(
-                        isPresented: $showingFileImporter,
-                        allowedContentTypes: [.json],
-                        allowsMultipleSelection: false
-                    ) { result in
-                        switch result {
-                        case .success(let urls):
-                            if let url = urls.first {
-                                TodoImporter.importTodos(from: url, to: todoStore)
-                            }
-                        case .failure(let error):
-                            print("❌ Fehler beim File Import: \(error.localizedDescription)")
-                        }
-                    }
-                }
-            }
+        let content = mainContentView
+
+        return content
+            .searchable(text: $searchText, prompt: localizer.localizedString(forKey: "Aufgaben suchen..."))
+            .navigationTitle(localizer.localizedString(forKey: "Aufgaben"))
+            .toolbar { toolbarContent }
             .modifier(SheetModifiers(
                 showingAddTodo: $showingAddTodo,
                 editingTodo: $editingTodo,
@@ -228,23 +145,119 @@ struct TodoListView: View {
             .sheet(isPresented: $showingSettings) {
                 EinstellungenView()
             }
-            .overlay(
-                Group {
-                    if showSuccessToast {
-                        VStack {
-                            Spacer()
-                            Text(LocalizedStringKey("Zum Kalender hinzugefügt"))
-                                .font(.subheadline)
-                                .padding()
-                                .background(BlurView(style: .systemMaterial))
-                                .cornerRadius(12)
-                                .padding(.bottom, 50)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                                .animation(.easeInOut(duration: 0.3), value: showSuccessToast)
+            .overlay(successToastOverlay)
+    }
+    
+    // MARK: - Toolbar & Overlay Helpers
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        // Navigation links
+        ToolbarItemGroup(placement: .navigationBarLeading) {
+            HStack(spacing: 1) {
+                Button { showingSettings.toggle() } label: { Image(systemName: "gearshape") }
+
+                Button { showingSortOptions = true } label: { Image(systemName: "arrow.up.arrow.down") }
+                    .confirmationDialog(localizer.localizedString(forKey: "Sortieren nach"), isPresented: $showingSortOptions) {
+                        ForEach(SortOption.allCases, id: \.self) { option in
+                            Button(option.displayName) { sortOption = option }
                         }
                     }
+            }
+        }
+
+        // Navigation right
+        ToolbarItemGroup(placement: .primaryAction) {
+            HStack(spacing: 8) {
+                Button(action: { todoStore.undoLastCompleted() }) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.blue)
                 }
-            )
+
+                Button(action: { todoStore.redoLastCompleted() }) {
+                    Image(systemName: "arrow.uturn.forward")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.blue)
+                }
+
+                Button(action: {
+                    isPlusPressed.toggle()
+                    showingActionSheet = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(
+                            ZStack {
+                                BlurView(style: .systemUltraThinMaterialDark)
+                                    .clipShape(Circle())
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.blue.opacity(0.6), Color.red]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .blur(radius: 2)
+                                    .opacity(0.3)
+                            }
+                        )
+                        .scaleEffect(isPlusPressed ? 1.05 : 1.0)
+                        .shadow(color: Color.blue.opacity(0.3), radius: 6, x: 4, y: 3)
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color.white.opacity(0.4), Color.blue.opacity(0.4)]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .confirmationDialog("Was möchten Sie tun?", isPresented: $showingActionSheet) {
+                    Button(localizer.localizedString(forKey: "Neue Aufgabe hinzufügen")) { showingAddTodo = true }
+                    Button(localizer.localizedString(forKey: "Aufgabe importieren")) { showingFileImporter = true }
+                    Button(localizer.localizedString(forKey: "Abbrechen"), role: .cancel) { }
+                }
+                .fileImporter(
+                    isPresented: $showingFileImporter,
+                    allowedContentTypes: [.json],
+                    allowsMultipleSelection: false
+                ) { result in
+                    switch result {
+                    case .success(let urls):
+                        if let url = urls.first {
+                            TodoImporter.importTodos(from: url, to: todoStore)
+                        }
+                    case .failure(let error):
+                        print("❌ Fehler beim File Import: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+
+    private var successToastOverlay: some View {
+        Group {
+            if showSuccessToast {
+                VStack {
+                    Spacer()
+                    Text(localizer.localizedString(forKey: "Zum Kalender hinzugefügt"))
+                        .font(.subheadline)
+                        .padding()
+                        .background(BlurView(style: .systemMaterial))
+                        .cornerRadius(12)
+                        .padding(.bottom, 50)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeInOut(duration: 0.3), value: showSuccessToast)
+                }
+            }
+        }
     }
     
     private var mainContentView: some View {
@@ -351,12 +364,12 @@ struct TodoListView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.blue.opacity(0.5))
             
-            Text(LocalizedStringKey("Keine Aufgaben"))
+            Text(localizer.localizedString(forKey: "Keine Aufgaben"))
                 .font(.title2)
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
             
-            Text(LocalizedStringKey("Fügen Sie eine neue Aufgabe hinzu"))
+            Text(localizer.localizedString(forKey: "Fügen Sie eine neue Aufgabe hinzu"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -397,7 +410,7 @@ struct TodoListView: View {
                                 todoStore.complete(todo: todo)
                             }
                         } label: {
-                            Label(LocalizedStringKey("Erledigt"), systemImage: "checkmark")
+                            Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark")
                         }
                         .tint(.green)
                         
@@ -405,13 +418,13 @@ struct TodoListView: View {
                             todoToDelete = todo
                             showingDeleteAlert = true
                         } label: {
-                            Label(LocalizedStringKey("Löschen"), systemImage: "trash")
+                            Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
                         }
                         
                         Button {
                             TodoShare.share(todo: todo)
                         } label: {
-                            Label(LocalizedStringKey("Teilen"), systemImage: "square.and.arrow.up")
+                            Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
                         }
                         .tint(.blue)
                     }

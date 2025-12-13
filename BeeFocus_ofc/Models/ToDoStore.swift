@@ -72,6 +72,9 @@ class TodoStore: ObservableObject {
     
     private let eventStore = EKEventStore()
     
+    var lastDeletedTodo: TodoItem?
+    var lastDeletedIndex: Int?
+    
     // Für Undo/Redo merken wir uns die letzte rückgängig gemachte Aufgabe
     private var lastUndoneTodoID: UUID?
     
@@ -219,10 +222,37 @@ class TodoStore: ObservableObject {
     }
     
     func deleteTodo(_ todo: TodoItem) {
+        guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+
+        // Notification & Calendar
         deleteCalendarEvent(for: todo)
-        NotificationManager.shared.cancelNotification(id: todo.id.uuidString) // 🔹 Abbrechen der Benachrichtigung
-        todos.removeAll { $0.id == todo.id }
+        NotificationManager.shared.cancelNotification(id: todo.id.uuidString)
+
+        // Gelöschtes Todo merken
+        lastDeletedTodo = todos[index]
+        lastDeletedIndex = index
+
+        // Löschen
+        todos.remove(at: index)
         saveTodos()
+        DispatchQueue.main.async { self.objectWillChange.send() }
+    }
+    
+    func undoLastDeleted() {
+        if let todo = lastDeletedTodo, let index = lastDeletedIndex {
+            todos.insert(todo, at: index)
+            saveTodos()
+            DispatchQueue.main.async { self.objectWillChange.send() }
+            // ❌ NICHT resetten
+        }
+    }
+
+    func redoLastDeleted() {
+        if let todo = lastDeletedTodo {
+            todos.removeAll { $0.id == todo.id }
+            saveTodos()
+            DispatchQueue.main.async { self.objectWillChange.send() }
+        }
     }
     
     func toggleTodo(_ todo: TodoItem) {

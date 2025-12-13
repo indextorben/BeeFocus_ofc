@@ -5,6 +5,9 @@ import AVKit
 struct TutorialView: View {
     let section: TutorialSection
     let tutorialTitle: String
+    
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
 
     var body: some View {
         ScrollView {

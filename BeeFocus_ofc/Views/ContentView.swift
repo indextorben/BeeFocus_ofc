@@ -15,8 +15,11 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @Environment(\.horizontalSizeClass) var sizeClass
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+    let languages = ["Deutsch", "Englisch"]
+    
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
-
+    
     var body: some View {
         TabView(selection: $selectedTab) {
             
@@ -35,9 +38,28 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label(LocalizedStringKey("Aufgaben"), systemImage: "list.bullet")
+                Label(localizer.localizedString(forKey: "Aufgaben"), systemImage: "list.bullet")
             }
             .tag(0)
+            
+            //MARK - Kalender Tab
+            Group {
+                if sizeClass == .compact {
+                    NavigationView {
+                        CalendarView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                } else {
+                    NavigationStack {
+                        CalendarView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+            }
+            .tabItem {
+                Label(localizer.localizedString(forKey: "Kalender"), systemImage: "calendar.badge.clock")
+            }
+            .tag(1)
             
             // MARK: - Timer Tab
             Group {
@@ -54,9 +76,9 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label(LocalizedStringKey("Timer"), systemImage: "timer")
+                Label(localizer.localizedString(forKey: "Timer"), systemImage: "timer")
             }
-            .tag(1)
+            .tag(2)
             
             // MARK: - Statistik Tab
             Group {
@@ -76,9 +98,9 @@ struct ContentView: View {
                 }
             }
             .tabItem {
-                Label(LocalizedStringKey("Statistik"), systemImage: "chart.bar")
+                Label(localizer.localizedString(forKey: "Statistik"), systemImage: "chart.bar")
             }
-            .tag(2)
+            .tag(3)
         }
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
         // 🔹 CloudKit Test beim Start

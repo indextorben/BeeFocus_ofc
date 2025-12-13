@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct TutorialListView: View {
+    @ObservedObject private var localizer = LocalizationManager.shared
+            let languages = ["Deutsch", "Englisch"]
+    
     var body: some View {
         NavigationView {
             List {
