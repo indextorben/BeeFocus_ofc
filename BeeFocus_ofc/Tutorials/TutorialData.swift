@@ -119,7 +119,7 @@ struct TutorialData {
 
         let pomodoroSettingsSubFunction = SubFunctionData(
             title: "Timer anpassen",
-            text: "Passe Fokus- und Pausenzeiten individuell an deine Bedürfnisse an. Diese können jederzeit angepasst werden.",
+            text: "Passe Fokus- und Pausenzeiten individuell an deine Bedürfnisse an.",
             bulletPoints: [
                 "Gehe zu Einstellungen",
                 "Lege Fokuszeit fest",
