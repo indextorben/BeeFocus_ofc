@@ -1,12 +1,12 @@
 import SwiftUI
 import Charts
+import UIKit
 
 struct StatistikView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var todoStore: TodoStore
-    
-    @ObservedObject private var localizer = LocalizationManager.shared
-            let languages = ["Deutsch", "Englisch"]
+    @State private var showShareSheet = false
+    @State private var exportData: Data?
     
     // MARK: - Farben
     var backgroundColor: Color {
@@ -67,14 +67,18 @@ struct StatistikView: View {
     
     // MARK: - Erster App-Start
     private var appStartDate: Date {
-        if let date = UserDefaults.standard.object(forKey: "AppStartDate") as? Date {
-            return date
+        let defaults = UserDefaults.standard
+        let timestamp = defaults.double(forKey: "AppStartDate")
+        if timestamp > 0 {
+            return Date(timeIntervalSince1970: timestamp)
         } else {
             let now = Date()
-            UserDefaults.standard.set(now, forKey: "AppStartDate")
+            defaults.set(now.timeIntervalSince1970, forKey: "AppStartDate")
             return now
         }
     }
+    
+    // MARK: - Timer- und Fortschrittsstatistiken
     
     var timerWeeklyStats: [(date: Date, minutes: Int)] {
         let calendar = Calendar.current
@@ -85,18 +89,17 @@ struct StatistikView: View {
                 return (today, 0)
             }
             
-            let filteredTodos = todoStore.todos.filter {
-                $0.isCompleted &&
-                $0.completedAt != nil &&
-                calendar.isDate($0.completedAt!, inSameDayAs: date)
+            let filteredTodos = todoStore.todos.filter { todo in
+                guard todo.isCompleted, let completedAt = todo.completedAt else { return false }
+                return calendar.isDate(completedAt, inSameDayAs: date)
             }
             
             let totalMinutes = filteredTodos.reduce(0) { sum, todo in
-                let minutes = (todo.focusTimeInMinutes as? Double).map { Int($0) } ?? 0
+                let minutes = Int(todo.focusTimeInMinutes ?? 0)
                 return sum + minutes
             }
             
-            return (date, totalMinutes)
+            return (date: date, minutes: totalMinutes)
         }
     }
     
@@ -104,15 +107,22 @@ struct StatistikView: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
+        // Start der Woche (Montag)
+        let weekday = calendar.component(.weekday, from: today)
+        let daysFromMonday = (weekday + 5) % 7
+        
+        guard let monday = calendar.date(byAdding: .day, value: -daysFromMonday, to: today) else {
+            return []
+        }
+        
         return (0..<7).map { offset in
-            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else {
-                return (date: today, progress: 0)
-            }
+            let date = calendar.date(byAdding: .day, value: offset, to: monday)!
             
             let todosForDay = todoStore.todos.filter { todo in
                 guard let due = todo.dueDate else { return false }
                 return calendar.isDate(due, inSameDayAs: date)
             }
+            
             let completed = todosForDay.filter { $0.isCompleted }.count
             let total = todosForDay.count
             let progress = total > 0 ? Double(completed) / Double(total) : 0
@@ -121,25 +131,32 @@ struct StatistikView: View {
         }
     }
     
-    var monthlyProgress: [(week: Int, progress: Double)] {
+    // MARK: - Monatlicher Fortschritt (Daten)
+    var monthlyProgress: [(week: Int, progress: Double, isCurrent: Bool)] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
+        var result: [(week: Int, progress: Double, isCurrent: Bool)] = []
         
-        var result: [(week: Int, progress: Double)] = []
+        // Aktuelle Kalenderwoche
+        let currentWeekOfMonth = calendar.component(.weekOfMonth, from: today)
         
-        for weekIndex in 0..<4 {
-            guard let startOfWeek = calendar.date(byAdding: .weekOfYear, value: -weekIndex, to: today) else { continue }
+        for weekNumber in 1...4 {
+            // Berechne Startdatum der Woche
+            guard let weekDate = calendar.date(byAdding: .weekOfMonth, value: weekNumber - currentWeekOfMonth, to: today) else { continue }
             
             let weekTodos = todoStore.todos.filter { todo in
                 guard let due = todo.dueDate else { return false }
-                return due >= appStartDate && due <= today &&
-                calendar.isDate(due, equalTo: startOfWeek, toGranularity: .weekOfYear)
+                return calendar.isDate(due, equalTo: weekDate, toGranularity: .weekOfMonth)
             }
             
             let completed = weekTodos.filter { $0.isCompleted }.count
             let total = weekTodos.count
             let progress = total > 0 ? Double(completed) / Double(total) : 0
-            result.insert((week: 3 - weekIndex, progress: progress), at: 0)
+            
+            // Überprüfen, ob aktuelle Woche
+            let isCurrent = weekNumber == currentWeekOfMonth
+            
+            result.append((week: weekNumber, progress: progress, isCurrent: isCurrent))
         }
         
         return result
@@ -149,26 +166,60 @@ struct StatistikView: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var result: [(month: Int, progress: Double)] = []
-
-        for monthIndex in 0..<12 {
-            guard let startOfMonth = calendar.date(byAdding: .month, value: -monthIndex, to: today) else { continue }
-
-            // Filter nach erledigten Todos, basierend auf completedAt
+        
+        for monthOffset in (0..<12).reversed() {
+            guard let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: today) else { continue }
+            
             let monthTodos = todoStore.todos.filter { todo in
                 guard let completed = todo.completedAt else { return false }
-                return calendar.isDate(completed, equalTo: startOfMonth, toGranularity: .month)
+                return calendar.isDate(completed, equalTo: monthDate, toGranularity: .month)
             }
-
+            
             let completedCount = monthTodos.count
             let totalCount = todoStore.todos.filter { todo in
                 guard let due = todo.dueDate else { return false }
-                return calendar.isDate(due, equalTo: startOfMonth, toGranularity: .month)
+                return calendar.isDate(due, equalTo: monthDate, toGranularity: .month)
             }.count
-
+            
             let progress = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
-            result.insert((month: 11 - monthIndex, progress: progress), at: 0)
+            
+            // Monat als 0..11 für spätere Monatsnamen
+            result.append((month: calendar.component(.month, from: monthDate) - 1, progress: progress))
         }
+        
         return result
+    }
+    
+    private func exportStatistics() {
+        DispatchQueue.main.async {
+
+            // 1️⃣ Export-View (KEIN ScrollView, feste Größe)
+            let exportView = StatistikExportView(todoStore: todoStore)
+                .environment(\.colorScheme, .light) // zwingend für sauberes Rendering
+                .frame(width: 1240, height: 1754)   // A4 @ 300dpi (PNG/PDF-tauglich)
+                .background(Color.white)
+
+            // 2️⃣ Renderer
+            let renderer = ImageRenderer(content: exportView)
+
+            renderer.scale = 3                     // 🔥 EXTREM wichtig für Schärfe
+            renderer.isOpaque = true               // ❌ verhindert schwarzen Hintergrund
+            renderer.proposedSize = .init(
+                width: 1240,
+                height: 1754
+            )
+
+            // 3️⃣ Rendern
+            guard let image = renderer.uiImage,
+                  let data = image.pngData() else {
+                print("❌ Statistik-Export fehlgeschlagen")
+                return
+            }
+
+            // 4️⃣ Teilen
+            exportData = data
+            showShareSheet = true
+        }
     }
     
     var body: some View {
@@ -317,12 +368,11 @@ struct StatistikView: View {
                             .multilineTextAlignment(.center)
                             .padding(.bottom, 5)
                             
-                            let timerColor = Color.accentColor
                             HStack(alignment: .bottom, spacing: 10) {
                                 ForEach(timerWeeklyStats, id: \.date) { entry in
                                     VStack {
                                         RoundedRectangle(cornerRadius: 5)
-                                            .fill(timerColor)
+                                            .fill(Color.accentColor)
                                             .frame(height: max(CGFloat(entry.minutes) * 2, 10))
                                         Text("\(entry.minutes) min")
                                             .font(.caption2)
@@ -347,7 +397,7 @@ struct StatistikView: View {
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
                             
-                            HStack {
+                            HStack(spacing: 20) { // spacing hinzugefügt
                                 CompletionRing(title: "Heute", value: todayCompletionRate, color: .orange)
                                 CompletionRing(title: "Gesamt", value: completionRate, color: .blue)
                                 CompletionRing(title: "Kritisch", value: min(1.0, Double(overdueTasks) / Double(max(1, openTasks))), color: .red)
@@ -367,7 +417,7 @@ struct StatistikView: View {
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
                             
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) { // spacing leicht erhöht
                                 ForEach(weeklyProgress, id: \.date) { data in
                                     VStack(spacing: 4) {
                                         Text(getGermanDayAbbreviation(for: data.date))
@@ -378,9 +428,10 @@ struct StatistikView: View {
                                             RoundedRectangle(cornerRadius: 4)
                                                 .frame(width: 20, height: CGFloat(data.progress) * 60)
                                                 .foregroundColor(.blue)
+                                                .animation(.easeInOut, value: data.progress) // Animation hinzugefügt
                                         }
                                         .frame(height: 60)
-                                        .background(Color.gray.opacity(0.2))
+                                        .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
                                         .cornerRadius(4)
                                         Text("\(Int(data.progress * 100))%")
                                             .font(.caption2)
@@ -405,21 +456,33 @@ struct StatistikView: View {
                                 .foregroundColor(textColor)
                                 .multilineTextAlignment(.center)
                             
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) {
                                 ForEach(monthlyProgress, id: \.week) { data in
                                     VStack(spacing: 4) {
-                                        Text("W \(data.week + 1)")
+                                        // Animierter Hintergrund für aktuelle Woche
+                                        Text("W\(data.week)")
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .bold()
+                                            .padding(4)
+                                            .foregroundColor(data.isCurrent ? .white : .secondary)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .fill(data.isCurrent ? Color.blue : Color.clear)
+                                                    .animation(.easeInOut(duration: 0.5), value: data.isCurrent)
+                                            )
+                                            .animation(.easeInOut(duration: 0.5), value: data.isCurrent)
+                                        
                                         VStack(spacing: 0) {
                                             Spacer()
                                             RoundedRectangle(cornerRadius: 4)
                                                 .frame(width: 20, height: CGFloat(data.progress) * 60)
-                                                .foregroundColor(.green)
+                                                .foregroundColor(data.isCurrent ? .blue : .green)
+                                                .animation(.easeInOut(duration: 0.5), value: data.progress)
                                         }
                                         .frame(height: 60)
-                                        .background(Color.gray.opacity(0.2))
+                                        .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
                                         .cornerRadius(4)
+                                        
                                         Text("\(Int(data.progress * 100))%")
                                             .font(.caption2)
                                             .foregroundColor(textColor)
@@ -451,18 +514,21 @@ struct StatistikView: View {
                                 LazyVGrid(columns: columns, spacing: 15) {
                                     ForEach(yearlyProgress, id: \.month) { data in
                                         VStack(spacing: 4) {
-                                            Text(getGermanMonthAbbreviation((data.month) % 12))
+                                            Text(getGermanMonthAbbreviation(data.month % 12))
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
+                                            
                                             VStack(spacing: 0) {
                                                 Spacer()
                                                 RoundedRectangle(cornerRadius: 4)
                                                     .frame(width: 20, height: CGFloat(data.progress) * 30)
                                                     .foregroundColor(.purple)
+                                                    .animation(.easeInOut, value: data.progress)
                                             }
                                             .frame(height: 60)
-                                            .background(Color.gray.opacity(0.2))
+                                            .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
                                             .cornerRadius(4)
+                                            
                                             Text("\(Int(data.progress * 100))%")
                                                 .font(.caption2)
                                                 .foregroundColor(textColor)
@@ -476,18 +542,21 @@ struct StatistikView: View {
                                     HStack(spacing: 15) {
                                         ForEach(yearlyProgress, id: \.month) { data in
                                             VStack(spacing: 4) {
-                                                Text(getGermanMonthAbbreviation((data.month) % 12))
+                                                Text(getGermanMonthAbbreviation(data.month % 12))
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
+                                                
                                                 VStack(spacing: 0) {
                                                     Spacer()
                                                     RoundedRectangle(cornerRadius: 4)
                                                         .frame(width: 20, height: CGFloat(data.progress) * 60)
                                                         .foregroundColor(.purple)
+                                                        .animation(.easeInOut, value: data.progress)
                                                 }
                                                 .frame(height: 60)
-                                                .background(Color.gray.opacity(0.2))
+                                                .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
                                                 .cornerRadius(4)
+                                                
                                                 Text("\(Int(data.progress * 100))%")
                                                     .font(.caption2)
                                                     .foregroundColor(textColor)
@@ -507,8 +576,22 @@ struct StatistikView: View {
                     }
                     .padding(.horizontal)
                 }
+                .sheet(isPresented: $showShareSheet) {
+                    if let data = exportData {
+                        ActivityView(activityItems: [data])
+                    }
+                }
             }
             .navigationTitle("Statistik")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        exportStatistics()
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
         }
     }
     
@@ -516,16 +599,17 @@ struct StatistikView: View {
     private func getGermanDayAbbreviation(for date: Date) -> String {
         let germanDays = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"]
         let weekday = Calendar.current.component(.weekday, from: date) // 1 = So, 7 = Sa
+        guard weekday >= 1 && weekday <= 7 else { return "?" }
         return germanDays[weekday - 1]
     }
     
     private func getGermanMonthAbbreviation(_ month: Int) -> String {
         let germanMonths = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
-        return germanMonths[month]
+        let index = month % 12
+        return germanMonths[index]
     }
 }
 
-// MARK: - Hilfs-Views
 struct MiniStatCard: View {
     var title: String
     var value: String
@@ -533,24 +617,36 @@ struct MiniStatCard: View {
     var color: Color
     
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 18))
                 .foregroundColor(color)
-                .frame(width: 30, height: 30)
+                .padding(8)
                 .background(color.opacity(0.2))
-                .cornerRadius(15)
+                .clipShape(Circle())
             
             Text(value)
                 .font(.system(size: 16, weight: .bold))
-                .contentTransition(.numericText())
+                .contentTransition(.numericText()) // iOS 17+
             
             Text(title)
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
+        .padding(6)
     }
+}
+
+// MARK: - Share Sheet
+struct ActivityView: UIViewControllerRepresentable {
+    var activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct ProgressBar: View {
@@ -560,18 +656,21 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Rectangle()
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .opacity(0.1)
-                    .foregroundColor(.gray)
                 
-                Rectangle()
-                    .frame(width: min(CGFloat(value) * geometry.size.width, geometry.size.width), height: geometry.size.height)
-                    .foregroundColor(color)
-                    .animation(.linear, value: value)
+                Capsule()
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(height: geometry.size.height)
+                
+                Capsule()
+                    .fill(color)
+                    .frame(
+                        width: max(0, min(CGFloat(value), 1)) * geometry.size.width,
+                        height: geometry.size.height
+                    )
+                    .animation(.easeInOut(duration: 0.4), value: value)
             }
-            .cornerRadius(45)
         }
+        .frame(height: 8) // 🔥 WICHTIG: feste Höhe
     }
 }
 
@@ -580,26 +679,44 @@ struct CompletionRing: View {
     var value: Double
     var color: Color
     
+    private var clampedValue: Double {
+        max(0, min(value, 1))
+    }
+    
     var body: some View {
-        VStack {
+        VStack(spacing: 6) {
             ZStack {
-                Circle()
-                    .stroke(lineWidth: 8)
-                    .opacity(0.1)
-                    .foregroundColor(color)
                 
+                // Hintergrund
                 Circle()
-                    .trim(from: 0.0, to: CGFloat(min(value, 1.0)))
-                    .stroke(style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
-                    .foregroundColor(color)
-                    .rotationEffect(Angle(degrees: 270.0))
-                    .animation(.easeInOut, value: value)
+                    .stroke(color.opacity(0.15), lineWidth: 8)
                 
-                Text("\(Int(value * 100))%")
+                // Fortschritt
+                Circle()
+                    .trim(from: 0, to: clampedValue)
+                    .stroke(
+                        AngularGradient(
+                            gradient: Gradient(colors: [
+                                color.opacity(0.7),
+                                color
+                            ]),
+                            center: .center
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: 8,
+                            lineCap: .round
+                        )
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.5), value: clampedValue)
+                
+                // Prozent
+                Text("\(Int(clampedValue * 100))%")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(color)
             }
-            .frame(width: 60, height: 60)
+            .frame(width: 64, height: 64)
+            .shadow(color: color.opacity(0.25), radius: 6, x: 0, y: 3)
             
             Text(title)
                 .font(.caption)

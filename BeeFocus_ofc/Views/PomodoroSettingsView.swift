@@ -9,29 +9,57 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-//Timer Einstellungen
+// MARK: - Pomodoro Timer Einstellungen
 struct PomodoroSettingsView: View {
+    
+    // 🔗 Bindings aus der Hauptview / AppStorage
     @Binding var focusTime: Int
     @Binding var shortBreakTime: Int
     @Binding var longBreakTime: Int
     @Binding var sessionsUntilLongBreak: Int
     
     @ObservedObject private var localizer = LocalizationManager.shared
-            let languages = ["Deutsch", "Englisch"]
+    let languages = ["Deutsch", "Englisch"]
     
-    // Dismiss-Umgebung, um das Sheet zu schließen
+    // Sheet schließen
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationView {
             Form {
-                Stepper("Fokuszeit: \(focusTime) min", value: $focusTime, in: 5...120)
-                Stepper("Kurze Pause: \(shortBreakTime) min", value: $shortBreakTime, in: 1...30)
-                Stepper("Lange Pause: \(longBreakTime) min", value: $longBreakTime, in: 5...60)
-                Stepper("Sessions bis lange Pause: \(sessionsUntilLongBreak)",
-                        value: $sessionsUntilLongBreak, in: 2...10)
+                Section(header: Text("Fokus")) {
+                    Stepper("Fokuszeit: \(focusTime) min", value: $focusTime, in: 5...120)
+                }
+                
+                Section(header: Text("Pausen")) {
+                    Stepper("Kurze Pause: \(shortBreakTime) min", value: $shortBreakTime, in: 1...30)
+                    Stepper("Lange Pause: \(longBreakTime) min", value: $longBreakTime, in: 5...60)
+                }
+                
+                Section(header: Text("Zyklen")) {
+                    Stepper(
+                        "Sessions bis lange Pause: \(sessionsUntilLongBreak)",
+                        value: $sessionsUntilLongBreak,
+                        in: 2...10
+                    )
+                }
             }
             .navigationTitle("Einstellungen")
+            
+            // 🔥 MAGIC: Auto-Reload sobald sich irgendwas ändert
+            .onChange(of: focusTime) { _ in
+                TimerManager.shared.applyUpdatedSettingsIfNeeded()
+            }
+            .onChange(of: shortBreakTime) { _ in
+                TimerManager.shared.applyUpdatedSettingsIfNeeded()
+            }
+            .onChange(of: longBreakTime) { _ in
+                TimerManager.shared.applyUpdatedSettingsIfNeeded()
+            }
+            .onChange(of: sessionsUntilLongBreak) { _ in
+                TimerManager.shared.applyUpdatedSettingsIfNeeded()
+            }
+            
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fertig") {
