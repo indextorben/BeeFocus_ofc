@@ -1,4 +1,4 @@
-/* 
+/*
   Localizable.strings
   BeeFocus_ofc
 
@@ -81,3 +81,25 @@
 "Erstellungsdatum" = "Erstellungsdatum";
 "neu" = "Neu";
 "alt" = "Alt";
+"Tutorials anzeigen" = "Tutorials anzeigen";
+"Gesamtes App-Tutorial starten" = "Gesamtes App-Tutorial starten";
+"Verbesserungen" = "Verbesserung";
+"Neue Aufgabe hinzufügen" = "Neue Aufgabe";
+"Aufgabe importieren" = "Aufgaben importieren";
+"keine Aufgaben" = "keine Aufgaben";
+"Fügen Sie eine neue Aufgabe hinzu" = "Fügen Sie eine neue Aufgabe hinzu";
+"sort_due_asc" = "Fälligkeitsdatum ↑";
+"sort_due_desc" = "Fälligkeitsdatum ↓";
+"sort_title_asc" = "Alphabetisch A–Z";
+"sort_title_desc" = "Alphabetisch Z–A";
+"sort_created_desc" = "Erstellungsdatum neu → alt";
+"category_new" = "Neue Kategorie";
+"category_edit" = "Kategorie bearbeiten";
+"category_manage" = "Kategorien bearbeiten";
+"category_add" = "Kategorie hinzufügen";
+"edit" = "Bearbeiten";
+"done" = "Fertig";
+"Kalender" = "Kalender";
+"Alle" = "Alle";
+"Löschen" = "Löschen";
+"category_rename" = "Umbenennen";

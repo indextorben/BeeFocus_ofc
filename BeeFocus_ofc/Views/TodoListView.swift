@@ -58,15 +58,19 @@ struct TodoListView: View {
     
     enum SortOption: CaseIterable, Hashable {
         case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc
-        
-        var displayName: LocalizedStringKey {
+
+        var localizationKey: String {
             switch self {
-            case .dueDateAsc: return "Fälligkeitsdatum ↑"
-            case .dueDateDesc: return "Fälligkeitsdatum ↓"
-            case .titleAsc: return "Alphabetisch A–Z"
-            case .titleDesc: return "Alphabetisch Z–A"
-            case .createdDesc: return "Erstellungsdatum neu → alt"
+            case .dueDateAsc: return "sort_due_asc"
+            case .dueDateDesc: return "sort_due_desc"
+            case .titleAsc: return "sort_title_asc"
+            case .titleDesc: return "sort_title_desc"
+            case .createdDesc: return "sort_created_desc"
             }
+        }
+
+        var displayName: LocalizedStringKey {
+            LocalizedStringKey(localizationKey)
         }
     }
     
@@ -276,7 +280,7 @@ struct TodoListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     CategoryButton(
-                        title: LocalizedStringKey("Alle"),
+                        title: LocalizedStringKey(localizer.localizedString(forKey: "Alle")),
                         isSelected: selectedCategory == nil,
                         color: .blue
                     ) {
@@ -332,17 +336,17 @@ struct TodoListView: View {
             selectedCategory = category
         }
         .contextMenu {
-            Button(action: {
+            Button {
                 editingCategory = category
-            }) {
-                Label(LocalizedStringKey("Umbenennen"), systemImage: "pencil")
+            } label: {
+                Label(localizer.localizedString(forKey: "category_rename"), systemImage: "pencil")
             }
-            
-            Button(role: .destructive, action: {
+
+            Button(role: .destructive) {
                 categoryToDelete = category
                 showingDeleteCategoryAlert = true
-            }) {
-                Label(LocalizedStringKey("Löschen"), systemImage: "trash")
+            } label: {
+                Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
             }
         }
     }
@@ -462,3 +466,4 @@ struct CategoryButton: View {
         .buttonStyle(.plain)
     }
 }
+

@@ -1,4 +1,4 @@
-/* 
+/*
   Localizable.strings
   BeeFocus_ofc
 
@@ -86,3 +86,18 @@
 "Aufgabe importieren" = "Import Task";
 "keine Aufgaben" = "No tasks";
 "Fügen Sie eine neue Aufgabe hinzu" = "Add a new Task";
+"sort_due_asc" = "Due date ↑";
+"sort_due_desc" = "Due date ↓";
+"sort_title_asc" = "Alphabetical A–Z";
+"sort_title_desc" = "Alphabetical Z–A";
+"sort_created_desc" = "Creation date new → old";
+"category_new" = "New category";
+"category_edit" = "Edit category";
+"category_manage" = "Manage categories";
+"category_add" = "Add category";
+"edit" = "Edit";
+"done" = "Done";
+"Kalender" = "Calendar";
+"Alle" = "All";
+"Löschen" = "Delete";
+"category_rename" = "Rename";

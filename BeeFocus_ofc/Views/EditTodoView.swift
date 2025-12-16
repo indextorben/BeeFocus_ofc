@@ -1,13 +1,14 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import EventKit
 
 struct EditTodoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var todoStore: TodoStore
     let todo: TodoItem
     
-    // Form fields
+    // MARK: - Form fields
     @State private var title: String
     @State private var description: String
     @State private var dueDate: Date
@@ -17,22 +18,27 @@ struct EditTodoView: View {
     @State private var subTasks: [SubTask]
     @State private var newSubTaskTitle = ""
     
-    // Image handling
+    // MARK: - Image handling
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var selectedImages: [IdentifiableUIImage] = []
     @State private var selectedImageForPreview: IdentifiableUIImage?
     @State private var imageToDelete: IdentifiableUIImage?
     
-    // State controls
+    // MARK: - State controls
     @State private var showDeleteConfirmation = false
     @State private var showCamera = false
     @State private var showCameraPermissionAlert = false
     
-    // Neue Kategorie hinzufügen
+    // MARK: - Kategorie
     @State private var showAddCategoryAlert = false
     @State private var newCategoryName = ""
     @State private var showCategoryAlert = false
+    
+    // MARK: - Kalender
+    @State private var addToCalendar = false
+    @State private var calendarAccessDenied = false
 
+    // MARK: - Init
     init(todo: TodoItem) {
         self.todo = todo
         _title = State(initialValue: todo.title)
@@ -47,12 +53,14 @@ struct EditTodoView: View {
         })
     }
     
+    // MARK: - Body
     var body: some View {
         NavigationView {
             Form {
                 basicInfoSection
                 categoryAndPrioritySection
                 dueDateSection
+                calendarToggleSection
                 imagesSection
                 subTasksSection
             }
@@ -76,18 +84,14 @@ struct EditTodoView: View {
             .alert("Bild löschen", isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
                 deleteImageAlertButtons(for: image)
             } message: { _ in
-                Text("Möchten Sie dieses Bild wirklich löschen?")
+                Text("Möchtest du dieses Bild wirklich löschen?")
             }
             .alert("Neue Kategorie", isPresented: $showAddCategoryAlert) {
                 VStack {
                     TextField("Kategoriename", text: $newCategoryName)
                 }
-                Button("Abbrechen", role: .cancel) {
-                    newCategoryName = ""
-                }
-                Button("Hinzufügen") {
-                    addNewCategory()
-                }
+                Button("Abbrechen", role: .cancel) { newCategoryName = "" }
+                Button("Hinzufügen") { addNewCategory() }
             } message: {
                 Text("Gib den Namen der neuen Kategorie ein.")
             }
@@ -96,10 +100,15 @@ struct EditTodoView: View {
             } message: {
                 Text("Bitte wähle eine Kategorie aus, bevor du die Aufgabe speicherst.")
             }
+            .alert("Kalender-Zugriff verweigert", isPresented: $calendarAccessDenied) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.")
+            }
         }
     }
     
-    // MARK: - View Sections
+    // MARK: - Sections
     private var basicInfoSection: some View {
         Section(header: Text("Aufgabentitel")) {
             TextField("Titel", text: $title)
@@ -133,25 +142,23 @@ struct EditTodoView: View {
     
     private var dueDateSection: some View {
         Section {
-            Toggle(isOn: $hasDueDate) {
-                Label("Fälligkeitsdatum aktivieren", systemImage: "calendar")
-            }
-            
+            Toggle(isOn: $hasDueDate) { Label("Fälligkeitsdatum aktivieren", systemImage: "calendar") }
             if hasDueDate {
-                DatePicker("Datum & Uhrzeit",
-                         selection: $dueDate,
-                         displayedComponents: [.date, .hourAndMinute])
-                .datePickerStyle(.compact)
+                DatePicker("Datum & Uhrzeit", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                    .datePickerStyle(.compact)
             }
+        }
+    }
+    
+    private var calendarToggleSection: some View {
+        Section {
+            Toggle("In Systemkalender eintragen", isOn: $addToCalendar)
         }
     }
     
     private var imagesSection: some View {
         Section(header: Text("Bilder")) {
-            if !selectedImages.isEmpty {
-                imagesScrollView
-            }
-            
+            if !selectedImages.isEmpty { imagesScrollView }
             photoPickerButton
             cameraButton
         }
@@ -169,10 +176,8 @@ struct EditTodoView: View {
                         .onTapGesture { selectedImageForPreview = wrappedImage }
                         .contextMenu { deleteButton(for: wrappedImage) }
                 }
-            }
-            .padding(.vertical, 5)
-        }
-        .frame(minHeight: 110)
+            }.padding(.vertical, 5)
+        }.frame(minHeight: 110)
     }
     
     private var photoPickerButton: some View {
@@ -180,19 +185,13 @@ struct EditTodoView: View {
             selection: $selectedItems,
             maxSelectionCount: 5,
             matching: .images
-        ) {
-            actionLabel("Aus Galerie auswählen", systemImage: "photo.on.rectangle")
-        }
-        .onChange(of: selectedItems) {
-            Task { await processSelectedItems() }
-        }
+        ) { actionLabel("Aus Galerie auswählen", systemImage: "photo.on.rectangle") }
+        .onChange(of: selectedItems) { Task { await processSelectedItems() } }
     }
     
     private var cameraButton: some View {
-        Button(action: checkCameraPermission) {
-            actionLabel("Mit Kamera aufnehmen", systemImage: "camera")
-        }
-        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+        Button(action: checkCameraPermission) { actionLabel("Mit Kamera aufnehmen", systemImage: "camera") }
+            .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
     }
     
     private var subTasksSection: some View {
@@ -202,8 +201,7 @@ struct EditTodoView: View {
                     Text(subTask.title)
                     Spacer()
                     Button(action: { deleteSubTask(subTask) }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
+                        Image(systemName: "trash").foregroundColor(.red)
                     }
                 }
             }
@@ -211,10 +209,8 @@ struct EditTodoView: View {
             HStack {
                 TextField("Neue Unteraufgabe", text: $newSubTaskTitle)
                 Button(action: addSubTask) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
-                }
-                .disabled(newSubTaskTitle.isEmpty)
+                    Image(systemName: "plus.circle.fill").foregroundColor(.blue)
+                }.disabled(newSubTaskTitle.isEmpty)
             }
         }
     }
@@ -222,13 +218,8 @@ struct EditTodoView: View {
     // MARK: - Toolbar
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Abbrechen") { dismiss() }
-        }
-        ToolbarItem(placement: .confirmationAction) {
-            Button("Speichern") { saveTodo() }
-                .disabled(title.isEmpty)
-        }
+        ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
+        ToolbarItem(placement: .confirmationAction) { Button("Speichern") { saveTodo() }.disabled(title.isEmpty) }
     }
     
     // MARK: - Helper Views
@@ -244,9 +235,7 @@ struct EditTodoView: View {
         Button(role: .destructive) {
             imageToDelete = image
             showDeleteConfirmation = true
-        } label: {
-            Label("Löschen", systemImage: "trash")
-        }
+        } label: { Label("Löschen", systemImage: "trash") }
     }
     
     private var settingsAlertButtons: some View {
@@ -258,38 +247,24 @@ struct EditTodoView: View {
     
     private func deleteImageAlertButtons(for image: IdentifiableUIImage) -> some View {
         Group {
-            Button("Löschen", role: .destructive) {
-                selectedImages.removeAll { $0.id == image.id }
-            }
+            Button("Löschen", role: .destructive) { selectedImages.removeAll { $0.id == image.id } }
             Button("Abbrechen", role: .cancel) { }
         }
     }
     
-    // MARK: - Functions
+    // MARK: - Logic
     private func checkCameraPermission() {
-        let status = AVCaptureDevice.authorizationStatus(for: .video)
-        
-        switch status {
-        case .authorized:
-            showCamera = true
-        case .notDetermined:
-            requestCameraAccess()
-        case .denied, .restricted:
-            showCameraPermissionAlert = true
-        @unknown default:
-            break
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized: showCamera = true
+        case .notDetermined: requestCameraAccess()
+        case .denied, .restricted: showCameraPermissionAlert = true
+        @unknown default: break
         }
     }
     
     private func requestCameraAccess() {
         AVCaptureDevice.requestAccess(for: .video) { granted in
-            DispatchQueue.main.async {
-                if granted {
-                    showCamera = true
-                } else {
-                    showCameraPermissionAlert = true
-                }
-            }
+            DispatchQueue.main.async { granted ? (showCamera = true) : (showCameraPermissionAlert = true) }
         }
     }
     
@@ -304,9 +279,7 @@ struct EditTodoView: View {
             if let data = try? await item.loadTransferable(type: Data.self),
                let uiImage = UIImage(data: data) {
                 let image = IdentifiableUIImage(image: uiImage)
-                if !selectedImages.contains(image) {
-                    selectedImages.append(image)
-                }
+                if !selectedImages.contains(image) { selectedImages.append(image) }
             }
         }
         selectedItems = []
@@ -325,7 +298,6 @@ struct EditTodoView: View {
     private func addNewCategory() {
         let trimmedName = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
-
         let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
         let newCategory = Category(name: trimmedName, colorHex: randomColor)
         todoStore.categories.append(newCategory)
@@ -334,13 +306,9 @@ struct EditTodoView: View {
     }
     
     private func saveTodo() {
-        if todoStore.categories.isEmpty {
-            showCategoryAlert = true
-            return
-        }
-
-        let imageDataArray = selectedImages.compactMap { $0.image.jpegData(compressionQuality: 0.8) }
+        if todoStore.categories.isEmpty { showCategoryAlert = true; return }
         
+        let imageDataArray = selectedImages.compactMap { $0.image.jpegData(compressionQuality: 0.8) }
         let updatedTodo = TodoItem(
             id: todo.id,
             title: title,
@@ -354,6 +322,26 @@ struct EditTodoView: View {
         )
         
         todoStore.updateTodo(updatedTodo)
+        
+        if addToCalendar && hasDueDate { requestCalendarAccessAndAddEvent() }
         dismiss()
+    }
+    
+    private func requestCalendarAccessAndAddEvent() {
+        let eventStore = EKEventStore()
+        eventStore.requestAccess(to: .event) { granted, _ in
+            if granted {
+                let event = EKEvent(eventStore: eventStore)
+                event.title = title
+                event.notes = description
+                event.startDate = dueDate
+                event.endDate = dueDate.addingTimeInterval(3600)
+                event.calendar = eventStore.defaultCalendarForNewEvents
+                do { try eventStore.save(event, span: .thisEvent) }
+                catch { print("Fehler beim Speichern des Kalender-Eintrags: \(error)") }
+            } else {
+                DispatchQueue.main.async { calendarAccessDenied = true }
+            }
+        }
     }
 }
