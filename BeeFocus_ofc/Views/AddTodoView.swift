@@ -59,12 +59,10 @@ struct CameraPicker: UIViewControllerRepresentable {
 extension UIImage {
     func fixOrientation() -> UIImage {
         if imageOrientation == .up { return self }
-
         UIGraphicsBeginImageContextWithOptions(size, false, scale)
         draw(in: CGRect(origin: .zero, size: size))
         let normalizedImage = UIGraphicsGetImageFromCurrentImageContext() ?? self
         UIGraphicsEndImageContext()
-
         return normalizedImage
     }
 }
@@ -73,6 +71,7 @@ extension UIImage {
 struct AddTodoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var title = ""
     @State private var description = ""
@@ -95,7 +94,6 @@ struct AddTodoView: View {
     @State private var calendarAccessDenied = false
     @State private var showCategoryAlert = false
 
-    // Neu für Kategorie hinzufügen
     @State private var showAddCategoryAlert = false
     @State private var newCategoryName = ""
 
@@ -109,7 +107,7 @@ struct AddTodoView: View {
                 imagesSection
                 subTasksSection
             }
-            .navigationTitle("Neue Aufgabe")
+            .navigationTitle(localizer.localizedString(forKey: "new_task_title"))
             .toolbar { toolbarContent }
             .sheet(item: $selectedImageForPreview) { wrappedImage in
                 ImagePreviewView(image: wrappedImage.image)
@@ -121,41 +119,41 @@ struct AddTodoView: View {
                     }
                 }
             }
-            .alert("Kamera-Zugriff benötigt", isPresented: $showCameraPermissionAlert) {
+            .alert(localizer.localizedString(forKey: "camera_access_required"), isPresented: $showCameraPermissionAlert) {
                 settingsAlertButtons
             } message: {
-                Text("Bitte erlauben Sie den Kamerazugriff in den Einstellungen.")
+                Text(localizer.localizedString(forKey: "camera_access_message"))
             }
-            .alert("Bild löschen", isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
+            .alert(localizer.localizedString(forKey: "delete_image"), isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
                 deleteImageAlertButtons(for: image)
             } message: { _ in
-                Text("Möchten Sie dieses Bild wirklich löschen?")
+                Text(localizer.localizedString(forKey: "delete_image_message"))
             }
-            .alert("Kalender-Zugriff verweigert", isPresented: $calendarAccessDenied) {
-                Button("OK", role: .cancel) { }
+            .alert(localizer.localizedString(forKey: "calendar_access_denied"), isPresented: $calendarAccessDenied) {
+                Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
             } message: {
-                Text("Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.")
+                Text(localizer.localizedString(forKey: "calendar_access_message"))
             }
-            .alert("Kategorie fehlt", isPresented: $showCategoryAlert) {
-                Button("OK", role: .cancel) { }
+            .alert(localizer.localizedString(forKey: "category_missing"), isPresented: $showCategoryAlert) {
+                Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
             } message: {
-                Text("Bitte wählen Sie eine Kategorie aus, bevor Sie die Aufgabe speichern.")
+                Text(localizer.localizedString(forKey: "category_missing_message"))
             }
         }
     }
 
     // MARK: - Sections
     private var basicInfoSection: some View {
-        Section(header: Text("Aufgabentitel")) {
-            TextField("Titel", text: $title)
+        Section(header: Text(localizer.localizedString(forKey: "task_title"))) {
+            TextField(localizer.localizedString(forKey: "title_placeholder"), text: $title)
             TextEditor(text: $description)
                 .frame(height: 100)
         }
     }
 
     private var categoryAndPrioritySection: some View {
-        Section(header: Text("Kategorisierung")) {
-            Picker("Kategorie", selection: $category) {
+        Section(header: Text(localizer.localizedString(forKey: "categorization"))) {
+            Picker(localizer.localizedString(forKey: "category"), selection: $category) {
                 ForEach(todoStore.categories, id: \.self) { category in
                     Text(category.name).tag(Optional(category))
                 }
@@ -164,24 +162,20 @@ struct AddTodoView: View {
             Button {
                 showAddCategoryAlert = true
             } label: {
-                Label("Kategorie hinzufügen", systemImage: "plus.circle")
+                Label(localizer.localizedString(forKey: "add_category"), systemImage: "plus.circle")
                     .foregroundColor(.blue)
             }
-            .alert("Neue Kategorie", isPresented: $showAddCategoryAlert) {
+            .alert(localizer.localizedString(forKey: "new_category"), isPresented: $showAddCategoryAlert) {
                 VStack {
-                    TextField("Kategoriename", text: $newCategoryName)
+                    TextField(localizer.localizedString(forKey: "category_name_placeholder"), text: $newCategoryName)
                 }
-                Button("Abbrechen", role: .cancel) {
-                    newCategoryName = ""
-                }
-                Button("Hinzufügen") {
-                    addNewCategory()
-                }
+                Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { newCategoryName = "" }
+                Button(localizer.localizedString(forKey: "add")) { addNewCategory() }
             } message: {
-                Text("Gib den Namen der neuen Kategorie ein.")
+                Text(localizer.localizedString(forKey: "enter_new_category_name"))
             }
 
-            Picker("Priorität", selection: $priority) {
+            Picker(localizer.localizedString(forKey: "priority"), selection: $priority) {
                 ForEach(TodoPriority.allCases) { priority in
                     Text(priority.rawValue).tag(priority)
                 }
@@ -191,9 +185,9 @@ struct AddTodoView: View {
 
     private var dueDateSection: some View {
         Section {
-            Toggle("Fälligkeitsdatum aktivieren", isOn: $hasDueDate)
+            Toggle(localizer.localizedString(forKey: "enable_due_date"), isOn: $hasDueDate)
             if hasDueDate {
-                DatePicker("Datum & Uhrzeit", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                DatePicker(localizer.localizedString(forKey: "date_time"), selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
             }
         }
@@ -201,12 +195,12 @@ struct AddTodoView: View {
 
     private var calendarToggleSection: some View {
         Section {
-            Toggle("In Systemkalender eintragen", isOn: $addToCalendar)
+            Toggle(localizer.localizedString(forKey: "add_to_system_calendar"), isOn: $addToCalendar)
         }
     }
 
     private var imagesSection: some View {
-        Section(header: Text("Bilder")) {
+        Section(header: Text(localizer.localizedString(forKey: "images"))) {
             if !selectedImages.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
@@ -224,26 +218,22 @@ struct AddTodoView: View {
                 .frame(minHeight: 110)
             }
 
-            PhotosPicker(
-                selection: $selectedItems,
-                maxSelectionCount: 5,
-                matching: .images
-            ) {
-                actionLabel("Aus Galerie auswählen", systemImage: "photo.on.rectangle")
+            PhotosPicker(selection: $selectedItems, maxSelectionCount: 5, matching: .images) {
+                actionLabel(localizer.localizedString(forKey: "select_from_gallery"), systemImage: "photo.on.rectangle")
             }
             .onChange(of: selectedItems) { _, _ in
                 Task { await processSelectedItems() }
             }
 
             Button(action: checkCameraPermission) {
-                actionLabel("Mit Kamera aufnehmen", systemImage: "camera")
+                actionLabel(localizer.localizedString(forKey: "take_with_camera"), systemImage: "camera")
             }
             .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
         }
     }
 
     private var subTasksSection: some View {
-        Section(header: Text("Unteraufgaben")) {
+        Section(header: Text(localizer.localizedString(forKey: "subtasks"))) {
             ForEach(subTasks) { subTask in
                 HStack {
                     Text(subTask.title)
@@ -255,7 +245,7 @@ struct AddTodoView: View {
             }
 
             HStack {
-                TextField("Neue Unteraufgabe", text: $newSubTaskTitle)
+                TextField(localizer.localizedString(forKey: "new_subtask_placeholder"), text: $newSubTaskTitle)
                 Button(action: addSubTask) {
                     Image(systemName: "plus.circle.fill").foregroundColor(.blue)
                 }.disabled(newSubTaskTitle.isEmpty)
@@ -267,10 +257,10 @@ struct AddTodoView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Abbrechen") { dismiss() }
+            Button(localizer.localizedString(forKey: "cancel")) { dismiss() }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("Hinzufügen") { saveTodo() }
+            Button(localizer.localizedString(forKey: "add")) { saveTodo() }
         }
     }
 
@@ -288,37 +278,33 @@ struct AddTodoView: View {
             imageToDelete = image
             showDeleteConfirmation = true
         } label: {
-            Label("Löschen", systemImage: "trash")
+            Label(localizer.localizedString(forKey: "delete"), systemImage: "trash")
         }
     }
 
     private var settingsAlertButtons: some View {
         Group {
-            Button("Einstellungen") { openAppSettings() }
-            Button("Abbrechen", role: .cancel) { }
+            Button(localizer.localizedString(forKey: "settings")) { openAppSettings() }
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { }
         }
     }
 
     private func deleteImageAlertButtons(for image: IdentifiableUIImage) -> some View {
         Group {
-            Button("Löschen", role: .destructive) {
+            Button(localizer.localizedString(forKey: "delete"), role: .destructive) {
                 selectedImages.removeAll { $0.id == image.id }
             }
-            Button("Abbrechen", role: .cancel) { }
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { }
         }
     }
 
     // MARK: - Logic
     private func checkCameraPermission() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            showCamera = true
-        case .notDetermined:
-            requestCameraAccess()
-        case .denied, .restricted:
-            showCameraPermissionAlert = true
-        @unknown default:
-            break
+        case .authorized: showCamera = true
+        case .notDetermined: requestCameraAccess()
+        case .denied, .restricted: showCameraPermissionAlert = true
+        @unknown default: break
         }
     }
 
@@ -364,13 +350,9 @@ struct AddTodoView: View {
         let trimmedName = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
 
-        // Zufällige Farbe im Hex-Format erzeugen
         let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
-
-        // Neue Kategorie mit Name und Farbe erstellen
         let newCategory = Category(name: trimmedName, colorHex: randomColor)
 
-        // Kategorie zum Store hinzufügen und auswählen
         todoStore.categories.append(newCategory)
         category = newCategory
         newCategoryName = ""

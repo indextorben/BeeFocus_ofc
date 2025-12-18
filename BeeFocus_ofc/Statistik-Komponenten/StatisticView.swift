@@ -9,10 +9,11 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-//Statistik Fenster
+// Statistik Fenster
 struct StatisticView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
     
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
@@ -51,27 +52,28 @@ struct StatisticView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Gesamtübersicht
-                        StatCard(title: "Gesamtübersicht") {
+                        // Gesamtübersicht / Overview
+                        StatCard(title: localizer.localizedString(forKey: "stat_overview_title")) {
                             VStack(spacing: 15) {
                                 HStack {
                                     StatItem(
-                                        title: "Gesamt",
+                                        title: localizer.localizedString(forKey: "stat_total"),
                                         value: "\(totalTasks)",
-                                        icon: "list.bullet", color: .blue,
+                                        icon: "list.bullet",
+                                        color: .blue
                                     )
                                     
                                     StatItem(
-                                        title: "Erledigt",
+                                        title: localizer.localizedString(forKey: "stat_completed"),
                                         value: "\(completedTasks)",
                                         icon: "checkmark.circle",
                                         color: .green
                                     )
                                 }
                                 
-                                // Fortschrittsbalken
+                                // Fortschrittsbalken / Completion Rate
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text("Erledigungsrate")
+                                    Text(localizer.localizedString(forKey: "stat_completion_rate"))
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                     
@@ -95,8 +97,8 @@ struct StatisticView: View {
                             }
                         }
                         
-                        // Kategorien
-                        StatCard(title: "Aufgaben nach Kategorie") {
+                        // Kategorien / Tasks by Category
+                        StatCard(title: localizer.localizedString(forKey: "stat_category_title")) {
                             VStack(spacing: 12) {
                                 ForEach(tasksByCategory, id: \.0) { category, count in
                                     HStack {
@@ -113,8 +115,8 @@ struct StatisticView: View {
                             }
                         }
                         
-                        // Prioritäten
-                        StatCard(title: "Aufgaben nach Priorität") {
+                        // Prioritäten / Tasks by Priority
+                        StatCard(title: localizer.localizedString(forKey: "stat_priority_title")) {
                             VStack(spacing: 12) {
                                 ForEach(Array(groupedPriorities.enumerated()), id: \.offset) { index, element in
                                     let (priority, count) = element
@@ -133,8 +135,9 @@ struct StatisticView: View {
                         }
                         .padding()
                     }
+                    .padding(.horizontal)
                 }
-                .navigationTitle("Statistik")
+                .navigationTitle(localizer.localizedString(forKey: "stat_navigation_title"))
             }
         }
     }

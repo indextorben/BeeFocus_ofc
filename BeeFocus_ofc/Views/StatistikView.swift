@@ -5,8 +5,10 @@ import UIKit
 struct StatistikView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var todoStore: TodoStore
-    @State private var showShareSheet = false
-    @State private var exportData: Data?
+    
+    @ObservedObject private var localizer = LocalizationManager.shared
+    
+    @State private var exportData: ShareData?
     
     // MARK: - Farben
     var backgroundColor: Color {
@@ -76,6 +78,15 @@ struct StatistikView: View {
             defaults.set(now.timeIntervalSince1970, forKey: "AppStartDate")
             return now
         }
+    }
+    
+    func localizedDayAbbreviation(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(
+            identifier: LocalizationManager.shared.currentLanguageCode
+        )
+        formatter.dateFormat = "EEE" // Mo / Mon / Lun
+        return formatter.string(from: date)
     }
     
     // MARK: - Timer- und Fortschrittsstatistiken
@@ -190,35 +201,32 @@ struct StatistikView: View {
         return result
     }
     
+    struct ShareData: Identifiable {
+        let id = UUID()
+        let data: Data
+    }
+
     private func exportStatistics() {
         DispatchQueue.main.async {
-
-            // 1️⃣ Export-View (KEIN ScrollView, feste Größe)
-            let exportView = StatistikExportView(todoStore: todoStore)
-                .environment(\.colorScheme, .light) // zwingend für sauberes Rendering
-                .frame(width: 1240, height: 1754)   // A4 @ 300dpi (PNG/PDF-tauglich)
-                .background(Color.white)
-
-            // 2️⃣ Renderer
-            let renderer = ImageRenderer(content: exportView)
-
-            renderer.scale = 3                     // 🔥 EXTREM wichtig für Schärfe
-            renderer.isOpaque = true               // ❌ verhindert schwarzen Hintergrund
-            renderer.proposedSize = .init(
-                width: 1240,
-                height: 1754
+            let exportView = StatistikExportView(
+                completed: completedTasks,
+                open: openTasks,
+                total: totalTasks,
+                overdue: overdueTasks
             )
+            .frame(width: 1240, height: 1754)
+            .background(Color.white)
 
-            // 3️⃣ Rendern
+            let renderer = ImageRenderer(content: exportView)
+            renderer.scale = 3
+
             guard let image = renderer.uiImage,
                   let data = image.pngData() else {
-                print("❌ Statistik-Export fehlgeschlagen")
                 return
             }
 
-            // 4️⃣ Teilen
-            exportData = data
-            showShareSheet = true
+            // ⬅️ ERST JETZT Sheet triggern
+            exportData = ShareData(data: data)
         }
     }
     
@@ -232,27 +240,52 @@ struct StatistikView: View {
                         
                         // MARK: Header mit Gesamtstatistiken
                         VStack(spacing: 8) {
-                            Text("Gesamtübersicht")
+                            Text(localizer.localizedString(forKey: "overview_title"))
                                 .font(.headline)
                                 .padding(.bottom, 8)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
-                            
+
                             HStack {
-                                MiniStatCard(title: "Gesamt", value: "\(totalTasks)", icon: "list.bullet", color: .gray)
-                                MiniStatCard(title: "Erledigt", value: "\(completedTasks)", icon: "checkmark.circle", color: .green)
-                                MiniStatCard(title: "Offen", value: "\(openTasks)", icon: "square.and.pencil", color: .blue)
-                                MiniStatCard(title: "Überfällig", value: "\(overdueTasks)", icon: "exclamationmark.triangle", color: .red)
+                                MiniStatCard(
+                                    title: localizer.localizedString(forKey: "overview_total"),
+                                    value: "\(totalTasks)",
+                                    icon: "list.bullet",
+                                    color: .gray
+                                )
+                                MiniStatCard(
+                                    title: localizer.localizedString(forKey: "overview_completed"),
+                                    value: "\(completedTasks)",
+                                    icon: "checkmark.circle",
+                                    color: .green
+                                )
+                                MiniStatCard(
+                                    title: localizer.localizedString(forKey: "overview_open"),
+                                    value: "\(openTasks)",
+                                    icon: "square.and.pencil",
+                                    color: .blue
+                                )
+                                MiniStatCard(
+                                    title: localizer.localizedString(forKey: "overview_overdue"),
+                                    value: "\(overdueTasks)",
+                                    icon: "exclamationmark.triangle",
+                                    color: .red
+                                )
                             }
-                            
+
                             ProgressBar(value: completionRate, color: .blue)
                                 .frame(height: 8)
                                 .padding(.horizontal, 20)
-                            
-                            Text("\(Int(completionRate * 100))% aller Aufgaben erledigt")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+
+                            Text(
+                                String(
+                                    format: localizer.localizedString(forKey: "overview_completion_rate"),
+                                    Int(completionRate * 100)
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         }
                         .padding()
                         .background(cardBackground)
@@ -261,13 +294,13 @@ struct StatistikView: View {
                         
                         // MARK: Heutige Aktivität
                         VStack(alignment: .leading) {
-                            Text("Heutige Aktivität")
+                            Text(localizer.localizedString(forKey: "today_activity_title"))
                                 .font(.headline)
                                 .padding(.bottom, 8)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
-                            
+
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("\(todayCompletedTasks)")
@@ -275,35 +308,42 @@ struct StatistikView: View {
                                         .bold()
                                         .foregroundColor(.green)
                                         .contentTransition(.numericText())
-                                    Text("Heute erledigt")
+
+                                    Text(localizer.localizedString(forKey: "today_completed"))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                
+
                                 Divider().frame(height: 40)
-                                
+
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("\(todayOpenTasks)")
                                         .font(.title)
                                         .bold()
                                         .foregroundColor(.orange)
                                         .contentTransition(.numericText())
-                                    Text("Heute fällig")
+
+                                    Text(localizer.localizedString(forKey: "today_due"))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            
+
                             ProgressBar(value: todayCompletionRate, color: .orange)
                                 .frame(height: 6)
                                 .padding(.top, 8)
-                            
-                            Text("\(Int(todayCompletionRate * 100))% der heutigen Aufgaben erledigt")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.top, 4)
+
+                            Text(
+                                String(
+                                    format: localizer.localizedString(forKey: "today_completion_rate"),
+                                    Int(todayCompletionRate * 100)
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 4)
                         }
                         .padding()
                         .background(cardBackground)
@@ -312,15 +352,15 @@ struct StatistikView: View {
                         
                         // MARK: Kategorien
                         VStack(alignment: .leading) {
-                            Text("Verteilung nach Kategorien")
+                            Text(localizer.localizedString(forKey: "category_distribution_title"))
                                 .font(.headline)
                                 .padding(.bottom, 8)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
-                            
+
                             if todoStore.categories.isEmpty {
-                                Text("Keine Kategorien vorhanden")
+                                Text(localizer.localizedString(forKey: "category_distribution_empty"))
                                     .foregroundColor(.secondary)
                                     .frame(maxWidth: .infinity)
                             } else {
@@ -333,15 +373,25 @@ struct StatistikView: View {
                                                     .bold()
                                                     .foregroundColor(textColor)
                                                     .contentTransition(.numericText())
-                                                Text(category)
+
+                                                Text(category) // Kategorienamen bleiben bewusst unübersetzt
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
                                             .padding(12)
                                             .background(cardBackground)
                                             .cornerRadius(12)
-                                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                                            .overlay(Circle().fill(color).frame(width: 12, height: 12).offset(x: 0, y: -20), alignment: .top)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                            )
+                                            .overlay(
+                                                Circle()
+                                                    .fill(color)
+                                                    .frame(width: 12, height: 12)
+                                                    .offset(x: 0, y: -20),
+                                                alignment: .top
+                                            )
                                         }
                                     }
                                     .padding(.horizontal, 5)
@@ -356,10 +406,11 @@ struct StatistikView: View {
                         // MARK: Timer-Statistik (Tag)
                         VStack(alignment: .leading) {
                             HStack(spacing: 5) {
-                                Text("Fokuszeit - ")
+                                Text(localizer.localizedString(forKey: "focus_time_title"))
                                     .font(.title2)
                                     .bold()
-                                Text("in min")
+
+                                Text(localizer.localizedString(forKey: "focus_time_unit"))
                                     .font(.title3)
                                     .italic()
                                     .foregroundColor(.gray)
@@ -367,17 +418,22 @@ struct StatistikView: View {
                             .frame(maxWidth: .infinity)
                             .multilineTextAlignment(.center)
                             .padding(.bottom, 5)
-                            
+
                             HStack(alignment: .bottom, spacing: 10) {
                                 ForEach(timerWeeklyStats, id: \.date) { entry in
                                     VStack {
                                         RoundedRectangle(cornerRadius: 5)
                                             .fill(Color.accentColor)
                                             .frame(height: max(CGFloat(entry.minutes) * 2, 10))
-                                        Text("\(entry.minutes) min")
-                                            .font(.caption2)
-                                            .foregroundColor(.blue)
-                                        Text(getGermanDayAbbreviation(for: entry.date))
+
+                                        Text(
+                                            "\(entry.minutes) " +
+                                            localizer.localizedString(forKey: "minutes_short")
+                                        )
+                                        .font(.caption2)
+                                        .foregroundColor(.blue)
+
+                                        Text(localizedDayAbbreviation(for: entry.date))
                                             .font(.caption)
                                             .foregroundColor(.gray)
                                     }
@@ -391,16 +447,30 @@ struct StatistikView: View {
                         
                         // MARK: Fortschrittsübersicht
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Fortschrittsübersicht")
+                            Text(localizer.localizedString(forKey: "progress_overview_title"))
                                 .font(.headline)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
-                            
-                            HStack(spacing: 20) { // spacing hinzugefügt
-                                CompletionRing(title: "Heute", value: todayCompletionRate, color: .orange)
-                                CompletionRing(title: "Gesamt", value: completionRate, color: .blue)
-                                CompletionRing(title: "Kritisch", value: min(1.0, Double(overdueTasks) / Double(max(1, openTasks))), color: .red)
+
+                            HStack(spacing: 20) {
+                                CompletionRing(
+                                    title: localizer.localizedString(forKey: "progress_today"),
+                                    value: todayCompletionRate,
+                                    color: .orange
+                                )
+
+                                CompletionRing(
+                                    title: localizer.localizedString(forKey: "progress_total"),
+                                    value: completionRate,
+                                    color: .blue
+                                )
+
+                                CompletionRing(
+                                    title: localizer.localizedString(forKey: "progress_critical"),
+                                    value: min(1.0, Double(overdueTasks) / Double(max(1, openTasks))),
+                                    color: .red
+                                )
                             }
                             .padding(.top, 8)
                         }
@@ -411,28 +481,35 @@ struct StatistikView: View {
                         
                         // MARK: Wöchentlicher Fortschritt
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Wöchentlicher Fortschritt")
+                            Text(localizer.localizedString(forKey: "weekly_progress_title"))
                                 .font(.headline)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
-                            
-                            HStack(spacing: 14) { // spacing leicht erhöht
+
+                            HStack(spacing: 14) {
                                 ForEach(weeklyProgress, id: \.date) { data in
                                     VStack(spacing: 4) {
-                                        Text(getGermanDayAbbreviation(for: data.date))
+
+                                        Text(localizer.localizedDayAbbreviation(for: data.date))
                                             .font(.caption)
                                             .foregroundColor(.secondary)
+
                                         VStack(spacing: 0) {
                                             Spacer()
                                             RoundedRectangle(cornerRadius: 4)
                                                 .frame(width: 20, height: CGFloat(data.progress) * 60)
                                                 .foregroundColor(.blue)
-                                                .animation(.easeInOut, value: data.progress) // Animation hinzugefügt
+                                                .animation(.easeInOut, value: data.progress)
                                         }
                                         .frame(height: 60)
-                                        .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
+                                        .background(
+                                            colorScheme == .dark
+                                                ? Color.white.opacity(0.05)
+                                                : Color.gray.opacity(0.2)
+                                        )
                                         .cornerRadius(4)
+
                                         Text("\(Int(data.progress * 100))%")
                                             .font(.caption2)
                                             .foregroundColor(textColor)
@@ -450,7 +527,7 @@ struct StatistikView: View {
                         
                         // MARK: Monatlicher Fortschritt
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Monatlicher Fortschritt")
+                            Text(localizer.localizedString(forKey: "monthly_progress"))
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .foregroundColor(textColor)
@@ -459,19 +536,21 @@ struct StatistikView: View {
                             HStack(spacing: 14) {
                                 ForEach(monthlyProgress, id: \.week) { data in
                                     VStack(spacing: 4) {
-                                        // Animierter Hintergrund für aktuelle Woche
-                                        Text("W\(data.week)")
-                                            .font(.caption)
-                                            .bold()
-                                            .padding(4)
-                                            .foregroundColor(data.isCurrent ? .white : .secondary)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .fill(data.isCurrent ? Color.blue : Color.clear)
-                                                    .animation(.easeInOut(duration: 0.5), value: data.isCurrent)
-                                            )
-                                            .animation(.easeInOut(duration: 0.5), value: data.isCurrent)
-                                        
+
+                                        // Aktuelle Woche
+                                        Text(
+                                            "\(localizer.localizedString(forKey: "week_short"))\(data.week)"
+                                        )
+                                        .font(.caption)
+                                        .bold()
+                                        .padding(4)
+                                        .foregroundColor(data.isCurrent ? .white : .secondary)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(data.isCurrent ? Color.blue : Color.clear)
+                                                .animation(.easeInOut(duration: 0.5), value: data.isCurrent)
+                                        )
+
                                         VStack(spacing: 0) {
                                             Spacer()
                                             RoundedRectangle(cornerRadius: 4)
@@ -480,9 +559,13 @@ struct StatistikView: View {
                                                 .animation(.easeInOut(duration: 0.5), value: data.progress)
                                         }
                                         .frame(height: 60)
-                                        .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
+                                        .background(
+                                            colorScheme == .dark
+                                            ? Color.white.opacity(0.05)
+                                            : Color.gray.opacity(0.2)
+                                        )
                                         .cornerRadius(4)
-                                        
+
                                         Text("\(Int(data.progress * 100))%")
                                             .font(.caption2)
                                             .foregroundColor(textColor)
@@ -500,24 +583,26 @@ struct StatistikView: View {
                         
                         // MARK: Jahresfortschritt
                         VStack(spacing: 12) {
-                            Text("Jahresfortschritt")
+                            Text(localizer.localizedString(forKey: "yearly_progress"))
                                 .font(.headline)
                                 .foregroundColor(textColor)
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
-                            
+
                             Spacer().frame(height: 10)
-                            
+
                             if UIDevice.current.userInterfaceIdiom == .pad {
-                                // iPad: Alle Monate sichtbar
-                                let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 6) // 6 Spalten pro Reihe
+                                // iPad
+                                let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 6)
+
                                 LazyVGrid(columns: columns, spacing: 15) {
                                     ForEach(yearlyProgress, id: \.month) { data in
                                         VStack(spacing: 4) {
-                                            Text(getGermanMonthAbbreviation(data.month % 12))
+
+                                            Text(getLocalizedMonthAbbreviation(data.month % 12))
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
-                                            
+
                                             VStack(spacing: 0) {
                                                 Spacer()
                                                 RoundedRectangle(cornerRadius: 4)
@@ -526,9 +611,13 @@ struct StatistikView: View {
                                                     .animation(.easeInOut, value: data.progress)
                                             }
                                             .frame(height: 60)
-                                            .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
+                                            .background(
+                                                colorScheme == .dark
+                                                ? Color.white.opacity(0.05)
+                                                : Color.gray.opacity(0.2)
+                                            )
                                             .cornerRadius(4)
-                                            
+
                                             Text("\(Int(data.progress * 100))%")
                                                 .font(.caption2)
                                                 .foregroundColor(textColor)
@@ -536,16 +625,18 @@ struct StatistikView: View {
                                     }
                                 }
                                 .padding(.horizontal, 10)
+
                             } else {
-                                // iPhone: Horizontal scrollen
+                                // iPhone
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 15) {
                                         ForEach(yearlyProgress, id: \.month) { data in
                                             VStack(spacing: 4) {
-                                                Text(getGermanMonthAbbreviation(data.month % 12))
+
+                                                Text(getLocalizedMonthAbbreviation(data.month % 12))
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
-                                                
+
                                                 VStack(spacing: 0) {
                                                     Spacer()
                                                     RoundedRectangle(cornerRadius: 4)
@@ -554,9 +645,13 @@ struct StatistikView: View {
                                                         .animation(.easeInOut, value: data.progress)
                                                 }
                                                 .frame(height: 60)
-                                                .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.gray.opacity(0.2))
+                                                .background(
+                                                    colorScheme == .dark
+                                                    ? Color.white.opacity(0.05)
+                                                    : Color.gray.opacity(0.2)
+                                                )
                                                 .cornerRadius(4)
-                                                
+
                                                 Text("\(Int(data.progress * 100))%")
                                                     .font(.caption2)
                                                     .foregroundColor(textColor)
@@ -576,10 +671,8 @@ struct StatistikView: View {
                     }
                     .padding(.horizontal)
                 }
-                .sheet(isPresented: $showShareSheet) {
-                    if let data = exportData {
-                        ActivityView(activityItems: [data])
-                    }
+                .sheet(item: $exportData) { data in
+                    ActivityView(activityItems: [data])
                 }
             }
             .navigationTitle("Statistik")
@@ -602,11 +695,12 @@ struct StatistikView: View {
         guard weekday >= 1 && weekday <= 7 else { return "?" }
         return germanDays[weekday - 1]
     }
-    
-    private func getGermanMonthAbbreviation(_ month: Int) -> String {
-        let germanMonths = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
-        let index = month % 12
-        return germanMonths[index]
+
+    private func getLocalizedMonthAbbreviation(_ month: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: LocalizationManager.shared.currentLanguageCode)
+        let months = formatter.shortMonthSymbols ?? []
+        return months.isEmpty ? "" : months[month % 12]
     }
 }
 

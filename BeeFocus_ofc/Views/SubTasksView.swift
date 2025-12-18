@@ -2,8 +2,6 @@
 //  SubTasksView.swift
 //  BeeFocus_ofc
 //
-//  Created by Torben Lehneke on 18.06.25.
-//
 
 import Foundation
 import SwiftUI
@@ -18,7 +16,6 @@ struct SubTasksView: View {
     @State private var newSubTaskTitle = ""
     
     @ObservedObject private var localizer = LocalizationManager.shared
-            let languages = ["Deutsch", "Englisch"]
     
     init(todo: TodoItem) {
         self.todo = todo
@@ -28,6 +25,7 @@ struct SubTasksView: View {
     var body: some View {
         NavigationView {
             List {
+                // MARK: Subtasks Liste
                 Section {
                     ForEach($subTasks) { $subTask in
                         HStack {
@@ -49,9 +47,10 @@ struct SubTasksView: View {
                     }
                 }
                 
+                // MARK: Neue Subtask hinzufügen
                 Section {
                     HStack {
-                        TextField("Neue Unteraufgabe", text: $newSubTaskTitle)
+                        TextField(localizer.localizedString(forKey: "new_subtask_placeholder"), text: $newSubTaskTitle)
                         Button(action: addSubTask) {
                             Image(systemName: "plus.circle.fill")
                                 .foregroundColor(.blue)
@@ -59,10 +58,10 @@ struct SubTasksView: View {
                     }
                 }
             }
-            .navigationTitle("Unteraufgaben")
+            .navigationTitle(localizer.localizedString(forKey: "subtasks_title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") {
+                    Button(localizer.localizedString(forKey: "done_button")) {
                         dismiss()
                     }
                 }
@@ -71,7 +70,7 @@ struct SubTasksView: View {
     }
     
     private func addSubTask() {
-        guard !newSubTaskTitle.isEmpty else { return } // ✅
+        guard !newSubTaskTitle.isEmpty else { return }
         
         let newSubTask = SubTask(title: newSubTaskTitle)
         subTasks.append(newSubTask)

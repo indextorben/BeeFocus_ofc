@@ -4,7 +4,7 @@ import UserNotifications
 struct TimerView: View {
 
     @Environment(\.scenePhase) private var scenePhase
-    @EnvironmentObject var timerManager: TimerManager   // ✅ RICHTIG
+    @EnvironmentObject var timerManager: TimerManager
 
     @AppStorage("focusTime") private var focusTime: Int = 25
     @AppStorage("shortBreakTime") private var shortBreakTime: Int = 5
@@ -14,6 +14,8 @@ struct TimerView: View {
     @State private var showingNotificationAlert = false
     @State private var showingSettings = false
     @State private var showingSkipConfirmation = false
+
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     // MARK: - Computed
 
@@ -59,7 +61,9 @@ struct TimerView: View {
                     )
                 }
 
-                Text(timerManager.isBreak ? "Pause" : "Fokus-Session \(sessionDisplay)")
+                Text(timerManager.isBreak
+                     ? localizer.localizedString(forKey: "timer_break")
+                     : "\(localizer.localizedString(forKey: "timer_focus_session")) \(sessionDisplay)")
                     .font(.headline)
                     .foregroundColor(.secondary)
 
@@ -67,11 +71,11 @@ struct TimerView: View {
             }
             .padding()
         }
-        .alert("Aktuelle Phase überspringen?", isPresented: $showingSkipConfirmation) {
-            Button("Überspringen", role: .destructive) {
+        .alert(localizer.localizedString(forKey: "timer_skip_alert_title"), isPresented: $showingSkipConfirmation) {
+            Button(localizer.localizedString(forKey: "timer_skip"), role: .destructive) {
                 timerManager.forceComplete()
             }
-            Button("Abbrechen", role: .cancel) { }
+            Button(localizer.localizedString(forKey: "timer_cancel"), role: .cancel) { }
         }
 
         .onAppear {
@@ -82,7 +86,6 @@ struct TimerView: View {
             }
         }
 
-        // ❌ KEIN pause bei Section-Wechsel
         .onChange(of: scenePhase) { phase in
             if phase == .background {
                 timerManager.saveState()
@@ -98,10 +101,10 @@ struct TimerView: View {
             )
         }
 
-        .alert("Benachrichtigungen", isPresented: $showingNotificationAlert) {
+        .alert(localizer.localizedString(forKey: "timer_notification_title"), isPresented: $showingNotificationAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Bitte erlauben Sie Benachrichtigungen in den Einstellungen.")
+            Text(localizer.localizedString(forKey: "timer_notification_message"))
         }
     }
 

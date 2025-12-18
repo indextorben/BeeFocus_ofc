@@ -27,42 +27,34 @@ struct PomodoroSettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Fokus")) {
-                    Stepper("Fokuszeit: \(focusTime) min", value: $focusTime, in: 5...120)
+                Section(header: Text(localizer.localizedString(forKey: "focus"))) {
+                    Stepper("\(localizer.localizedString(forKey: "focus_time")): \(focusTime) min",
+                            value: $focusTime, in: 5...120)
                 }
                 
-                Section(header: Text("Pausen")) {
-                    Stepper("Kurze Pause: \(shortBreakTime) min", value: $shortBreakTime, in: 1...30)
-                    Stepper("Lange Pause: \(longBreakTime) min", value: $longBreakTime, in: 5...60)
+                Section(header: Text(localizer.localizedString(forKey: "breaks"))) {
+                    Stepper("\(localizer.localizedString(forKey: "short_break")): \(shortBreakTime) min",
+                            value: $shortBreakTime, in: 1...30)
+                    Stepper("\(localizer.localizedString(forKey: "long_break")): \(longBreakTime) min",
+                            value: $longBreakTime, in: 5...60)
                 }
                 
-                Section(header: Text("Zyklen")) {
-                    Stepper(
-                        "Sessions bis lange Pause: \(sessionsUntilLongBreak)",
-                        value: $sessionsUntilLongBreak,
-                        in: 2...10
-                    )
+                Section(header: Text(localizer.localizedString(forKey: "cycles"))) {
+                    Stepper("\(localizer.localizedString(forKey: "sessions_until_long_break")): \(sessionsUntilLongBreak)",
+                            value: $sessionsUntilLongBreak, in: 2...10)
                 }
             }
-            .navigationTitle("Einstellungen")
+            .navigationTitle(localizer.localizedString(forKey: "settings"))
             
             // 🔥 MAGIC: Auto-Reload sobald sich irgendwas ändert
-            .onChange(of: focusTime) { _ in
-                TimerManager.shared.applyUpdatedSettingsIfNeeded()
-            }
-            .onChange(of: shortBreakTime) { _ in
-                TimerManager.shared.applyUpdatedSettingsIfNeeded()
-            }
-            .onChange(of: longBreakTime) { _ in
-                TimerManager.shared.applyUpdatedSettingsIfNeeded()
-            }
-            .onChange(of: sessionsUntilLongBreak) { _ in
-                TimerManager.shared.applyUpdatedSettingsIfNeeded()
-            }
+            .onChange(of: focusTime) { _ in TimerManager.shared.applyUpdatedSettingsIfNeeded() }
+            .onChange(of: shortBreakTime) { _ in TimerManager.shared.applyUpdatedSettingsIfNeeded() }
+            .onChange(of: longBreakTime) { _ in TimerManager.shared.applyUpdatedSettingsIfNeeded() }
+            .onChange(of: sessionsUntilLongBreak) { _ in TimerManager.shared.applyUpdatedSettingsIfNeeded() }
             
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") {
+                    Button(localizer.localizedString(forKey: "done")) {
                         dismiss()
                     }
                 }

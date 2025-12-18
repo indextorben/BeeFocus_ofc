@@ -4,11 +4,14 @@
 //
 //  Created by Torben Lehneke on 15.12.25.
 //
+
 import SwiftUI
 
 struct CompletionDonut: View {
     let completed: Int
     let total: Int
+    
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var progress: Double {
         total > 0 ? Double(completed) / Double(total) : 0
@@ -38,7 +41,7 @@ struct CompletionDonut: View {
                 Text("\(Int(progress * 100))%")
                     .font(.title)
                     .bold()
-                Text("Erledigt")
+                Text(localizer.localizedString(forKey: "completed_label"))
                     .font(.caption)
                     .foregroundColor(.gray)
             }

@@ -101,3 +101,225 @@
 "Alle" = "All";
 "Löschen" = "Delete";
 "category_rename" = "Rename";
+"Zum Kalender hinzugefügt" = "Add to calendar";
+"priority_low" = "Low";
+"priority_medium" = "Medium";
+"priority_high" = "High";
+"Keine Aufgaben" = "No Tasks";
+
+/* Tage der Woche */
+"Mo" = "Mon";
+"Di" = "Tue";
+"Mi" = "Wed";
+"Do" = "Thu";
+"Fr" = "Fri";
+"Sa" = "Sat";
+"So" = "Sun";
+
+/* Aufgabenkarte */
+"Aufgaben am" = "Tasks on";
+"Keine Aufgaben. Chill mal 😴" = "No tasks. Chill 😴";
+
+/* TodoCard Priorität */
+"priority_low" = "Low";
+"priority_medium" = "Medium";
+"priority_high" = "High";
+
+/* Kontextmenü TodoCard */
+"Teilen" = "Share";
+"Bearbeiten" = "Edit";
+"Löschen" = "Delete";
+
+"pomodoro_timer" = "Pomodoro Timer";
+"timer_mode" = "Timer Mode";
+"pomodoro" = "Pomodoro";
+"short_break" = "Short Break";
+"long_break" = "Long Break";
+
+"settings" = "Settings";
+"focus" = "Focus";
+"focus_time" = "Focus Time";
+"breaks" = "Breaks";
+"short_break" = "Short Break";
+"long_break" = "Long Break";
+"cycles" = "Cycles";
+"sessions_until_long_break" = "Sessions Until Long Break";
+"done" = "Done";
+
+"tutorial_next" = "Next";
+"tutorial_start" = "Let's go 🚀";
+
+"tutorial_welcome_title" = "Welcome to BeeFocus";
+"tutorial_welcome_desc" = "Keep your tasks organized and stay focused.";
+
+"tutorial_create_title" = "Create Tasks";
+"tutorial_create_desc" = "Create new tasks with a single tap.";
+"tutorial_create_bullet1" = "Set title";
+"tutorial_create_bullet2" = "Add description";
+"tutorial_create_bullet3" = "Choose category";
+
+"tutorial_priority_title" = "Set Priorities";
+"tutorial_priority_desc" = "Get important things done first.";
+"tutorial_priority_low" = "Low";
+"tutorial_priority_medium" = "Medium";
+"tutorial_priority_high" = "High";
+
+"tutorial_deadline_title" = "Plan Deadlines";
+"tutorial_deadline_desc" = "Never forget deadlines again.";
+"tutorial_deadline_select" = "Select date";
+"tutorial_deadline_remind" = "Enable reminders";
+
+"tutorial_subtasks_title" = "Subtasks";
+"tutorial_subtasks_desc" = "Break big tasks into smaller steps.";
+"tutorial_subtasks_struct" = "Create structure";
+"tutorial_subtasks_progress" = "Track progress";
+
+"tutorial_pomodoro_title" = "Pomodoro Focus";
+"tutorial_pomodoro_desc" = "Work concentrated in sessions.";
+"tutorial_pomodoro_focus" = "Focus";
+"tutorial_pomodoro_break" = "Break";
+"tutorial_pomodoro_repeat" = "Repeat";
+
+"tutorial_ready_title" = "All Set";
+"tutorial_ready_desc" = "You're ready to go. Good luck!";
+"tutorial_ready_productive" = "Stay productive";
+"tutorial_ready_goals" = "Achieve your goals";
+
+"timer_break" = "Break";
+"timer_focus_session" = "Focus Session";
+"timer_skip_alert_title" = "Skip current phase?";
+"timer_skip" = "Skip";
+"timer_cancel" = "Cancel";
+"timer_notification_title" = "Notifications";
+"timer_notification_message" = "Please allow notifications in Settings.";
+
+"timer_running" = "Running";
+"timer_paused" = "Paused";
+
+"overview_title" = "Overview";
+"overview_total" = "Total";
+"overview_completed" = "Completed";
+"overview_open" = "Open";
+"overview_overdue" = "Overdue";
+"overview_completion_rate" = "%d%% of all tasks completed";
+"today_activity_title" = "Today's Activity";
+"today_completed" = "Completed today";
+"today_due" = "Due today";
+"today_completion_rate" = "%d%% of today's tasks completed";
+"category_distribution_title" = "Distribution by Category";
+"category_distribution_empty" = "No categories available";
+"focus_time_title" = "Focus time -";
+"focus_time_unit" = "in min";
+"minutes_short" = "min";
+"progress_overview_title" = "Progress overview";
+"progress_today" = "Today";
+"progress_total" = "Overall";
+"progress_critical" = "Critical";
+"weekly_progress_title" = "Weekly progress";
+"monthly_progress" = "Monthly Progress";
+"week_short" = "W";
+"yearly_progress" = "Yearly Progress";
+"highlights_title" = "Highlights";
+"summary_title" = "Summary";
+"new_subtask_placeholder" = "New Subtask";
+"subtasks_title" = "Subtasks";
+"done_button" = "Done";
+"images_title" = "Images";
+"done_button" = "Done";
+"camera_access_required" = "Camera Access Required";
+"camera_access_explanation" = "Please allow camera access in Settings";
+"camera_settings_button" = "Open Settings";
+"edit_todo_title" = "Edit Task";
+"todo_title_section" = "Task Title";
+"todo_title_placeholder" = "Title";
+"category_priority_section" = "Category & Priority";
+"category_picker_label" = "Category";
+"priority_picker_label" = "Priority";
+"due_date_toggle" = "Enable Due Date";
+"due_date_picker" = "Date & Time";
+"add_to_calendar_toggle" = "Add to Calendar";
+"images_section" = "Images";
+"subtasks_section" = "Subtasks";
+"new_subtask_placeholder" = "New Subtask";
+"add_category_button" = "Add Category";
+"select_from_gallery" = "Select from Gallery";
+"capture_with_camera" = "Capture with Camera";
+"cancel_button" = "Cancel";
+"save_button" = "Save";
+"delete_button" = "Delete";
+"camera_access_required" = "Camera Access Required";
+"camera_access_explanation" = "Please allow camera access in Settings";
+"settings_button" = "Settings";
+"delete_image_title" = "Delete Image";
+"delete_image_message" = "Do you really want to delete this image?";
+"new_category_title" = "New Category";
+"new_category_placeholder" = "Category Name";
+"new_category_message" = "Enter the name of the new category.";
+"category_missing_title" = "Category Missing";
+"category_missing_message" = "Please select a category before saving the task.";
+"calendar_access_denied_title" = "Calendar Access Denied";
+"calendar_access_denied_message" = "Please allow calendar access in Settings.";
+"ok_button" = "OK";
+"completed_label" = "Completed";
+/* Allgemein */
+"ok" = "OK";
+"cancel" = "Cancel";
+"add" = "Add";
+"delete" = "Delete";
+"settings" = "Settings";
+
+/* AddTodoView / EditTodoView */
+"new_task_title" = "New Task";
+"edit_task_title" = "Edit Task";
+"task_title" = "Task Title";
+"title_placeholder" = "Title";
+"description_placeholder" = "Description";
+"categorization" = "Categorization";
+"category" = "Category";
+"add_category" = "Add Category";
+"new_category" = "New Category";
+"category_name_placeholder" = "Category Name";
+"enter_new_category_name" = "Enter the name of the new category.";
+"category_missing" = "Category Missing";
+"category_missing_message" = "Please select a category before saving the task.";
+"priority" = "Priority";
+"enable_due_date" = "Enable Due Date";
+"date_time" = "Date & Time";
+"add_to_system_calendar" = "Add to System Calendar";
+"images" = "Images";
+"select_from_gallery" = "Select from Gallery";
+"take_with_camera" = "Take with Camera";
+"camera_access_required" = "Camera Access Required";
+"camera_access_message" = "Please allow camera access in settings.";
+"delete_image" = "Delete Image";
+"delete_image_message" = "Do you really want to delete this image?";
+"calendar_access_denied" = "Calendar Access Denied";
+"calendar_access_message" = "Please allow calendar access in settings.";
+"subtasks" = "Subtasks";
+"new_subtask_placeholder" = "New Subtask";
+"alert_delete_task" = "Delete Task?";
+"alert_delete_task_message" = "This action cannot be undone.";
+"alert_new_category" = "New Category";
+"alert_new_category_message" = "Please enter a name for the new category.";
+"alert_rename_category" = "Rename Category";
+"alert_rename_category_message" = "Please enter a new name for the category.";
+"alert_delete_category" = "Delete Category?";
+"alert_delete_category_message" = "All tasks in this category will be moved to the first available category.";
+"cancel" = "Cancel";
+"delete" = "Delete";
+"add" = "Add";
+"category_name" = "Category Name";
+"new_name" = "New Name";
+"import_success_count" = "Import successful! Number of todos:";
+"import_new_todos" = "New todos are being added";
+"import_error" = "Error importing todos";
+"stat_navigation_title" = "Statistics";
+"stat_overview_title" = "Overview";
+"stat_total" = "Total";
+"stat_completed" = "Completed";
+"stat_completion_rate" = "Completion Rate";
+"stat_category_title" = "Tasks by Category";
+"stat_priority_title" = "Tasks by Priority";
+"notifications_denied" = "Notifications not allowed";
+"notifications_granted" = "Notifications allowed";
+"shake_detected" = "📳 Shake detected in AppDelegate!";

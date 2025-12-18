@@ -7,7 +7,7 @@ struct TutorialView: View {
     let tutorialTitle: String
     
     @ObservedObject private var localizer = LocalizationManager.shared
-            let languages = ["Deutsch", "Englisch"]
+    let languages = ["Deutsch", "Englisch"]
 
     var body: some View {
         ScrollView {
@@ -25,7 +25,7 @@ struct TutorialView: View {
                 // MARK: Highlights
                 if let highlights = section.highlights, let highlightData = section.highlightData {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Highlights")
+                        Text(localizer.localizedString(forKey: "highlights_title")) // "Highlights"
                             .font(.headline)
                         
                         ForEach(highlights, id: \.self) { highlight in
@@ -52,7 +52,7 @@ struct TutorialView: View {
                 // MARK: Bullet Points
                 if let bullets = section.bulletPoints, !bullets.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Zusammenfassung")
+                        Text(localizer.localizedString(forKey: "summary_title")) // "Summary"
                             .font(.headline)
                         
                         ForEach(bullets, id: \.self) { point in

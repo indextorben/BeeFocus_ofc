@@ -16,10 +16,12 @@ struct AlertModifiers: ViewModifier {
     var todoStore: TodoStore
     @Binding var showingAddCategory: Bool
     @Binding var newCategoryName: String
-    @Binding var editingCategory: Category?           // Category statt String
+    @Binding var editingCategory: Category?
     @Binding var showingDeleteCategoryAlert: Bool
-    @Binding var categoryToDelete: Category?          // Category statt String
-    @Binding var selectedCategory: Category?          // Category statt String
+    @Binding var categoryToDelete: Category?
+    @Binding var selectedCategory: Category?
+    
+    @ObservedObject private var localizer = LocalizationManager.shared
     
     private var editCategoryAlertIsPresented: Binding<Bool> {
         Binding(
@@ -30,32 +32,32 @@ struct AlertModifiers: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .alert("Aufgabe löschen?", isPresented: $showingDeleteAlert) {
+            .alert(localizer.localizedString(forKey: "alert_delete_task"), isPresented: $showingDeleteAlert) {
                 deleteTodoAlertButtons
             } message: {
-                Text("Diese Aktion kann nicht rückgängig gemacht werden.")
+                Text(localizer.localizedString(forKey: "alert_delete_task_message"))
             }
-            .alert("Neue Kategorie", isPresented: $showingAddCategory) {
+            .alert(localizer.localizedString(forKey: "alert_new_category"), isPresented: $showingAddCategory) {
                 addCategoryAlertFields
             } message: {
-                Text("Bitte geben Sie einen Namen für die neue Kategorie ein.")
+                Text(localizer.localizedString(forKey: "alert_new_category_message"))
             }
-            .alert("Kategorie umbenennen", isPresented: editCategoryAlertIsPresented) {
+            .alert(localizer.localizedString(forKey: "alert_rename_category"), isPresented: editCategoryAlertIsPresented) {
                 editCategoryAlertFields
             } message: {
-                Text("Bitte geben Sie einen neuen Namen für die Kategorie ein.")
+                Text(localizer.localizedString(forKey: "alert_rename_category_message"))
             }
-            .alert("Kategorie löschen?", isPresented: $showingDeleteCategoryAlert) {
+            .alert(localizer.localizedString(forKey: "alert_delete_category"), isPresented: $showingDeleteCategoryAlert) {
                 deleteCategoryAlertButtons
             } message: {
-                Text("Alle Aufgaben in dieser Kategorie werden in die erste verfügbare Kategorie verschoben.")
+                Text(localizer.localizedString(forKey: "alert_delete_category_message"))
             }
     }
     
     private var deleteTodoAlertButtons: some View {
         Group {
-            Button("Abbrechen", role: .cancel) {}
-            Button("Löschen", role: .destructive) {
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
+            Button(localizer.localizedString(forKey: "delete"), role: .destructive) {
                 if let todo = todoToDelete {
                     todoStore.deleteTodo(todo)
                 }
@@ -65,13 +67,12 @@ struct AlertModifiers: ViewModifier {
     
     private var addCategoryAlertFields: some View {
         Group {
-            TextField("Kategoriename", text: $newCategoryName)
-            Button("Abbrechen", role: .cancel) {
+            TextField(localizer.localizedString(forKey: "category_name"), text: $newCategoryName)
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {
                 newCategoryName = ""
             }
-            Button("Hinzufügen") {
+            Button(localizer.localizedString(forKey: "add")) {
                 if !newCategoryName.isEmpty {
-                    // Neue Kategorie mit Standard-Farbe erstellen
                     let newCategory = Category(name: newCategoryName, colorHex: "1E90FF")
                     todoStore.addCategory(newCategory)
                     newCategoryName = ""
@@ -83,7 +84,7 @@ struct AlertModifiers: ViewModifier {
     private var editCategoryAlertFields: some View {
         Group {
             if let category = editingCategory {
-                TextField("Neuer Name", text: Binding(
+                TextField(localizer.localizedString(forKey: "new_name"), text: Binding(
                     get: { category.name },
                     set: { newName in
                         if !newName.isEmpty {
@@ -92,7 +93,7 @@ struct AlertModifiers: ViewModifier {
                         }
                     }
                 ))
-                Button("Abbrechen", role: .cancel) {
+                Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {
                     editingCategory = nil
                 }
             }
@@ -101,10 +102,10 @@ struct AlertModifiers: ViewModifier {
     
     private var deleteCategoryAlertButtons: some View {
         Group {
-            Button("Abbrechen", role: .cancel) {
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {
                 categoryToDelete = nil
             }
-            Button("Löschen", role: .destructive) {
+            Button(localizer.localizedString(forKey: "delete"), role: .destructive) {
                 if let category = categoryToDelete {
                     todoStore.deleteCategory(category)
                     if selectedCategory == category {

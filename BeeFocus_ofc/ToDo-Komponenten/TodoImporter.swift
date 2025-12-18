@@ -10,17 +10,17 @@ struct TodoImporter {
             let data = try Data(contentsOf: url)
             
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601 // ✅ hier setzen
+            decoder.dateDecodingStrategy = .iso8601
             
             let importedTodos = try decoder.decode([TodoItem].self, from: data)
-            print("✅ Import erfolgreich! Anzahl Todos: \(importedTodos.count)")
+            print("✅ \(LocalizationManager.shared.localizedString(forKey: "import_success_count")) \(importedTodos.count)")
 
             DispatchQueue.main.async {
                 let todosWithID = importedTodos.map { todo in
                     TodoItem(
                         title: todo.title,
                         description: todo.description,
-                        isCompleted: false, // immer sichtbar
+                        isCompleted: false,
                         dueDate: todo.dueDate,
                         category: todo.category,
                         priority: todo.priority,
@@ -36,12 +36,12 @@ struct TodoImporter {
                     )
                 }
 
-                print("📦 Neue Todos werden hinzugefügt: \(todosWithID.map(\.title))")
+                print("📦 \(LocalizationManager.shared.localizedString(forKey: "import_new_todos")): \(todosWithID.map(\.title))")
                 store.todos.append(contentsOf: todosWithID)
                 store.saveTodos()
             }
         } catch {
-            print("❌ Fehler beim Importieren: \(error)")
+            print("❌ \(LocalizationManager.shared.localizedString(forKey: "import_error")): \(error)")
         }
     }
 }

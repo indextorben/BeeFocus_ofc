@@ -103,3 +103,224 @@
 "Alle" = "Alle";
 "Löschen" = "Löschen";
 "category_rename" = "Umbenennen";
+"Zum Kalender hinzugefügt" = "Zum Kalender hinzugefügt";
+"priority_low" = "Niedrig";
+"priority_medium" = "Mittel";
+"priority_high" = "Hoch";
+"Keine Aufgaben" = "Keine Aufgaben";
+/* Tage der Woche */
+"Mo" = "Mo";
+"Di" = "Di";
+"Mi" = "Mi";
+"Do" = "Do";
+"Fr" = "Fr";
+"Sa" = "Sa";
+"So" = "So";
+
+/* Aufgabenkarte */
+"Aufgaben am" = "Aufgaben am";
+"Keine Aufgaben. Chill mal 😴" = "Keine Aufgaben. Chill mal 😴";
+
+/* TodoCard Priorität */
+"priority_low" = "Niedrig";
+"priority_medium" = "Mittel";
+"priority_high" = "Hoch";
+
+/* Kontextmenü TodoCard */
+"Teilen" = "Teilen";
+"Bearbeiten" = "Bearbeiten";
+"Löschen" = "Löschen";
+
+"pomodoro_timer" = "Pomodoro Timer";
+"timer_mode" = "Timer-Modus";
+"pomodoro" = "Pomodoro";
+"short_break" = "Kurze Pause";
+"long_break" = "Lange Pause";
+
+"settings" = "Einstellungen";
+"focus" = "Fokus";
+"focus_time" = "Fokuszeit";
+"breaks" = "Pausen";
+"short_break" = "Kurze Pause";
+"long_break" = "Lange Pause";
+"cycles" = "Zyklen";
+"sessions_until_long_break" = "Sessions bis lange Pause";
+"done" = "Fertig";
+
+"tutorial_next" = "Weiter";
+"tutorial_start" = "Los geht's 🚀";
+
+"tutorial_welcome_title" = "Willkommen bei BeeFocus";
+"tutorial_welcome_desc" = "Behalte deine Aufgaben im Griff und bleib fokussiert.";
+
+"tutorial_create_title" = "Aufgaben erstellen";
+"tutorial_create_desc" = "Erstelle neue Aufgaben mit nur einem Tap.";
+"tutorial_create_bullet1" = "Titel festlegen";
+"tutorial_create_bullet2" = "Beschreibung hinzufügen";
+"tutorial_create_bullet3" = "Kategorie wählen";
+
+"tutorial_priority_title" = "Prioritäten setzen";
+"tutorial_priority_desc" = "Wichtiges zuerst erledigen.";
+"tutorial_priority_low" = "Niedrig";
+"tutorial_priority_medium" = "Mittel";
+"tutorial_priority_high" = "Hoch";
+
+"tutorial_deadline_title" = "Deadlines planen";
+"tutorial_deadline_desc" = "Nie wieder Termine vergessen.";
+"tutorial_deadline_select" = "Datum auswählen";
+"tutorial_deadline_remind" = "Erinnerungen aktivieren";
+
+"tutorial_subtasks_title" = "Unteraufgaben";
+"tutorial_subtasks_desc" = "Große Aufgaben klein machen.";
+"tutorial_subtasks_struct" = "Struktur schaffen";
+"tutorial_subtasks_progress" = "Fortschritt sehen";
+
+"tutorial_pomodoro_title" = "Pomodoro Fokus";
+"tutorial_pomodoro_desc" = "Arbeite konzentriert in Sessions.";
+"tutorial_pomodoro_focus" = "Fokus";
+"tutorial_pomodoro_break" = "Pause";
+"tutorial_pomodoro_repeat" = "Wiederholen";
+
+"tutorial_ready_title" = "Alles bereit";
+"tutorial_ready_desc" = "Du bist startklar. Viel Erfolg!";
+"tutorial_ready_productive" = "Produktiv bleiben";
+"tutorial_ready_goals" = "Ziele erreichen";
+
+"timer_break" = "Pause";
+"timer_focus_session" = "Fokus-Session";
+"timer_skip_alert_title" = "Aktuelle Phase überspringen?";
+"timer_skip" = "Überspringen";
+"timer_cancel" = "Abbrechen";
+"timer_notification_title" = "Benachrichtigungen";
+"timer_notification_message" = "Bitte erlauben Sie Benachrichtigungen in den Einstellungen.";
+
+"timer_running" = "Läuft";
+"timer_paused" = "Pausiert";
+
+"overview_title" = "Gesamtübersicht";
+"overview_total" = "Gesamt";
+"overview_completed" = "Erledigt";
+"overview_open" = "Offen";
+"overview_overdue" = "Überfällig";
+"overview_completion_rate" = "%d%% aller Aufgaben erledigt";
+"today_activity_title" = "Heutige Aktivität";
+"today_completed" = "Heute erledigt";
+"today_due" = "Heute fällig";
+"today_completion_rate" = "%d%% der heutigen Aufgaben erledigt";
+"category_distribution_title" = "Verteilung nach Kategorien";
+"category_distribution_empty" = "Keine Kategorien vorhanden";
+"focus_time_title" = "Fokuszeit -";
+"focus_time_unit" = "in min";
+"minutes_short" = "min";
+"progress_overview_title" = "Fortschrittsübersicht";
+"progress_today" = "Heute";
+"progress_total" = "Gesamt";
+"progress_critical" = "Kritisch";
+"weekly_progress_title" = "Wöchentlicher Fortschritt";
+"monthly_progress" = "Monatlicher Fortschritt";
+"week_short" = "W";
+"yearly_progress" = "Jahresfortschritt";
+"highlights_title" = "Highlights";
+"summary_title" = "Zusammenfassung";
+"new_subtask_placeholder" = "Neue Unteraufgabe";
+"subtasks_title" = "Unteraufgaben";
+"done_button" = "Fertig";
+"images_title" = "Bilder";
+"done_button" = "Fertig";
+"camera_access_required" = "Kamera-Zugriff benötigt";
+"camera_access_explanation" = "Bitte erlaube den Kamerazugriff in den Einstellungen";
+"camera_settings_button" = "Zu Einstellungen";
+"edit_todo_title" = "Aufgabe bearbeiten";
+"todo_title_section" = "Aufgabentitel";
+"todo_title_placeholder" = "Titel";
+"category_priority_section" = "Kategorisierung";
+"category_picker_label" = "Kategorie";
+"priority_picker_label" = "Priorität";
+"due_date_toggle" = "Fälligkeitsdatum aktivieren";
+"due_date_picker" = "Datum & Uhrzeit";
+"add_to_calendar_toggle" = "In Systemkalender eintragen";
+"images_section" = "Bilder";
+"subtasks_section" = "Unteraufgaben";
+"new_subtask_placeholder" = "Neue Unteraufgabe";
+"add_category_button" = "Kategorie hinzufügen";
+"select_from_gallery" = "Aus Galerie auswählen";
+"capture_with_camera" = "Mit Kamera aufnehmen";
+"cancel_button" = "Abbrechen";
+"save_button" = "Speichern";
+"delete_button" = "Löschen";
+"camera_access_required" = "Kamera-Zugriff benötigt";
+"camera_access_explanation" = "Bitte erlauben Sie den Kamerazugriff in den Einstellungen";
+"settings_button" = "Einstellungen";
+"delete_image_title" = "Bild löschen";
+"delete_image_message" = "Möchtest du dieses Bild wirklich löschen?";
+"new_category_title" = "Neue Kategorie";
+"new_category_placeholder" = "Kategoriename";
+"new_category_message" = "Gib den Namen der neuen Kategorie ein.";
+"category_missing_title" = "Kategorie fehlt";
+"category_missing_message" = "Bitte wähle eine Kategorie aus, bevor du die Aufgabe speicherst.";
+"calendar_access_denied_title" = "Kalender-Zugriff verweigert";
+"calendar_access_denied_message" = "Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.";
+"ok_button" = "OK";
+"completed_label" = "Erledigt";
+/* Allgemein */
+"ok" = "OK";
+"cancel" = "Abbrechen";
+"add" = "Hinzufügen";
+"delete" = "Löschen";
+"settings" = "Einstellungen";
+
+/* AddTodoView / EditTodoView */
+"new_task_title" = "Neue Aufgabe";
+"edit_task_title" = "Aufgabe bearbeiten";
+"task_title" = "Aufgabentitel";
+"title_placeholder" = "Titel";
+"description_placeholder" = "Beschreibung";
+"categorization" = "Kategorisierung";
+"category" = "Kategorie";
+"add_category" = "Kategorie hinzufügen";
+"new_category" = "Neue Kategorie";
+"category_name_placeholder" = "Kategoriename";
+"enter_new_category_name" = "Gib den Namen der neuen Kategorie ein.";
+"category_missing" = "Kategorie fehlt";
+"category_missing_message" = "Bitte wählen Sie eine Kategorie aus, bevor Sie die Aufgabe speichern.";
+"priority" = "Priorität";
+"enable_due_date" = "Fälligkeitsdatum aktivieren";
+"date_time" = "Datum & Uhrzeit";
+"add_to_system_calendar" = "In Systemkalender eintragen";
+"images" = "Bilder";
+"select_from_gallery" = "Aus Galerie auswählen";
+"take_with_camera" = "Mit Kamera aufnehmen";
+"camera_access_required" = "Kamera-Zugriff benötigt";
+"camera_access_message" = "Bitte erlauben Sie den Kamerazugriff in den Einstellungen.";
+"delete_image" = "Bild löschen";
+"delete_image_message" = "Möchten Sie dieses Bild wirklich löschen?";
+"calendar_access_denied" = "Kalender-Zugriff verweigert";
+"calendar_access_message" = "Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.";
+"subtasks" = "Unteraufgaben";
+"new_subtask_placeholder" = "Neue Unteraufgabe";
+"alert_delete_task" = "Aufgabe löschen?";
+"alert_delete_task_message" = "Diese Aktion kann nicht rückgängig gemacht werden.";
+"alert_new_category" = "Neue Kategorie";
+"alert_new_category_message" = "Bitte geben Sie einen Namen für die neue Kategorie ein.";
+"alert_rename_category" = "Kategorie umbenennen";
+"alert_rename_category_message" = "Bitte geben Sie einen neuen Namen für die Kategorie ein.";
+"alert_delete_category" = "Kategorie löschen?";
+"alert_delete_category_message" = "Alle Aufgaben in dieser Kategorie werden in die erste verfügbare Kategorie verschoben.";
+"cancel" = "Abbrechen";
+"delete" = "Löschen";
+"add" = "Hinzufügen";
+"category_name" = "Kategoriename";
+"new_name" = "Neuer Name";
+"import_success_count" = "Import erfolgreich! Anzahl Todos:";
+"import_new_todos" = "Neue Todos werden hinzugefügt";
+"import_error" = "Fehler beim Importieren";
+"stat_navigation_title" = "Statistik";
+"stat_overview_title" = "Gesamtübersicht";
+"stat_total" = "Gesamt";
+"stat_completed" = "Erledigt";
+"stat_completion_rate" = "Erledigungsrate";
+"stat_category_title" = "Aufgaben nach Kategorie";
+"stat_priority_title" = "Aufgaben nach Priorität";
+"notifications_denied" = "Benachrichtigungen nicht erlaubt";
+"notifications_granted" = "Benachrichtigungen erlaubt";
+"shake_detected" = "📳 Shake erkannt in AppDelegate!";

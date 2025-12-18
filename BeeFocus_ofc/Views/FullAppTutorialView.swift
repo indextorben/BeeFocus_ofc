@@ -15,6 +15,8 @@ struct FullAppTutorialView: View {
     @State private var showFireworks = false
     @State private var buttonExploded = false
 
+    @ObservedObject private var localizer = LocalizationManager.shared
+
     private let pages = TutorialPage.allPages
 
     var body: some View {
@@ -98,7 +100,7 @@ struct FullAppTutorialView: View {
                 }
             }
         } label: {
-            Text(selectedIndex < pages.count - 1 ? "Weiter" : "Los geht's 🚀")
+            Text(selectedIndex < pages.count - 1 ? localizer.localizedString(forKey: "tutorial_next") : localizer.localizedString(forKey: "tutorial_start"))
                 .font(.headline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -218,6 +220,86 @@ struct TutorialPageView: View {
     }
 }
 
+// MARK: - Model
+struct TutorialPage {
+    let title: String
+    let description: String
+    let systemImage: String
+    let bulletPoints: [String]?
+}
+
+// MARK: - Pages
+extension TutorialPage {
+    static var allPages: [TutorialPage] {
+        let localizer = LocalizationManager.shared
+        return [
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_welcome_title"),
+                description: localizer.localizedString(forKey: "tutorial_welcome_desc"),
+                systemImage: "sparkles",
+                bulletPoints: nil
+            ),
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_create_title"),
+                description: localizer.localizedString(forKey: "tutorial_create_desc"),
+                systemImage: "plus.circle.fill",
+                bulletPoints: [
+                    localizer.localizedString(forKey: "tutorial_create_bullet1"),
+                    localizer.localizedString(forKey: "tutorial_create_bullet2"),
+                    localizer.localizedString(forKey: "tutorial_create_bullet3")
+                ]
+            ),
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_priority_title"),
+                description: localizer.localizedString(forKey: "tutorial_priority_desc"),
+                systemImage: "exclamationmark.triangle.fill",
+                bulletPoints: [
+                    localizer.localizedString(forKey: "tutorial_priority_low"),
+                    localizer.localizedString(forKey: "tutorial_priority_medium"),
+                    localizer.localizedString(forKey: "tutorial_priority_high")
+                ]
+            ),
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_deadline_title"),
+                description: localizer.localizedString(forKey: "tutorial_deadline_desc"),
+                systemImage: "calendar.circle.fill",
+                bulletPoints: [
+                    localizer.localizedString(forKey: "tutorial_deadline_select"),
+                    localizer.localizedString(forKey: "tutorial_deadline_remind")
+                ]
+            ),
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_subtasks_title"),
+                description: localizer.localizedString(forKey: "tutorial_subtasks_desc"),
+                systemImage: "list.bullet.rectangle",
+                bulletPoints: [
+                    localizer.localizedString(forKey: "tutorial_subtasks_struct"),
+                    localizer.localizedString(forKey: "tutorial_subtasks_progress")
+                ]
+            ),
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_pomodoro_title"),
+                description: localizer.localizedString(forKey: "tutorial_pomodoro_desc"),
+                systemImage: "timer.circle.fill",
+                bulletPoints: [
+                    localizer.localizedString(forKey: "tutorial_pomodoro_focus"),
+                    localizer.localizedString(forKey: "tutorial_pomodoro_break"),
+                    localizer.localizedString(forKey: "tutorial_pomodoro_repeat")
+                ]
+            ),
+            TutorialPage(
+                title: localizer.localizedString(forKey: "tutorial_ready_title"),
+                description: localizer.localizedString(forKey: "tutorial_ready_desc"),
+                systemImage: "checkmark.seal.fill",
+                bulletPoints: [
+                    localizer.localizedString(forKey: "tutorial_ready_productive"),
+                    localizer.localizedString(forKey: "tutorial_ready_goals")
+                ]
+            )
+        ]
+    }
+}
+
 // MARK: - Fireworks
 struct FireworksView: View {
     @Binding var trigger: Bool
@@ -242,9 +324,9 @@ struct FireworksView: View {
     private func explode() {
         particles.removeAll()
         let center = CGPoint(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.height * 0.35)
-        for i in 0..<90 {
+        for i in 0..<50 { // reduzierter Partikel für Performance
             let angle = Double.random(in: 0...(2 * .pi))
-            let distance = CGFloat.random(in: 80...240)
+            let distance = CGFloat.random(in: 80...200)
             let dx = cos(angle) * distance
             let dy = sin(angle) * distance
 
@@ -298,9 +380,9 @@ struct ConfettiView: View {
     private func explode() {
         confettis.removeAll()
         let center = CGPoint(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.height * 0.35)
-        for i in 0..<120 {
+        for i in 0..<80 { // reduzierte Anzahl für Performance
             let angle = Double.random(in: 0...(2 * .pi))
-            let distance = CGFloat.random(in: 80...250)
+            let distance = CGFloat.random(in: 80...200)
             let dx = cos(angle) * distance
             let dy = sin(angle) * distance
             let confetti = ConfettiParticle(
@@ -312,7 +394,7 @@ struct ConfettiView: View {
             )
             confettis.append(confetti)
             withAnimation(.easeOut(duration: 1.6)) {
-                confettis[i].position = confettis[i].target
+                confettis[i].position = confetti.target
                 confettis[i].opacity = 0
                 confettis[i].rotation = .degrees(Double.random(in: 0...720))
             }
@@ -329,25 +411,3 @@ struct ConfettiParticle: Identifiable {
     var rotation: Angle
     var opacity: Double = 1
 }
-
-// MARK: - Model
-struct TutorialPage {
-    let title: String
-    let description: String
-    let systemImage: String
-    let bulletPoints: [String]?
-}
-
-// MARK: - Pages
-extension TutorialPage {
-    static let allPages: [TutorialPage] = [
-        TutorialPage(title: "Willkommen bei BeeFocus", description: "Behalte deine Aufgaben im Griff und bleib fokussiert.", systemImage: "sparkles", bulletPoints: nil),
-        TutorialPage(title: "Aufgaben erstellen", description: "Erstelle neue Aufgaben mit nur einem Tap.", systemImage: "plus.circle.fill", bulletPoints: ["Titel festlegen", "Beschreibung hinzufügen", "Kategorie wählen"]),
-        TutorialPage(title: "Prioritäten setzen", description: "Wichtiges zuerst erledigen.", systemImage: "exclamationmark.triangle.fill", bulletPoints: ["Niedrig", "Mittel", "Hoch"]),
-        TutorialPage(title: "Deadlines planen", description: "Nie wieder Termine vergessen.", systemImage: "calendar.circle.fill", bulletPoints: ["Datum auswählen", "Erinnerungen aktivieren"]),
-        TutorialPage(title: "Unteraufgaben", description: "Große Aufgaben klein machen.", systemImage: "list.bullet.rectangle", bulletPoints: ["Struktur schaffen", "Fortschritt sehen"]),
-        TutorialPage(title: "Pomodoro Fokus", description: "Arbeite konzentriert in Sessions.", systemImage: "timer.circle.fill", bulletPoints: ["Fokus", "Pause", "Wiederholen"]),
-        TutorialPage(title: "Alles bereit", description: "Du bist startklar. Viel Erfolg!", systemImage: "checkmark.seal.fill", bulletPoints: ["Produktiv bleiben", "Ziele erreichen"])
-    ]
-}
-

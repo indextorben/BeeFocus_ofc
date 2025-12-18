@@ -3,12 +3,14 @@ import SwiftUI
 struct CalendarView: View {
     @EnvironmentObject var todoStore: TodoStore
     @Environment(\.colorScheme) var colorScheme
+    
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var selectedDate: Date = Date()
     @State private var currentMonth: Date = Date()
 
     private let calendar = Calendar.current
-    private let daysOfWeek = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    private let daysOfWeekKeys = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] // Übersetzbar
 
     // MARK: - Colors
     private var accentBlue: Color { .blue }
@@ -30,7 +32,7 @@ struct CalendarView: View {
             }
             .padding()
         }
-        .navigationTitle("Kalender")
+        .navigationTitle(localizer.localizedString(forKey: "Kalender"))
     }
 
     // MARK: - Header
@@ -63,8 +65,8 @@ struct CalendarView: View {
 
             // Weekdays
             HStack {
-                ForEach(daysOfWeek, id: \.self) { day in
-                    Text(day)
+                ForEach(daysOfWeekKeys, id: \.self) { key in
+                    Text(localizer.localizedString(forKey: key))
                         .font(.caption.bold())
                         .frame(maxWidth: .infinity)
                         .foregroundColor(.secondary)
@@ -130,13 +132,13 @@ struct CalendarView: View {
     // MARK: - Todo Card
     private var todoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Aufgaben am \(formattedDate(selectedDate))")
+            Text("\(localizer.localizedString(forKey: "Aufgaben am")) \(formattedDate(selectedDate))")
                 .font(.headline)
 
             let todos = todosForDay(selectedDate)
 
             if todos.isEmpty {
-                Text("Keine Aufgaben. Chill mal 😴")
+                Text(localizer.localizedString(forKey: "Keine Aufgaben. Chill mal 😴"))
                     .foregroundColor(.secondary)
             } else {
                 ForEach(todos) { todo in
@@ -188,7 +190,7 @@ struct CalendarView: View {
 
     private func monthYearString(from date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "de_DE")
+        formatter.locale = Locale(identifier: localizer.selectedLanguage == "Englisch" ? "en_US" : "de_DE")
         formatter.dateFormat = "MMMM yyyy"
         return formatter.string(from: date)
     }

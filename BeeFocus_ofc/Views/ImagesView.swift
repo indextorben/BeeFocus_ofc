@@ -13,13 +13,7 @@ struct ImagesView: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
     
-    @State private var selectedItems: [PhotosPickerItem] = []
-    @State private var selectedImages: [IdentifiableUIImage] = []
-    @State private var selectedImageForPreview: IdentifiableUIImage?
-    @State private var imageToDelete: IdentifiableUIImage?
-    
     @ObservedObject private var localizer = LocalizationManager.shared
-            let languages = ["Deutsch", "Englisch"]
     
     var body: some View {
         NavigationStack {
@@ -28,14 +22,13 @@ struct ImagesView: View {
                     ForEach(Array(images.enumerated()), id: \.offset) { index, imageData in
                         gridImageItem(imageData: imageData, index: index)
                     }
-                    
                 }
                 .padding()
             }
-            .navigationTitle("Bilder")
+            .navigationTitle(localizer.localizedString(forKey: "images_title"))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fertig") {
+                    Button(localizer.localizedString(forKey: "done_button")) {
                         dismiss()
                     }
                     .font(.headline)
@@ -54,8 +47,7 @@ struct ImagesView: View {
                           selection: $selectedPhoto,
                           matching: .images)
             .fullScreenCover(isPresented: $showCamera) {
-                if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
-                } else {
+                if AVCaptureDevice.authorizationStatus(for: .video) != .authorized {
                     CameraAccessView()
                 }
             }
@@ -63,9 +55,7 @@ struct ImagesView: View {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
                         DispatchQueue.main.async {
-                            withAnimation {
-                                images.append(data)
-                            }
+                            withAnimation { images.append(data) }
                         }
                     }
                     selectedPhoto = nil
@@ -102,17 +92,13 @@ struct ImagesView: View {
             )
     }
     
-    // MARK: - Helper Functions
     private func checkCameraPermission() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            showCamera = true
+        case .authorized: showCamera = true
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async {
-                    if granted {
-                        showCamera = true
-                    }
+                    if granted { showCamera = true }
                 }
             }
         default:
@@ -122,9 +108,7 @@ struct ImagesView: View {
     
     private func handleImagePicked(_ image: UIImage) {
         if let data = image.jpegData(compressionQuality: 0.8) {
-            withAnimation {
-                images.append(data)
-            }
+            withAnimation { images.append(data) }
         }
     }
 }
@@ -134,7 +118,6 @@ struct FullscreenImageViewer: View {
     @Binding var images: [Data]
     var selectedIndex: Int
     @Environment(\.dismiss) var dismiss
-    
     @State private var currentIndex: Int
     @State private var isZoomed = false
     
@@ -162,29 +145,19 @@ struct FullscreenImageViewer: View {
         }
     }
     
-    // MARK: - Gestures
     private var dragGesture: some Gesture {
         DragGesture()
             .onEnded { value in
-                if value.translation.width < -100 && currentIndex < images.count - 1 {
-                    currentIndex += 1
-                } else if value.translation.width > 100 && currentIndex > 0 {
-                    currentIndex -= 1
-                }
-                
-                if value.translation.height > 100 {
-                    dismiss()
-                }
+                if value.translation.width < -100 && currentIndex < images.count - 1 { currentIndex += 1 }
+                else if value.translation.width > 100 && currentIndex > 0 { currentIndex -= 1 }
+                if value.translation.height > 100 { dismiss() }
             }
     }
     
-    // MARK: - Controls
     private var controlsOverlay: some View {
-        HStack(spacing: 16) {
-            closeButton
-        }
-        .padding(.top, 40)
-        .padding(.horizontal)
+        HStack(spacing: 16) { closeButton }
+            .padding(.top, 40)
+            .padding(.horizontal)
     }
     
     private var closeButton: some View {
@@ -203,7 +176,6 @@ struct FullscreenImageViewer: View {
 struct ZoomableImageView: View {
     let image: Image
     @Binding var isZoomed: Bool
-    
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
@@ -218,18 +190,12 @@ struct ZoomableImageView: View {
             .gesture(doubleTapGesture)
             .gesture(dragGesture)
             .gesture(magnificationGesture)
-            .onChange(of: scale) {
-                isZoomed = scale > 1.0
-            }
+            .onChange(of: scale) { isZoomed = scale > 1.0 }
     }
     
     private var doubleTapGesture: some Gesture {
         TapGesture(count: 2).onEnded {
-            if scale > 1.0 {
-                resetZoom()
-            } else {
-                zoomToPoint()
-            }
+            if scale > 1.0 { resetZoom() } else { zoomToPoint() }
         }
     }
     
@@ -237,29 +203,19 @@ struct ZoomableImageView: View {
         DragGesture()
             .onChanged { value in
                 if scale > 1.0 {
-                    offset = CGSize(
-                        width: lastOffset.width + value.translation.width,
-                        height: lastOffset.height + value.translation.height
-                    )
+                    offset = CGSize(width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height)
                 }
             }
-            .onEnded { _ in
-                lastOffset = offset
-            }
+            .onEnded { _ in lastOffset = offset }
     }
     
     private var magnificationGesture: some Gesture {
         MagnificationGesture()
-            .onChanged { value in
-                scale = lastScale * value
-            }
+            .onChanged { value in scale = lastScale * value }
             .onEnded { _ in
                 withAnimation {
-                    if scale < 1.0 {
-                        resetZoom()
-                    } else {
-                        lastScale = scale
-                    }
+                    if scale < 1.0 { resetZoom() } else { lastScale = scale }
                 }
             }
     }
@@ -283,19 +239,21 @@ struct ZoomableImageView: View {
     }
 }
 
-// MARK: - Kamera-Zugriffs-Hinweis
+// MARK: - Camera Access Hinweis
 struct CameraAccessView: View {
+    @ObservedObject private var localizer = LocalizationManager.shared
+    
     var body: some View {
         VStack {
-            Text("Kamera-Zugriff benötigt")
+            Text(localizer.localizedString(forKey: "camera_access_required"))
                 .font(.headline)
                 .padding()
             
-            Text("Bitte erlaube den Kamerazugriff in den Einstellungen")
+            Text(localizer.localizedString(forKey: "camera_access_explanation"))
                 .multilineTextAlignment(.center)
                 .padding()
             
-            Button("Zu Einstellungen") {
+            Button(localizer.localizedString(forKey: "camera_settings_button")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }

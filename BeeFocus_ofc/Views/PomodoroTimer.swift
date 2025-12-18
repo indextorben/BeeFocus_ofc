@@ -9,13 +9,12 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-//Timer "View"
 struct PomodoroTimer: View {
     @StateObject private var timer = PomodoroTimerModel()
     @Environment(\.colorScheme) private var colorScheme
     
     @ObservedObject private var localizer = LocalizationManager.shared
-            let languages = ["Deutsch", "Englisch"]
+    let languages = ["Deutsch", "Englisch"]
     
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.2, blue: 0.3) : Color(red: 0.9, green: 0.95, blue: 1.0)
@@ -44,15 +43,15 @@ struct PomodoroTimer: View {
                     }
                 }
                 
-                Picker("Timer-Modus", selection: $timer.mode) {
-                    Text("Pomodoro").tag(PomodoroMode.work)
-                    Text("Kurze Pause").tag(PomodoroMode.shortBreak)
-                    Text("Lange Pause").tag(PomodoroMode.longBreak)
+                Picker(localizer.localizedString(forKey: "timer_mode"), selection: $timer.mode) {
+                    Text(localizer.localizedString(forKey: "pomodoro")).tag(PomodoroMode.work)
+                    Text(localizer.localizedString(forKey: "short_break")).tag(PomodoroMode.shortBreak)
+                    Text(localizer.localizedString(forKey: "long_break")).tag(PomodoroMode.longBreak)
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding()
             }
         }
-        .navigationTitle("Pomodoro Timer")
+        .navigationTitle(localizer.localizedString(forKey: "pomodoro_timer"))
     }
 }

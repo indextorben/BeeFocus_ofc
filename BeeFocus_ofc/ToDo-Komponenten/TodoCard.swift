@@ -41,6 +41,9 @@ struct TodoCard: View {
     @State private var lottieTrigger = false
     @Environment(\.colorScheme) private var colorScheme
     
+    @ObservedObject private var localizer = LocalizationManager.shared
+    let languages = ["Deutsch", "Englisch"]
+    
     @State private var images: [Data] = []
 
     var baseGradient: LinearGradient {
@@ -72,9 +75,9 @@ struct TodoCard: View {
 
     var priorityText: String {
         switch todo.priority {
-        case .low: return "Niedrig"
-        case .medium: return "Mittel"
-        case .high: return "Hoch"
+        case .low: return localizer.localizedString(forKey: "priority_low")
+        case .medium: return localizer.localizedString(forKey: "priority_medium")
+        case .high: return localizer.localizedString(forKey: "priority_high")
         }
     }
 
@@ -204,20 +207,32 @@ struct TodoCard: View {
                     Button {
                         onShare()
                     } label: {
-                        Label("Teilen", systemImage: "square.and.arrow.up")
+                        Label {
+                            Text(localizer.localizedString(forKey: "Teilen"))
+                        } icon: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
                 }
                 
                 Button {
                     onEdit()
                 } label: {
-                    Label("Bearbeiten", systemImage: "pencil")
+                    Label {
+                        Text(localizer.localizedString(forKey: "Bearbeiten"))
+                    } icon: {
+                        Image(systemName: "pencil")
+                    }
                 }
                 
                 Button(role: .destructive) {
                     onDelete()
                 } label: {
-                    Label("Löschen", systemImage: "trash")
+                    Label {
+                        Text(localizer.localizedString(forKey: "Löschen"))
+                    } icon: {
+                        Image(systemName: "trash")
+                    }
                 }
             }
             .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))

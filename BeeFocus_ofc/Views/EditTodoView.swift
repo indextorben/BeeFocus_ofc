@@ -37,6 +37,9 @@ struct EditTodoView: View {
     // MARK: - Kalender
     @State private var addToCalendar = false
     @State private var calendarAccessDenied = false
+    
+    // MARK: - Localization
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     // MARK: - Init
     init(todo: TodoItem) {
@@ -64,7 +67,7 @@ struct EditTodoView: View {
                 imagesSection
                 subTasksSection
             }
-            .navigationTitle("Aufgabe bearbeiten")
+            .navigationTitle(localizer.localizedString(forKey: "edit_todo_title"))
             .toolbar { toolbarContent }
             .sheet(item: $selectedImageForPreview) { wrappedImage in
                 ImagePreviewView(image: wrappedImage.image)
@@ -76,50 +79,48 @@ struct EditTodoView: View {
                     }
                 }
             }
-            .alert("Kamera-Zugriff benötigt", isPresented: $showCameraPermissionAlert) {
+            .alert(localizer.localizedString(forKey: "camera_access_required"), isPresented: $showCameraPermissionAlert) {
                 settingsAlertButtons
             } message: {
-                Text("Bitte erlauben Sie den Kamerazugriff in den Einstellungen")
+                Text(localizer.localizedString(forKey: "camera_access_explanation"))
             }
-            .alert("Bild löschen", isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
+            .alert(localizer.localizedString(forKey: "delete_image_title"), isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
                 deleteImageAlertButtons(for: image)
             } message: { _ in
-                Text("Möchtest du dieses Bild wirklich löschen?")
+                Text(localizer.localizedString(forKey: "delete_image_message"))
             }
-            .alert("Neue Kategorie", isPresented: $showAddCategoryAlert) {
-                VStack {
-                    TextField("Kategoriename", text: $newCategoryName)
-                }
-                Button("Abbrechen", role: .cancel) { newCategoryName = "" }
-                Button("Hinzufügen") { addNewCategory() }
+            .alert(localizer.localizedString(forKey: "new_category_title"), isPresented: $showAddCategoryAlert) {
+                VStack { TextField(localizer.localizedString(forKey: "new_category_placeholder"), text: $newCategoryName) }
+                Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { newCategoryName = "" }
+                Button(localizer.localizedString(forKey: "add_button")) { addNewCategory() }
             } message: {
-                Text("Gib den Namen der neuen Kategorie ein.")
+                Text(localizer.localizedString(forKey: "new_category_message"))
             }
-            .alert("Kategorie fehlt", isPresented: $showCategoryAlert) {
-                Button("OK", role: .cancel) { }
+            .alert(localizer.localizedString(forKey: "category_missing_title"), isPresented: $showCategoryAlert) {
+                Button(localizer.localizedString(forKey: "ok_button"), role: .cancel) { }
             } message: {
-                Text("Bitte wähle eine Kategorie aus, bevor du die Aufgabe speicherst.")
+                Text(localizer.localizedString(forKey: "category_missing_message"))
             }
-            .alert("Kalender-Zugriff verweigert", isPresented: $calendarAccessDenied) {
-                Button("OK", role: .cancel) { }
+            .alert(localizer.localizedString(forKey: "calendar_access_denied_title"), isPresented: $calendarAccessDenied) {
+                Button(localizer.localizedString(forKey: "ok_button"), role: .cancel) { }
             } message: {
-                Text("Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.")
+                Text(localizer.localizedString(forKey: "calendar_access_denied_message"))
             }
         }
     }
     
     // MARK: - Sections
     private var basicInfoSection: some View {
-        Section(header: Text("Aufgabentitel")) {
-            TextField("Titel", text: $title)
+        Section(header: Text(localizer.localizedString(forKey: "todo_title_section"))) {
+            TextField(localizer.localizedString(forKey: "todo_title_placeholder"), text: $title)
             TextEditor(text: $description)
                 .frame(height: 100)
         }
     }
     
     private var categoryAndPrioritySection: some View {
-        Section(header: Text("Kategorisierung")) {
-            Picker("Kategorie", selection: $category) {
+        Section(header: Text(localizer.localizedString(forKey: "category_priority_section"))) {
+            Picker(localizer.localizedString(forKey: "category_picker_label"), selection: $category) {
                 ForEach(todoStore.categories, id: \.self) { category in
                     Text(category.name).tag(category)
                 }
@@ -128,11 +129,11 @@ struct EditTodoView: View {
             Button {
                 showAddCategoryAlert = true
             } label: {
-                Label("Kategorie hinzufügen", systemImage: "plus.circle")
+                Label(localizer.localizedString(forKey: "add_category_button"), systemImage: "plus.circle")
                     .foregroundColor(.blue)
             }
             
-            Picker("Priorität", selection: $priority) {
+            Picker(localizer.localizedString(forKey: "priority_picker_label"), selection: $priority) {
                 ForEach(TodoPriority.allCases) { priority in
                     Text(priority.rawValue).tag(priority)
                 }
@@ -142,9 +143,11 @@ struct EditTodoView: View {
     
     private var dueDateSection: some View {
         Section {
-            Toggle(isOn: $hasDueDate) { Label("Fälligkeitsdatum aktivieren", systemImage: "calendar") }
+            Toggle(isOn: $hasDueDate) {
+                Label(localizer.localizedString(forKey: "due_date_toggle"), systemImage: "calendar")
+            }
             if hasDueDate {
-                DatePicker("Datum & Uhrzeit", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                DatePicker(localizer.localizedString(forKey: "due_date_picker"), selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
             }
         }
@@ -152,12 +155,12 @@ struct EditTodoView: View {
     
     private var calendarToggleSection: some View {
         Section {
-            Toggle("In Systemkalender eintragen", isOn: $addToCalendar)
+            Toggle(localizer.localizedString(forKey: "add_to_calendar_toggle"), isOn: $addToCalendar)
         }
     }
     
     private var imagesSection: some View {
-        Section(header: Text("Bilder")) {
+        Section(header: Text(localizer.localizedString(forKey: "images_section"))) {
             if !selectedImages.isEmpty { imagesScrollView }
             photoPickerButton
             cameraButton
@@ -185,17 +188,19 @@ struct EditTodoView: View {
             selection: $selectedItems,
             maxSelectionCount: 5,
             matching: .images
-        ) { actionLabel("Aus Galerie auswählen", systemImage: "photo.on.rectangle") }
+        ) { actionLabel(localizer.localizedString(forKey: "select_from_gallery"), systemImage: "photo.on.rectangle") }
         .onChange(of: selectedItems) { Task { await processSelectedItems() } }
     }
     
     private var cameraButton: some View {
-        Button(action: checkCameraPermission) { actionLabel("Mit Kamera aufnehmen", systemImage: "camera") }
-            .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+        Button(action: checkCameraPermission) {
+            actionLabel(localizer.localizedString(forKey: "capture_with_camera"), systemImage: "camera")
+        }
+        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
     }
     
     private var subTasksSection: some View {
-        Section(header: Text("Unteraufgaben")) {
+        Section(header: Text(localizer.localizedString(forKey: "subtasks_section"))) {
             ForEach(subTasks) { subTask in
                 HStack {
                     Text(subTask.title)
@@ -207,7 +212,7 @@ struct EditTodoView: View {
             }
             
             HStack {
-                TextField("Neue Unteraufgabe", text: $newSubTaskTitle)
+                TextField(localizer.localizedString(forKey: "new_subtask_placeholder"), text: $newSubTaskTitle)
                 Button(action: addSubTask) {
                     Image(systemName: "plus.circle.fill").foregroundColor(.blue)
                 }.disabled(newSubTaskTitle.isEmpty)
@@ -218,8 +223,8 @@ struct EditTodoView: View {
     // MARK: - Toolbar
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
-        ToolbarItem(placement: .confirmationAction) { Button("Speichern") { saveTodo() }.disabled(title.isEmpty) }
+        ToolbarItem(placement: .cancellationAction) { Button(localizer.localizedString(forKey: "cancel_button")) { dismiss() } }
+        ToolbarItem(placement: .confirmationAction) { Button(localizer.localizedString(forKey: "save_button")) { saveTodo() }.disabled(title.isEmpty) }
     }
     
     // MARK: - Helper Views
@@ -235,20 +240,20 @@ struct EditTodoView: View {
         Button(role: .destructive) {
             imageToDelete = image
             showDeleteConfirmation = true
-        } label: { Label("Löschen", systemImage: "trash") }
+        } label: { Label(localizer.localizedString(forKey: "delete_button"), systemImage: "trash") }
     }
     
     private var settingsAlertButtons: some View {
         Group {
-            Button("Einstellungen") { openAppSettings() }
-            Button("Abbrechen", role: .cancel) { }
+            Button(localizer.localizedString(forKey: "settings_button")) { openAppSettings() }
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { }
         }
     }
     
     private func deleteImageAlertButtons(for image: IdentifiableUIImage) -> some View {
         Group {
-            Button("Löschen", role: .destructive) { selectedImages.removeAll { $0.id == image.id } }
-            Button("Abbrechen", role: .cancel) { }
+            Button(localizer.localizedString(forKey: "delete_button"), role: .destructive) { selectedImages.removeAll { $0.id == image.id } }
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { }
         }
     }
     
@@ -338,7 +343,7 @@ struct EditTodoView: View {
                 event.endDate = dueDate.addingTimeInterval(3600)
                 event.calendar = eventStore.defaultCalendarForNewEvents
                 do { try eventStore.save(event, span: .thisEvent) }
-                catch { print("Fehler beim Speichern des Kalender-Eintrags: \(error)") }
+                catch { print("Error saving calendar event: \(error)") }
             } else {
                 DispatchQueue.main.async { calendarAccessDenied = true }
             }
