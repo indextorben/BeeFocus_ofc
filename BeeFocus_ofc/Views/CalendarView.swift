@@ -21,25 +21,35 @@ struct CalendarView: View {
     }
 
     var body: some View {
-        ZStack {
-            background.ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                background.ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                headerCard
-                calendarCard
-                todoCard
-                Spacer()
+                VStack(spacing: 16) {
+                    headerCard
+                    calendarCard
+                    todoCard
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
+            .navigationTitle(localizer.localizedString(forKey: "Kalender"))
         }
-        .navigationTitle(localizer.localizedString(forKey: "Kalender"))
     }
 
     // MARK: - Header
     private var headerCard: some View {
         HStack {
-            Button { changeMonth(by: -1) } label: {
-                Image(systemName: "chevron.left")
+            Button(action: { changeMonth(by: -1) }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                    Text(localizer.localizedString(forKey: "-"))
+                        .font(.subheadline.bold())
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
 
             Spacer()
@@ -49,8 +59,16 @@ struct CalendarView: View {
 
             Spacer()
 
-            Button { changeMonth(by: 1) } label: {
-                Image(systemName: "chevron.right")
+            Button(action: { changeMonth(by: 1) }) {
+                HStack(spacing: 4) {
+                    Text(localizer.localizedString(forKey: "+"))
+                        .font(.subheadline.bold())
+                    Image(systemName: "chevron.right")
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
         .padding()
@@ -142,17 +160,19 @@ struct CalendarView: View {
                     .foregroundColor(.secondary)
             } else {
                 ForEach(todos) { todo in
-                    HStack {
-                        Circle()
-                            .fill(accentBlue)
-                            .frame(width: 8, height: 8)
+                    NavigationLink(destination: TodoDetailView(todo: todo)) {
+                        HStack {
+                            Circle()
+                                .fill(accentBlue)
+                                .frame(width: 8, height: 8)
 
-                        Text(todo.title)
-                            .font(.subheadline)
+                            Text(todo.title)
+                                .font(.subheadline)
 
-                        Spacer()
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
             }
         }
@@ -170,22 +190,22 @@ struct CalendarView: View {
     }
 
     private func generateDaysInMonth(for date: Date) -> [Date?] {
-        guard
-            let monthInterval = calendar.dateInterval(of: .month, for: date),
-            let firstWeekday = calendar.dateComponents([.weekday], from: monthInterval.start).weekday
-        else { return [] }
+        guard let monthInterval = calendar.dateInterval(of: .month, for: date) else { return [] }
 
+        let firstOfMonth = monthInterval.start
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
         let offset = (firstWeekday + 5) % 7
-        let days = calendar.range(of: .day, in: .month, for: date) ?? 1..<1
 
-        var result: [Date?] = Array(repeating: nil, count: offset)
-
-        for day in days {
-            if let date = calendar.date(bySetting: .day, value: day, of: date) {
-                result.append(date)
+        let range = calendar.range(of: .day, in: .month, for: date) ?? 1..<1
+        var days: [Date?] = Array(repeating: nil, count: offset)
+        
+        for day in range {
+            if let dayDate = calendar.date(bySetting: .day, value: day, of: firstOfMonth) {
+                days.append(dayDate)
             }
         }
-        return result
+        
+        return days
     }
 
     private func monthYearString(from date: Date) -> String {
@@ -214,6 +234,153 @@ struct CalendarView: View {
             guard let dueDate = $0.dueDate else { return false }
             return calendar.isDate(dueDate, inSameDayAs: date)
             && !$0.isCompleted
+        }
+    }
+}
+
+// MARK: - Todo Detail View
+struct TodoDetailView: View {
+    @EnvironmentObject var todoStore: TodoStore
+    @Environment(\.colorScheme) var colorScheme
+    @State private var isCompleted: Bool
+    let todo: TodoItem
+    
+    init(todo: TodoItem) {
+        self.todo = todo
+        _isCompleted = State(initialValue: todo.isCompleted)
+    }
+
+    // Farben und Status-Helper
+    private var accentBlue: Color { .blue }
+    private var cardBackground: Color {
+        colorScheme == .dark ? Color(red: 0.14, green: 0.16, blue: 0.26) : Color(red: 0.97, green: 0.99, blue: 1.0)
+    }
+    private var overdueColor: Color { .red }
+    private var dueSoonColor: Color { .orange }
+    private var completedColor: Color { .green }
+    
+    private var dueStatus: (icon: String, text: String, color: Color)? {
+        guard !isCompleted, let dueDate = todo.dueDate else { return nil }
+        let today = Calendar.current.startOfDay(for: Date())
+        let due = Calendar.current.startOfDay(for: dueDate)
+        if due < today {
+            return ("exclamationmark.triangle.fill", "Überfällig", overdueColor)
+        } else if due == today {
+            return ("clock.badge.exclamationmark", "Fällig heute", dueSoonColor)
+        } else if due <= Calendar.current.date(byAdding: .day, value: 2, to: today) ?? today {
+            return ("hourglass", "Bald fällig", dueSoonColor)
+        }
+        return nil
+    }
+
+    var body: some View {
+        ZStack {
+            // Weiches Hintergrund-Gradient/Glas
+            LinearGradient(gradient: Gradient(colors: [accentBlue.opacity(0.10), cardBackground]), startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 28) {
+
+                    // Header: Titel, Status, Fälligkeitsanzeige
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Text(todo.title)
+                                .font(.title.bold())
+                                .foregroundColor(.primary)
+                                .lineLimit(3)
+                            Spacer()
+                            Button(action: toggleCompletion) {
+                                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .resizable()
+                                    .frame(width: 38, height: 38)
+                                    .foregroundColor(isCompleted ? completedColor : Color.gray.opacity(0.55))
+                                    .shadow(color: isCompleted ? completedColor.opacity(0.18) : .clear, radius: 6)
+                            }
+                        }
+                        
+                        if let dueDate = todo.dueDate {
+                            HStack(spacing: 8) {
+                                let status = dueStatus
+                                if let status {
+                                    Image(systemName: status.icon)
+                                        .foregroundColor(status.color)
+                                    Text(status.text)
+                                        .foregroundColor(status.color)
+                                        .font(.subheadline.bold())
+                                }
+                                Text("Fällig am: ")
+                                    .foregroundColor(.secondary)
+                                    .font(.subheadline)
+                                Text(dueDate.formatted(.dateTime.day().month().year()))
+                                    .foregroundColor(.primary)
+                                    .font(.subheadline)
+                            }
+                        } else if isCompleted {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.seal")
+                                    .foregroundColor(completedColor)
+                                Text("Erledigt!")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(completedColor)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 24)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .shadow(color: .black.opacity(0.10), radius: 12, x: 0, y: 7)
+
+                    // Details Card
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Details")
+                            .font(.headline)
+                            .padding(.bottom, 2)
+                        Text(todo.description.isEmpty ? "Keine weiteren Details." : todo.description)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
+
+                    // Subtasks Card
+                    if !todo.subTasks.isEmpty {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Unteraufgaben")
+                                .font(.headline)
+                            ForEach(todo.subTasks) { sub in
+                                HStack {
+                                    Image(systemName: sub.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(sub.isCompleted ? completedColor : .gray)
+                                    Text(sub.title)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
+                        .shadow(color: .black.opacity(0.06), radius: 7, x: 0, y: 3)
+                    }
+
+                    Spacer(minLength: 16)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 44)
+            }
+        }
+        .navigationTitle("Aufgabe")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func toggleCompletion() {
+        isCompleted.toggle()
+        if let index = todoStore.todos.firstIndex(of: todo) {
+            todoStore.todos[index].isCompleted = isCompleted
         }
     }
 }
