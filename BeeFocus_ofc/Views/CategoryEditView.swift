@@ -99,13 +99,6 @@ struct CategoryEditView: View {
             }
             .navigationTitle(localizer.localizedString(forKey: "category_manage"))
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(isEditing ? localizer.localizedString(forKey: "done") : localizer.localizedString(forKey: "edit")) {
-                        withAnimation(.spring(duration: 0.35)) { isEditing.toggle() }
-                        editingCategory = nil
-                        focusedCategoryID = nil
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(localizer.localizedString(forKey: "done")) { dismiss() }
                 }
@@ -162,8 +155,8 @@ struct CategoryRow: View {
                 )
                 .focused($focusedCategoryID, equals: category.id)
                 .textFieldStyle(.plain)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 9)
                 .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { focusedCategoryID = category.id }

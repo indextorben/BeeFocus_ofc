@@ -323,3 +323,100 @@
 "notifications_denied" = "Notifications not allowed";
 "notifications_granted" = "Notifications allowed";
 "shake_detected" = "📳 Shake detected in AppDelegate!";
+"tutorial_item_tasks" = "Create Tasks";
+"tutorial_item_share" = "Share Tasks";
+"tutorial_item_pomo" = "Pomodoro Timer";
+
+"tutorial_add_heading" = "Add New Task";
+"tutorial_add_text" = "Create a new task with all important details.";
+"tutorial_add_b1" = "Press plus";
+"tutorial_add_b2" = "Enter data";
+"tutorial_add_b3" = "Save";
+
+"hl_title_desc" = "Title & Description";
+"hl_category" = "Choose Category";
+"hl_priority" = "Set Priority";
+"hl_duedate" = "Set Due Date";
+"hl_calendar" = "System Calendar";
+"hl_subtasks" = "Subtasks";
+
+"tutorial_title_desc_title" = "Title & Description";
+"tutorial_title_desc_text" = "Give your task a clear title and optional description.";
+"tutorial_title_desc_b1" = "Press plus";
+"tutorial_title_desc_b2" = "Enter title";
+"tutorial_title_desc_b3" = "Add description";
+"tutorial_title_desc_b4" = "Keep it clear";
+
+"tutorial_category_title" = "Category";
+"tutorial_category_text" = "Organize tasks with categories.";
+"tutorial_category_b1" = "Tap category";
+"tutorial_category_b2" = "Select or create";
+
+"tutorial_priority_title" = "Priority";
+"tutorial_priority_text" = "Define importance.";
+"tutorial_priority_b1" = "Choose priority";
+
+"tutorial_duedate_title" = "Due Date";
+"tutorial_duedate_text" = "Set a due date.";
+"tutorial_duedate_b1" = "Enable date";
+"tutorial_duedate_b2" = "Pick date";
+
+"tutorial_calendar_title" = "Calendar";
+"tutorial_calendar_text" = "Sync with system calendar.";
+"tutorial_calendar_b1" = "Enable toggle";
+
+"tutorial_subtasks_title" = "Subtasks";
+"tutorial_subtasks_text" = "Break down big tasks.";
+"tutorial_subtasks_b1" = "Add subtask";
+"tutorial_subtasks_b2" = "Track progress";
+
+"tutorial_share_section_heading" = "Share & Export";
+"tutorial_share_section_text" = "Share or export tasks.";
+"tutorial_share_section_b1" = "Long press";
+"tutorial_share_section_b2" = "Choose action";
+
+"hl_export" = "Export";
+"hl_share" = "Share";
+"hl_import" = "Import";
+
+"tutorial_export_title" = "Export";
+"tutorial_export_text" = "Export tasks as JSON.";
+"tutorial_export_b1" = "Long press";
+"tutorial_export_b2" = "Share";
+"tutorial_export_b3" = "Save file";
+
+"tutorial_share_title" = "Share";
+"tutorial_share_text" = "Share tasks with others.";
+"tutorial_share_b1" = "Tap share";
+"tutorial_share_b2" = "Choose recipient";
+
+"tutorial_import_title" = "Import";
+"tutorial_import_text" = "Import tasks from files.";
+"tutorial_import_b1" = "Press plus";
+"tutorial_import_b2" = "Choose import";
+"tutorial_import_b3" = "Select file";
+
+"tutorial_pomo_heading" = "Pomodoro Timer";
+"tutorial_pomo_text" = "Work focused with breaks.";
+"tutorial_pomo_b1" = "Start timer";
+"tutorial_pomo_b2" = "Take breaks";
+
+"hl_pomo_start" = "Start Timer";
+"hl_pomo_pause" = "Break";
+"hl_pomo_settings" = "Settings";
+
+"tutorial_pomo_start_title" = "Start";
+"tutorial_pomo_start_text" = "Start focus timer.";
+"tutorial_pomo_start_b1" = "Press start";
+"tutorial_pomo_start_b2" = "Focus";
+
+"tutorial_pomo_pause_title" = "Break";
+"tutorial_pomo_pause_text" = "Recover between sessions.";
+"tutorial_pomo_pause_b1" = "Break starts automatically";
+"tutorial_pomo_pause_b2" = "Relax";
+
+"tutorial_pomo_settings_title" = "Adjust Timer";
+"tutorial_pomo_settings_text" = "Customize times.";
+"tutorial_pomo_settings_b1" = "Open settings";
+"tutorial_pomo_settings_b2" = "Change durations";
+"tutorial_pomo_settings_b3" = "Save";

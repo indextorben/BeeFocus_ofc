@@ -9,215 +9,194 @@ import SwiftUI
 import AVKit
 
 struct TutorialData {
-    static let all: [TutorialItem] = {
-        
-        // MARK: - SubFunctionData definieren
-        let titleDescriptionSubFunction = SubFunctionData(
-            title: "Titel & Beschreibung",
-            text: """
-                Gib deiner Aufgabe einen aussagekräftigen Titel, der den Inhalt kurz beschreibt. Optional kannst du eine detaillierte Beschreibung hinzufügen, um wichtige Informationen zu notieren. So behältst du den Überblick und kannst Aufgaben leichter priorisieren.
-                """,
+
+    static func all(localizer: LocalizationManager = .shared) -> [TutorialItem] {
+
+        // MARK: - SubFunctions
+
+        let titleDescription = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_title_desc_title"),
+            text: localizer.localizedString(forKey: "tutorial_title_desc_text"),
             bulletPoints: [
-                "Tippe auf den '+' Button, um eine neue Aufgabe zu erstellen",
-                "Gib einen prägnanten Titel ein",
-                "Optional: Füge eine Beschreibung hinzu",
-                "Achte auf Vollständigkeit und Verständlichkeit"
-            ]
-        )
-        
-        let categorySubFunction = SubFunctionData(
-            title: "Kategorie auswählen",
-            text: "Füge deine Aufgabe zu einer bestehenden oder neuen Kategorie hinzu. So kannst du sie organisieren und nach Interessen filtern.",
-            bulletPoints: [
-                "Tippe auf Kategorie, um eine vorhandene Kategorie auszuwählen oder auf Kategorie hinzufügen",
-                "Wähle die Kategorie aus oder gebe einen Namen für die neue Kategorie"
-            ]
-        )
-        
-        let prioritySubFunction = SubFunctionData(
-            title: "Priorität wählen",
-            text: "Wähle eine Priorität für deine Aufgabe aus, um sie besser zu organisieren. So kannst du schnell erkennen, welche Aufgaben zuerst erledigt werden sollten.",
-            bulletPoints: [
-                "Drücke auf die Prioritätsebene, um sie auszuwählen",
-            ]
-        )
-        
-        let fälligkeitSubFunction = SubFunctionData(
-            title: "Fälligkeitsdatum setzen",
-            text: "Setze ein Fälligkeitsdatum für deine Aufgabe, damit du sie nicht vergessen musst. Das hilft dir, deine Aufgaben strukturierter zu halten und sicherzustellen, dass du nichts verpasst.",
-            bulletPoints: [
-                "Fälligkeitsdatum aktivieren anklicken",
-                "Datum und Uhrzeit auswählen"
-            ]
-        )
-        
-        let systemcalenderSubFunction = SubFunctionData(
-            title: "Mit dem Systemkalender verbinden",
-            text: "Verbinde deine Aufgaben mit deinem Systemkalender, damit du sie visuell auf dem Handy verfolgen kannst. Das ist praktisch, wenn du deine Aufgaben regelmäßig überprüfen möchtest.",
-            bulletPoints: [
-                "Drücke den Schieberegler hinter 'In Systemkalender eintragen', um die Todo in dein Systemkalender einzutragen",
-            ]
-        )
-        
-        let unteraufgabenSubFunction = SubFunctionData(
-            title: "Unteraufgaben hinzufügen",
-            text: "Erstelle Unteraufgaben für deine Hauptaufgaben, um sie besser zu verwalten. So kannst du sie nach Fortschritt verfolgen und sicherzustellen, dass nichts übersehen wird.",
-            bulletPoints: [
-               "Neue Unteraufgabe hinzufügen",
-               "'+' Drücken"
-            ]
-        )
-        
-        let exporttodoSubFunction = SubFunctionData(
-            title: "Exportieren in JSON Datei",
-            text: "Exportiere deine Aufgaben einfach in deine Dateien auf dem Handy. Damit kannst du sie später noch einmal überprüfen oder sie an andere Stellen teilen. Es ist eine einfache Möglichkeit, deine Produktivität zu sichern.",
-            bulletPoints: [
-                "lange auf die Todo drücken",
-                "Teilen auswählen",
-                "Empfäger auswählen"
-            ]
-        )
-        
-        let sharetodoSubFunction = SubFunctionData(
-            title: "Aufgaben teilen",
-            text: "Teile deine Aufgaben mit Freunden oder Kollegen, indem du sie per E-Mail oder eine andere Plattform teilst. So kannst du gemeinsam an Projekten arbeiten und deine Ziele unterstützen.",
-            bulletPoints: [
-                "Aufgaben teilen",
-                "Empfänger auswählen"
-            ]
-        )
-        
-        let importtodoSubFunction = SubFunctionData(
-            title: "Aufgaben importieren",
-            text: "Importiere Aufgaben aus anderen Productivity-Apps wie Todoist oder Asana. So kannst du deine Aufgaben aus anderen Quellen in dein System integrieren und weiterhin arbeiten.",
-            bulletPoints: [
-                "'+' oben Rechts drücken",
-                "Auswahl treffen: „Importieren“",
-                "Todo einfügen: meistens todo.json datei"
-            ]
-        )
-        
-        let pomodoroStartSubFunction = SubFunctionData(
-            title: "Timer starten",
-            text: "Starte den Pomodoro-Timer, um fokussiert für eine festgelegte Zeit zu arbeiten. Der Timer läuft automatisch ab und wechselt zur Pause.",
-            bulletPoints: [
-                "Tippe auf Start",
-                "Konzentriere dich auf die Aufgabe",
-                "Timer läuft automatisch ab"
+                localizer.localizedString(forKey: "tutorial_title_desc_b1"),
+                localizer.localizedString(forKey: "tutorial_title_desc_b2"),
+                localizer.localizedString(forKey: "tutorial_title_desc_b3"),
+                localizer.localizedString(forKey: "tutorial_title_desc_b4")
             ]
         )
 
-        let pomodoroPauseSubFunction = SubFunctionData(
-            title: "Pause einlegen",
-            text: "Nach jeder Fokusphase startet automatisch eine kurze Pause. Nutze sie zur Entspannung.",
+        let category = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_category_title"),
+            text: localizer.localizedString(forKey: "tutorial_category_text"),
             bulletPoints: [
-                "Kurze Pause beginnt automatisch",
-                "Entspanne dich",
-                "Nach mehreren Runden folgt eine längere Pause"
+                localizer.localizedString(forKey: "tutorial_category_b1"),
+                localizer.localizedString(forKey: "tutorial_category_b2")
             ]
         )
 
-        let pomodoroSettingsSubFunction = SubFunctionData(
-            title: "Timer anpassen",
-            text: "Passe Fokus- und Pausenzeiten individuell an deine Bedürfnisse an.",
+        let priority = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_priority_title"),
+            text: localizer.localizedString(forKey: "tutorial_priority_text"),
             bulletPoints: [
-                "Gehe zu Einstellungen",
-                "Lege Fokuszeit fest",
-                "Lege Pausenlänge fest",
-                "Speichern"
+                localizer.localizedString(forKey: "tutorial_priority_b1")
             ]
         )
-        
-        // MARK: - Section IDs definieren
-        let addTaskSection = TutorialSection(
-            heading: "Neue Aufgabe hinzufügen",
-            text: "Tippe auf das + Symbol, um eine neue Aufgabe zu erstellen. Vergib einen Titel und optional eine Beschreibung.",
-            highlights: ["Titel & Beschreibung", "Kategorie auswählen", "Priorität wählen", "Fälligkeitsdatum setzen", "Systemkalender verbinden", "Unteraufgaben hinzufügen"],
-            highlightData: [
-                "Titel & Beschreibung": titleDescriptionSubFunction,
-                "Kategorie auswählen": categorySubFunction,
-                "Priorität wählen": prioritySubFunction,
-                "Fälligkeitsdatum setzen": fälligkeitSubFunction,
-                "Systemkalender verbinden": systemcalenderSubFunction,
-                "Unteraufgaben hinzufügen": unteraufgabenSubFunction
-            ],
+
+        let dueDate = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_duedate_title"),
+            text: localizer.localizedString(forKey: "tutorial_duedate_text"),
             bulletPoints: [
-                "Drücke +",
-                "Neue Aufgabe hinzufügen",
-                "Titel eingeben",
-                "Beschreibung hinzufügen",
-                "Kategorie auswählen/ hinzufügen",
-                "Priorität wählen",
-                "Fälligkeitsdatum setzen",
-                "gegebenenfalls Unteraufgaben hinzufügen",
-                "Speichern tippen"
+                localizer.localizedString(forKey: "tutorial_duedate_b1"),
+                localizer.localizedString(forKey: "tutorial_duedate_b2")
             ]
         )
-        
-        let editTaskSection = TutorialSection(
-            heading: "Aufgabe bearbeiten",
-            text: "Drücke auf eine Aufgabe, um sie zu bearbeiten. Klicke erneut, um sie zu löschen.",
-            highlights: nil,
-            highlightData: [:],
-            bulletPoints: ["Aufgabe auswählen", "Beliebige Änderungen vornehmen", "Speichern"]
+
+        let calendar = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_calendar_title"),
+            text: localizer.localizedString(forKey: "tutorial_calendar_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_calendar_b1")
+            ]
         )
-        
-        let subTasksSection = TutorialSection(
-            heading: "Unteraufgaben",
-            text: "Füge Teilaufgaben hinzu, um komplexe Aufgaben zu strukturieren.",
-            highlights: nil,
-            highlightData: [:],
-            bulletPoints: ["Unteraufgaben hinzufügen", "Status verfolgen", "Abhaken wenn erledigt"]
+
+        let subtasks = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_subtasks_title"),
+            text: localizer.localizedString(forKey: "tutorial_subtasks_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_subtasks_b1"),
+                localizer.localizedString(forKey: "tutorial_subtasks_b2")
+            ]
         )
-        
-        let shareTasksSection = TutorialSection(
-            heading: "Aufgaben teilen & exportieren",
-            text: "Teile Aufgaben mit Freunden oder exportiere sie als JSON-Datei.",
-            highlights: ["Todo exportieren", "Todo teilen", "Todo importieren"],
-            highlightData: [
-                "Todo exportieren": exporttodoSubFunction,
-                "Todo teilen": sharetodoSubFunction,
-                "Todo importieren": importtodoSubFunction
+
+        let exportTodo = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_export_title"),
+            text: localizer.localizedString(forKey: "tutorial_export_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_export_b1"),
+                localizer.localizedString(forKey: "tutorial_export_b2"),
+                localizer.localizedString(forKey: "tutorial_export_b3")
+            ]
+        )
+
+        let shareTodo = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_share_title"),
+            text: localizer.localizedString(forKey: "tutorial_share_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_share_b1"),
+                localizer.localizedString(forKey: "tutorial_share_b2")
+            ]
+        )
+
+        let importTodo = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_import_title"),
+            text: localizer.localizedString(forKey: "tutorial_import_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_import_b1"),
+                localizer.localizedString(forKey: "tutorial_import_b2"),
+                localizer.localizedString(forKey: "tutorial_import_b3")
+            ]
+        )
+
+        let pomodoroStart = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_pomo_start_title"),
+            text: localizer.localizedString(forKey: "tutorial_pomo_start_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_pomo_start_b1"),
+                localizer.localizedString(forKey: "tutorial_pomo_start_b2")
+            ]
+        )
+
+        let pomodoroPause = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_pomo_pause_title"),
+            text: localizer.localizedString(forKey: "tutorial_pomo_pause_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_pomo_pause_b1"),
+                localizer.localizedString(forKey: "tutorial_pomo_pause_b2")
+            ]
+        )
+
+        let pomodoroSettings = SubFunctionData(
+            title: localizer.localizedString(forKey: "tutorial_pomo_settings_title"),
+            text: localizer.localizedString(forKey: "tutorial_pomo_settings_text"),
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_pomo_settings_b1"),
+                localizer.localizedString(forKey: "tutorial_pomo_settings_b2"),
+                localizer.localizedString(forKey: "tutorial_pomo_settings_b3")
+            ]
+        )
+
+        // MARK: - Sections
+
+        let addTask = TutorialSection(
+            heading: localizer.localizedString(forKey: "tutorial_add_heading"),
+            text: localizer.localizedString(forKey: "tutorial_add_text"),
+            highlights: [
+                localizer.localizedString(forKey: "hl_title_desc"),
+                localizer.localizedString(forKey: "hl_category"),
+                localizer.localizedString(forKey: "hl_priority"),
+                localizer.localizedString(forKey: "hl_duedate"),
+                localizer.localizedString(forKey: "hl_calendar"),
+                localizer.localizedString(forKey: "hl_subtasks")
             ],
-            bulletPoints: ["Todo lange gedrückt halten", "Teilen drücken", "Empfänger wählen", "Todo importieren", "Datei auswählen", "Import starten"]
+            highlightData: [
+                localizer.localizedString(forKey: "hl_title_desc"): titleDescription,
+                localizer.localizedString(forKey: "hl_category"): category,
+                localizer.localizedString(forKey: "hl_priority"): priority,
+                localizer.localizedString(forKey: "hl_duedate"): dueDate,
+                localizer.localizedString(forKey: "hl_calendar"): calendar,
+                localizer.localizedString(forKey: "hl_subtasks"): subtasks
+            ],
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_add_b1"),
+                localizer.localizedString(forKey: "tutorial_add_b2"),
+                localizer.localizedString(forKey: "tutorial_add_b3")
+            ]
         )
-        
+
+        let shareSection = TutorialSection(
+            heading: localizer.localizedString(forKey: "tutorial_share_section_heading"),
+            text: localizer.localizedString(forKey: "tutorial_share_section_text"),
+            highlights: [
+                localizer.localizedString(forKey: "hl_export"),
+                localizer.localizedString(forKey: "hl_share"),
+                localizer.localizedString(forKey: "hl_import")
+            ],
+            highlightData: [
+                localizer.localizedString(forKey: "hl_export"): exportTodo,
+                localizer.localizedString(forKey: "hl_share"): shareTodo,
+                localizer.localizedString(forKey: "hl_import"): importTodo
+            ],
+            bulletPoints: [
+                localizer.localizedString(forKey: "tutorial_share_section_b1"),
+                localizer.localizedString(forKey: "tutorial_share_section_b2")
+            ]
+        )
+
         let pomodoroSection = TutorialSection(
-            heading: "Pomodoro-Timer",
-            text: "Nutze den Pomodoro-Timer, um konzentriert zu arbeiten und regelmäßige Pausen einzuhalten.",
-            highlights: ["Timer starten", "Pause einlegen", "Timer anpassen"],
+            heading: localizer.localizedString(forKey: "tutorial_pomo_heading"),
+            text: localizer.localizedString(forKey: "tutorial_pomo_text"),
+            highlights: [
+                localizer.localizedString(forKey: "hl_pomo_start"),
+                localizer.localizedString(forKey: "hl_pomo_pause"),
+                localizer.localizedString(forKey: "hl_pomo_settings")
+            ],
             highlightData: [
-                "Timer starten": pomodoroStartSubFunction,
-                "Pause einlegen": pomodoroPauseSubFunction,
-                "Timer anpassen": pomodoroSettingsSubFunction
+                localizer.localizedString(forKey: "hl_pomo_start"): pomodoroStart,
+                localizer.localizedString(forKey: "hl_pomo_pause"): pomodoroPause,
+                localizer.localizedString(forKey: "hl_pomo_settings"): pomodoroSettings
             ],
             bulletPoints: [
-                "Starte den Timer",
-                "Arbeite konzentriert",
-                "Mache regelmäßige Pausen",
-                "Steigere deine Produktivität"
+                localizer.localizedString(forKey: "tutorial_pomo_b1"),
+                localizer.localizedString(forKey: "tutorial_pomo_b2")
             ]
         )
-        
-        let categoriesSection = TutorialSection(
-            heading: "Kategorien verwalten",
-            text: "Verwalte deine ganzen Kategorien. Du kannst neue erstellen oder bestehende bearbeiten.",
-            highlights: nil,
-            highlightData: [:],
-            bulletPoints: [
-                "Neue erstellen",
-                "Bestehende bearbeiten"
-            ]
-        )
-        
-        // MARK: - TutorialItems zusammenstellen
+
+        // MARK: - Items
+
         return [
-            TutorialItem(title: "Aufgaben erstellen", sections: [addTaskSection]),
-            TutorialItem(title: "Aufgaben bearbeiten", sections: [editTaskSection]),
-            TutorialItem(title: "Unteraufgaben", sections: [subTasksSection]),
-            TutorialItem(title: "Aufgaben teilen", sections: [shareTasksSection]),
-            TutorialItem(title: "Pomodoro Timer", sections: [pomodoroSection]),
-            TutorialItem(title: "Kategorien", sections: [categoriesSection]),
+            TutorialItem(title: localizer.localizedString(forKey: "tutorial_item_tasks"), sections: [addTask]),
+            TutorialItem(title: localizer.localizedString(forKey: "tutorial_item_share"), sections: [shareSection]),
+            TutorialItem(title: localizer.localizedString(forKey: "tutorial_item_pomo"), sections: [pomodoroSection])
         ]
-    }()
+    }
 }

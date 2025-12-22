@@ -324,3 +324,100 @@
 "notifications_denied" = "Benachrichtigungen nicht erlaubt";
 "notifications_granted" = "Benachrichtigungen erlaubt";
 "shake_detected" = "📳 Shake erkannt in AppDelegate!";
+"tutorial_item_tasks" = "Aufgaben erstellen";
+"tutorial_item_share" = "Aufgaben teilen";
+"tutorial_item_pomo" = "Pomodoro Timer";
+
+"tutorial_add_heading" = "Neue Aufgabe hinzufügen";
+"tutorial_add_text" = "Erstelle eine neue Aufgabe mit allen wichtigen Informationen.";
+"tutorial_add_b1" = "Plus drücken";
+"tutorial_add_b2" = "Daten eingeben";
+"tutorial_add_b3" = "Speichern";
+
+"hl_title_desc" = "Titel & Beschreibung";
+"hl_category" = "Kategorie auswählen";
+"hl_priority" = "Priorität wählen";
+"hl_duedate" = "Fälligkeitsdatum setzen";
+"hl_calendar" = "Systemkalender verbinden";
+"hl_subtasks" = "Unteraufgaben hinzufügen";
+
+"tutorial_title_desc_title" = "Titel & Beschreibung";
+"tutorial_title_desc_text" = "Gib deiner Aufgabe einen klaren Titel und optional eine Beschreibung.";
+"tutorial_title_desc_b1" = "Plus drücken";
+"tutorial_title_desc_b2" = "Titel eingeben";
+"tutorial_title_desc_b3" = "Beschreibung hinzufügen";
+"tutorial_title_desc_b4" = "Übersichtlich bleiben";
+
+"tutorial_category_title" = "Kategorie";
+"tutorial_category_text" = "Ordne Aufgaben Kategorien zu.";
+"tutorial_category_b1" = "Kategorie antippen";
+"tutorial_category_b2" = "Kategorie auswählen oder erstellen";
+
+"tutorial_priority_title" = "Priorität";
+"tutorial_priority_text" = "Lege fest, wie wichtig die Aufgabe ist.";
+"tutorial_priority_b1" = "Priorität auswählen";
+
+"tutorial_duedate_title" = "Fälligkeit";
+"tutorial_duedate_text" = "Setze ein Fälligkeitsdatum.";
+"tutorial_duedate_b1" = "Datum aktivieren";
+"tutorial_duedate_b2" = "Datum auswählen";
+
+"tutorial_calendar_title" = "Kalender";
+"tutorial_calendar_text" = "Synchronisiere Aufgaben mit dem Systemkalender.";
+"tutorial_calendar_b1" = "Schalter aktivieren";
+
+"tutorial_subtasks_title" = "Unteraufgaben";
+"tutorial_subtasks_text" = "Strukturiere große Aufgaben.";
+"tutorial_subtasks_b1" = "Unteraufgabe hinzufügen";
+"tutorial_subtasks_b2" = "Fortschritt verfolgen";
+
+"tutorial_share_section_heading" = "Teilen & Exportieren";
+"tutorial_share_section_text" = "Exportiere oder teile Aufgaben.";
+"tutorial_share_section_b1" = "Lange drücken";
+"tutorial_share_section_b2" = "Aktion auswählen";
+
+"hl_export" = "Exportieren";
+"hl_share" = "Teilen";
+"hl_import" = "Importieren";
+
+"tutorial_export_title" = "Exportieren";
+"tutorial_export_text" = "Exportiere Aufgaben als JSON.";
+"tutorial_export_b1" = "Lange drücken";
+"tutorial_export_b2" = "Teilen";
+"tutorial_export_b3" = "Datei sichern";
+
+"tutorial_share_title" = "Teilen";
+"tutorial_share_text" = "Teile Aufgaben mit anderen.";
+"tutorial_share_b1" = "Teilen wählen";
+"tutorial_share_b2" = "Empfänger auswählen";
+
+"tutorial_import_title" = "Importieren";
+"tutorial_import_text" = "Importiere Aufgaben aus Dateien.";
+"tutorial_import_b1" = "Plus drücken";
+"tutorial_import_b2" = "Importieren wählen";
+"tutorial_import_b3" = "Datei auswählen";
+
+"tutorial_pomo_heading" = "Pomodoro Timer";
+"tutorial_pomo_text" = "Arbeite fokussiert mit Pausen.";
+"tutorial_pomo_b1" = "Timer starten";
+"tutorial_pomo_b2" = "Pausen einhalten";
+
+"hl_pomo_start" = "Timer starten";
+"hl_pomo_pause" = "Pause";
+"hl_pomo_settings" = "Einstellungen";
+
+"tutorial_pomo_start_title" = "Start";
+"tutorial_pomo_start_text" = "Starte den Fokus-Timer.";
+"tutorial_pomo_start_b1" = "Start drücken";
+"tutorial_pomo_start_b2" = "Fokussieren";
+
+"tutorial_pomo_pause_title" = "Pause";
+"tutorial_pomo_pause_text" = "Erhole dich zwischen Fokusphasen.";
+"tutorial_pomo_pause_b1" = "Pause beginnt automatisch";
+"tutorial_pomo_pause_b2" = "Entspannen";
+
+"tutorial_pomo_settings_title" = "Timer anpassen";
+"tutorial_pomo_settings_text" = "Passe Zeiten an.";
+"tutorial_pomo_settings_b1" = "Einstellungen öffnen";
+"tutorial_pomo_settings_b2" = "Zeiten ändern";
+"tutorial_pomo_settings_b3" = "Speichern";
