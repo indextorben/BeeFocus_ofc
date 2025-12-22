@@ -10,6 +10,8 @@ struct StatistikView: View {
     
     @State private var exportData: ShareData?
     
+    @State private var refresh = false
+    
     // MARK: - Farben
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
@@ -114,96 +116,9 @@ struct StatistikView: View {
         }
     }
     
-    var weeklyProgress: [(date: Date, progress: Double)] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        
-        // Start der Woche (Montag)
-        let weekday = calendar.component(.weekday, from: today)
-        let daysFromMonday = (weekday + 5) % 7
-        
-        guard let monday = calendar.date(byAdding: .day, value: -daysFromMonday, to: today) else {
-            return []
-        }
-        
-        return (0..<7).map { offset in
-            let date = calendar.date(byAdding: .day, value: offset, to: monday)!
-            
-            let todosForDay = todoStore.todos.filter { todo in
-                guard let due = todo.dueDate else { return false }
-                return calendar.isDate(due, inSameDayAs: date)
-            }
-            
-            let completed = todosForDay.filter { $0.isCompleted }.count
-            let total = todosForDay.count
-            let progress = total > 0 ? Double(completed) / Double(total) : 0
-            
-            return (date: date, progress: progress)
-        }
-    }
-    
-    // MARK: - Monatlicher Fortschritt (Daten)
-    var monthlyProgress: [(week: Int, progress: Double, isCurrent: Bool)] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        var result: [(week: Int, progress: Double, isCurrent: Bool)] = []
-        
-        // Aktuelle Kalenderwoche
-        let currentWeekOfMonth = calendar.component(.weekOfMonth, from: today)
-        
-        for weekNumber in 1...4 {
-            // Berechne Startdatum der Woche
-            guard let weekDate = calendar.date(byAdding: .weekOfMonth, value: weekNumber - currentWeekOfMonth, to: today) else { continue }
-            
-            let weekTodos = todoStore.todos.filter { todo in
-                guard let due = todo.dueDate else { return false }
-                return calendar.isDate(due, equalTo: weekDate, toGranularity: .weekOfMonth)
-            }
-            
-            let completed = weekTodos.filter { $0.isCompleted }.count
-            let total = weekTodos.count
-            let progress = total > 0 ? Double(completed) / Double(total) : 0
-            
-            // Überprüfen, ob aktuelle Woche
-            let isCurrent = weekNumber == currentWeekOfMonth
-            
-            result.append((week: weekNumber, progress: progress, isCurrent: isCurrent))
-        }
-        
-        return result
-    }
-    
-    var yearlyProgress: [(month: Int, progress: Double)] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        var result: [(month: Int, progress: Double)] = []
-        
-        for monthOffset in (0..<12).reversed() {
-            guard let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: today) else { continue }
-            
-            let monthTodos = todoStore.todos.filter { todo in
-                guard let completed = todo.completedAt else { return false }
-                return calendar.isDate(completed, equalTo: monthDate, toGranularity: .month)
-            }
-            
-            let completedCount = monthTodos.count
-            let totalCount = todoStore.todos.filter { todo in
-                guard let due = todo.dueDate else { return false }
-                return calendar.isDate(due, equalTo: monthDate, toGranularity: .month)
-            }.count
-            
-            let progress = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
-            
-            // Monat als 0..11 für spätere Monatsnamen
-            result.append((month: calendar.component(.month, from: monthDate) - 1, progress: progress))
-        }
-        
-        return result
-    }
-    
     struct ShareData: Identifiable {
         let id = UUID()
-        let data: Data
+        let image: UIImage
     }
 
     private func exportStatistics() {
@@ -220,18 +135,15 @@ struct StatistikView: View {
             let renderer = ImageRenderer(content: exportView)
             renderer.scale = 3
 
-            guard let image = renderer.uiImage,
-                  let data = image.pngData() else {
-                return
-            }
+            guard let image = renderer.uiImage else { return }
 
+            exportData = ShareData(image: image)
             // ⬅️ ERST JETZT Sheet triggern
-            exportData = ShareData(data: data)
         }
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 backgroundColor.ignoresSafeArea()
                 
@@ -244,7 +156,7 @@ struct StatistikView: View {
                                 .font(.headline)
                                 .padding(.bottom, 8)
                                 .foregroundColor(textColor)
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, alignment: .center)
                                 .multilineTextAlignment(.center)
 
                             HStack {
@@ -472,210 +384,22 @@ struct StatistikView: View {
                                     color: .red
                                 )
                             }
-                            .padding(.top, 8)
+                            .padding(.top, 16)
                         }
                         .padding()
                         .background(cardBackground)
                         .cornerRadius(15)
                         .shadow(color: colorScheme == .dark ? .clear : Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
                         
-                        // MARK: Wöchentlicher Fortschritt
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(localizer.localizedString(forKey: "weekly_progress_title"))
-                                .font(.headline)
-                                .foregroundColor(textColor)
-                                .frame(maxWidth: .infinity)
-                                .multilineTextAlignment(.center)
-
-                            HStack(spacing: 14) {
-                                ForEach(weeklyProgress, id: \.date) { data in
-                                    VStack(spacing: 4) {
-
-                                        Text(localizer.localizedDayAbbreviation(for: data.date))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-
-                                        VStack(spacing: 0) {
-                                            Spacer()
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .frame(width: 20, height: CGFloat(data.progress) * 60)
-                                                .foregroundColor(.blue)
-                                                .animation(.easeInOut, value: data.progress)
-                                        }
-                                        .frame(height: 60)
-                                        .background(
-                                            colorScheme == .dark
-                                                ? Color.white.opacity(0.05)
-                                                : Color.gray.opacity(0.2)
-                                        )
-                                        .cornerRadius(4)
-
-                                        Text("\(Int(data.progress * 100))%")
-                                            .font(.caption2)
-                                            .foregroundColor(textColor)
-                                    }
-                                    .frame(width: 40)
-                                }
-                            }
-                            .padding(.top, 8)
-                            .frame(maxWidth: .infinity)
-                        }
-                        .padding()
-                        .background(cardBackground)
-                        .cornerRadius(15)
-                        .shadow(color: colorScheme == .dark ? .clear : Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                        
-                        // MARK: Monatlicher Fortschritt
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(localizer.localizedString(forKey: "monthly_progress"))
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .foregroundColor(textColor)
-                                .multilineTextAlignment(.center)
-                            
-                            HStack(spacing: 14) {
-                                ForEach(monthlyProgress, id: \.week) { data in
-                                    VStack(spacing: 4) {
-
-                                        // Aktuelle Woche
-                                        Text(
-                                            "\(localizer.localizedString(forKey: "week_short"))\(data.week)"
-                                        )
-                                        .font(.caption)
-                                        .bold()
-                                        .padding(4)
-                                        .foregroundColor(data.isCurrent ? .white : .secondary)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .fill(data.isCurrent ? Color.blue : Color.clear)
-                                                .animation(.easeInOut(duration: 0.5), value: data.isCurrent)
-                                        )
-
-                                        VStack(spacing: 0) {
-                                            Spacer()
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .frame(width: 20, height: CGFloat(data.progress) * 60)
-                                                .foregroundColor(data.isCurrent ? .blue : .green)
-                                                .animation(.easeInOut(duration: 0.5), value: data.progress)
-                                        }
-                                        .frame(height: 60)
-                                        .background(
-                                            colorScheme == .dark
-                                            ? Color.white.opacity(0.05)
-                                            : Color.gray.opacity(0.2)
-                                        )
-                                        .cornerRadius(4)
-
-                                        Text("\(Int(data.progress * 100))%")
-                                            .font(.caption2)
-                                            .foregroundColor(textColor)
-                                    }
-                                    .frame(width: 40)
-                                }
-                            }
-                            .padding(.top, 8)
-                            .frame(maxWidth: .infinity)
-                        }
-                        .padding()
-                        .background(cardBackground)
-                        .cornerRadius(15)
-                        .shadow(color: colorScheme == .dark ? .clear : Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                        
-                        // MARK: Jahresfortschritt
-                        VStack(spacing: 12) {
-                            Text(localizer.localizedString(forKey: "yearly_progress"))
-                                .font(.headline)
-                                .foregroundColor(textColor)
-                                .frame(maxWidth: .infinity)
-                                .multilineTextAlignment(.center)
-
-                            Spacer().frame(height: 10)
-
-                            if UIDevice.current.userInterfaceIdiom == .pad {
-                                // iPad
-                                let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 6)
-
-                                LazyVGrid(columns: columns, spacing: 15) {
-                                    ForEach(yearlyProgress, id: \.month) { data in
-                                        VStack(spacing: 4) {
-
-                                            Text(getLocalizedMonthAbbreviation(data.month % 12))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-
-                                            VStack(spacing: 0) {
-                                                Spacer()
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .frame(width: 20, height: CGFloat(data.progress) * 30)
-                                                    .foregroundColor(.purple)
-                                                    .animation(.easeInOut, value: data.progress)
-                                            }
-                                            .frame(height: 60)
-                                            .background(
-                                                colorScheme == .dark
-                                                ? Color.white.opacity(0.05)
-                                                : Color.gray.opacity(0.2)
-                                            )
-                                            .cornerRadius(4)
-
-                                            Text("\(Int(data.progress * 100))%")
-                                                .font(.caption2)
-                                                .foregroundColor(textColor)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 10)
-
-                            } else {
-                                // iPhone
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 15) {
-                                        ForEach(yearlyProgress, id: \.month) { data in
-                                            VStack(spacing: 4) {
-
-                                                Text(getLocalizedMonthAbbreviation(data.month % 12))
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-
-                                                VStack(spacing: 0) {
-                                                    Spacer()
-                                                    RoundedRectangle(cornerRadius: 4)
-                                                        .frame(width: 20, height: CGFloat(data.progress) * 60)
-                                                        .foregroundColor(.purple)
-                                                        .animation(.easeInOut, value: data.progress)
-                                                }
-                                                .frame(height: 60)
-                                                .background(
-                                                    colorScheme == .dark
-                                                    ? Color.white.opacity(0.05)
-                                                    : Color.gray.opacity(0.2)
-                                                )
-                                                .cornerRadius(4)
-
-                                                Text("\(Int(data.progress * 100))%")
-                                                    .font(.caption2)
-                                                    .foregroundColor(textColor)
-                                            }
-                                            .frame(width: 40)
-                                        }
-                                    }
-                                }
-                                .padding(.top, 8)
-                            }
-                        }
-                        .padding()
-                        .background(cardBackground)
-                        .cornerRadius(15)
-                        .shadow(color: colorScheme == .dark ? .clear : Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                        .padding(.bottom, 20)
                     }
                     .padding(.horizontal)
                 }
                 .sheet(item: $exportData) { data in
-                    ActivityView(activityItems: [data])
+                    ActivityView(activityItems: [data.image])
                 }
             }
-            .navigationTitle("Statistik")
+            .navigationTitle(localizer.localizedString(forKey: "Statistik"))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
@@ -686,7 +410,14 @@ struct StatistikView: View {
                 }
             }
         }
+        .onAppear {
+            DispatchQueue.main.async {
+                // State toggle erzwingt einmalige Neurenderung
+                refresh.toggle()
+            }
+        }
     }
+    
     
     // MARK: - Hilfsfunktionen
     private func getGermanDayAbbreviation(for date: Date) -> String {
@@ -694,13 +425,6 @@ struct StatistikView: View {
         let weekday = Calendar.current.component(.weekday, from: date) // 1 = So, 7 = Sa
         guard weekday >= 1 && weekday <= 7 else { return "?" }
         return germanDays[weekday - 1]
-    }
-
-    private func getLocalizedMonthAbbreviation(_ month: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: LocalizationManager.shared.currentLanguageCode)
-        let months = formatter.shortMonthSymbols ?? []
-        return months.isEmpty ? "" : months[month % 12]
     }
 }
 

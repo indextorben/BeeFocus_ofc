@@ -421,3 +421,8 @@
 "tutorial_pomo_settings_b1" = "Einstellungen öffnen";
 "tutorial_pomo_settings_b2" = "Zeiten ändern";
 "tutorial_pomo_settings_b3" = "Speichern";
+"statistics_overview_title" = "Statistik Übersicht";
+"total" = "Gesamt";
+"completed" = "Erledigt";
+"open" = "Offen";
+"overdue" = "Überfällig";

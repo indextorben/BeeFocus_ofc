@@ -420,3 +420,8 @@
 "tutorial_pomo_settings_b1" = "Open settings";
 "tutorial_pomo_settings_b2" = "Change durations";
 "tutorial_pomo_settings_b3" = "Save";
+"statistics_overview_title" = "Statistics Overview";
+"total" = "Total";
+"completed" = "Completed";
+"open" = "Open";
+"overdue" = "Overdue";

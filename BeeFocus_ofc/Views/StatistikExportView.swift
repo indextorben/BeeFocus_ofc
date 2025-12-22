@@ -5,6 +5,9 @@ struct StatistikExportView: View {
     let open: Int
     let total: Int
     let overdue: Int
+    
+    // LocalizationManager einbinden
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     var completionRate: Double {
         total > 0 ? Double(completed) / Double(total) : 0
@@ -13,28 +16,28 @@ struct StatistikExportView: View {
     var body: some View {
         VStack(spacing: 40) {
 
-            Text("Statistics Overview")
+            Text(localizer.localizedString(forKey: "statistics_overview_title")) // statt "Statistics Overview"
                 .font(.system(size: 48, weight: .bold))
                 .foregroundColor(.black)
 
             CompletionDonut(completed: completed, total: total)
 
             HStack(spacing: 20) {
-                statBox(title: "Total", value: total)
-                statBox(title: "Completed", value: completed)
-                statBox(title: "Open", value: open)
-                statBox(title: "Overdue", value: overdue, highlight: .red)
+                statBox(titleKey: "total", value: total)
+                statBox(titleKey: "completed", value: completed)
+                statBox(titleKey: "open", value: open)
+                statBox(titleKey: "overdue", value: overdue, highlight: .red)
             }
 
             Spacer()
         }
         .padding(60)
         .frame(width: 1240, height: 1754)
-        .background(Color.white) // ❗ FEST
+        .background(Color.white)
     }
 
     private func statBox(
-        title: String,
+        titleKey: String,
         value: Int,
         highlight: Color = .blue
     ) -> some View {
@@ -43,7 +46,7 @@ struct StatistikExportView: View {
                 .font(.largeTitle.bold())
                 .foregroundColor(highlight)
 
-            Text(title)
+            Text(localizer.localizedString(forKey: titleKey))
                 .foregroundColor(.gray)
         }
     }
