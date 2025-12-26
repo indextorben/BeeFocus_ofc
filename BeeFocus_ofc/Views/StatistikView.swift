@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import UIKit
+import MessageUI
 
 struct StatistikView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -8,7 +9,7 @@ struct StatistikView: View {
     
     @ObservedObject private var localizer = LocalizationManager.shared
     
-    @State private var exportData: ShareData?
+    @StateObject private var mailShare = MailShareService()
     
     @State private var refresh = false
     
@@ -116,11 +117,13 @@ struct StatistikView: View {
         }
     }
     
-    struct ShareData: Identifiable {
-        let id = UUID()
-        let image: UIImage
-    }
+    // MARK: - Mail Export
 
+    /// Öffentliche Helferfunktion: Rufe diese mit deinen ausgewählten Todos auf
+    func shareTodosByMail(_ todos: [TodoItem], recipients: [String]? = nil) {
+        mailShare.shareTodosByMail(todos, languageCode: LocalizationManager.shared.currentLanguageCode, recipients: recipients)
+    }
+    
     private func exportStatistics() {
         DispatchQueue.main.async {
             let exportView = StatistikExportView(
@@ -137,7 +140,7 @@ struct StatistikView: View {
 
             guard let image = renderer.uiImage else { return }
 
-            exportData = ShareData(image: image)
+            mailShare.exportData = ShareData(image: image)
             // ⬅️ ERST JETZT Sheet triggern
         }
     }
@@ -394,8 +397,11 @@ struct StatistikView: View {
                     }
                     .padding(.horizontal)
                 }
-                .sheet(item: $exportData) { data in
-                    ActivityView(activityItems: [data.image])
+                .sheet(item: $mailShare.exportData) { data in
+                    ShareActivityView(activityItems: [data.image])
+                }
+                .sheet(item: $mailShare.mailComposerData) { data in
+                    MailComposerWrapperView(subject: data.subject, body: data.body, recipients: data.recipients)
                 }
             }
             .navigationTitle(localizer.localizedString(forKey: "Statistik"))
@@ -456,8 +462,14 @@ struct MiniStatCard: View {
     }
 }
 
+// MARK: - Share Data Model
+struct ShareData: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
 // MARK: - Share Sheet
-struct ActivityView: UIViewControllerRepresentable {
+struct ShareActivityView: UIViewControllerRepresentable {
     var activityItems: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {

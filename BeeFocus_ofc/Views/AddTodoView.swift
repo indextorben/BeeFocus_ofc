@@ -353,7 +353,7 @@ struct AddTodoView: View {
         let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
         let newCategory = Category(name: trimmedName, colorHex: randomColor)
 
-        todoStore.categories.append(newCategory)
+        todoStore.addCategory(newCategory)
         category = newCategory
         newCategoryName = ""
     }
@@ -422,3 +422,4 @@ struct ImagePreviewView: View {
         }
     }
 }
+

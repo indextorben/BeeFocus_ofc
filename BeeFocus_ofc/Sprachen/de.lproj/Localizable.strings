@@ -426,3 +426,5 @@
 "completed" = "Erledigt";
 "open" = "Offen";
 "overdue" = "Überfällig";
+"sort_category_asc" = "Kategorie (A–Z)";
+"sort_category_desc" = "Kategorie (Z–A)";

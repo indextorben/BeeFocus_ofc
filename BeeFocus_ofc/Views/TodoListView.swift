@@ -8,6 +8,8 @@ import Foundation
 import SwiftUI
 import SwiftData
 import UserNotifications
+import UIKit
+import MessageUI
 
 // MARK: - BlurView (UIKit Wrapper für SwiftUI)
 struct BlurView: UIViewRepresentable {
@@ -43,13 +45,69 @@ struct TodoListView: View {
     @State private var showSuccessToast = false
     @State private var showingSortOptions = false
     @State private var sortOption: SortOption = .dueDateAsc
+    @State private var showPastTasks = false
+    
+    @State private var isSelecting = false
+    @State private var selectedTodoIDs: Set<UUID> = []
+    @State private var showMailUnavailableAlert = false
+    @State private var mailUnavailableMessage = ""
     
     //Fileimporter
     @State private var showingActionSheet = false
     @State private var showingFileImporter = false
     
     @ObservedObject private var localizer = LocalizationManager.shared
-        let languages = ["Deutsch", "Englisch"]
+    @StateObject private var mailShare = MailShareService()
+
+    let languages = ["Deutsch", "Englisch"]
+    
+    var body: some View {
+        NavigationStack {
+            mainContentView
+                .toolbar { toolbarContent }
+                .overlay(alignment: .bottom) { successToastOverlay }
+                .navigationTitle(LocalizedStringKey(localizer.localizedString(forKey: "Aufgaben")))
+                .navigationBarTitleDisplayMode(.large)
+                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(LocalizedStringKey(localizer.localizedString(forKey: "Aufgaben suchen"))))
+                .sheet(isPresented: $showingAddTodo) {
+                    // Replace `AddTodoView` with the actual add-task view used in your project if the name differs
+                    AddTodoView()
+                }
+                .sheet(isPresented: $showingSettings) {
+                    EinstellungenView()
+                }
+                .sheet(item: $editingTodo) { item in
+                    EditTodoView(todo: item)
+                }
+                .sheet(item: $mailShare.exportData) { data in
+                    ShareActivityView(activityItems: [data.image])
+                }
+                .sheet(item: $mailShare.mailComposerData) { data in
+                    MailComposerWrapperView(subject: data.subject, body: data.body, recipients: data.recipients)
+                }
+                .alert(localizer.localizedString(forKey: "Löschen"), isPresented: $showingDeleteAlert, presenting: todoToDelete) { todo in
+                    Button(role: .destructive) {
+                        if let idx = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
+                            todoStore.todos.remove(at: idx)
+                        }
+                    } label: {
+                        Text(localizer.localizedString(forKey: "Löschen"))
+                    }
+                    Button(role: .cancel) {
+                        todoToDelete = nil
+                    } label: {
+                        Text(localizer.localizedString(forKey: "Abbrechen"))
+                    }
+                } message: { todo in
+                    Text(localizer.localizedString(forKey: "Möchten Sie diese Aufgabe wirklich löschen?"))
+                }
+                .alert(localizer.localizedString(forKey: "E-Mail nicht verfügbar"), isPresented: $showMailUnavailableAlert) {
+                    Button(localizer.localizedString(forKey: "OK"), role: .cancel) { }
+                } message: {
+                    Text(mailUnavailableMessage)
+                }
+        }
+    }
     
     // MARK: - Computed Properties
     var backgroundColor: Color {
@@ -57,7 +115,7 @@ struct TodoListView: View {
     }
     
     enum SortOption: CaseIterable, Hashable {
-        case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc
+        case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc, categoryAsc, categoryDesc
 
         var localizationKey: String {
             switch self {
@@ -66,6 +124,8 @@ struct TodoListView: View {
             case .titleAsc: return "sort_title_asc"
             case .titleDesc: return "sort_title_desc"
             case .createdDesc: return "sort_created_desc"
+            case .categoryAsc: return "sort_category_asc"
+            case .categoryDesc: return "sort_category_desc"
             }
         }
 
@@ -80,17 +140,28 @@ struct TodoListView: View {
         let normal = todos.filter { !$0.isFavorite }
         
         func sort(_ array: [TodoItem]) -> [TodoItem] {
-            switch sortOption {
-            case .dueDateAsc:
-                return array.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
-            case .dueDateDesc:
-                return array.sorted { ($0.dueDate ?? .distantPast) > ($1.dueDate ?? .distantPast) }
-            case .titleAsc:
-                return array.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-            case .titleDesc:
-                return array.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedDescending }
-            case .createdDesc:
-                return array.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            return array.sorted { a, b in
+                let pa = priorityRank(for: a)
+                let pb = priorityRank(for: b)
+                if pa != pb {
+                    return pa < pb // High (0) vor Medium (1) vor Low (2)
+                }
+                switch sortOption {
+                case .dueDateAsc:
+                    return (a.dueDate ?? .distantFuture) < (b.dueDate ?? .distantFuture)
+                case .dueDateDesc:
+                    return (a.dueDate ?? .distantPast) > (b.dueDate ?? .distantPast)
+                case .titleAsc:
+                    return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+                case .titleDesc:
+                    return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedDescending
+                case .createdDesc:
+                    return (a.createdAt ?? .distantPast) > (b.createdAt ?? .distantPast)
+                case .categoryAsc:
+                    return (a.category?.name ?? "").localizedCaseInsensitiveCompare(b.category?.name ?? "") == .orderedAscending
+                case .categoryDesc:
+                    return (a.category?.name ?? "").localizedCaseInsensitiveCompare(b.category?.name ?? "") == .orderedDescending
+                }
             }
         }
         
@@ -116,40 +187,60 @@ struct TodoListView: View {
                 matchesCategory = true
             }
 
-            let isNotCompleted = !todo.isCompleted
+            // Show all (including completed or overdue) when toggled
+            if showPastTasks {
+                return matchesSearch && matchesCategory
+            }
 
-            return matchesSearch && matchesCategory && isNotCompleted
+            // Default: hide completed and overdue
+            let isNotCompleted = !todo.isCompleted
+            let notOverdue = (todo.dueDate == nil) || (todo.dueDate! >= Date())
+            return matchesSearch && matchesCategory && isNotCompleted && notOverdue
         }
     }
     
     // MARK: - Main View
-    var body: some View {
-        let content = mainContentView
-
-        return content
-            .searchable(text: $searchText, prompt: localizer.localizedString(forKey: "Aufgaben suchen..."))
-            .navigationTitle(localizer.localizedString(forKey: "Aufgaben"))
-            .toolbar { toolbarContent }
-            .modifier(SheetModifiers(
-                showingAddTodo: $showingAddTodo,
-                editingTodo: $editingTodo,
-                todoStore: todoStore
-            ))
-            .modifier(AlertModifiers(
-                showingDeleteAlert: $showingDeleteAlert,
-                todoToDelete: $todoToDelete,
-                todoStore: todoStore,
-                showingAddCategory: $showingAddCategory,
-                newCategoryName: $newCategoryName,
-                editingCategory: $editingCategory,
-                showingDeleteCategoryAlert: $showingDeleteCategoryAlert,
-                categoryToDelete: $categoryToDelete,
-                selectedCategory: $selectedCategory
-            ))
-            .sheet(isPresented: $showingSettings) {
-                EinstellungenView()
+    private var mainContentView: some View {
+        ZStack {
+            backgroundColor.ignoresSafeArea()
+            VStack(spacing: 0) {
+                categoryBar
+                contentView
             }
-            .overlay(successToastOverlay)
+
+            // Bottom toggle button to show/hide past tasks
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: { withAnimation(.easeInOut) { showPastTasks.toggle() } }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: showPastTasks ? "clock.arrow.circlepath" : "clock")
+                            Text(LocalizedStringKey(localizer.localizedString(forKey: showPastTasks ? "Vergangene ausblenden" : "Vergangene anzeigen")))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            BlurView(style: .systemMaterial)
+                                .clipShape(Capsule())
+                        )
+                        .overlay(
+                            Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Capsule())
+                    .background(Color.clear.contentShape(Capsule()))
+                    .padding(.bottom, 16)
+                    .allowsHitTesting(true)
+                    Spacer()
+                }
+            }
+        }
     }
     
     // MARK: - Toolbar & Overlay Helpers
@@ -166,12 +257,51 @@ struct TodoListView: View {
                             Button(option.displayName) { sortOption = option }
                         }
                     }
+                
+                Button {
+                    withAnimation { isSelecting.toggle() }
+                    if !isSelecting { selectedTodoIDs.removeAll() }
+                } label: {
+                    Image(systemName: isSelecting ? "checkmark.circle" : "checkmark.circle.badge.plus")
+                }
             }
         }
 
         // Navigation right
         ToolbarItemGroup(placement: .primaryAction) {
             HStack(spacing: 8) {
+                if isSelecting {
+                    Button(action: {
+                        let selected = sortedTodos.filter { selectedTodoIDs.contains($0.id) }
+                        guard !selected.isEmpty else { return }
+
+                        if MFMailComposeViewController.canSendMail() {
+                            let formatter = DateFormatter()
+                            formatter.dateStyle = .medium
+                            formatter.timeStyle = .short
+                            let lines = selected.map { todo in
+                                let due = todo.dueDate.map { formatter.string(from: $0) } ?? localizer.localizedString(forKey: "Kein Fälligkeitsdatum")
+                                return "• \(todo.title) — \(due)\n\(todo.description)"
+                            }
+                            let body = lines.joined(separator: "\n\n")
+
+                            mailShare.mailComposerData = MailShareService.MailComposerData(
+                                subject: LocalizationManager.shared.localizedString(forKey: "Todos Export"),
+                                body: body,
+                                recipients: nil
+                            )
+                        } else {
+                            mailUnavailableMessage = localizer.localizedString(forKey: "Bitte richten Sie die Mail-App ein, um E-Mails zu senden.")
+                            showMailUnavailableAlert = true
+                        }
+                    }) {
+                        Image(systemName: "envelope")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(selectedTodoIDs.isEmpty ? .gray : .blue)
+                    }
+                    .disabled(selectedTodoIDs.isEmpty)
+                }
+                
                 Button(action: { todoStore.undoLastCompleted() }) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13, weight: .bold))
@@ -264,17 +394,6 @@ struct TodoListView: View {
         }
     }
     
-    private var mainContentView: some View {
-        ZStack {
-            backgroundColor.ignoresSafeArea()
-            VStack(spacing: 0) {
-                categoryBar
-                contentView
-            }
-        }
-    }
-    
-    // MARK: - Subviews
     private var categoryBar: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
@@ -396,51 +515,121 @@ struct TodoListView: View {
                         }
                     )
                     
-                    TodoCard(todo: binding) {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            todoStore.complete(todo: todo)
+                    HStack(alignment: .top, spacing: 8) {
+                        if isSelecting {
+                            Button(action: {
+                                if selectedTodoIDs.contains(todo.id) {
+                                    selectedTodoIDs.remove(todo.id)
+                                } else {
+                                    selectedTodoIDs.insert(todo.id)
+                                }
+                            }) {
+                                Image(systemName: selectedTodoIDs.contains(todo.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(selectedTodoIDs.contains(todo.id) ? .blue : .secondary)
+                                    .font(.title3)
+                                    .padding(.top, 6)
+                            }
+                            .buttonStyle(.plain)
                         }
-                    } onEdit: {
-                        editingTodo = todo
-                    } onDelete: {
-                        todoToDelete = todo
-                        showingDeleteAlert = true
-                    } onShare: {
-                        TodoShare.share(todo: todo) // NEU: Share-Callback
+
+                        TodoCard(todo: binding) {
+                            if !isSelecting {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    todoStore.complete(todo: todo)
+                                }
+                            } else {
+                                // In selection mode, tap on primary action toggles selection instead of completing
+                                if selectedTodoIDs.contains(todo.id) {
+                                    selectedTodoIDs.remove(todo.id)
+                                } else {
+                                    selectedTodoIDs.insert(todo.id)
+                                }
+                            }
+                        } onEdit: {
+                            if !isSelecting { editingTodo = todo }
+                        } onDelete: {
+                            if !isSelecting {
+                                todoToDelete = todo
+                                showingDeleteAlert = true
+                            }
+                        } onShare: {
+                            if !isSelecting {
+                                TodoShare.share(todo: todo)
+                            }
+                        }
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                todoStore.complete(todo: todo)
+                        if !isSelecting {
+                            Button {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    todoStore.complete(todo: todo)
+                                }
+                            } label: {
+                                Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark")
                             }
-                        } label: {
-                            Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark")
+                            .tint(.green)
+                            
+                            Button(role: .destructive) {
+                                todoToDelete = todo
+                                showingDeleteAlert = true
+                            } label: {
+                                Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
+                            }
+                            
+                            Button {
+                                TodoShare.share(todo: todo)
+                            } label: {
+                                Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
+                            }
+                            .tint(.blue)
                         }
-                        .tint(.green)
-                        
-                        Button(role: .destructive) {
-                            todoToDelete = todo
-                            showingDeleteAlert = true
-                        } label: {
-                            Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
-                        }
-                        
-                        Button {
-                            TodoShare.share(todo: todo)
-                        } label: {
-                            Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
-                        }
-                        .tint(.blue)
                     }
                     .strikethrough(todo.isCompleted, color: .gray)
                     .opacity(todo.isCompleted ? 0.6 : 1.0)
                 }
             }
             .padding()
+            .padding(.bottom, 80)
             .animation(.spring(response: 0.35, dampingFraction: 0.85),
                        value: sortedTodos.map(\.id))
         }
     }
+    
+    // MARK: - Helpers
+    
+    private func shareText() -> String {
+        let selected = sortedTodos.filter { selectedTodoIDs.contains($0.id) }
+        guard !selected.isEmpty else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        let lines = selected.map { todo in
+            let due = todo.dueDate.map { formatter.string(from: $0) } ?? localizer.localizedString(forKey: "Kein Fälligkeitsdatum")
+            return "• \(todo.title) — \(due)\n\(todo.description)"
+        }
+        return lines.joined(separator: "\n\n")
+    }
+    
+    private func priorityRank(for todo: TodoItem) -> Int {
+        switch todo.priority {
+        case .high: return 0
+        case .medium: return 1
+        case .low: return 2
+        default: return 3
+        }
+    }
+}
+
+// MARK: - ActivityView (UIKit Share Sheet Wrapper)
+struct ActivityView: UIViewControllerRepresentable {
+    var activityItems: [Any]
+    var applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - CategoryButton
