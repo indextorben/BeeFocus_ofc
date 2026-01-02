@@ -45,7 +45,11 @@ struct TodoListView: View {
     @State private var showSuccessToast = false
     @State private var showingSortOptions = false
     @State private var sortOption: SortOption = .dueDateAsc
-    @State private var showPastTasks = false
+    @AppStorage("showPastTasksGlobal") private var showPastTasksStorage = true
+    private var showPastTasks: Bool {
+        get { showPastTasksStorage }
+        nonmutating set { showPastTasksStorage = newValue }
+    }
     
     @State private var isSelecting = false
     @State private var selectedTodoIDs: Set<UUID> = []
@@ -60,6 +64,16 @@ struct TodoListView: View {
     @StateObject private var mailShare = MailShareService()
 
     let languages = ["Deutsch", "Englisch"]
+    
+    private func readLocalTodosFallback() -> [TodoItem] {
+        let key = "todos"
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
+        return (try? JSONDecoder().decode([TodoItem].self, from: data)) ?? []
+    }
+    
+    private var isUsingLocalFallback: Bool {
+        todoStore.todos.isEmpty && !readLocalTodosFallback().isEmpty
+    }
     
     var body: some View {
         NavigationStack {
@@ -87,9 +101,7 @@ struct TodoListView: View {
                 }
                 .alert(localizer.localizedString(forKey: "Löschen"), isPresented: $showingDeleteAlert, presenting: todoToDelete) { todo in
                     Button(role: .destructive) {
-                        if let idx = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
-                            todoStore.todos.remove(at: idx)
-                        }
+                        todoStore.deleteTodo(todo)
                     } label: {
                         Text(localizer.localizedString(forKey: "Löschen"))
                     }
@@ -115,7 +127,7 @@ struct TodoListView: View {
     }
     
     enum SortOption: CaseIterable, Hashable {
-        case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc, categoryAsc, categoryDesc
+        case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc, categoryAsc, categoryDesc, priorityHighToLow, priorityLowToHigh
 
         var localizationKey: String {
             switch self {
@@ -126,6 +138,8 @@ struct TodoListView: View {
             case .createdDesc: return "sort_created_desc"
             case .categoryAsc: return "sort_category_asc"
             case .categoryDesc: return "sort_category_desc"
+            case .priorityHighToLow: return "sort_priority_high_to_low"
+            case .priorityLowToHigh: return "sort_priority_low_to_high"
             }
         }
 
@@ -156,11 +170,15 @@ struct TodoListView: View {
                 case .titleDesc:
                     return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedDescending
                 case .createdDesc:
-                    return (a.createdAt ?? .distantPast) > (b.createdAt ?? .distantPast)
+                    return a.createdAt > b.createdAt
                 case .categoryAsc:
                     return (a.category?.name ?? "").localizedCaseInsensitiveCompare(b.category?.name ?? "") == .orderedAscending
                 case .categoryDesc:
                     return (a.category?.name ?? "").localizedCaseInsensitiveCompare(b.category?.name ?? "") == .orderedDescending
+                case .priorityHighToLow:
+                    return priorityRank(for: a) < priorityRank(for: b)
+                case .priorityLowToHigh:
+                    return priorityRank(for: a) > priorityRank(for: b)
                 }
             }
         }
@@ -169,7 +187,8 @@ struct TodoListView: View {
     }
     
     var filteredTodos: [TodoItem] {
-        todoStore.todos.filter { todo in
+        let baseTodos = todoStore.todos.isEmpty ? readLocalTodosFallback() : todoStore.todos
+        return baseTodos.filter { todo in
             // Break down into simpler booleans to help the type checker
             let matchesSearch: Bool
             if searchText.isEmpty {
@@ -206,6 +225,10 @@ struct TodoListView: View {
             VStack(spacing: 0) {
                 categoryBar
                 contentView
+            }
+            
+            if false {
+                // Banner deaktiviert, um Verwirrung zu vermeiden
             }
 
             // Bottom toggle button to show/hide past tasks
@@ -253,6 +276,9 @@ struct TodoListView: View {
 
                 Button { showingSortOptions = true } label: { Image(systemName: "arrow.up.arrow.down") }
                     .confirmationDialog(localizer.localizedString(forKey: "Sortieren nach"), isPresented: $showingSortOptions) {
+                        Button(LocalizedStringKey(localizer.localizedString(forKey: "Standard wiederherstellen"))) {
+                            sortOption = .dueDateAsc
+                        }
                         ForEach(SortOption.allCases, id: \.self) { option in
                             Button(option.displayName) { sortOption = option }
                         }
@@ -549,6 +575,7 @@ struct TodoListView: View {
                             if !isSelecting { editingTodo = todo }
                         } onDelete: {
                             if !isSelecting {
+                                // Replace direct removal with delete + alert flow
                                 todoToDelete = todo
                                 showingDeleteAlert = true
                             }

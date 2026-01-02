@@ -8,6 +8,11 @@ struct EinstellungenView: View {
     
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    
+    @AppStorage("showPastTasksGlobal") private var showPastTasksGlobal = false
+    @State private var showingDeleteCompletedSheet = false
+    @State private var deleteStartDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var deleteEndDate: Date = Date()
 
     @State private var showNotificationBanner = false
     @State private var notificationMessage = ""
@@ -25,6 +30,10 @@ struct EinstellungenView: View {
                     // Anzeige
                     Section(header: Text(localizer.localizedString(forKey: "Displaymodus"))) {
                         Toggle(localizer.localizedString(forKey: "Darkmode"), isOn: $darkModeEnabled)
+                    }
+                    
+                    Section(header: Text(localizer.localizedString(forKey: "Sichtbarkeit"))) {
+                        Toggle(localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
                     }
 
                     // Sprache
@@ -78,6 +87,26 @@ struct EinstellungenView: View {
                         }
                     }
 
+                    // Synchronisation
+                    Section(header: Text(localizer.localizedString(forKey: "Synchronisation"))) {
+                        Button(localizer.localizedString(forKey: "Jetzt synchronisieren")) {
+                            CloudKitManager.shared.syncNow(todoStore: todoStore)
+                            bannerColor = .green
+                            showBanner(message: localizer.localizedString(forKey: "Synchronisation abgeschlossen"))
+                        }
+                        Button(localizer.localizedString(forKey: "Cloud-Testdaten löschen")) {
+                            CloudKitManager.shared.deleteAllTestTodos { deletedCount in
+                                bannerColor = .green
+                                showBanner(message: String(format: localizer.localizedString(forKey: "Gelöschte Testeinträge: %d"), deletedCount))
+                            }
+                        }
+                        Button(role: .destructive) {
+                            showingDeleteCompletedSheet = true
+                        } label: {
+                            Label(localizer.localizedString(forKey: "Abgeschlossene im Zeitraum löschen"), systemImage: "trash")
+                        }
+                    }
+
                     // Version / Build anzeigen
                     Section {
                         HStack {
@@ -103,6 +132,38 @@ struct EinstellungenView: View {
                 }
                 .sheet(isPresented: $showFullAppTutorial) {
                     FullAppTutorialView()
+                }
+                .sheet(isPresented: $showingDeleteCompletedSheet) {
+                    NavigationStack {
+                        Form {
+                            Section(header: Text(localizer.localizedString(forKey: "Zeitraum"))) {
+                                DatePicker(localizer.localizedString(forKey: "Von"), selection: $deleteStartDate, displayedComponents: [.date])
+                                DatePicker(localizer.localizedString(forKey: "Bis"), selection: $deleteEndDate, in: deleteStartDate...Date(), displayedComponents: [.date])
+                            }
+                            Section(footer: Text(localizer.localizedString(forKey: "Alle abgeschlossenen Todos im Zeitraum werden endgültig gelöscht."))) {
+                                Button(role: .destructive) {
+                                    let start = min(deleteStartDate, deleteEndDate)
+                                    let end = max(deleteStartDate, deleteEndDate)
+                                    let toDelete = todoStore.todos.filter { $0.isCompleted && $0.createdAt >= start && $0.createdAt <= end }
+                                    for todo in toDelete {
+                                        CloudKitManager.shared.deleteTodo(todo)
+                                        if let idx = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
+                                            todoStore.todos.remove(at: idx)
+                                        }
+                                    }
+                                    showingDeleteCompletedSheet = false
+                                    bannerColor = .green
+                                    showBanner(message: localizer.localizedString(forKey: "Löschung abgeschlossen"))
+                                } label: {
+                                    Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
+                                }
+                            }
+                        }
+                        .navigationTitle(localizer.localizedString(forKey: "Abgeschlossene löschen"))
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) { Button(localizer.localizedString(forKey: "Abbrechen")) { showingDeleteCompletedSheet = false } }
+                        }
+                    }
                 }
 
                 // Banner
@@ -182,3 +243,4 @@ extension Bundle {
         "v\(appVersion) (\(buildNumber))"
     }
 }
+

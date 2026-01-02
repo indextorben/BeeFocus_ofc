@@ -96,7 +96,10 @@ class TodoStore: ObservableObject {
             if let index = todos.firstIndex(where: { $0.id == last.id }) {
                 todos[index].isCompleted = false
                 todos[index].completedAt = nil
+                todos[index].updatedAt = Date()
                 lastUndoneTodoID = last.id   // merken für Redo
+                saveTodos()
+                CloudKitManager.shared.saveTodo(todos[index])
             }
         }
     }
@@ -106,7 +109,10 @@ class TodoStore: ObservableObject {
            let index = todos.firstIndex(where: { $0.id == id }) {
             todos[index].isCompleted = true
             todos[index].completedAt = Date()
+            todos[index].updatedAt = Date()
             lastUndoneTodoID = nil // nur einmal Redo möglich
+            saveTodos()
+            CloudKitManager.shared.saveTodo(todos[index])
         }
     }
     
@@ -167,20 +173,20 @@ class TodoStore: ObservableObject {
     // MARK: - Todo-Methoden
     
     func addTodo(_ todo: TodoItem) {
+        var todo = todo
+        todo.updatedAt = Date()
         todos.append(todo)
         saveTodos()
 
-        if todo.calendarEnabled {
-            addCalendarEvent(for: todo)
-        }
-        
-        // Benachrichtigung planen, falls Fälligkeitsdatum vorhanden
+        // CloudKit speichern
+        CloudKitManager.shared.saveTodo(todo)
+
+        if todo.calendarEnabled { addCalendarEvent(for: todo) }
         if let dueDate = todo.dueDate {
             let timeInterval = dueDate.timeIntervalSinceNow
             if timeInterval > 0 {
                 let title = "Fällige Aufgabe: \(todo.title)"
                 let body = todo.description.isEmpty ? "Deine Aufgabe ist fällig." : todo.description
-                
                 NotificationManager.shared.scheduleTimerNotification(
                     id: todo.id.uuidString,
                     title: title,
@@ -194,22 +200,20 @@ class TodoStore: ObservableObject {
     func updateTodo(_ todo: TodoItem) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index] = todo
+            todos[index].updatedAt = Date()
             saveTodos()
-            
-            // Kalender: Nur wenn aktiviert
+
+            // Kalender aktualisieren
             deleteCalendarEvent(for: todo)
-            if todo.calendarEnabled {
-                addCalendarEvent(for: todo)
-            }
-            
+            if todo.calendarEnabled { addCalendarEvent(for: todo) }
+
+            // Notifications aktualisieren
             NotificationManager.shared.cancelNotification(id: todo.id.uuidString)
-            
             if let dueDate = todo.dueDate {
                 let timeInterval = dueDate.timeIntervalSinceNow
                 if timeInterval > 0 {
                     let title = "Fällige Aufgabe: \(todo.title)"
                     let body = todo.description.isEmpty ? "Deine Aufgabe ist fällig." : todo.description
-                    
                     NotificationManager.shared.scheduleTimerNotification(
                         id: todo.id.uuidString,
                         title: title,
@@ -218,11 +222,17 @@ class TodoStore: ObservableObject {
                     )
                 }
             }
+
+            // CloudKit upsert (einfach erneut speichern)
+            CloudKitManager.shared.saveTodo(todos[index])
         }
     }
     
     func deleteTodo(_ todo: TodoItem) {
         guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+
+        // CloudKit löschen
+        CloudKitManager.shared.deleteTodo(todo)
 
         // Notification & Calendar
         deleteCalendarEvent(for: todo)
@@ -238,12 +248,30 @@ class TodoStore: ObservableObject {
         DispatchQueue.main.async { self.objectWillChange.send() }
     }
     
+    /// Entfernt alle lokalen Test-Todos, deren Titel "cloudkit" (case-insensitive) enthält.
+    func removeLocalTestTodos() {
+        let before = todos.count
+        todos.removeAll { $0.title.lowercased().contains("cloudkit") }
+        if todos.count != before {
+            saveTodos()
+            DispatchQueue.main.async { self.objectWillChange.send() }
+            print("🧹 Lokal: Test-Todos entfernt: \(before - todos.count)")
+        } else {
+            print("ℹ️ Lokal: Keine Test-Todos gefunden.")
+        }
+    }
+    
     func undoLastDeleted() {
         if let todo = lastDeletedTodo, let index = lastDeletedIndex {
             todos.insert(todo, at: index)
+            if let insertedIndex = todos.firstIndex(where: { $0.id == todo.id }) {
+                todos[insertedIndex].updatedAt = Date()
+            }
             saveTodos()
             DispatchQueue.main.async { self.objectWillChange.send() }
-            // ❌ NICHT resetten
+            // 🔁 In CloudKit wiederherstellen (erneut speichern)
+            CloudKitManager.shared.saveTodo(todo)
+            // ❌ NICHT resetten, damit redoLastDeleted weiterhin möglich ist
         }
     }
 
@@ -268,6 +296,7 @@ class TodoStore: ObservableObject {
             } else {
                 updatedTodo.completedAt = nil
             }
+            updatedTodo.updatedAt = Date()
             todos[index] = updatedTodo
             saveTodos()
         }
@@ -279,6 +308,7 @@ class TodoStore: ObservableObject {
         // ✅ Todo direkt im Array mutieren, nicht als Kopie
         todos[index].isCompleted = true
         todos[index].completedAt = Date()
+        todos[index].updatedAt = Date()
         
         // ✅ Statistik aktualisieren
         updateStats(for: todos[index])
@@ -386,4 +416,46 @@ class TodoStore: ObservableObject {
             }
         }
     }
+    
+    // MARK: - Cloud Merge
+    /// Mergt Todos aus der Cloud in den lokalen Store. Favorisiert Cloud-Daten.
+    func mergeFromCloud(_ cloudTodos: [TodoItem]) {
+        var localByID = Dictionary(uniqueKeysWithValues: todos.map { ($0.id, $0) })
+        var changed = false
+
+        // Cloud → Lokal: Einfügen/Aktualisieren
+        for cloud in cloudTodos {
+            if let local = localByID[cloud.id] {
+                if local != cloud {
+                    // Bevorzuge neuere Version
+                    let chosen = (cloud.updatedAt >= local.updatedAt) ? cloud : local
+                    localByID[cloud.id] = chosen
+                    changed = true
+                }
+            } else {
+                localByID[cloud.id] = cloud
+                changed = true
+            }
+        }
+
+        // Optional: Lokal → Cloud pushen (für Einträge, die es nur lokal gibt)
+        // Hier pushen wir sie hoch, damit Geräte konsistent werden.
+        for (id, local) in localByID {
+            if !cloudTodos.contains(where: { $0.id == id }) {
+                CloudKitManager.shared.saveTodo(local)
+            }
+        }
+
+        let newTodos = Array(localByID.values)
+        if newTodos != todos {
+            todos = newTodos
+            saveTodos()
+            DispatchQueue.main.async { self.objectWillChange.send() }
+        } else if changed {
+            // Falls Reihenfolge geändert wurde, trotzdem speichern
+            todos = newTodos
+            saveTodos()
+        }
+    }
 }
+

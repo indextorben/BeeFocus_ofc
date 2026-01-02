@@ -18,6 +18,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var priority: TodoPriority = .medium
     var subTasks: [SubTask]
     let createdAt: Date
+    var updatedAt: Date
     var completedAt: Date?
     var lastResetDate: Date?
     var calendarEventIdentifier: String? // 🗓 Event ID für Synchronisation
@@ -36,6 +37,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         priority: TodoPriority = .medium,
         subTasks: [SubTask] = [],
         createdAt: Date = Date(),
+        updatedAt: Date = Date(),
         completedAt: Date? = nil,
         lastResetDate: Date? = nil,
         calendarEventIdentifier: String? = nil,
@@ -53,6 +55,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.priority = priority
         self.subTasks = subTasks
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
         self.completedAt = completedAt
         self.lastResetDate = lastResetDate
         self.calendarEventIdentifier = calendarEventIdentifier
@@ -76,3 +79,4 @@ struct TodoItem: Identifiable, Codable, Equatable {
         lhs.id == rhs.id
     }
 }
+

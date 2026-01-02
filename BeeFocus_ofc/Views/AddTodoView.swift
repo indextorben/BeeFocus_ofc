@@ -76,7 +76,7 @@ struct AddTodoView: View {
     @State private var title = ""
     @State private var description = ""
     @State private var dueDate = Date()
-    @State private var hasDueDate = true
+    @State private var hasDueDate = false
     @State private var category: Category?
     @State private var priority = TodoPriority.medium
     @State private var subTasks: [SubTask] = []
@@ -138,6 +138,18 @@ struct AddTodoView: View {
                 Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
             } message: {
                 Text(localizer.localizedString(forKey: "category_missing_message"))
+            }
+            .onAppear {
+                // Kategorie automatisch setzen oder Default anlegen
+                if category == nil {
+                    if let first = todoStore.categories.first {
+                        category = first
+                    } else {
+                        let defaultCategory = Category(name: "Allgemein", colorHex: "#007AFF")
+                        todoStore.addCategory(defaultCategory)
+                        category = defaultCategory
+                    }
+                }
             }
         }
     }
@@ -359,9 +371,15 @@ struct AddTodoView: View {
     }
 
     private func saveTodo() {
+        // Stelle sicher, dass eine Kategorie vorhanden ist
         if category == nil {
-            showCategoryAlert = true
-            return
+            if let first = todoStore.categories.first {
+                category = first
+            } else {
+                let defaultCategory = Category(name: "Allgemein", colorHex: "#007AFF")
+                todoStore.addCategory(defaultCategory)
+                category = defaultCategory
+            }
         }
 
         guard !title.isEmpty, let selectedCategory = category else { return }
