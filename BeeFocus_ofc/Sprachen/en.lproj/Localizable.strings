@@ -427,3 +427,42 @@
 "overdue" = "Overdue";
 "sort_category_asc" = "Category (A–Z)";
 "sort_category_desc" = "Category (Z–A)";
+"reminder_label" = "Reminder";
+"reminder_none" = "None";
+"reminder_at_time" = "At time of event";
+"reminder_5m" = "5 minutes before";
+"reminder_15m" = "15 minutes before";
+"reminder_30m" = "30 minutes before";
+"reminder_1h" = "1 hour before";
+"reminder_2h" = "2 hours before";
+"reminder_1d" = "1 day before";
+
+"deduplicate_categories" = "Deduplicate categories";
+"deduplicate_done" = "Cleanup finished – Deleted: %d, Updated todos: %d";
+"deduplicate_confirm_title" = "Deduplicate Categories";
+"deduplicate_confirm_message" = "Duplicate categories will be merged and duplicates deleted. Proceed?";
+"deduplicate_confirm_proceed" = "Deduplicate";
+"deduplicate_explainer" = "Merges duplicate categories (by name), reassigns todos to the remaining category, and deletes duplicates in iCloud.";
+
+/* Additional localization for TodoListView & Category actions (DE keys and EN keys) */
+"Möchten Sie diese Aufgabe wirklich löschen?" = "Do you really want to delete this task?";
+"Sortieren nach" = "Sort by";
+"Standard wiederherstellen" = "Restore default";
+"Vergangene ausblenden" = "Hide past";
+"Vergangene anzeigen" = "Show past";
+"Kein Fälligkeitsdatum" = "No due date";
+"E-Mail nicht verfügbar" = "Email not available";
+"Bitte richten Sie die Mail-App ein, um E-Mails zu senden." = "Please set up the Mail app to send emails.";
+"Was möchten Sie tun?" = "What would you like to do?";
+"Timer" = "Timer";
+
+// English-key aliases for the same phrases
+"confirm_delete_todo_message" = "Do you really want to delete this task?";
+"sort_by" = "Sort by";
+"restore_default" = "Restore default";
+"hide_past" = "Hide past";
+"show_past" = "Show past";
+"no_due_date" = "No due date";
+"email_unavailable" = "Email not available";
+"mailto_setup_message" = "Please set up the Mail app to send emails.";
+"what_would_you_like_to_do" = "What would you like to do?";

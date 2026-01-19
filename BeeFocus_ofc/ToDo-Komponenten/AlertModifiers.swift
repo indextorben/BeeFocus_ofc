@@ -13,13 +13,13 @@ import UserNotifications
 struct AlertModifiers: ViewModifier {
     @Binding var showingDeleteAlert: Bool
     @Binding var todoToDelete: TodoItem?
-    var todoStore: TodoStore
+    var todoStore: BeeFocus_ofc.TodoStore
     @Binding var showingAddCategory: Bool
     @Binding var newCategoryName: String
-    @Binding var editingCategory: Category?
+    @Binding var editingCategory: BeeFocus_ofc.Category?
     @Binding var showingDeleteCategoryAlert: Bool
-    @Binding var categoryToDelete: Category?
-    @Binding var selectedCategory: Category?
+    @Binding var categoryToDelete: BeeFocus_ofc.Category?
+    @Binding var selectedCategory: BeeFocus_ofc.Category?
     
     @ObservedObject private var localizer = LocalizationManager.shared
     
@@ -73,7 +73,7 @@ struct AlertModifiers: ViewModifier {
             }
             Button(localizer.localizedString(forKey: "add")) {
                 if !newCategoryName.isEmpty {
-                    let newCategory = Category(name: newCategoryName, colorHex: "1E90FF")
+                    let newCategory = BeeFocus_ofc.Category(name: newCategoryName, colorHex: "1E90FF")
                     todoStore.addCategory(newCategory)
                     newCategoryName = ""
                 }
@@ -85,15 +85,20 @@ struct AlertModifiers: ViewModifier {
         Group {
             if let category = editingCategory {
                 TextField(localizer.localizedString(forKey: "new_name"), text: Binding(
-                    get: { category.name },
-                    set: { newName in
-                        if !newName.isEmpty {
-                            todoStore.renameCategory(from: category, to: newName)
-                            editingCategory = nil
-                        }
-                    }
+                    get: { newCategoryName.isEmpty ? category.name : newCategoryName },
+                    set: { newCategoryName = $0 }
                 ))
                 Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {
+                    newCategoryName = ""
+                    editingCategory = nil
+                }
+                Button(localizer.localizedString(forKey: "save_button")) {
+                    let trimmed = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let finalName = trimmed.isEmpty ? category.name : trimmed
+                    if !finalName.isEmpty {
+                        todoStore.renameCategory(from: category, to: finalName)
+                    }
+                    newCategoryName = ""
                     editingCategory = nil
                 }
             }
@@ -117,3 +122,4 @@ struct AlertModifiers: ViewModifier {
         }
     }
 }
+

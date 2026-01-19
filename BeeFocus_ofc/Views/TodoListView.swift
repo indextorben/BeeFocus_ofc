@@ -55,6 +55,16 @@ struct TodoListView: View {
     @State private var selectedTodoIDs: Set<UUID> = []
     @State private var showMailUnavailableAlert = false
     @State private var mailUnavailableMessage = ""
+
+    // New states for delete snackbar
+    @State private var showDeleteSnackbar = false
+    @State private var lastDeletedTitle: String = ""
+
+    // New states for deleting completed todos by date
+    @State private var showingDeleteCompletedByDateSheet = false
+    @State private var deleteCompletedStartDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var deleteCompletedEndDate: Date = Date()
+    @State private var confirmDeleteCompletedByDate = false
     
     //Fileimporter
     @State private var showingActionSheet = false
@@ -99,9 +109,15 @@ struct TodoListView: View {
                 .sheet(item: $mailShare.mailComposerData) { data in
                     MailComposerWrapperView(subject: data.subject, body: data.body, recipients: data.recipients)
                 }
+                .sheet(isPresented: $showingCategoryEdit) {
+                    CategoryEditView()
+                        .environmentObject(todoStore)
+                }
                 .alert(localizer.localizedString(forKey: "Löschen"), isPresented: $showingDeleteAlert, presenting: todoToDelete) { todo in
                     Button(role: .destructive) {
                         todoStore.deleteTodo(todo)
+                        lastDeletedTitle = todo.title
+                        withAnimation { showDeleteSnackbar = true }
                     } label: {
                         Text(localizer.localizedString(forKey: "Löschen"))
                     }
@@ -118,7 +134,67 @@ struct TodoListView: View {
                 } message: {
                     Text(mailUnavailableMessage)
                 }
+                .onChange(of: showDeleteSnackbar) { newValue in
+                    if newValue {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            withAnimation { showDeleteSnackbar = false }
+                        }
+                    }
+                }
+                .sheet(isPresented: $showingDeleteCompletedByDateSheet) {
+                    NavigationStack {
+                        Form {
+                            Section(header: Text(localizer.localizedString(forKey: "Zeitraum"))) {
+                                DatePicker(localizer.localizedString(forKey: "Von"), selection: $deleteCompletedStartDate, displayedComponents: [.date])
+                                DatePicker(localizer.localizedString(forKey: "Bis"), selection: $deleteCompletedEndDate, in: deleteCompletedStartDate...Date(), displayedComponents: [.date])
+                            }
+                            Section(footer: Text(localizer.localizedString(forKey: "Alle abgeschlossenen Todos im Zeitraum werden in den Papierkorb verschoben."))) {
+                                Button(role: .destructive) {
+                                    confirmDeleteCompletedByDate = true
+                                } label: {
+                                    Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
+                                }
+                            }
+                        }
+                        .navigationTitle(localizer.localizedString(forKey: "Abgeschlossene löschen"))
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button(localizer.localizedString(forKey: "Abbrechen")) { showingDeleteCompletedByDateSheet = false }
+                            }
+                        }
+                        .confirmationDialog(
+                            localizer.localizedString(forKey: "Wirklich in den Papierkorb verschieben?"),
+                            isPresented: $confirmDeleteCompletedByDate,
+                            titleVisibility: .visible
+                        ) {
+                            Button(localizer.localizedString(forKey: "Verschieben"), role: .destructive) {
+                                let start = min(deleteCompletedStartDate, deleteCompletedEndDate)
+                                let end = max(deleteCompletedStartDate, deleteCompletedEndDate)
+                                let toDelete = todoStore.todos.filter { $0.isCompleted && $0.createdAt >= start && $0.createdAt <= end }
+                                for todo in toDelete {
+                                    todoStore.deleteTodo(todo)
+                                }
+                                showingDeleteCompletedByDateSheet = false
+                                withAnimation { showDeleteSnackbar = true }
+                            }
+                            Button(localizer.localizedString(forKey: "Abbrechen"), role: .cancel) { }
+                        } message: {
+                            Text(localizer.localizedString(forKey: "Diese Aktion verschiebt alle abgeschlossenen Aufgaben im Zeitraum in den Papierkorb. Sie können diese im Papierkorb wiederherstellen."))
+                        }
+                    }
+                }
         }
+        .modifier(AlertModifiers(
+            showingDeleteAlert: $showingDeleteAlert,
+            todoToDelete: $todoToDelete,
+            todoStore: todoStore,
+            showingAddCategory: $showingAddCategory,
+            newCategoryName: $newCategoryName,
+            editingCategory: $editingCategory,
+            showingDeleteCategoryAlert: $showingDeleteCategoryAlert,
+            categoryToDelete: $categoryToDelete,
+            selectedCategory: $selectedCategory
+        ))
     }
     
     // MARK: - Computed Properties
@@ -263,6 +339,38 @@ struct TodoListView: View {
                     Spacer()
                 }
             }
+            
+            // Delete snackbar
+            VStack {
+                Spacer()
+                if showDeleteSnackbar {
+                    HStack(spacing: 12) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.white)
+                        Text("Aufgabe gelöscht – Rückgängig")
+                            .foregroundColor(.white)
+                            .font(.subheadline)
+                            .lineLimit(1)
+                        Spacer()
+                        Button(action: {
+                            withAnimation { showDeleteSnackbar = false }
+                            todoStore.undo()
+                        }) {
+                            Text("Rückgängig")
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.black.opacity(0.85))
+                    .clipShape(Capsule())
+                    .padding(.bottom, 24)
+                    .padding(.horizontal)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: showDeleteSnackbar)
         }
     }
     
@@ -328,16 +436,28 @@ struct TodoListView: View {
                     .disabled(selectedTodoIDs.isEmpty)
                 }
                 
-                Button(action: { todoStore.undoLastCompleted() }) {
+                Button(action: { todoStore.undo() }) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(todoStore.canUndo ? .blue : .gray)
                 }
+                .disabled(!todoStore.canUndo)
 
-                Button(action: { todoStore.redoLastCompleted() }) {
+                Button(action: { todoStore.redo() }) {
                     Image(systemName: "arrow.uturn.forward")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(todoStore.canRedo ? .blue : .gray)
+                }
+                .disabled(!todoStore.canRedo)
+                
+                Menu {
+                    Button {
+                        showingDeleteCompletedByDateSheet = true
+                    } label: {
+                        Label(localizer.localizedString(forKey: "Abgeschlossene nach Zeitraum…"), systemImage: "calendar")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
 
                 Button(action: {
@@ -440,7 +560,7 @@ struct TodoListView: View {
                     }
                     
                     Button(action: {
-                        showingAddCategory = true
+                        showingCategoryEdit = true
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -483,6 +603,7 @@ struct TodoListView: View {
         .contextMenu {
             Button {
                 editingCategory = category
+                showingCategoryEdit = true
             } label: {
                 Label(localizer.localizedString(forKey: "category_rename"), systemImage: "pencil")
             }
@@ -561,7 +682,7 @@ struct TodoListView: View {
                         TodoCard(todo: binding) {
                             if !isSelecting {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                    todoStore.complete(todo: todo)
+                                    todoStore.toggleTodo(todo)
                                 }
                             } else {
                                 // In selection mode, tap on primary action toggles selection instead of completing
@@ -589,7 +710,7 @@ struct TodoListView: View {
                         if !isSelecting {
                             Button {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                    todoStore.complete(todo: todo)
+                                    todoStore.toggleTodo(todo)
                                 }
                             } label: {
                                 Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark")
@@ -617,8 +738,6 @@ struct TodoListView: View {
             }
             .padding()
             .padding(.bottom, 80)
-            .animation(.spring(response: 0.35, dampingFraction: 0.85),
-                       value: sortedTodos.map(\.id))
         }
     }
     

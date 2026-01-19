@@ -11,14 +11,16 @@ import UserNotifications
 import CloudKit
 
 struct ContentView: View {
-    @StateObject private var todoStore = TodoStore()
+    @EnvironmentObject var todoStore: TodoStore
     @State private var selectedTab = 0
     @State private var syncWorkItem: DispatchWorkItem? = nil
     @State private var showingDeleteByDateSheet = false
     @State private var deleteStartDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var deleteEndDate: Date = Date()
     @State private var showingDeletionToast = false
+    @State private var showingConfirmMoveCompleted = false
     @Environment(\.horizontalSizeClass) var sizeClass
+    @Environment(\.scenePhase) private var scenePhase
     
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
@@ -38,12 +40,21 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .toolbar {
                                 ToolbarItem(placement: .primaryAction) {
-                                    Button {
-                                        showingDeleteByDateSheet = true
+                                    Menu {
+                                        Button(role: .none) {
+                                            showingDeleteByDateSheet = true
+                                        } label: {
+                                            Label("Vergangene nach Zeitraum…", systemImage: "calendar")
+                                        }
+                                        Button(role: .destructive) {
+                                            showingConfirmMoveCompleted = true
+                                        } label: {
+                                            Label("Abgeschlossene in Papierkorb", systemImage: "trash")
+                                        }
                                     } label: {
                                         Image(systemName: "trash")
                                     }
-                                    .help("Vergangene Todos löschen (nach Erstellungsdatum)")
+                                    .help("Löschoptionen")
                                 }
                             }
                     }
@@ -54,12 +65,21 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .toolbar {
                                 ToolbarItem(placement: .primaryAction) {
-                                    Button {
-                                        showingDeleteByDateSheet = true
+                                    Menu {
+                                        Button(role: .none) {
+                                            showingDeleteByDateSheet = true
+                                        } label: {
+                                            Label("Vergangene nach Zeitraum…", systemImage: "calendar")
+                                        }
+                                        Button(role: .destructive) {
+                                            showingConfirmMoveCompleted = true
+                                        } label: {
+                                            Label("Abgeschlossene in Papierkorb", systemImage: "trash")
+                                        }
                                     } label: {
                                         Image(systemName: "trash")
                                     }
-                                    .help("Vergangene Todos löschen (nach Erstellungsdatum)")
+                                    .help("Löschoptionen")
                                 }
                             }
                     }
@@ -152,6 +172,15 @@ struct ContentView: View {
                     }
                 }
             }
+            CloudKitManager.shared.fetchDailyStats { cloudDaily in
+                todoStore.applyDailyStatsFromCloud(cloudDaily)
+            }
+            CloudKitManager.shared.fetchFocusStats { cloudFocus in
+                todoStore.applyFocusStatsFromCloud(cloudFocus)
+            }
+            CloudKitManager.shared.fetchCategories { cloudCategories in
+                todoStore.applyCategoriesFromCloud(cloudCategories)
+            }
         }
         .sheet(isPresented: $showingDeleteByDateSheet) {
             NavigationStack {
@@ -168,14 +197,9 @@ struct ContentView: View {
                             let end = max(deleteStartDate, deleteEndDate)
                             let toDelete = todoStore.todos.filter { $0.createdAt >= start && $0.createdAt <= end }
                             for todo in toDelete {
-                                CloudKitManager.shared.deleteTodo(todo)
-                                if let idx = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
-                                    todoStore.todos.remove(at: idx)
-                                }
+                                // Verschiebe in den Papierkorb (Undo/Redo möglich)
+                                todoStore.deleteTodo(todo)
                             }
-                            // Persist and refresh UI
-                            todoStore.saveTodos()
-                            DispatchQueue.main.async { todoStore.objectWillChange.send() }
                             showingDeleteByDateSheet = false
                             showingDeletionToast = true
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -207,6 +231,37 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .confirmationDialog(
+            "Abgeschlossene in den Papierkorb verschieben?",
+            isPresented: $showingConfirmMoveCompleted,
+            titleVisibility: .visible
+        ) {
+            Button("Verschieben", role: .destructive) {
+                let completed = todoStore.todos.filter { $0.isCompleted }
+                for t in completed {
+                    todoStore.deleteTodo(t)
+                }
+            }
+            Button("Abbrechen", role: .cancel) { }
+        } message: {
+            Text("Alle erledigten Aufgaben werden in den Papierkorb verschoben und können dort wiederhergestellt werden.")
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                CloudKitManager.shared.fetchTodos { cloudTodos in
+                    todoStore.mergeFromCloud(cloudTodos)
+                }
+                CloudKitManager.shared.fetchDailyStats { cloudDaily in
+                    todoStore.applyDailyStatsFromCloud(cloudDaily)
+                }
+                CloudKitManager.shared.fetchFocusStats { cloudFocus in
+                    todoStore.applyFocusStatsFromCloud(cloudFocus)
+                }
+                CloudKitManager.shared.fetchCategories { cloudCategories in
+                    todoStore.applyCategoriesFromCloud(cloudCategories)
+                }
+            }
+        }
     }
 }
 
@@ -214,3 +269,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+

@@ -77,6 +77,7 @@ struct AddTodoView: View {
     @State private var description = ""
     @State private var dueDate = Date()
     @State private var hasDueDate = false
+    @State private var reminderSelection: Int = -1 // -1 = no reminder, 0 = at time, >0 = minutes before, -2 = custom
     @State private var category: Category?
     @State private var priority = TodoPriority.medium
     @State private var subTasks: [SubTask] = []
@@ -150,6 +151,7 @@ struct AddTodoView: View {
                         category = defaultCategory
                     }
                 }
+                reminderSelection = -1
             }
         }
     }
@@ -201,6 +203,16 @@ struct AddTodoView: View {
             if hasDueDate {
                 DatePicker(localizer.localizedString(forKey: "date_time"), selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
+                Picker(localizer.localizedString(forKey: "reminder_label"), selection: $reminderSelection) {
+                    Text(localizer.localizedString(forKey: "reminder_none")).tag(-1)
+                    Text(localizer.localizedString(forKey: "reminder_at_time")).tag(0)
+                    Text(localizer.localizedString(forKey: "reminder_5m")).tag(5)
+                    Text(localizer.localizedString(forKey: "reminder_15m")).tag(15)
+                    Text(localizer.localizedString(forKey: "reminder_30m")).tag(30)
+                    Text(localizer.localizedString(forKey: "reminder_1h")).tag(60)
+                    Text(localizer.localizedString(forKey: "reminder_2h")).tag(120)
+                    Text(localizer.localizedString(forKey: "reminder_1d")).tag(1440)
+                }
             }
         }
     }
@@ -384,10 +396,19 @@ struct AddTodoView: View {
 
         guard !title.isEmpty, let selectedCategory = category else { return }
 
+        let finalOffset: Int?
+        switch reminderSelection {
+        case -1:
+            finalOffset = nil
+        default:
+            finalOffset = reminderSelection
+        }
+
         let todo = TodoItem(
             title: title,
             description: description,
             dueDate: hasDueDate ? dueDate : nil,
+            reminderOffsetMinutes: finalOffset,
             category: selectedCategory,
             priority: priority,
             subTasks: subTasks,
@@ -412,6 +433,16 @@ struct AddTodoView: View {
                 event.notes = description
                 event.startDate = dueDate
                 event.endDate = dueDate.addingTimeInterval(3600)
+                // Add alarm based on reminder selection
+                let offsetForAlarm: Int?
+                switch reminderSelection {
+                case -1: offsetForAlarm = nil
+                default: offsetForAlarm = reminderSelection
+                }
+                if let off = offsetForAlarm, off >= 0 {
+                    let alarm = EKAlarm(relativeOffset: TimeInterval(-off * 60))
+                    event.addAlarm(alarm)
+                }
                 event.calendar = eventStore.defaultCalendarForNewEvents
                 do {
                     try eventStore.save(event, span: .thisEvent)

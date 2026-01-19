@@ -14,7 +14,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var description: String
     var isCompleted: Bool = false
     var dueDate: Date?
+    var reminderOffsetMinutes: Int? = nil
     var category: Category?
+    var categoryID: UUID?
     var priority: TodoPriority = .medium
     var subTasks: [SubTask]
     let createdAt: Date
@@ -33,7 +35,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         description: String = "",
         isCompleted: Bool = false,
         dueDate: Date? = nil,
+        reminderOffsetMinutes: Int? = nil,
         category: Category? = nil,
+        categoryID: UUID? = nil,
         priority: TodoPriority = .medium,
         subTasks: [SubTask] = [],
         createdAt: Date = Date(),
@@ -51,7 +55,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.description = description
         self.isCompleted = isCompleted
         self.dueDate = dueDate
+        self.reminderOffsetMinutes = reminderOffsetMinutes
         self.category = category
+        self.categoryID = categoryID
         self.priority = priority
         self.subTasks = subTasks
         self.createdAt = createdAt

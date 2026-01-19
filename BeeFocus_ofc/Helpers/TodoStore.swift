@@ -1,3 +1,5 @@
+#if false
+
 import Foundation
 import Combine
 
@@ -153,3 +155,5 @@ class TodoStore: ObservableObject {
 
     // Additional calendar related methods and other logic below...
 }
+
+#endif // Disabled duplicate TodoStore/Category (use ToDoStore.swift instead)

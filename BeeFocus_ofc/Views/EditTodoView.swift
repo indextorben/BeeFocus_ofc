@@ -13,6 +13,7 @@ struct EditTodoView: View {
     @State private var description: String
     @State private var dueDate: Date
     @State private var hasDueDate: Bool
+    @State private var reminderSelection: Int = -1 // -1 = no reminder, 0 = at time, >0 = minutes before
     @State private var category: Category
     @State private var priority: TodoPriority
     @State private var subTasks: [SubTask]
@@ -48,6 +49,15 @@ struct EditTodoView: View {
         _description = State(initialValue: todo.description)
         _dueDate = State(initialValue: todo.dueDate ?? Date())
         _hasDueDate = State(initialValue: todo.dueDate != nil)
+        if let off = todo.reminderOffsetMinutes {
+            if [0,5,15,30,60,120,1440].contains(off) {
+                _reminderSelection = State(initialValue: off)
+            } else {
+                _reminderSelection = State(initialValue: 0)
+            }
+        } else {
+            _reminderSelection = State(initialValue: -1)
+        }
         _category = State(initialValue: todo.category ?? Category(id: UUID(), name: "Keine Kategorie", colorHex: "#FFFFFF"))
         _priority = State(initialValue: todo.priority)
         _subTasks = State(initialValue: todo.subTasks)
@@ -149,6 +159,16 @@ struct EditTodoView: View {
             if hasDueDate {
                 DatePicker(localizer.localizedString(forKey: "due_date_picker"), selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
+                Picker(localizer.localizedString(forKey: "reminder_label"), selection: $reminderSelection) {
+                    Text(localizer.localizedString(forKey: "reminder_none")).tag(-1)
+                    Text(localizer.localizedString(forKey: "reminder_at_time")).tag(0)
+                    Text(localizer.localizedString(forKey: "reminder_5m")).tag(5)
+                    Text(localizer.localizedString(forKey: "reminder_15m")).tag(15)
+                    Text(localizer.localizedString(forKey: "reminder_30m")).tag(30)
+                    Text(localizer.localizedString(forKey: "reminder_1h")).tag(60)
+                    Text(localizer.localizedString(forKey: "reminder_2h")).tag(120)
+                    Text(localizer.localizedString(forKey: "reminder_1d")).tag(1440)
+                }
             }
         }
     }
@@ -305,13 +325,22 @@ struct EditTodoView: View {
         guard !trimmedName.isEmpty else { return }
         let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
         let newCategory = Category(name: trimmedName, colorHex: randomColor)
-        todoStore.categories.append(newCategory)
+        // Persist via store so it syncs to CloudKit and updates the dashboard
+        todoStore.addCategory(newCategory)
         category = newCategory
         newCategoryName = ""
     }
     
     private func saveTodo() {
         if todoStore.categories.isEmpty { showCategoryAlert = true; return }
+        
+        let finalOffset: Int?
+        switch reminderSelection {
+        case -1:
+            finalOffset = nil
+        default:
+            finalOffset = reminderSelection
+        }
         
         let imageDataArray = selectedImages.compactMap { $0.image.jpegData(compressionQuality: 0.8) }
         let updatedTodo = TodoItem(
@@ -320,6 +349,7 @@ struct EditTodoView: View {
             description: description,
             isCompleted: todo.isCompleted,
             dueDate: hasDueDate ? dueDate : nil,
+            reminderOffsetMinutes: finalOffset,
             category: category,
             priority: priority,
             subTasks: subTasks,
@@ -342,6 +372,17 @@ struct EditTodoView: View {
                 event.startDate = dueDate
                 event.endDate = dueDate.addingTimeInterval(3600)
                 event.calendar = eventStore.defaultCalendarForNewEvents
+                
+                let offsetForAlarm: Int?
+                switch reminderSelection {
+                case -1: offsetForAlarm = nil
+                default: offsetForAlarm = reminderSelection
+                }
+                if let off = offsetForAlarm, off >= 0 {
+                    let alarm = EKAlarm(relativeOffset: TimeInterval(-off * 60))
+                    event.addAlarm(alarm)
+                }
+                
                 do { try eventStore.save(event, span: .thisEvent) }
                 catch { print("Error saving calendar event: \(error)") }
             } else {

@@ -9,6 +9,8 @@ struct CategoryEditView: View {
     @State private var editingCategory: Category? = nil
     @FocusState private var focusedCategoryID: UUID?
     @State private var isEditing: Bool = false
+    @State private var showingDeleteCategoryAlert: Bool = false
+    @State private var categoryToDelete: Category? = nil
 
     var body: some View {
         NavigationStack {
@@ -74,7 +76,8 @@ struct CategoryEditView: View {
                                 .padding(.horizontal)
                                 .contextMenu {
                                     Button(role: .destructive) {
-                                        todoStore.deleteCategory(category)
+                                        categoryToDelete = category
+                                        showingDeleteCategoryAlert = true
                                     } label: {
                                         Label(localizer.localizedString(forKey: "delete"), systemImage: "trash")
                                     }
@@ -87,9 +90,9 @@ struct CategoryEditView: View {
                                 }
                             }
                             .onDelete { offsets in
-                                offsets.forEach { index in
-                                    let categoryToDelete = todoStore.categories[index]
-                                    todoStore.deleteCategory(categoryToDelete)
+                                if let index = offsets.first {
+                                    categoryToDelete = todoStore.categories[index]
+                                    showingDeleteCategoryAlert = true
                                 }
                             }
                         }
@@ -102,6 +105,19 @@ struct CategoryEditView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(localizer.localizedString(forKey: "done")) { dismiss() }
                 }
+            }
+            .alert(localizer.localizedString(forKey: "alert_delete_category"), isPresented: $showingDeleteCategoryAlert) {
+                Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {
+                    categoryToDelete = nil
+                }
+                Button(localizer.localizedString(forKey: "delete"), role: .destructive) {
+                    if let category = categoryToDelete {
+                        todoStore.deleteCategory(category)
+                        categoryToDelete = nil
+                    }
+                }
+            } message: {
+                Text(localizer.localizedString(forKey: "alert_delete_category_message"))
             }
         }
     }

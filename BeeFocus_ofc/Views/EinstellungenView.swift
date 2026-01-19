@@ -19,6 +19,9 @@ struct EinstellungenView: View {
     @State private var bannerColor: Color = .green
     @State private var showingCategoryEdit = false
     @State private var showFullAppTutorial = false  // Neu für das Full-App-Tutorial
+    @State private var showDeduplicateConfirm = false
+    @State private var showResetStatsConfirm = false
+    @State private var showResetStatsAlert = false
 
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
@@ -90,9 +93,14 @@ struct EinstellungenView: View {
                     // Synchronisation
                     Section(header: Text(localizer.localizedString(forKey: "Synchronisation"))) {
                         Button(localizer.localizedString(forKey: "Jetzt synchronisieren")) {
-                            CloudKitManager.shared.syncNow(todoStore: todoStore)
-                            bannerColor = .green
-                            showBanner(message: localizer.localizedString(forKey: "Synchronisation abgeschlossen"))
+                            CloudKitManager.shared.syncNow(todoStore: todoStore) { todosChanged, dailyChanged, focusChanged in
+                                bannerColor = .green
+                                let message = String(
+                                    format: localizer.localizedString(forKey: "Sync: %d Todos, %d Tage, %d Fokus-Tage aktualisiert"),
+                                    todosChanged, dailyChanged, focusChanged
+                                )
+                                showBanner(message: message)
+                            }
                         }
                         Button(localizer.localizedString(forKey: "Cloud-Testdaten löschen")) {
                             CloudKitManager.shared.deleteAllTestTodos { deletedCount in
@@ -100,10 +108,102 @@ struct EinstellungenView: View {
                                 showBanner(message: String(format: localizer.localizedString(forKey: "Gelöschte Testeinträge: %d"), deletedCount))
                             }
                         }
+                        Button(localizer.localizedString(forKey: "deduplicate_categories")) {
+                            showDeduplicateConfirm = true
+                        }
+                        Text(localizer.localizedString(forKey: "deduplicate_explainer"))
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
                         Button(role: .destructive) {
                             showingDeleteCompletedSheet = true
                         } label: {
                             Label(localizer.localizedString(forKey: "Abgeschlossene im Zeitraum löschen"), systemImage: "trash")
+                        }
+                        Button(role: .destructive) {
+                            showResetStatsConfirm = true
+                        } label: {
+                            Label(localizer.localizedString(forKey: "reset_statistics"), systemImage: "trash.slash")
+                        }
+                        .confirmationDialog(
+                            localizer.localizedString(forKey: "reset_statistics_confirm_title"),
+                            isPresented: $showResetStatsConfirm,
+                            titleVisibility: .visible
+                        ) {
+                            Button(localizer.localizedString(forKey: "reset"), role: .destructive) {
+                                // Lokal leeren
+                                todoStore.resetDailyStats()
+                                todoStore.dailyFocusMinutes.removeAll()
+                                // Persistieren
+                                // saveDailyStats is encapsulated in resetDailyStats; focus minutes saved explicitly
+                                // (reuse existing save function)
+                                // Save focus minutes
+                                let encoder = JSONEncoder()
+                                if let data = try? encoder.encode(todoStore.dailyFocusMinutes) {
+                                    UserDefaults.standard.set(data, forKey: "dailyFocusMinutes")
+                                }
+                                // Cloud löschen
+                                CloudKitManager.shared.deleteAllStats { dailyDeleted, focusDeleted in
+                                    bannerColor = .green
+                                    showBanner(message: localizer.localizedString(forKey: "reset_statistics_done"))
+                                    showResetStatsAlert = true
+                                }
+                            }
+                            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { }
+                        } message: {
+                            Text(localizer.localizedString(forKey: "reset_statistics_confirm_message"))
+                        }
+                    }
+
+                    // Papierkorb
+                    Section(header: Text(localizer.localizedString(forKey: "Papierkorb"))) {
+                        NavigationLink(localizer.localizedString(forKey: "Papierkorb öffnen")) {
+                            TrashView()
+                                .environmentObject(todoStore)
+                        }
+                        if !todoStore.deletedTodos.isEmpty {
+                            Button(role: .destructive) {
+                                todoStore.emptyTrash()
+                            } label: {
+                                Label(localizer.localizedString(forKey: "Papierkorb leeren"), systemImage: "trash.slash")
+                            }
+                        }
+                    }
+                    
+                    Section(header: Text(localizer.localizedString(forKey: "Papierkorb Einstellungen"))) {
+                        HStack {
+                            Text(localizer.localizedString(forKey: "Max. Einträge"))
+                            Spacer()
+                            Text("\(UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"))")
+                                .foregroundColor(.secondary)
+                        }
+                        Stepper("") {
+                            let current = UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")
+                            let newValue = min(1000, max(10, current + 10))
+                            UserDefaults.standard.set(newValue, forKey: "trashMaxCount")
+                            todoStore.updateTrashSettings(maxCount: newValue, maxDays: UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))
+                        } onDecrement: {
+                            let current = UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")
+                            let newValue = min(1000, max(10, current - 10))
+                            UserDefaults.standard.set(newValue, forKey: "trashMaxCount")
+                            todoStore.updateTrashSettings(maxCount: newValue, maxDays: UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))
+                        }
+
+                        HStack {
+                            Text(localizer.localizedString(forKey: "Automatisch löschen nach (Tagen)"))
+                            Spacer()
+                            Text("\(UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))")
+                                .foregroundColor(.secondary)
+                        }
+                        Stepper("") {
+                            let current = UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")
+                            let newValue = min(365, max(1, current + 1))
+                            UserDefaults.standard.set(newValue, forKey: "trashMaxDays")
+                            todoStore.updateTrashSettings(maxCount: UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"), maxDays: newValue)
+                        } onDecrement: {
+                            let current = UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")
+                            let newValue = min(365, max(1, current - 1))
+                            UserDefaults.standard.set(newValue, forKey: "trashMaxDays")
+                            todoStore.updateTrashSettings(maxCount: UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"), maxDays: newValue)
                         }
                     }
 
@@ -164,6 +264,28 @@ struct EinstellungenView: View {
                             ToolbarItem(placement: .cancellationAction) { Button(localizer.localizedString(forKey: "Abbrechen")) { showingDeleteCompletedSheet = false } }
                         }
                     }
+                }
+                .confirmationDialog(
+                    localizer.localizedString(forKey: "deduplicate_confirm_title"),
+                    isPresented: $showDeduplicateConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button(localizer.localizedString(forKey: "deduplicate_confirm_proceed"), role: .destructive) {
+                        CloudKitManager.shared.deduplicateCategories { deletedCategories, updatedTodos in
+                            bannerColor = .green
+                            let msg = String(
+                                format: localizer.localizedString(forKey: "deduplicate_done"),
+                                deletedCategories, updatedTodos
+                            )
+                            showBanner(message: msg)
+                        }
+                    }
+                    Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { }
+                } message: {
+                    Text(localizer.localizedString(forKey: "deduplicate_confirm_message"))
+                }
+                .alert(localizer.localizedString(forKey: "reset_statistics_done"), isPresented: $showResetStatsAlert) {
+                    Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
                 }
 
                 // Banner
@@ -243,4 +365,3 @@ extension Bundle {
         "v\(appVersion) (\(buildNumber))"
     }
 }
-

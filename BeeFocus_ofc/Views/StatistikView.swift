@@ -1,5 +1,4 @@
 import SwiftUI
-import Charts
 import UIKit
 import MessageUI
 
@@ -27,12 +26,19 @@ struct StatistikView: View {
     }
     
     // MARK: - Basisstatistiken
-    var completedTasks: Int { todoStore.todos.filter { $0.isCompleted }.count }
-    var openTasks: Int { todoStore.todos.filter { !$0.isCompleted }.count }
+    var completedTasks: Int {
+        // Gesamt: alle erledigten Aufgaben
+        return todoStore.todos.filter { $0.isCompleted }.count
+    }
+    var openTasks: Int {
+        // Gesamt: alle offenen Aufgaben
+        return todoStore.todos.filter { !$0.isCompleted }.count
+    }
     var totalTasks: Int { openTasks + completedTasks }
     var completionRate: Double { totalTasks > 0 ? Double(completedTasks) / Double(totalTasks) : 0 }
     
     var todayOpenTasks: Int {
+        // Heute fällige, noch offene Aufgaben
         let today = Calendar.current.startOfDay(for: Date())
         return todoStore.todos.filter { item in
             guard let dueDate = item.dueDate else { return false }
@@ -41,10 +47,11 @@ struct StatistikView: View {
     }
     
     var todayCompletedTasks: Int {
+        // Heute fällige, bereits erledigte Aufgaben
         let today = Calendar.current.startOfDay(for: Date())
         return todoStore.todos.filter { item in
-            guard let completionDate = item.completedAt else { return false }
-            return Calendar.current.isDate(completionDate, inSameDayAs: today)
+            guard let dueDate = item.dueDate else { return false }
+            return item.isCompleted && Calendar.current.isDate(dueDate, inSameDayAs: today)
         }.count
     }
     
@@ -57,7 +64,7 @@ struct StatistikView: View {
     }
     
     var todayCompletionRate: Double {
-        let totalToday = todayOpenTasks + todayCompletedTasks
+        let totalToday = todayCompletedTasks + todayOpenTasks
         return totalToday > 0 ? Double(todayCompletedTasks) / Double(totalToday) : 0
     }
     
@@ -82,39 +89,18 @@ struct StatistikView: View {
             return now
         }
     }
-    
-    func localizedDayAbbreviation(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(
-            identifier: LocalizationManager.shared.currentLanguageCode
-        )
-        formatter.dateFormat = "EEE" // Mo / Mon / Lun
-        return formatter.string(from: date)
+
+    // MARK: - Fokus heute (Textanzeige)
+    private var focusTodayMinutes: Int {
+        let today = Calendar.current.startOfDay(for: Date())
+        return todoStore.dailyFocusMinutes[today] ?? 0
     }
-    
-    // MARK: - Timer- und Fortschrittsstatistiken
-    
-    var timerWeeklyStats: [(date: Date, minutes: Int)] {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        return (0..<7).map { offset -> (date: Date, minutes: Int) in
-            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else {
-                return (today, 0)
-            }
-            
-            let filteredTodos = todoStore.todos.filter { todo in
-                guard todo.isCompleted, let completedAt = todo.completedAt else { return false }
-                return calendar.isDate(completedAt, inSameDayAs: date)
-            }
-            
-            let totalMinutes = filteredTodos.reduce(0) { sum, todo in
-                let minutes = Int(todo.focusTimeInMinutes ?? 0)
-                return sum + minutes
-            }
-            
-            return (date: date, minutes: totalMinutes)
-        }
+
+    private var focusTodayDateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: LocalizationManager.shared.currentLanguageCode)
+        formatter.dateFormat = "EEEE, d. MMM yyyy"
+        return formatter.string(from: Date())
     }
     
     // MARK: - Mail Export
@@ -318,42 +304,15 @@ struct StatistikView: View {
                         .cornerRadius(15)
                         .shadow(color: colorScheme == .dark ? .clear : Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
                         
-                        // MARK: Timer-Statistik (Tag)
-                        VStack(alignment: .leading) {
-                            HStack(spacing: 5) {
-                                Text(localizer.localizedString(forKey: "focus_time_title"))
-                                    .font(.title2)
-                                    .bold()
-
-                                Text(localizer.localizedString(forKey: "focus_time_unit"))
-                                    .font(.title3)
-                                    .italic()
-                                    .foregroundColor(.gray)
+                        // MARK: Fokus heute (Minuten)
+                        VStack {
+                            HStack(spacing: 8) {
+                                Image(systemName: "flame.fill").foregroundColor(.orange)
+                                Text("\(focusTodayDateText) · \(focusTodayMinutes) \(localizer.localizedString(forKey: "minutes_short"))")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
                             .frame(maxWidth: .infinity)
-                            .multilineTextAlignment(.center)
-                            .padding(.bottom, 5)
-
-                            HStack(alignment: .bottom, spacing: 10) {
-                                ForEach(timerWeeklyStats, id: \.date) { entry in
-                                    VStack {
-                                        RoundedRectangle(cornerRadius: 5)
-                                            .fill(Color.accentColor)
-                                            .frame(height: max(CGFloat(entry.minutes) * 2, 10))
-
-                                        Text(
-                                            "\(entry.minutes) " +
-                                            localizer.localizedString(forKey: "minutes_short")
-                                        )
-                                        .font(.caption2)
-                                        .foregroundColor(.blue)
-
-                                        Text(localizedDayAbbreviation(for: entry.date))
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
                         }
                         .padding()
                         .background(cardBackground)
@@ -555,3 +514,4 @@ struct CompletionRing: View {
         .frame(maxWidth: .infinity)
     }
 }
+

@@ -4,6 +4,10 @@ import SwiftUI
 import ActivityKit
 import UIKit
 
+extension Notification.Name {
+    static let focusSessionCompleted = Notification.Name("FocusSessionCompleted")
+}
+
 // MARK: - Persisted State
 struct TimerState: Codable {
     var endDate: Date?
@@ -170,6 +174,8 @@ final class TimerManager: ObservableObject {
     }
 
     private func timerCompleted() {
+        guard timeRemaining <= 0 else { return }
+
         stopInternal()
 
         Task {
@@ -184,6 +190,14 @@ final class TimerManager: ObservableObject {
         }
 
         NotificationManager.shared.sendCompletionNotification(isBreak: isBreak)
+
+        // Post focus session completion (minutes) when a work session ends
+        if isBreak == true { // we just transitioned to break, meaning a focus session finished
+            let workedSeconds: TimeInterval = TimeInterval(focusTime * 60)
+            let workedMinutes = max(1, Int(workedSeconds / 60))
+            NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": workedMinutes])
+        }
+
         saveState()
         startNewSession()
     }

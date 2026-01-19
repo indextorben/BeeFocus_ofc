@@ -93,28 +93,27 @@ struct TodoCard: View {
                             .cornerRadius(20)
                             .frame(width: lottieSize, height: lottieSize)
 
-                        LottieView(name: "check-success", loopMode: .loop, playTrigger: $lottieTrigger)
+                        LottieView(name: "check-success", loopMode: .playOnce, playTrigger: $lottieTrigger)
                             .frame(width: lottieSize, height: lottieSize)
                             .scaleEffect(showLottie ? 1.0 : 0.5)
                             .opacity(showLottie ? 1.0 : 0.0)
-                            .animation(.easeInOut(duration: 10.0), value: showLottie)
+                            .allowsHitTesting(false)
                     }
 
                     Button(action: {
-                        onToggle()
-                        withAnimation {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            onToggle()
                             lottieTrigger.toggle()
                             showLottie = true
                         }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                            withAnimation { showLottie = false }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            withAnimation(.easeOut(duration: 0.2)) { showLottie = false }
                         }
                     }) {
                         Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 26))
                             .foregroundColor(todo.isCompleted ? .green : .gray)
                             .scaleEffect(todo.isCompleted ? 1.25 : 1.0)
-                            .animation(.easeInOut(duration: 10.0), value: todo.isCompleted)
                     }
                 }
 
@@ -197,9 +196,9 @@ struct TodoCard: View {
             .opacity(isPressed ? 0.95 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
             .onTapGesture {
-                withAnimation(.linear(duration: 10.0)) { isPressed = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
-                    withAnimation(.linear(duration: 10.0)) { isPressed = false }
+                withAnimation(.easeInOut(duration: 0.15)) { isPressed = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    withAnimation(.easeInOut(duration: 0.15)) { isPressed = false }
                 }
             }
             .contextMenu {
@@ -256,6 +255,6 @@ struct TodoCard: View {
             .transition(.opacity)
         }
         .padding(.vertical, 2)
-        .animation(.easeOut(duration: 10.0), value: todo.id)
     }
 }
+

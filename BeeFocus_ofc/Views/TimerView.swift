@@ -5,6 +5,7 @@ struct TimerView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject var timerManager: TimerManager
+    @EnvironmentObject var todoStore: TodoStore
 
     @AppStorage("focusTime") private var focusTime: Int = 25
     @AppStorage("shortBreakTime") private var shortBreakTime: Int = 5
@@ -52,6 +53,8 @@ struct TimerView: View {
             VStack(spacing: 30) {
 
                 header
+
+                focusTodayBanner
 
                 ZStack {
                     TimerProgressCircle(progress: progress)
@@ -172,4 +175,20 @@ struct TimerView: View {
 
         UIApplication.shared.open(url)
     }
+    
+    private var focusTodayBanner: some View {
+        let today = Calendar.current.startOfDay(for: Date())
+        let minutes = todoStore.dailyFocusMinutes[today] ?? 0
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: localizer.selectedLanguage == "Englisch" ? "en_US" : "de_DE")
+        formatter.dateFormat = "EEEE, d. MMM yyyy"
+        let dateText = formatter.string(from: Date())
+        return HStack(spacing: 8) {
+            Image(systemName: "flame.fill").foregroundColor(.orange)
+            Text("\(dateText) · \(minutes) \(localizer.localizedString(forKey: "minutes_short"))")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
 }
+

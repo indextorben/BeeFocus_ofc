@@ -428,3 +428,50 @@
 "overdue" = "Überfällig";
 "sort_category_asc" = "Kategorie (A–Z)";
 "sort_category_desc" = "Kategorie (Z–A)";
+"reminder_label" = "Erinnerung";
+"reminder_none" = "Keine";
+"reminder_at_time" = "Zum Termin";
+"reminder_5m" = "5 Minuten vorher";
+"reminder_15m" = "15 Minuten vorher";
+"reminder_30m" = "30 Minuten vorher";
+"reminder_1h" = "1 Stunde vorher";
+"reminder_2h" = "2 Stunden vorher";
+"reminder_1d" = "1 Tag vorher";
+
+"deduplicate_categories" = "Kategorien bereinigen";
+"deduplicate_done" = "Bereinigung abgeschlossen – Gelöscht: %d, Aktualisierte Todos: %d";
+"deduplicate_confirm_title" = "Kategorien bereinigen";
+"deduplicate_confirm_message" = "Doppelte Kategorien werden zusammengeführt und Duplikate gelöscht. Fortfahren?";
+"deduplicate_confirm_proceed" = "Bereinigen";
+"deduplicate_explainer" = "Führt doppelte Kategorien (nach Name) zusammen, ordnet Todos der verbleibenden Kategorie zu und löscht Duplikate in iCloud.";
+
+
+/* Zusätzliche Lokalisierung für TodoListView & Kategorie-Aktionen */
+"Möchten Sie diese Aufgabe wirklich löschen?" = "Möchten Sie diese Aufgabe wirklich löschen?";
+"Sortieren nach" = "Sortieren nach";
+"Standard wiederherstellen" = "Standard wiederherstellen";
+"Vergangene ausblenden" = "Vergangene ausblenden";
+"Vergangene anzeigen" = "Vergangene anzeigen";
+"Kein Fälligkeitsdatum" = "Kein Fälligkeitsdatum";
+"E-Mail nicht verfügbar" = "E-Mail nicht verfügbar";
+"Bitte richten Sie die Mail-App ein, um E-Mails zu senden." = "Bitte richten Sie die Mail-App ein, um E-Mails zu senden.";
+"Was möchten Sie tun?" = "Was möchten Sie tun?";
+"Timer" = "Timer";
+
+// Alias-Keys (englische Schlüssel mit deutschen Werten)
+"confirm_delete_todo_message" = "Möchten Sie diese Aufgabe wirklich löschen?";
+"sort_by" = "Sortieren nach";
+"restore_default" = "Standard wiederherstellen";
+"hide_past" = "Vergangene ausblenden";
+"show_past" = "Vergangene anzeigen";
+"no_due_date" = "Kein Fälligkeitsdatum";
+"email_unavailable" = "E-Mail nicht verfügbar";
+"mailto_setup_message" = "Bitte richten Sie die Mail-App ein, um E-Mails zu senden.";
+"what_would_you_like_to_do" = "Was möchten Sie tun?";
+
+/* Statistik zurücksetzen */
+"reset_statistics" = "Statistik zurücksetzen";
+"reset_statistics_confirm_title" = "Statistik zurücksetzen?";
+"reset_statistics_confirm_message" = "Alle Statistikdaten (Erledigte pro Tag und Fokusminuten) werden unwiderruflich gelöscht.";
+"reset" = "Zurücksetzen";
+"reset_statistics_done" = "Statistik zurückgesetzt";

@@ -378,9 +378,14 @@ struct TodoDetailView: View {
     }
 
     private func toggleCompletion() {
-        isCompleted.toggle()
-        if let index = todoStore.todos.firstIndex(of: todo) {
-            todoStore.todos[index].isCompleted = isCompleted
+        var updated = todo
+        updated.isCompleted.toggle()
+        if updated.isCompleted {
+            updated.completedAt = Date()
+        } else {
+            updated.completedAt = nil
         }
+        updated.updatedAt = Date()
+        todoStore.updateTodo(updated)
     }
 }

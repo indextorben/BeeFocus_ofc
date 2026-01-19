@@ -27,5 +27,12 @@
 		<string>processing</string>
 		<string>remote-notification</string>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.TorbenLehneke.BeeFocus.processing</string>
+		<string>com.TorbenLehneke.BeeFocus.refresh</string>
+	</array>
+	<key>CloudKitContainerIdentifier</key>
+	<string>iCloud.com.TorbenLehneke.BeeFocus</string>
 </dict>
 </plist>
