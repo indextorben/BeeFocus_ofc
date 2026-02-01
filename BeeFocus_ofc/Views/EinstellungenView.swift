@@ -29,26 +29,17 @@ struct EinstellungenView: View {
         NavigationView {
             ZStack {
                 Form {
-                    // Anzeige
+                    // MARK: - Darstellung
                     Section(header: Text(localizer.localizedString(forKey: "Displaymodus"))) {
                         Toggle(localizer.localizedString(forKey: "Darkmode"), isOn: $darkModeEnabled)
                     }
-                    
+
+                    // MARK: - Sichtbarkeit
                     Section(header: Text(localizer.localizedString(forKey: "Sichtbarkeit"))) {
                         Toggle(localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
                     }
 
-                    // Sprache
-                    Section(header: Text(localizer.localizedString(forKey: "Sprache"))) {
-                        Picker(localizer.localizedString(forKey: "Sprache"), selection: $localizer.selectedLanguage) {
-                            ForEach(languages, id: \.self) { lang in
-                                Text(lang)
-                            }
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                    }
-
-                    // Benachrichtigungen
+                    // MARK: - Benachrichtigungen
                     Section(header: Text(localizer.localizedString(forKey: "Benachrichtigungen"))) {
                         Toggle(localizer.localizedString(forKey: "Benachrichtigungen"), isOn: $notificationsEnabled)
                             .onChange(of: notificationsEnabled) { enabled in
@@ -61,14 +52,24 @@ struct EinstellungenView: View {
                             }
                     }
 
-                    // Kategorien verwalten
+                    // MARK: - Sprache
+                    Section(header: Text(localizer.localizedString(forKey: "Sprache"))) {
+                        Picker(localizer.localizedString(forKey: "Sprache"), selection: $localizer.selectedLanguage) {
+                            ForEach(languages, id: \.self) { lang in
+                                Text(lang)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                    }
+
+                    // MARK: - Kategorien
                     Section(header: Text(localizer.localizedString(forKey: "Kategorien"))) {
                         Button(localizer.localizedString(forKey: "Kategorien verwalten")) {
                             showingCategoryEdit = true
                         }
                     }
 
-                    // Tutorials
+                    // MARK: - Tutorials
                     Section(header: Text(localizer.localizedString(forKey: "Tutorials"))) {
                         NavigationLink(localizer.localizedString(forKey: "Tutorials anzeigen")) {
                             TutorialListView()
@@ -79,17 +80,7 @@ struct EinstellungenView: View {
                         }
                     }
 
-                    // Feedback / Verbesserungen
-                    Section {
-                        Button(action: sendFeedbackEmail) {
-                            HStack {
-                                Image(systemName: "envelope")
-                                Text(localizer.localizedString(forKey: "Verbesserungen")) }
-                            .foregroundColor(.blue)
-                        }
-                    }
-
-                    // Synchronisation
+                    // MARK: - Synchronisation
                     Section(header: Text(localizer.localizedString(forKey: "Synchronisation"))) {
                         Button(localizer.localizedString(forKey: "Jetzt synchronisieren")) {
                             CloudKitManager.shared.syncNow(todoStore: todoStore) { todosChanged, dailyChanged, focusChanged in
@@ -113,42 +104,18 @@ struct EinstellungenView: View {
                         Text(localizer.localizedString(forKey: "deduplicate_explainer"))
                             .font(.footnote)
                             .foregroundColor(.secondary)
+                    }
+
+                    // MARK: - Statistik
+                    Section(header: Text(localizer.localizedString(forKey: "Statistik"))) {
                         Button(role: .destructive) {
                             showResetStatsConfirm = true
                         } label: {
                             Label(localizer.localizedString(forKey: "reset_statistics"), systemImage: "trash.slash")
                         }
-                        .confirmationDialog(
-                            localizer.localizedString(forKey: "reset_statistics_confirm_title"),
-                            isPresented: $showResetStatsConfirm,
-                            titleVisibility: .visible
-                        ) {
-                            Button(localizer.localizedString(forKey: "reset"), role: .destructive) {
-                                // Lokal leeren
-                                todoStore.resetDailyStats()
-                                todoStore.dailyFocusMinutes.removeAll()
-                                // Persistieren
-                                // saveDailyStats is encapsulated in resetDailyStats; focus minutes saved explicitly
-                                // (reuse existing save function)
-                                // Save focus minutes
-                                let encoder = JSONEncoder()
-                                if let data = try? encoder.encode(todoStore.dailyFocusMinutes) {
-                                    UserDefaults.standard.set(data, forKey: "dailyFocusMinutes")
-                                }
-                                // Cloud löschen
-                                CloudKitManager.shared.deleteAllStats { dailyDeleted, focusDeleted in
-                                    bannerColor = .green
-                                    showBanner(message: localizer.localizedString(forKey: "reset_statistics_done"))
-                                    showResetStatsAlert = true
-                                }
-                            }
-                            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { }
-                        } message: {
-                            Text(localizer.localizedString(forKey: "reset_statistics_confirm_message"))
-                        }
                     }
 
-                    // Papierkorb
+                    // MARK: - Papierkorb
                     Section(header: Text(localizer.localizedString(forKey: "Papierkorb"))) {
                         NavigationLink(localizer.localizedString(forKey: "Papierkorb öffnen")) {
                             TrashView()
@@ -162,7 +129,8 @@ struct EinstellungenView: View {
                             }
                         }
                     }
-                    
+
+                    // MARK: - Papierkorb Einstellungen
                     Section(header: Text(localizer.localizedString(forKey: "Papierkorb Einstellungen"))) {
                         Stepper("\(localizer.localizedString(forKey: "Max. Einträge")): \((UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")))", onIncrement: {
                             let current = UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")
@@ -175,7 +143,7 @@ struct EinstellungenView: View {
                             UserDefaults.standard.set(newValue, forKey: "trashMaxCount")
                             todoStore.updateTrashSettings(maxCount: newValue, maxDays: UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))
                         })
-                        
+
                         Stepper("\(localizer.localizedString(forKey: "Automatisch löschen nach (Tagen)")): \((UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")))", onIncrement: {
                             let current = UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")
                             let newValue = min(365, max(1, current + 1))
@@ -188,7 +156,8 @@ struct EinstellungenView: View {
                             todoStore.updateTrashSettings(maxCount: UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"), maxDays: newValue)
                         })
                     }
-                    
+
+                    // MARK: - Automatisches Löschen (Abgeschlossene)
                     Section(header: Text(localizer.localizedString(forKey: "Automatisches Löschen"))) {
                         Toggle(localizer.localizedString(forKey: "Abgeschlossene automatisch löschen"), isOn: $autoDeleteCompletedEnabled)
                             .onChange(of: autoDeleteCompletedEnabled) { enabled in
@@ -204,7 +173,18 @@ struct EinstellungenView: View {
                         .disabled(!autoDeleteCompletedEnabled)
                     }
 
-                    // Version / Build anzeigen
+                    // MARK: - Feedback
+                    Section(header: Text(localizer.localizedString(forKey: "Feedback / Verbesserungen"))) {
+                        Button(action: sendFeedbackEmail) {
+                            HStack {
+                                Image(systemName: "envelope")
+                                Text(localizer.localizedString(forKey: "Verbesserungen"))
+                            }
+                            .foregroundColor(.blue)
+                        }
+                    }
+
+                    // MARK: - Version
                     Section {
                         HStack {
                             Spacer()

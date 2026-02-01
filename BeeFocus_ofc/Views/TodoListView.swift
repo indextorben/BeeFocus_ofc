@@ -10,6 +10,7 @@ import SwiftData
 import UserNotifications
 import UIKit
 import MessageUI
+import UniformTypeIdentifiers
 
 // MARK: - BlurView (UIKit Wrapper für SwiftUI)
 struct BlurView: UIViewRepresentable {
@@ -55,25 +56,28 @@ struct TodoListView: View {
     @State private var selectedTodoIDs: Set<UUID> = []
     @State private var showMailUnavailableAlert = false
     @State private var mailUnavailableMessage = ""
-
+    
     // New states for delete snackbar
     @State private var showDeleteSnackbar = false
     @State private var lastDeletedTitle: String = ""
-
+    
     //Fileimporter
     @State private var showingActionSheet = false
     @State private var showingFileImporter = false
     @State private var showingDeleteCompletedByDateSheet = false
-
+    
     @State private var showingConfirmTrashCompleted = false
     @State private var presetRange: Int = 0 // 0: Alle, 1: Letzte 7 Tage, 2: Letzte 30 Tage, 3: Benutzerdefiniert
     @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEndDate: Date = Date()
     @State private var isResortSuspended = false
-
+    
     @ObservedObject private var localizer = LocalizationManager.shared
     @StateObject private var mailShare = MailShareService()
-
+    
+    @State private var draggingCategoryID: UUID? = nil
+    @State private var dropTargetIndex: Int? = nil
+    
     let languages = ["Deutsch", "Englisch"]
     
     private func readLocalTodosFallback() -> [TodoItem] {
@@ -361,15 +365,59 @@ struct TodoListView: View {
             HStack(spacing: 1) {
                 Button { showingSettings.toggle() } label: { Image(systemName: "gearshape") }
 
-                Button { showingSortOptions = true } label: { Image(systemName: "arrow.up.arrow.down") }
-                    .confirmationDialog(localizer.localizedString(forKey: "Sortieren nach"), isPresented: $showingSortOptions) {
-                        Button(LocalizedStringKey(localizer.localizedString(forKey: "Standard wiederherstellen"))) {
-                            sortOption = .dueDateAsc
+                Menu {
+                    // Standard
+                    Button(localizer.localizedString(forKey: "Standard wiederherstellen")) { sortOption = .dueDateAsc }
+
+                    // Fälligkeit
+                    Section(header: Text(localizer.localizedString(forKey: "Fälligkeit"))) {
+                        Button(action: { sortOption = .dueDateAsc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_due_asc")), systemImage: sortOption == .dueDateAsc ? "checkmark" : "")
                         }
-                        ForEach(SortOption.allCases, id: \.self) { option in
-                            Button(option.displayName) { sortOption = option }
+                        Button(action: { sortOption = .dueDateDesc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_due_desc")), systemImage: sortOption == .dueDateDesc ? "checkmark" : "")
                         }
                     }
+
+                    // Titel
+                    Section(header: Text(localizer.localizedString(forKey: "Titel"))) {
+                        Button(action: { sortOption = .titleAsc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_title_asc")), systemImage: sortOption == .titleAsc ? "checkmark" : "")
+                        }
+                        Button(action: { sortOption = .titleDesc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_title_desc")), systemImage: sortOption == .titleDesc ? "checkmark" : "")
+                        }
+                    }
+
+                    // Kategorie
+                    Section(header: Text(localizer.localizedString(forKey: "Kategorie"))) {
+                        Button(action: { sortOption = .categoryAsc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_category_asc")), systemImage: sortOption == .categoryAsc ? "checkmark" : "")
+                        }
+                        Button(action: { sortOption = .categoryDesc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_category_desc")), systemImage: sortOption == .categoryDesc ? "checkmark" : "")
+                        }
+                    }
+
+                    // Priorität
+                    Section(header: Text(localizer.localizedString(forKey: "Priorität"))) {
+                        Button(action: { sortOption = .priorityHighToLow }) {
+                            Label(String(localizer.localizedString(forKey: "sort_priority_high_to_low")), systemImage: sortOption == .priorityHighToLow ? "checkmark" : "")
+                        }
+                        Button(action: { sortOption = .priorityLowToHigh }) {
+                            Label(String(localizer.localizedString(forKey: "sort_priority_low_to_high")), systemImage: sortOption == .priorityLowToHigh ? "checkmark" : "")
+                        }
+                    }
+
+                    // Erstellung
+                    Section(header: Text(localizer.localizedString(forKey: "Erstellung"))) {
+                        Button(action: { sortOption = .createdDesc }) {
+                            Label(String(localizer.localizedString(forKey: "sort_created_desc")), systemImage: sortOption == .createdDesc ? "checkmark" : "")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                }
                 
                 Button {
                     withAnimation { isSelecting.toggle() }
@@ -650,11 +698,87 @@ struct TodoListView: View {
                         selectedCategory = nil
                     }
                     
-                    ForEach(todoStore.categories, id: \.self) { category in
+                    ForEach(Array(todoStore.categories.enumerated()), id: \.element) { index, category in
                         categoryButton(for: category)
+                            .overlay(alignment: .leading) {
+                                // Insertion indicator before this item
+                                if let target = dropTargetIndex, target == index {
+                                    InsertionIndicator()
+                                        .frame(height: 28)
+                                        .offset(x: -6)
+                                        .transition(.opacity)
+                                }
+                            }
+                            .draggable(category.id.uuidString)
+                            .onDrag {
+                                draggingCategoryID = category.id
+                                return NSItemProvider(object: category.id.uuidString as NSString)
+                            }
+                            .onDrop(of: [UTType.text.identifier], isTargeted: Binding(
+                                get: { dropTargetIndex == index },
+                                set: { hovering in
+                                    if hovering {
+                                        dropTargetIndex = index
+                                    } else if dropTargetIndex == index {
+                                        dropTargetIndex = nil
+                                    }
+                                }
+                            )) { providers in
+                                if let provider = providers.first {
+                                    _ = provider.loadObject(ofClass: NSString.self) { object, _ in
+                                        if let nsString = object as? NSString {
+                                            let idString = nsString as String
+                                            if let uuid = UUID(uuidString: idString), let fromIndex = todoStore.categories.firstIndex(where: { $0.id == uuid }), fromIndex != index {
+                                                DispatchQueue.main.async {
+                                                    let source = IndexSet(integer: fromIndex)
+                                                    let destination = index > fromIndex ? index + 1 : index
+                                                    todoStore.moveCategory(from: source, to: destination)
+                                                    dropTargetIndex = nil
+                                                }
+                                            }
+                                        }
+                                    }
+                                    return true
+                                }
+                                dropTargetIndex = nil
+                                return false
+                            }
                     }
-                    .onMove { source, destination in
-                        todoStore.moveCategory(from: source, to: destination)
+                    
+                    // End drop target spacer with preview indicator
+                    ZStack(alignment: .trailing) {
+                        Color.clear.frame(width: 1, height: 1)
+                        if let target = dropTargetIndex, target == todoStore.categories.endIndex {
+                            InsertionIndicator()
+                                .frame(height: 28)
+                                .offset(x: 6)
+                                .transition(.opacity)
+                        }
+                    }
+                    .onDrop(of: [UTType.text.identifier], isTargeted: Binding(
+                        get: { dropTargetIndex == todoStore.categories.endIndex },
+                        set: { hovering in
+                            dropTargetIndex = hovering ? todoStore.categories.endIndex : nil
+                        }
+                    )) { providers in
+                        if let provider = providers.first {
+                            _ = provider.loadObject(ofClass: NSString.self) { object, _ in
+                                if let nsString = object as? NSString {
+                                    let idString = nsString as String
+                                    if let uuid = UUID(uuidString: idString), let fromIndex = todoStore.categories.firstIndex(where: { $0.id == uuid }) {
+                                        DispatchQueue.main.async {
+                                            let source = IndexSet(integer: fromIndex)
+                                            let destination = todoStore.categories.endIndex
+                                            todoStore.moveCategory(from: source, to: destination)
+                                            dropTargetIndex = nil
+                                        }
+                                    }
+                                }
+                            }
+                            return true
+                        }
+                        dropTargetIndex = nil
+                        return false
                     }
                     
                     Button(action: {
@@ -877,6 +1001,26 @@ struct TodoListView: View {
         withAnimation(.easeInOut) {
             showPastTasksStorage.toggle()
         }
+    }
+}
+
+// MARK: - InsertionIndicator
+struct InsertionIndicator: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.accentColor)
+                .frame(width: 6, height: 6)
+            Rectangle()
+                .fill(Color.accentColor)
+                .frame(width: 24, height: 2)
+                .cornerRadius(1)
+        }
+        .padding(.vertical, 2)
+        .padding(.horizontal, 2)
+        .background(Color.accentColor.opacity(0.08))
+        .clipShape(Capsule())
+        .animation(.easeInOut(duration: 0.15), value: UUID())
     }
 }
 
