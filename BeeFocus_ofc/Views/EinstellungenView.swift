@@ -10,10 +10,9 @@ struct EinstellungenView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     
     @AppStorage("showPastTasksGlobal") private var showPastTasksGlobal = false
-    @State private var showingDeleteCompletedSheet = false
-    @State private var deleteStartDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-    @State private var deleteEndDate: Date = Date()
-
+    @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled = false
+    @AppStorage("autoDeleteCompletedDays") private var autoDeleteCompletedDays = 30
+    
     @State private var showNotificationBanner = false
     @State private var notificationMessage = ""
     @State private var bannerColor: Color = .green
@@ -115,11 +114,6 @@ struct EinstellungenView: View {
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         Button(role: .destructive) {
-                            showingDeleteCompletedSheet = true
-                        } label: {
-                            Label(localizer.localizedString(forKey: "Abgeschlossene im Zeitraum löschen"), systemImage: "trash")
-                        }
-                        Button(role: .destructive) {
                             showResetStatsConfirm = true
                         } label: {
                             Label(localizer.localizedString(forKey: "reset_statistics"), systemImage: "trash.slash")
@@ -170,41 +164,44 @@ struct EinstellungenView: View {
                     }
                     
                     Section(header: Text(localizer.localizedString(forKey: "Papierkorb Einstellungen"))) {
-                        HStack {
-                            Text(localizer.localizedString(forKey: "Max. Einträge"))
-                            Spacer()
-                            Text("\(UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"))")
-                                .foregroundColor(.secondary)
-                        }
-                        Stepper("") {
+                        Stepper("\(localizer.localizedString(forKey: "Max. Einträge")): \((UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")))", onIncrement: {
                             let current = UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")
                             let newValue = min(1000, max(10, current + 10))
                             UserDefaults.standard.set(newValue, forKey: "trashMaxCount")
                             todoStore.updateTrashSettings(maxCount: newValue, maxDays: UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))
-                        } onDecrement: {
+                        }, onDecrement: {
                             let current = UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount")
                             let newValue = min(1000, max(10, current - 10))
                             UserDefaults.standard.set(newValue, forKey: "trashMaxCount")
                             todoStore.updateTrashSettings(maxCount: newValue, maxDays: UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))
-                        }
-
-                        HStack {
-                            Text(localizer.localizedString(forKey: "Automatisch löschen nach (Tagen)"))
-                            Spacer()
-                            Text("\(UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays"))")
-                                .foregroundColor(.secondary)
-                        }
-                        Stepper("") {
+                        })
+                        
+                        Stepper("\(localizer.localizedString(forKey: "Automatisch löschen nach (Tagen)")): \((UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")))", onIncrement: {
                             let current = UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")
                             let newValue = min(365, max(1, current + 1))
                             UserDefaults.standard.set(newValue, forKey: "trashMaxDays")
                             todoStore.updateTrashSettings(maxCount: UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"), maxDays: newValue)
-                        } onDecrement: {
+                        }, onDecrement: {
                             let current = UserDefaults.standard.integer(forKey: "trashMaxDays") == 0 ? 30 : UserDefaults.standard.integer(forKey: "trashMaxDays")
                             let newValue = min(365, max(1, current - 1))
                             UserDefaults.standard.set(newValue, forKey: "trashMaxDays")
                             todoStore.updateTrashSettings(maxCount: UserDefaults.standard.integer(forKey: "trashMaxCount") == 0 ? 100 : UserDefaults.standard.integer(forKey: "trashMaxCount"), maxDays: newValue)
-                        }
+                        })
+                    }
+                    
+                    Section(header: Text(localizer.localizedString(forKey: "Automatisches Löschen"))) {
+                        Toggle(localizer.localizedString(forKey: "Abgeschlossene automatisch löschen"), isOn: $autoDeleteCompletedEnabled)
+                            .onChange(of: autoDeleteCompletedEnabled) { enabled in
+                                if enabled { performAutoDeleteIfNeeded() }
+                            }
+                        Stepper("\(localizer.localizedString(forKey: "Löschen nach (Tagen)")): \(autoDeleteCompletedDays)", onIncrement: {
+                            autoDeleteCompletedDays = min(365, max(1, autoDeleteCompletedDays + 1))
+                            if autoDeleteCompletedEnabled { performAutoDeleteIfNeeded() }
+                        }, onDecrement: {
+                            autoDeleteCompletedDays = min(365, max(1, autoDeleteCompletedDays - 1))
+                            if autoDeleteCompletedEnabled { performAutoDeleteIfNeeded() }
+                        })
+                        .disabled(!autoDeleteCompletedEnabled)
                     }
 
                     // Version / Build anzeigen
@@ -232,38 +229,6 @@ struct EinstellungenView: View {
                 }
                 .sheet(isPresented: $showFullAppTutorial) {
                     FullAppTutorialView()
-                }
-                .sheet(isPresented: $showingDeleteCompletedSheet) {
-                    NavigationStack {
-                        Form {
-                            Section(header: Text(localizer.localizedString(forKey: "Zeitraum"))) {
-                                DatePicker(localizer.localizedString(forKey: "Von"), selection: $deleteStartDate, displayedComponents: [.date])
-                                DatePicker(localizer.localizedString(forKey: "Bis"), selection: $deleteEndDate, in: deleteStartDate...Date(), displayedComponents: [.date])
-                            }
-                            Section(footer: Text(localizer.localizedString(forKey: "Alle abgeschlossenen Todos im Zeitraum werden endgültig gelöscht."))) {
-                                Button(role: .destructive) {
-                                    let start = min(deleteStartDate, deleteEndDate)
-                                    let end = max(deleteStartDate, deleteEndDate)
-                                    let toDelete = todoStore.todos.filter { $0.isCompleted && $0.createdAt >= start && $0.createdAt <= end }
-                                    for todo in toDelete {
-                                        CloudKitManager.shared.deleteTodo(todo)
-                                        if let idx = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
-                                            todoStore.todos.remove(at: idx)
-                                        }
-                                    }
-                                    showingDeleteCompletedSheet = false
-                                    bannerColor = .green
-                                    showBanner(message: localizer.localizedString(forKey: "Löschung abgeschlossen"))
-                                } label: {
-                                    Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
-                                }
-                            }
-                        }
-                        .navigationTitle(localizer.localizedString(forKey: "Abgeschlossene löschen"))
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) { Button(localizer.localizedString(forKey: "Abbrechen")) { showingDeleteCompletedSheet = false } }
-                        }
-                    }
                 }
                 .confirmationDialog(
                     localizer.localizedString(forKey: "deduplicate_confirm_title"),
@@ -311,6 +276,11 @@ struct EinstellungenView: View {
                 }
             }
         }
+        .onAppear {
+            if autoDeleteCompletedEnabled {
+                performAutoDeleteIfNeeded()
+            }
+        }
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
     }
 
@@ -337,6 +307,21 @@ struct EinstellungenView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation(.easeOut) { showNotificationBanner = false }
         }
+    }
+    
+    // MARK: - Auto Delete Completed
+    private func performAutoDeleteIfNeeded() {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -autoDeleteCompletedDays, to: Date()) ?? Date.distantPast
+        let toDelete = todoStore.todos.filter { $0.isCompleted && $0.createdAt < cutoff }
+        guard !toDelete.isEmpty else { return }
+        for todo in toDelete {
+            CloudKitManager.shared.deleteTodo(todo)
+            if let idx = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
+                todoStore.todos.remove(at: idx)
+            }
+        }
+        bannerColor = .green
+        showBanner(message: localizer.localizedString(forKey: "Löschung abgeschlossen"))
     }
     
     // MARK: - Feedback Email

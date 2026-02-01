@@ -37,8 +37,6 @@ struct TodoCard: View {
     @State private var showingSubTasks = false
     @State private var showingImages = false
     @State private var isPressed = false
-    @State private var showLottie = false
-    @State private var lottieTrigger = false
     @Environment(\.colorScheme) private var colorScheme
     
     @ObservedObject private var localizer = LocalizationManager.shared
@@ -81,40 +79,20 @@ struct TodoCard: View {
         }
     }
 
-    let lottieSize: CGFloat = UIScreen.main.bounds.width < 400 ? 100 : 140
-
     var body: some View {
         ZStack(alignment: .topTrailing) {
             HStack(alignment: .center, spacing: 12) {
                 // MARK: - Checkmark
                 ZStack {
-                    if showLottie {
-                        Color.black.opacity(0.1)
-                            .cornerRadius(20)
-                            .frame(width: lottieSize, height: lottieSize)
-
-                        LottieView(name: "check-success", loopMode: .playOnce, playTrigger: $lottieTrigger)
-                            .frame(width: lottieSize, height: lottieSize)
-                            .scaleEffect(showLottie ? 1.0 : 0.5)
-                            .opacity(showLottie ? 1.0 : 0.0)
-                            .allowsHitTesting(false)
-                    }
-
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            onToggle()
-                            lottieTrigger.toggle()
-                            showLottie = true
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            withAnimation(.easeOut(duration: 0.2)) { showLottie = false }
-                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onToggle()
                     }) {
                         Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 26))
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(todo.isCompleted ? .green : .gray)
-                            .scaleEffect(todo.isCompleted ? 1.25 : 1.0)
                     }
+                    .buttonStyle(.plain)
                 }
 
                 // MARK: - Title & Description
@@ -238,17 +216,9 @@ struct TodoCard: View {
             .sheet(isPresented: $showingSubTasks) { SubTasksView(todo: todo) }
             .sheet(isPresented: $showingImages) { ImagesView(images: $images) }
 
-            // MARK: - Priority + Favorite nebeneinander
+            // MARK: - Priority Badge only (Favorite star removed)
             HStack(spacing: 6) {
                 PriorityBadge(text: priorityText, color: priorityColor)
-
-                Button(action: { todo.isFavorite.toggle() }) {
-                    Image(systemName: todo.isFavorite ? "star.fill" : "star")
-                        .foregroundColor(todo.isFavorite ? .yellow : .gray)
-                        .padding(6)
-                        .background(Color.black.opacity(0.05))
-                        .clipShape(Circle())
-                }
             }
             .padding(10)
             .offset(y: -10)

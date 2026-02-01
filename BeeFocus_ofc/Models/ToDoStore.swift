@@ -145,15 +145,33 @@ class TodoStore: ObservableObject {
 
         case .delete(let todo, let originalIndex):
             if let idx = todos.firstIndex(where: { $0.id == todo.id }) {
+                // Cancel calendar and notifications
                 deleteCalendarEvent(for: todos[idx])
                 NotificationManager.shared.cancelNotification(id: todos[idx].id.uuidString)
+
+                // Remove from list
                 let removed = todos.remove(at: idx)
                 saveTodos()
                 DispatchQueue.main.async { self.objectWillChange.send() }
+
+                // Cloud delete
                 CloudKitManager.shared.deleteTodo(removed)
+
+                // Append to trash
+                deletedTodos.append(TrashEntry(todo: removed, originalIndex: idx, deletedAt: Date()))
+
+                // Enforce trash policies
+                let cutoff = Calendar.current.date(byAdding: .day, value: -trashMaxDays, to: Date()) ?? Date().addingTimeInterval(TimeInterval(-trashMaxDays * 24 * 3600))
+                deletedTodos = deletedTodos.filter { $0.deletedAt >= cutoff }
+                if deletedTodos.count > trashMaxCount {
+                    deletedTodos = Array(deletedTodos.suffix(trashMaxCount))
+                }
+                saveTrash()
+
+                // Push inverse
                 stack.append(.create(todo: removed))
             } else {
-                // Falls lokal nicht vorhanden, nichts tun
+                // If not present locally, still push inverse create to allow redo
                 stack.append(.create(todo: todo))
             }
 
@@ -220,6 +238,11 @@ class TodoStore: ObservableObject {
                 CloudKitManager.shared.saveTodo(t)
                 DispatchQueue.main.async { self.objectWillChange.send() }
             }
+            // Remove any matching trash entries for restored todo
+            let beforeCount = deletedTodos.count
+            deletedTodos.removeAll { $0.todo.id == t.id }
+            if deletedTodos.count != beforeCount { saveTrash() }
+
             stack.append(.delete(todo: t, originalIndex: insertIndex))
         case .complete(let todoID, let prev):
             // Inverse von Complete = Uncomplete (mit Stats-Korrektur)
@@ -413,14 +436,38 @@ class TodoStore: ObservableObject {
         if let dueDate = todo.dueDate {
             let timeInterval = dueDate.timeIntervalSinceNow
             if timeInterval > 0 {
-                let title = "Fällige Aufgabe: \(todo.title)"
-                let body = todo.description.isEmpty ? "Deine Aufgabe ist fällig." : todo.description
+                // Determine if this is a reminder before due, or at due time
+                let hasReminder = (todo.reminderOffsetMinutes ?? -1) >= 0
+                let isReminderBeforeDue: Bool
                 let duration: TimeInterval
                 if let offset = todo.reminderOffsetMinutes, offset >= 0 {
-                    duration = max(1, dueDate.addingTimeInterval(TimeInterval(-offset * 60)).timeIntervalSinceNow)
+                    let reminderFire = dueDate.addingTimeInterval(TimeInterval(-offset * 60))
+                    duration = max(1, reminderFire.timeIntervalSinceNow)
+                    isReminderBeforeDue = reminderFire < dueDate
                 } else {
                     duration = timeInterval
+                    isReminderBeforeDue = false
                 }
+
+                // Build title/body depending on reminder vs due
+                let title: String
+                let body: String
+                if hasReminder && isReminderBeforeDue {
+                    title = "Erinnerung: \(todo.title)"
+                    if todo.description.isEmpty {
+                        body = "Du wolltest dich an diese Aufgabe erinnern lassen."
+                    } else {
+                        body = "Denke daran: \(todo.description)"
+                    }
+                } else {
+                    title = "Fälligkeit: \(todo.title)"
+                    if todo.description.isEmpty {
+                        body = "Diese Aufgabe ist jetzt fällig."
+                    } else {
+                        body = todo.description
+                    }
+                }
+
                 NotificationManager.shared.scheduleTimerNotification(
                     id: todo.id.uuidString,
                     title: title,
@@ -449,14 +496,36 @@ class TodoStore: ObservableObject {
             if !newTodo.isCompleted, let dueDate = newTodo.dueDate {
                 let timeInterval = dueDate.timeIntervalSinceNow
                 if timeInterval > 0 {
-                    let title = "Fällige Aufgabe: \(newTodo.title)"
-                    let body = newTodo.description.isEmpty ? "Deine Aufgabe ist fällig." : newTodo.description
+                    let hasReminder = (newTodo.reminderOffsetMinutes ?? -1) >= 0
+                    let isReminderBeforeDue: Bool
                     let duration: TimeInterval
                     if let offset = newTodo.reminderOffsetMinutes, offset >= 0 {
-                        duration = max(1, dueDate.addingTimeInterval(TimeInterval(-offset * 60)).timeIntervalSinceNow)
+                        let reminderFire = dueDate.addingTimeInterval(TimeInterval(-offset * 60))
+                        duration = max(1, reminderFire.timeIntervalSinceNow)
+                        isReminderBeforeDue = reminderFire < dueDate
                     } else {
                         duration = timeInterval
+                        isReminderBeforeDue = false
                     }
+
+                    let title: String
+                    let body: String
+                    if hasReminder && isReminderBeforeDue {
+                        title = "Erinnerung: \(newTodo.title)"
+                        if newTodo.description.isEmpty {
+                            body = "Du wolltest dich an diese Aufgabe erinnern lassen."
+                        } else {
+                            body = "Denke daran: \(newTodo.description)"
+                        }
+                    } else {
+                        title = "Fälligkeit: \(newTodo.title)"
+                        if newTodo.description.isEmpty {
+                            body = "Diese Aufgabe ist jetzt fällig."
+                        } else {
+                            body = newTodo.description
+                        }
+                    }
+
                     NotificationManager.shared.scheduleTimerNotification(
                         id: newTodo.id.uuidString,
                         title: title,
@@ -1001,3 +1070,4 @@ class TodoStore: ObservableObject {
         saveTrash()
     }
 }
+

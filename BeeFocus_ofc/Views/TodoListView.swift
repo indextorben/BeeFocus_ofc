@@ -48,7 +48,7 @@ struct TodoListView: View {
     @AppStorage("showPastTasksGlobal") private var showPastTasksStorage = true
     private var showPastTasks: Bool {
         get { showPastTasksStorage }
-        nonmutating set { showPastTasksStorage = newValue }
+        set { showPastTasksStorage = newValue }
     }
     
     @State private var isSelecting = false
@@ -60,16 +60,17 @@ struct TodoListView: View {
     @State private var showDeleteSnackbar = false
     @State private var lastDeletedTitle: String = ""
 
-    // New states for deleting completed todos by date
-    @State private var showingDeleteCompletedByDateSheet = false
-    @State private var deleteCompletedStartDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-    @State private var deleteCompletedEndDate: Date = Date()
-    @State private var confirmDeleteCompletedByDate = false
-    
     //Fileimporter
     @State private var showingActionSheet = false
     @State private var showingFileImporter = false
-    
+    @State private var showingDeleteCompletedByDateSheet = false
+
+    @State private var showingConfirmTrashCompleted = false
+    @State private var presetRange: Int = 0 // 0: Alle, 1: Letzte 7 Tage, 2: Letzte 30 Tage, 3: Benutzerdefiniert
+    @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+    @State private var customEndDate: Date = Date()
+    @State private var isResortSuspended = false
+
     @ObservedObject private var localizer = LocalizationManager.shared
     @StateObject private var mailShare = MailShareService()
 
@@ -89,6 +90,19 @@ struct TodoListView: View {
         NavigationStack {
             mainContentView
                 .toolbar { toolbarContent }
+                .alert(localizer.localizedString(forKey: "Bestätigen"), isPresented: $showingConfirmTrashCompleted) {
+                    Button(role: .destructive) {
+                        let completed = todoStore.todos.filter { $0.isCompleted }
+                        for t in completed { todoStore.deleteTodo(t) }
+                    } label: {
+                        Text(localizer.localizedString(forKey: "In Papierkorb verschieben"))
+                    }
+                    Button(role: .cancel) { } label: {
+                        Text(localizer.localizedString(forKey: "Abbrechen"))
+                    }
+                } message: {
+                    Text(localizer.localizedString(forKey: "Möchten Sie wirklich alle erledigten Aufgaben in den Papierkorb verschieben?"))
+                }
                 .overlay(alignment: .bottom) { successToastOverlay }
                 .navigationTitle(LocalizedStringKey(localizer.localizedString(forKey: "Aufgaben")))
                 .navigationBarTitleDisplayMode(.large)
@@ -141,48 +155,6 @@ struct TodoListView: View {
                         }
                     }
                 }
-                .sheet(isPresented: $showingDeleteCompletedByDateSheet) {
-                    NavigationStack {
-                        Form {
-                            Section(header: Text(localizer.localizedString(forKey: "Zeitraum"))) {
-                                DatePicker(localizer.localizedString(forKey: "Von"), selection: $deleteCompletedStartDate, displayedComponents: [.date])
-                                DatePicker(localizer.localizedString(forKey: "Bis"), selection: $deleteCompletedEndDate, in: deleteCompletedStartDate...Date(), displayedComponents: [.date])
-                            }
-                            Section(footer: Text(localizer.localizedString(forKey: "Alle abgeschlossenen Todos im Zeitraum werden in den Papierkorb verschoben."))) {
-                                Button(role: .destructive) {
-                                    confirmDeleteCompletedByDate = true
-                                } label: {
-                                    Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
-                                }
-                            }
-                        }
-                        .navigationTitle(localizer.localizedString(forKey: "Abgeschlossene löschen"))
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button(localizer.localizedString(forKey: "Abbrechen")) { showingDeleteCompletedByDateSheet = false }
-                            }
-                        }
-                        .confirmationDialog(
-                            localizer.localizedString(forKey: "Wirklich in den Papierkorb verschieben?"),
-                            isPresented: $confirmDeleteCompletedByDate,
-                            titleVisibility: .visible
-                        ) {
-                            Button(localizer.localizedString(forKey: "Verschieben"), role: .destructive) {
-                                let start = min(deleteCompletedStartDate, deleteCompletedEndDate)
-                                let end = max(deleteCompletedStartDate, deleteCompletedEndDate)
-                                let toDelete = todoStore.todos.filter { $0.isCompleted && $0.createdAt >= start && $0.createdAt <= end }
-                                for todo in toDelete {
-                                    todoStore.deleteTodo(todo)
-                                }
-                                showingDeleteCompletedByDateSheet = false
-                                withAnimation { showDeleteSnackbar = true }
-                            }
-                            Button(localizer.localizedString(forKey: "Abbrechen"), role: .cancel) { }
-                        } message: {
-                            Text(localizer.localizedString(forKey: "Diese Aktion verschiebt alle abgeschlossenen Aufgaben im Zeitraum in den Papierkorb. Sie können diese im Papierkorb wiederherstellen."))
-                        }
-                    }
-                }
         }
         .modifier(AlertModifiers(
             showingDeleteAlert: $showingDeleteAlert,
@@ -225,6 +197,10 @@ struct TodoListView: View {
     }
     
     var sortedTodos: [TodoItem] {
+        if isResortSuspended {
+            // Return current filtered order without resorting to avoid janky moves during animations
+            return filteredTodos
+        }
         let todos = filteredTodos
         let favorites = todos.filter { $0.isFavorite }
         let normal = todos.filter { !$0.isFavorite }
@@ -287,10 +263,9 @@ struct TodoListView: View {
                 return matchesSearch && matchesCategory
             }
 
-            // Default: hide completed and overdue
+            // Default: hide only completed; keep overdue but not completed visible
             let isNotCompleted = !todo.isCompleted
-            let notOverdue = (todo.dueDate == nil) || (todo.dueDate! >= Date())
-            return matchesSearch && matchesCategory && isNotCompleted && notOverdue
+            return matchesSearch && matchesCategory && isNotCompleted
         }
     }
     
@@ -312,7 +287,7 @@ struct TodoListView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Button(action: { withAnimation(.easeInOut) { showPastTasks.toggle() } }) {
+                    Button(action: { toggleShowPastTasks() }) {
                         HStack(spacing: 8) {
                             Image(systemName: showPastTasks ? "clock.arrow.circlepath" : "clock")
                             Text(LocalizedStringKey(localizer.localizedString(forKey: showPastTasks ? "Vergangene ausblenden" : "Vergangene anzeigen")))
@@ -354,7 +329,11 @@ struct TodoListView: View {
                         Spacer()
                         Button(action: {
                             withAnimation { showDeleteSnackbar = false }
+                            isResortSuspended = true
                             todoStore.undo()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                                isResortSuspended = false
+                            }
                         }) {
                             Text("Rückgängig")
                                 .font(.subheadline).bold()
@@ -436,14 +415,26 @@ struct TodoListView: View {
                     .disabled(selectedTodoIDs.isEmpty)
                 }
                 
-                Button(action: { todoStore.undo() }) {
+                Button(action: {
+                    isResortSuspended = true
+                    todoStore.undo()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                        isResortSuspended = false
+                    }
+                }) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(todoStore.canUndo ? .blue : .gray)
                 }
                 .disabled(!todoStore.canUndo)
 
-                Button(action: { todoStore.redo() }) {
+                Button(action: {
+                    isResortSuspended = true
+                    todoStore.redo()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                        isResortSuspended = false
+                    }
+                }) {
                     Image(systemName: "arrow.uturn.forward")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(todoStore.canRedo ? .blue : .gray)
@@ -456,8 +447,36 @@ struct TodoListView: View {
                     } label: {
                         Label(localizer.localizedString(forKey: "Abgeschlossene nach Zeitraum…"), systemImage: "calendar")
                     }
+                    Button(role: .destructive) {
+                        showingConfirmTrashCompleted = true
+                    } label: {
+                        Label(localizer.localizedString(forKey: "Abgeschlossene in Papierkorb"), systemImage: "trash")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.primary)
+                        .padding(6)
+                        .background(
+                            ZStack {
+                                BlurView(style: .systemUltraThinMaterial)
+                                    .clipShape(Circle())
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.blue.opacity(0.35), Color.purple.opacity(0.35)]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .blur(radius: 2)
+                                    .opacity(0.35)
+                            }
+                        )
+                        .overlay(
+                            Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
                 }
 
                 Button(action: {
@@ -516,6 +535,85 @@ struct TodoListView: View {
                         }
                     case .failure(let error):
                         print("❌ Fehler beim File Import: \(error.localizedDescription)")
+                    }
+                }
+                .sheet(isPresented: $showingDeleteCompletedByDateSheet) {
+                    NavigationStack {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text(localizer.localizedString(forKey: "Abgeschlossene nach Zeitraum löschen"))
+                                .font(.headline)
+
+                            Picker(localizer.localizedString(forKey: "Zeitraum"), selection: $presetRange) {
+                                Text(localizer.localizedString(forKey: "Alle")).tag(0)
+                                Text(localizer.localizedString(forKey: "Letzte 7 Tage")).tag(1)
+                                Text(localizer.localizedString(forKey: "Letzte 30 Tage")).tag(2)
+                                Text(localizer.localizedString(forKey: "Benutzerdefiniert")).tag(3)
+                            }
+                            .pickerStyle(.segmented)
+
+                            if presetRange == 3 {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    DatePicker(localizer.localizedString(forKey: "Von"), selection: $customStartDate, displayedComponents: [.date])
+                                    DatePicker(localizer.localizedString(forKey: "Bis"), selection: $customEndDate, in: customStartDate...Date(), displayedComponents: [.date])
+                                }
+                            }
+
+                            // Preview count
+                            let dateBounds: (Date?, Date?) = {
+                                switch presetRange {
+                                case 0: return (nil, nil)
+                                case 1: return (Calendar.current.date(byAdding: .day, value: -7, to: Date()), Date())
+                                case 2: return (Calendar.current.date(byAdding: .day, value: -30, to: Date()), Date())
+                                default: return (customStartDate, customEndDate)
+                                }
+                            }()
+                            let toDelete = todoStore.todos.filter { todo in
+                                guard todo.isCompleted else { return false }
+                                if let (startOpt, endOpt) = Optional(dateBounds) {
+                                    if let start = startOpt, let end = endOpt, let completedAt = todo.completedAt {
+                                        return completedAt >= Calendar.current.startOfDay(for: start) && completedAt <= Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: end)!
+                                    } else {
+                                        // "Alle" case
+                                        return true
+                                    }
+                                }
+                                return false
+                            }
+
+                            HStack {
+                                Image(systemName: "checkmark.circle")
+                                    .foregroundColor(.green)
+                                Text("\(toDelete.count) " + localizer.localizedString(forKey: "abgeschlossene Aufgaben gefunden"))
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.top, 4)
+
+                            Spacer()
+
+                            HStack {
+                                Button {
+                                    showingDeleteCompletedByDateSheet = false
+                                } label: {
+                                    Text(localizer.localizedString(forKey: "Abbrechen"))
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button(role: .destructive) {
+                                    for t in toDelete { todoStore.deleteTodo(t) }
+                                    showingDeleteCompletedByDateSheet = false
+                                } label: {
+                                    Text(localizer.localizedString(forKey: "Löschen"))
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(toDelete.isEmpty)
+                            }
+                        }
+                        .padding()
+                        .navigationTitle(LocalizedStringKey(localizer.localizedString(forKey: "Bereinigen")))
+                        .navigationBarTitleDisplayMode(.inline)
                     }
                 }
             }
@@ -681,8 +779,12 @@ struct TodoListView: View {
 
                         TodoCard(todo: binding) {
                             if !isSelecting {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isResortSuspended = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                     todoStore.toggleTodo(todo)
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                                    isResortSuspended = false
                                 }
                             } else {
                                 // In selection mode, tap on primary action toggles selection instead of completing
@@ -709,8 +811,12 @@ struct TodoListView: View {
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         if !isSelecting {
                             Button {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isResortSuspended = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                     todoStore.toggleTodo(todo)
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                                    isResortSuspended = false
                                 }
                             } label: {
                                 Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark")
@@ -718,6 +824,7 @@ struct TodoListView: View {
                             .tint(.green)
                             
                             Button(role: .destructive) {
+                                categoryToDelete = nil
                                 todoToDelete = todo
                                 showingDeleteAlert = true
                             } label: {
@@ -734,6 +841,7 @@ struct TodoListView: View {
                     }
                     .strikethrough(todo.isCompleted, color: .gray)
                     .opacity(todo.isCompleted ? 0.6 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: todo.isCompleted)
                 }
             }
             .padding()
@@ -762,6 +870,12 @@ struct TodoListView: View {
         case .medium: return 1
         case .low: return 2
         default: return 3
+        }
+    }
+    
+    private func toggleShowPastTasks() {
+        withAnimation(.easeInOut) {
+            showPastTasksStorage.toggle()
         }
     }
 }

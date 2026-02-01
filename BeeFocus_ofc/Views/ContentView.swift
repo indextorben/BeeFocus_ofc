@@ -38,50 +38,12 @@ struct ContentView: View {
                         TodoListView()
                             .environmentObject(todoStore)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .toolbar {
-                                ToolbarItem(placement: .primaryAction) {
-                                    Menu {
-                                        Button(role: .none) {
-                                            showingDeleteByDateSheet = true
-                                        } label: {
-                                            Label("Vergangene nach Zeitraum…", systemImage: "calendar")
-                                        }
-                                        Button(role: .destructive) {
-                                            showingConfirmMoveCompleted = true
-                                        } label: {
-                                            Label("Abgeschlossene in Papierkorb", systemImage: "trash")
-                                        }
-                                    } label: {
-                                        Image(systemName: "trash")
-                                    }
-                                    .help("Löschoptionen")
-                                }
-                            }
                     }
                 } else {
                     NavigationStack {
                         TodoListView()
                             .environmentObject(todoStore)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .toolbar {
-                                ToolbarItem(placement: .primaryAction) {
-                                    Menu {
-                                        Button(role: .none) {
-                                            showingDeleteByDateSheet = true
-                                        } label: {
-                                            Label("Vergangene nach Zeitraum…", systemImage: "calendar")
-                                        }
-                                        Button(role: .destructive) {
-                                            showingConfirmMoveCompleted = true
-                                        } label: {
-                                            Label("Abgeschlossene in Papierkorb", systemImage: "trash")
-                                        }
-                                    } label: {
-                                        Image(systemName: "trash")
-                                    }
-                                    .help("Löschoptionen")
-                                }
-                            }
                     }
                 }
             }
@@ -269,4 +231,3 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
-
