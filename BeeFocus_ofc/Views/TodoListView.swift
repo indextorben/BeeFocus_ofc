@@ -57,6 +57,9 @@ struct TodoListView: View {
     @State private var showMailUnavailableAlert = false
     @State private var mailUnavailableMessage = ""
     
+    // New state for today-only filter from notification
+    @State private var showOnlyTodayFromNotification = false
+    
     // New states for delete snackbar
     @State private var showDeleteSnackbar = false
     @State private var lastDeletedTitle: String = ""
@@ -159,6 +162,11 @@ struct TodoListView: View {
                         }
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .openTodayDueFromNotification)) { _ in
+                    // Reset category to all and enable today filter
+                    selectedCategory = nil
+                    showOnlyTodayFromNotification = true
+                }
         }
         .modifier(AlertModifiers(
             showingDeleteAlert: $showingDeleteAlert,
@@ -244,8 +252,12 @@ struct TodoListView: View {
     
     var filteredTodos: [TodoItem] {
         let baseTodos = todoStore.todos.isEmpty ? readLocalTodosFallback() : todoStore.todos
+
+        let todayStart = Calendar.current.startOfDay(for: Date())
+        let todayEnd = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: todayStart) ?? Date()
+
         return baseTodos.filter { todo in
-            // Break down into simpler booleans to help the type checker
+            // Search
             let matchesSearch: Bool
             if searchText.isEmpty {
                 matchesSearch = true
@@ -255,21 +267,30 @@ struct TodoListView: View {
                 matchesSearch = inTitle || inDescription
             }
 
-            let matchesCategory: Bool
-            if let selected = selectedCategory {
-                matchesCategory = (todo.category == selected)
-            } else {
-                matchesCategory = true
-            }
+            // Category
+            let matchesCategory: Bool = {
+                if let selected = selectedCategory {
+                    return (todo.category == selected)
+                } else {
+                    return true
+                }
+            }()
 
-            // Show all (including completed or overdue) when toggled
+            // Today filter (if triggered by notification)
+            let matchesToday: Bool = {
+                guard showOnlyTodayFromNotification else { return true }
+                guard let due = todo.dueDate else { return false }
+                return due <= todayEnd // heute fällig oder überfällig
+            }()
+
+            // Show all when toggled
             if showPastTasks {
-                return matchesSearch && matchesCategory
+                return matchesSearch && matchesCategory && matchesToday
             }
 
-            // Default: hide only completed; keep overdue but not completed visible
+            // Default: hide completed
             let isNotCompleted = !todo.isCompleted
-            return matchesSearch && matchesCategory && isNotCompleted
+            return matchesSearch && matchesCategory && matchesToday && isNotCompleted
         }
     }
     
@@ -696,6 +717,7 @@ struct TodoListView: View {
                         color: .blue
                     ) {
                         selectedCategory = nil
+                        showOnlyTodayFromNotification = false
                     }
                     
                     ForEach(Array(todoStore.categories.enumerated()), id: \.element) { index, category in
@@ -821,6 +843,7 @@ struct TodoListView: View {
             color: .blue
         ) {
             selectedCategory = category
+            showOnlyTodayFromNotification = false
         }
         .contextMenu {
             Button {

@@ -13,6 +13,9 @@ struct EinstellungenView: View {
     @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled = false
     @AppStorage("autoDeleteCompletedDays") private var autoDeleteCompletedDays = 30
     
+    @AppStorage("morningSummaryEnabled") private var morningSummaryEnabled: Bool = true
+    @AppStorage("morningSummaryTime") private var morningSummaryTime: Double = 6 * 3600 // seconds from midnight (default 06:00)
+    
     @State private var showNotificationBanner = false
     @State private var notificationMessage = ""
     @State private var bannerColor: Color = .green
@@ -50,6 +53,40 @@ struct EinstellungenView: View {
                                     showBanner(message: localizer.localizedString(forKey: "Benachrichtigungen deaktiviert"))
                                 }
                             }
+
+                        Toggle("Morgendliche Übersicht", isOn: $morningSummaryEnabled)
+                            .onChange(of: morningSummaryEnabled) { enabled in
+                                if enabled {
+                                    scheduleMorningSummaryNow()
+                                } else {
+                                    NotificationManager.shared.cancelDailyMorningSummary()
+                                    bannerColor = .red
+                                    showBanner(message: localizer.localizedString(forKey: "Morgen-Übersicht deaktiviert"))
+                                }
+                            }
+
+                        if morningSummaryEnabled {
+                            HStack {
+                                Text("Uhrzeit")
+                                Spacer()
+                                // Simple time picker using DatePicker in hour/minute, bound via a computed Date from seconds since midnight
+                                DatePicker("", selection: Binding<Date>(
+                                    get: {
+                                        let seconds = morningSummaryTime
+                                        let today = Calendar.current.startOfDay(for: Date())
+                                        return today.addingTimeInterval(seconds)
+                                    },
+                                    set: { newDate in
+                                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                                        let h = comps.hour ?? 6
+                                        let m = comps.minute ?? 0
+                                        morningSummaryTime = Double(h * 3600 + m * 60)
+                                        scheduleMorningSummaryNow()
+                                    }
+                                ), displayedComponents: [.hourAndMinute])
+                                .labelsHidden()
+                            }
+                        }
                     }
 
                     // MARK: - Sprache
@@ -313,6 +350,36 @@ struct EinstellungenView: View {
         if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
+            }
+        }
+    }
+    
+    // MARK: - Morning Summary Scheduling
+    private func scheduleMorningSummaryNow() {
+        NotificationManager.shared.requestAuthorization { granted in
+            guard granted else {
+                DispatchQueue.main.async {
+                    bannerColor = .red
+                    showBanner(message: localizer.localizedString(forKey: "Benachrichtigungen abgelehnt"))
+                }
+                return
+            }
+            DispatchQueue.main.async {
+                let today = Calendar.current.startOfDay(for: Date())
+                let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: today) ?? Date()
+                let dueTodayOrOverdueNotCompleted = todoStore.todos.filter { todo in
+                    guard !todo.isCompleted else { return false }
+                    guard let due = todo.dueDate else { return false }
+                    return due <= endOfDay
+                }
+                let count = dueTodayOrOverdueNotCompleted.count
+                let body: String = (count == 0) ? "Heute stehen keine fälligen Aufgaben an." : (count == 1 ? "Heute ist 1 Aufgabe fällig." : "Heute sind \(count) Aufgaben fällig.")
+                let seconds = Int(morningSummaryTime)
+                let hour = max(0, min(23, seconds / 3600))
+                let minute = max(0, min(59, (seconds % 3600) / 60))
+                NotificationManager.shared.scheduleDailyMorningSummary(hour: hour, minute: minute, body: body)
+                bannerColor = .green
+                showBanner(message: localizer.localizedString(forKey: "Morgen-Übersicht aktualisiert"))
             }
         }
     }

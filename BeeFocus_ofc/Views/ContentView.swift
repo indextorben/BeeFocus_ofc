@@ -27,6 +27,8 @@ struct ContentView: View {
     
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("didSeedCloud") private var didSeedCloud = false
+    @AppStorage("morningSummaryEnabled") private var morningSummaryEnabled: Bool = true
+    @AppStorage("morningSummaryTime") private var morningSummaryTime: Double = 6 * 3600
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -143,6 +145,39 @@ struct ContentView: View {
             CloudKitManager.shared.fetchCategories { cloudCategories in
                 todoStore.applyCategoriesFromCloud(cloudCategories)
             }
+            // 🔔 Planen der morgendlichen Übersicht (konfigurierbar)
+            if morningSummaryEnabled {
+                NotificationManager.shared.requestAuthorization { granted in
+                    guard granted else { return }
+                    DispatchQueue.main.async {
+                        let today = Calendar.current.startOfDay(for: Date())
+                        let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: today) ?? Date()
+
+                        let dueTodayOrOverdueNotCompleted = todoStore.todos.filter { todo in
+                            guard !todo.isCompleted else { return false }
+                            guard let due = todo.dueDate else { return false }
+                            return due <= endOfDay
+                        }
+
+                        let count = dueTodayOrOverdueNotCompleted.count
+                        let body: String
+                        if count == 0 {
+                            body = "Heute stehen keine fälligen Aufgaben an."
+                        } else if count == 1 {
+                            body = "Heute ist 1 Aufgabe fällig."
+                        } else {
+                            body = "Heute sind \(count) Aufgaben fällig."
+                        }
+
+                        let seconds = Int(morningSummaryTime)
+                        let hour = max(0, min(23, seconds / 3600))
+                        let minute = max(0, min(59, (seconds % 3600) / 60))
+                        NotificationManager.shared.scheduleDailyMorningSummary(hour: hour, minute: minute, body: body)
+                    }
+                }
+            } else {
+                NotificationManager.shared.cancelDailyMorningSummary()
+            }
         }
         .sheet(isPresented: $showingDeleteByDateSheet) {
             NavigationStack {
@@ -222,6 +257,29 @@ struct ContentView: View {
                 CloudKitManager.shared.fetchCategories { cloudCategories in
                     todoStore.applyCategoriesFromCloud(cloudCategories)
                 }
+                // 🔄 Beim Aktivieren neu planen, damit die Zusammenfassung aktuell bleibt
+                if morningSummaryEnabled {
+                    NotificationManager.shared.requestAuthorization { granted in
+                        guard granted else { return }
+                        DispatchQueue.main.async {
+                            let today = Calendar.current.startOfDay(for: Date())
+                            let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: today) ?? Date()
+                            let dueTodayOrOverdueNotCompleted = todoStore.todos.filter { todo in
+                                guard !todo.isCompleted else { return false }
+                                guard let due = todo.dueDate else { return false }
+                                return due <= endOfDay
+                            }
+                            let count = dueTodayOrOverdueNotCompleted.count
+                            let body: String = (count == 0) ? "Heute stehen keine fälligen Aufgaben an." : (count == 1 ? "Heute ist 1 Aufgabe fällig." : "Heute sind \(count) Aufgaben fällig.")
+                            let seconds = Int(morningSummaryTime)
+                            let hour = max(0, min(23, seconds / 3600))
+                            let minute = max(0, min(59, (seconds % 3600) / 60))
+                            NotificationManager.shared.scheduleDailyMorningSummary(hour: hour, minute: minute, body: body)
+                        }
+                    }
+                } else {
+                    NotificationManager.shared.cancelDailyMorningSummary()
+                }
             }
         }
     }
@@ -231,3 +289,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+

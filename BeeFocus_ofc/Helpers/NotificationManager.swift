@@ -9,12 +9,17 @@ import Foundation
 import SwiftUI
 import UserNotifications
 
+extension Notification.Name {
+    static let openTodayDueFromNotification = Notification.Name("OpenTodayDueFromNotification")
+}
+
 class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
     private override init() {}
     
     private let timerNotificationID = "timerNotification"
     private let completionNotificationID = "completionNotification"
+    private let morningSummaryNotificationID = "morningSummaryNotification"
     
     func requestAuthorization(completion: @escaping (Bool) -> Void = { _ in }) {
         let center = UNUserNotificationCenter.current()
@@ -27,6 +32,9 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             }
         }
         center.delegate = self
+        
+        let openCategory = UNNotificationCategory(identifier: "MORNING_SUMMARY", actions: [], intentIdentifiers: [], options: [.customDismissAction])
+        center.setNotificationCategories([openCategory])
     }
     
     /// Planen einer Timer-Benachrichtigung nach gegebener Dauer (vorgegebene ID)
@@ -165,4 +173,52 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func removeTodoNotification(for todo: TodoItem) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [todo.id.uuidString])
     }
+    
+    /// Plant eine tägliche Morgen-Übersicht um eine feste Uhrzeit (Standard 06:00)
+    func scheduleDailyMorningSummary(hour: Int = 6, minute: Int = 0, body: String) {
+        // Entferne alte Planung, um Duplikate zu vermeiden
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [morningSummaryNotificationID])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Morgendliche Übersicht"
+        content.body = body
+        content.sound = .default
+        content.userInfo = ["action": "openToday"]
+        content.categoryIdentifier = "MORNING_SUMMARY"
+
+        var dateComponents = DateComponents()
+        dateComponents.hour = hour
+        dateComponents.minute = minute
+
+        // Täglich wiederkehrender Trigger
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+
+        let request = UNNotificationRequest(
+            identifier: morningSummaryNotificationID,
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Fehler beim Planen der Morgen-Übersicht: \(error)")
+            } else {
+                print("✅ Morgen-Übersicht geplant für \(hour):\(String(format: "%02d", minute))")
+            }
+        }
+    }
+
+    /// Entfernt die geplante tägliche Morgen-Übersicht
+    func cancelDailyMorningSummary() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [morningSummaryNotificationID])
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let info = response.notification.request.content.userInfo
+        if let action = info["action"] as? String, action == "openToday" {
+            NotificationCenter.default.post(name: .openTodayDueFromNotification, object: nil)
+        }
+        completionHandler()
+    }
 }
+
