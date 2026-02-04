@@ -129,12 +129,6 @@ struct EinstellungenView: View {
                                 showBanner(message: message)
                             }
                         }
-                        Button(localizer.localizedString(forKey: "Cloud-Testdaten löschen")) {
-                            CloudKitManager.shared.deleteAllTestTodos { deletedCount in
-                                bannerColor = .green
-                                showBanner(message: String(format: localizer.localizedString(forKey: "Gelöschte Testeinträge: %d"), deletedCount))
-                            }
-                        }
                         Button(localizer.localizedString(forKey: "deduplicate_categories")) {
                             showDeduplicateConfirm = true
                         }

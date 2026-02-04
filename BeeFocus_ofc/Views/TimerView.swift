@@ -50,24 +50,32 @@ struct TimerView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 30) {
+            VStack(spacing: 36) {
 
                 header
 
                 focusTodayBanner
 
-                ZStack {
-                    TimerProgressCircle(progress: progress)
-                    TimerDisplay(
-                        timeRemaining: timerManager.timeRemaining,
-                        isRunning: timerManager.isRunning
-                    )
+                GeometryReader { geo in
+                    let minSide = min(geo.size.width, geo.size.height)
+                    ZStack {
+                        TimerProgressCircle(progress: progress)
+                            .frame(width: minSide * 0.7, height: minSide * 0.7)
+                        TimerDisplay(
+                            timeRemaining: timerManager.timeRemaining,
+                            isRunning: timerManager.isRunning
+                        )
+                        .font(.system(size: minSide * 0.12, weight: .semibold, design: .rounded))
+                        .minimumScaleFactor(0.5)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .frame(height: 320)
 
                 Text(timerManager.isBreak
                      ? localizer.localizedString(forKey: "timer_break")
                      : "\(localizer.localizedString(forKey: "timer_focus_session")) \(sessionDisplay)")
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                     .foregroundColor(.secondary)
 
                 controls
@@ -186,7 +194,7 @@ struct TimerView: View {
         return HStack(spacing: 8) {
             Image(systemName: "flame.fill").foregroundColor(.orange)
             Text("\(dateText) · \(minutes) \(localizer.localizedString(forKey: "minutes_short"))")
-                .font(.subheadline)
+                .font(.headline)
                 .foregroundColor(.secondary)
         }
     }
