@@ -44,8 +44,6 @@ struct TodoListView: View {
     @State private var showingCategoryEdit = false
     @State private var isPlusPressed = false
     @State private var showSuccessToast = false
-    @State private var showingSortOptions = false
-    @State private var sortOption: SortOption = .dueDateAsc
     @AppStorage("showPastTasksGlobal") private var showPastTasksStorage = true
     private var showPastTasks: Bool {
         get { showPastTasksStorage }
@@ -186,28 +184,6 @@ struct TodoListView: View {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
     }
     
-    enum SortOption: CaseIterable, Hashable {
-        case dueDateAsc, dueDateDesc, titleAsc, titleDesc, createdDesc, categoryAsc, categoryDesc, priorityHighToLow, priorityLowToHigh
-
-        var localizationKey: String {
-            switch self {
-            case .dueDateAsc: return "sort_due_asc"
-            case .dueDateDesc: return "sort_due_desc"
-            case .titleAsc: return "sort_title_asc"
-            case .titleDesc: return "sort_title_desc"
-            case .createdDesc: return "sort_created_desc"
-            case .categoryAsc: return "sort_category_asc"
-            case .categoryDesc: return "sort_category_desc"
-            case .priorityHighToLow: return "sort_priority_high_to_low"
-            case .priorityLowToHigh: return "sort_priority_low_to_high"
-            }
-        }
-
-        var displayName: LocalizedStringKey {
-            LocalizedStringKey(localizationKey)
-        }
-    }
-    
     var sortedTodos: [TodoItem] {
         if isResortSuspended {
             // Return current filtered order without resorting to avoid janky moves during animations
@@ -219,31 +195,21 @@ struct TodoListView: View {
         
         func sort(_ array: [TodoItem]) -> [TodoItem] {
             return array.sorted { a, b in
+                let aHasDue = a.dueDate != nil
+                let bHasDue = b.dueDate != nil
+                if aHasDue != bHasDue {
+                    return aHasDue && !bHasDue // Items with dueDate first
+                }
+                if aHasDue && bHasDue {
+                    // Both have due dates: earliest first
+                    return (a.dueDate ?? .distantFuture) < (b.dueDate ?? .distantFuture)
+                }
+                // Neither has due: sort by priority High > Medium > Low
                 let pa = priorityRank(for: a)
                 let pb = priorityRank(for: b)
-                if pa != pb {
-                    return pa < pb // High (0) vor Medium (1) vor Low (2)
-                }
-                switch sortOption {
-                case .dueDateAsc:
-                    return (a.dueDate ?? .distantFuture) < (b.dueDate ?? .distantFuture)
-                case .dueDateDesc:
-                    return (a.dueDate ?? .distantPast) > (b.dueDate ?? .distantPast)
-                case .titleAsc:
-                    return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
-                case .titleDesc:
-                    return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedDescending
-                case .createdDesc:
-                    return a.createdAt > b.createdAt
-                case .categoryAsc:
-                    return (a.category?.name ?? "").localizedCaseInsensitiveCompare(b.category?.name ?? "") == .orderedAscending
-                case .categoryDesc:
-                    return (a.category?.name ?? "").localizedCaseInsensitiveCompare(b.category?.name ?? "") == .orderedDescending
-                case .priorityHighToLow:
-                    return priorityRank(for: a) < priorityRank(for: b)
-                case .priorityLowToHigh:
-                    return priorityRank(for: a) > priorityRank(for: b)
-                }
+                if pa != pb { return pa < pb }
+                // Tie-breaker: newer createdAt first
+                return a.createdAt > b.createdAt
             }
         }
         
@@ -386,60 +352,6 @@ struct TodoListView: View {
             HStack(spacing: 1) {
                 Button { showingSettings.toggle() } label: { Image(systemName: "gearshape") }
 
-                Menu {
-                    // Standard
-                    Button(localizer.localizedString(forKey: "Standard wiederherstellen")) { sortOption = .dueDateAsc }
-
-                    // Fälligkeit
-                    Section(header: Text(localizer.localizedString(forKey: "Fälligkeit"))) {
-                        Button(action: { sortOption = .dueDateAsc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_due_asc")), systemImage: sortOption == .dueDateAsc ? "checkmark" : "")
-                        }
-                        Button(action: { sortOption = .dueDateDesc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_due_desc")), systemImage: sortOption == .dueDateDesc ? "checkmark" : "")
-                        }
-                    }
-
-                    // Titel
-                    Section(header: Text(localizer.localizedString(forKey: "Titel"))) {
-                        Button(action: { sortOption = .titleAsc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_title_asc")), systemImage: sortOption == .titleAsc ? "checkmark" : "")
-                        }
-                        Button(action: { sortOption = .titleDesc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_title_desc")), systemImage: sortOption == .titleDesc ? "checkmark" : "")
-                        }
-                    }
-
-                    // Kategorie
-                    Section(header: Text(localizer.localizedString(forKey: "Kategorie"))) {
-                        Button(action: { sortOption = .categoryAsc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_category_asc")), systemImage: sortOption == .categoryAsc ? "checkmark" : "")
-                        }
-                        Button(action: { sortOption = .categoryDesc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_category_desc")), systemImage: sortOption == .categoryDesc ? "checkmark" : "")
-                        }
-                    }
-
-                    // Priorität
-                    Section(header: Text(localizer.localizedString(forKey: "Priorität"))) {
-                        Button(action: { sortOption = .priorityHighToLow }) {
-                            Label(String(localizer.localizedString(forKey: "sort_priority_high_to_low")), systemImage: sortOption == .priorityHighToLow ? "checkmark" : "")
-                        }
-                        Button(action: { sortOption = .priorityLowToHigh }) {
-                            Label(String(localizer.localizedString(forKey: "sort_priority_low_to_high")), systemImage: sortOption == .priorityLowToHigh ? "checkmark" : "")
-                        }
-                    }
-
-                    // Erstellung
-                    Section(header: Text(localizer.localizedString(forKey: "Erstellung"))) {
-                        Button(action: { sortOption = .createdDesc }) {
-                            Label(String(localizer.localizedString(forKey: "sort_created_desc")), systemImage: sortOption == .createdDesc ? "checkmark" : "")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "arrow.up.arrow.down")
-                }
-                
                 Button {
                     withAnimation { isSelecting.toggle() }
                     if !isSelecting { selectedTodoIDs.removeAll() }
@@ -514,7 +426,7 @@ struct TodoListView: View {
                     Button {
                         showingDeleteCompletedByDateSheet = true
                     } label: {
-                        Label(localizer.localizedString(forKey: "Abgeschlossene nach Zeitraum…"), systemImage: "calendar")
+                        Label(localizer.localizedString(forKey: "Nach Zeitraum löschen"), systemImage: "calendar")
                     }
                     Button(role: .destructive) {
                         showingConfirmTrashCompleted = true

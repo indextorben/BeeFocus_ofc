@@ -40,6 +40,9 @@ final class TimerManager: ObservableObject {
     @Published var currentSession: Int = 1
 
     // MARK: - Internals
+    private var plannedFocusDuration: TimeInterval = 0
+    private var elapsedFocusSeconds: TimeInterval = 0
+    private var nextLiveMinuteThreshold: TimeInterval = 60
     private var timer: Timer?
     private var activity: Activity<TimerActivityAttributes>?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
@@ -77,6 +80,24 @@ final class TimerManager: ObservableObject {
                 : TimeInterval(shortBreakTime * 60))
             : TimeInterval(focusTime * 60)
 
+        // Track planned focus duration only for focus sessions
+        if !isBreak {
+            plannedFocusDuration = timeRemaining
+        } else {
+            plannedFocusDuration = 0
+        }
+
+        // Reset live minute tracking
+        if !isBreak {
+            elapsedFocusSeconds = 0
+            nextLiveMinuteThreshold = 60
+        } else {
+            elapsedFocusSeconds = 0
+            nextLiveMinuteThreshold = 60
+        }
+
+        print("▶️ New session started (isBreak=\(isBreak)), plannedFocusDuration=\(plannedFocusDuration)s")
+
         resume()
     }
 
@@ -89,8 +110,24 @@ final class TimerManager: ObservableObject {
         guard !isRunning else { return }
 
         isRunning = true
+
+        // Ensure planned focus duration is set when resuming a focus session
+        if !isBreak && plannedFocusDuration <= 0 {
+            // If restoring, planned duration is the remaining time at resume start
+            plannedFocusDuration = max(timeRemaining, TimeInterval(focusTime * 60))
+        }
+
+        if !isBreak && elapsedFocusSeconds <= 0 {
+            // Start counting from 0 for live accumulation when resuming
+            elapsedFocusSeconds = max(0, plannedFocusDuration - timeRemaining)
+            // Align next threshold to the next full minute boundary
+            let remainder = elapsedFocusSeconds.truncatingRemainder(dividingBy: 60)
+            nextLiveMinuteThreshold = remainder == 0 ? 60 : (60 - remainder)
+        }
+
         startTimer()
         saveState()
+        print("🔔 Scheduling timer notification with duration=\(timeRemaining)s (isBreak=\(isBreak))")
         scheduleNotification()
 
         if backgroundTaskID == .invalid {
@@ -130,7 +167,13 @@ final class TimerManager: ObservableObject {
     }
 
     func forceComplete() {
+        let wasFocus = !isBreak
         stopInternal()
+        // timeRemaining is whatever remained at force moment; keep it for calculation
+        // Count worked minutes if we were in a focus session
+        if wasFocus {
+            postWorkedMinutesIfNeeded()
+        }
         timeRemaining = 0
         timerCompleted()
     }
@@ -150,6 +193,17 @@ final class TimerManager: ObservableObject {
             guard let self, self.isRunning else { return }
 
             self.timeRemaining -= 1
+
+            // Live minute accumulation during focus sessions
+            if self.isRunning && !self.isBreak {
+                self.elapsedFocusSeconds += 1
+                if self.elapsedFocusSeconds >= self.nextLiveMinuteThreshold {
+                    // Post +1 minute and move threshold forward by 60s
+                    print("🟢 Live minute tick: +1 (elapsed=\(self.elapsedFocusSeconds)s)")
+                    NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": 1])
+                    self.nextLiveMinuteThreshold += 60
+                }
+            }
 
             Task {
                 await self.activity?.update(using: self.liveState())
@@ -191,11 +245,9 @@ final class TimerManager: ObservableObject {
 
         NotificationManager.shared.sendCompletionNotification(isBreak: isBreak)
 
-        // Post focus session completion (minutes) when a work session ends
+        // Post focus session completion (minutes) when a work session ends, using actual worked time
         if isBreak == true { // we just transitioned to break, meaning a focus session finished
-            let workedSeconds: TimeInterval = TimeInterval(focusTime * 60)
-            let workedMinutes = max(1, Int(workedSeconds / 60))
-            NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": workedMinutes])
+            postWorkedMinutesIfNeeded()
         }
 
         saveState()
@@ -260,6 +312,31 @@ final class TimerManager: ObservableObject {
         }
     }
 
+    private func postWorkedMinutesIfNeeded() {
+        // Only count when a focus session has been running
+        guard !isBreak else { return }
+
+        // Compute actually worked seconds as planned minus remaining
+        let workedSeconds = max(0, plannedFocusDuration - timeRemaining)
+
+        // Compute remainder under 60s that hasn't been posted live yet
+        let remainder = workedSeconds.truncatingRemainder(dividingBy: 60)
+        var roundedRemainderMinutes = 0
+        if remainder >= 30 { roundedRemainderMinutes = 1 }
+
+        if roundedRemainderMinutes > 0 {
+            print("⏱️ Posting remainder minute due to completion: remainderSeconds=\(remainder), +\(roundedRemainderMinutes) min")
+            NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": roundedRemainderMinutes])
+        } else {
+            print("⏱️ No remainder minute to post (remainderSeconds=\(remainder))")
+        }
+
+        // Reset trackers after posting to avoid double counting
+        plannedFocusDuration = 0
+        elapsedFocusSeconds = 0
+        nextLiveMinuteThreshold = 60
+    }
+
     // MARK: - Notifications
     private func scheduleNotification() {
         let title = isBreak ? "Pause beendet" : "Fokuszeit vorbei"
@@ -272,3 +349,4 @@ final class TimerManager: ObservableObject {
         )
     }
 }
+

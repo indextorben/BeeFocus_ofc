@@ -296,7 +296,11 @@ class TodoStore: ObservableObject {
         NotificationCenter.default.addObserver(forName: .focusSessionCompleted, object: nil, queue: .main) { [weak self] note in
             guard let self = self else { return }
             let minutes = (note.userInfo?["minutes"] as? Int) ?? 0
+            print("📥 focusSessionCompleted received: minutes=\(minutes)")
+            let before = self.dailyFocusMinutes[Calendar.current.startOfDay(for: Date())] ?? 0
             self.addFocusMinutes(minutes, on: Date())
+            let after = self.dailyFocusMinutes[Calendar.current.startOfDay(for: Date())] ?? 0
+            print("📊 Focus minutes updated: before=\(before) after=\(after)")
         }
         
         // Starte periodischen Cloud-Sync
@@ -763,8 +767,10 @@ class TodoStore: ObservableObject {
     func addFocusMinutes(_ minutes: Int, on date: Date) {
         guard minutes > 0 else { return }
         let day = Calendar.current.startOfDay(for: date)
-        let newTotal = (dailyFocusMinutes[day] ?? 0) + minutes
+        let before = dailyFocusMinutes[day] ?? 0
+        let newTotal = before + minutes
         dailyFocusMinutes[day] = newTotal
+        print("➕ Adding focus minutes: +\(minutes) (before=\(before) -> after=\(newTotal)) on \(day)")
         saveFocusMinutes()
         CloudKitManager.shared.saveFocusStat(date: day, minutes: newTotal)
         DispatchQueue.main.async { self.objectWillChange.send() }

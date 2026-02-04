@@ -10,7 +10,7 @@ struct CalendarView: View {
     @State private var currentMonth: Date = Date()
 
     private let calendar = Calendar.current
-    private let daysOfWeekKeys = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] // Übersetzbar
+    private let daysOfWeekKeys = ["weekday_mon", "weekday_tue", "weekday_wed", "weekday_thu", "weekday_fri", "weekday_sat", "weekday_sun"] // Übersetzbar
 
     // MARK: - Colors
     private var accentBlue: Color { .blue }
@@ -33,7 +33,7 @@ struct CalendarView: View {
                 }
                 .padding()
             }
-            .navigationTitle(localizer.localizedString(forKey: "Kalender"))
+            .navigationTitle(localizer.localizedString(forKey: "calendar_title"))
         }
     }
 
@@ -43,7 +43,7 @@ struct CalendarView: View {
             Button(action: { changeMonth(by: -1) }) {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
-                    Text(localizer.localizedString(forKey: "-"))
+                    Text(localizer.localizedString(forKey: "prev"))
                         .font(.subheadline.bold())
                 }
                 .padding(.horizontal, 12)
@@ -61,7 +61,7 @@ struct CalendarView: View {
 
             Button(action: { changeMonth(by: 1) }) {
                 HStack(spacing: 4) {
-                    Text(localizer.localizedString(forKey: "+"))
+                    Text(localizer.localizedString(forKey: "next"))
                         .font(.subheadline.bold())
                     Image(systemName: "chevron.right")
                 }
@@ -150,13 +150,13 @@ struct CalendarView: View {
     // MARK: - Todo Card
     private var todoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("\(localizer.localizedString(forKey: "Aufgaben am")) \(formattedDate(selectedDate))")
+            Text("\(localizer.localizedString(forKey: "tasks_on")) \(formattedDate(selectedDate))")
                 .font(.headline)
 
             let todos = todosForDay(selectedDate)
 
             if todos.isEmpty {
-                Text(localizer.localizedString(forKey: "Keine Aufgaben. Chill mal 😴"))
+                Text(localizer.localizedString(forKey: "no_tasks_relax"))
                     .foregroundColor(.secondary)
             } else {
                 ForEach(todos) { todo in
@@ -242,6 +242,7 @@ struct CalendarView: View {
 struct TodoDetailView: View {
     @EnvironmentObject var todoStore: TodoStore
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var isCompleted: Bool
     let todo: TodoItem
     
@@ -264,11 +265,11 @@ struct TodoDetailView: View {
         let today = Calendar.current.startOfDay(for: Date())
         let due = Calendar.current.startOfDay(for: dueDate)
         if due < today {
-            return ("exclamationmark.triangle.fill", "Überfällig", overdueColor)
+            return ("exclamationmark.triangle.fill", localizer.localizedString(forKey: "overdue"), overdueColor)
         } else if due == today {
-            return ("clock.badge.exclamationmark", "Fällig heute", dueSoonColor)
+            return ("clock.badge.exclamationmark", localizer.localizedString(forKey: "due_today"), dueSoonColor)
         } else if due <= Calendar.current.date(byAdding: .day, value: 2, to: today) ?? today {
-            return ("hourglass", "Bald fällig", dueSoonColor)
+            return ("hourglass", localizer.localizedString(forKey: "due_soon"), dueSoonColor)
         }
         return nil
     }
@@ -309,7 +310,7 @@ struct TodoDetailView: View {
                                         .foregroundColor(status.color)
                                         .font(.subheadline.bold())
                                 }
-                                Text("Fällig am: ")
+                                Text(localizer.localizedString(forKey: "due_on"))
                                     .foregroundColor(.secondary)
                                     .font(.subheadline)
                                 Text(dueDate.formatted(.dateTime.day().month().year()))
@@ -320,7 +321,7 @@ struct TodoDetailView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.seal")
                                     .foregroundColor(completedColor)
-                                Text("Erledigt!")
+                                Text(localizer.localizedString(forKey: "completed_exclaim"))
                                     .font(.subheadline.bold())
                                     .foregroundColor(completedColor)
                             }
@@ -334,10 +335,10 @@ struct TodoDetailView: View {
 
                     // Details Card
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("Details")
+                        Text(localizer.localizedString(forKey: "details"))
                             .font(.headline)
                             .padding(.bottom, 2)
-                        Text(todo.description.isEmpty ? "Keine weiteren Details." : todo.description)
+                        Text(todo.description.isEmpty ? localizer.localizedString(forKey: "no_further_details") : todo.description)
                             .font(.body)
                             .foregroundColor(.primary)
                     }
@@ -348,7 +349,7 @@ struct TodoDetailView: View {
                     // Subtasks Card
                     if !todo.subTasks.isEmpty {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Unteraufgaben")
+                            Text(localizer.localizedString(forKey: "subtasks"))
                                 .font(.headline)
                             ForEach(todo.subTasks) { sub in
                                 HStack {
@@ -373,7 +374,7 @@ struct TodoDetailView: View {
                 .padding(.bottom, 44)
             }
         }
-        .navigationTitle("Aufgabe")
+        .navigationTitle(localizer.localizedString(forKey: "task"))
         .navigationBarTitleDisplayMode(.inline)
     }
 

@@ -105,7 +105,7 @@ struct TimerView: View {
         }
 
         .alert(localizer.localizedString(forKey: "timer_notification_title"), isPresented: $showingNotificationAlert) {
-            Button("OK", role: .cancel) { }
+            Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
         } message: {
             Text(localizer.localizedString(forKey: "timer_notification_message"))
         }

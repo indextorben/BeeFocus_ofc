@@ -268,6 +268,8 @@
 "add" = "Hinzufügen";
 "delete" = "Löschen";
 "settings" = "Einstellungen";
+"time" = "Zeit";
+"morning_summary_toggle" = "Morgendliche Zusammenfassung";
 
 /* AddTodoView / EditTodoView */
 "new_task_title" = "Neue Aufgabe";
@@ -475,3 +477,24 @@
 "reset_statistics_confirm_message" = "Alle Statistikdaten (Erledigte pro Tag und Fokusminuten) werden unwiderruflich gelöscht.";
 "reset" = "Zurücksetzen";
 "reset_statistics_done" = "Statistik zurückgesetzt";
+/* CalendarView Lokalisierung (DE) */
+"calendar_title" = "Kalender";
+"weekday_mon" = "Mo";
+"weekday_tue" = "Di";
+"weekday_wed" = "Mi";
+"weekday_thu" = "Do";
+"weekday_fri" = "Fr";
+"weekday_sat" = "Sa";
+"weekday_sun" = "So";
+"prev" = "Zurück";
+"next" = "Weiter";
+"tasks_on" = "Aufgaben am";
+"no_tasks_relax" = "Keine Aufgaben. Chill mal 😴";
+"due_today" = "Fällig heute";
+"due_soon" = "Bald fällig";
+"due_on" = "Fällig am:";
+"completed_exclaim" = "Erledigt!";
+"details" = "Details";
+"no_further_details" = "Keine weiteren Details.";
+"task" = "Aufgabe";
+

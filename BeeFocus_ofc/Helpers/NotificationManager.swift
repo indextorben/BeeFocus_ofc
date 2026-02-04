@@ -14,6 +14,7 @@ extension Notification.Name {
 }
 
 class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
+    private let localizer = LocalizationManager.shared
     static let shared = NotificationManager()
     private override init() {}
     
@@ -88,8 +89,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// Sofortige Notification zum Abschluss, z. B. nach Timer-Ende
     func sendCompletionNotification(isBreak: Bool) {
         let content = UNMutableNotificationContent()
-        content.title = isBreak ? "Pause starten!" : "Zeit für eine Pause!"
-        content.body = isBreak ? "Die Fokuszeit ist vorbei. Entspann dich kurz!" : "Die Pause ist vorbei. Zeit zum Arbeiten!"
+        content.title = localizer.localizedString(forKey: isBreak ? "notification_break_title" : "notification_work_title")
+        content.body = localizer.localizedString(forKey: isBreak ? "notification_break_body" : "notification_work_body")
         content.sound = .default
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
@@ -116,8 +117,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// Manuelle Testbenachrichtigung (z. B. über Button)
     func sendTestNotification() {
         let content = UNMutableNotificationContent()
-        content.title = "Testbenachrichtigung"
-        content.body = "Dies ist eine Testnachricht von BeeFocus"
+        content.title = localizer.localizedString(forKey: "test_notification_title")
+        content.body = localizer.localizedString(forKey: "test_notification_body")
         content.sound = .default
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
@@ -144,7 +145,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         
         let content = UNMutableNotificationContent()
         content.title = "📝 \(todo.title)"
-        content.body = todo.description ?? "Du hast eine Aufgabe zu erledigen."
+        let bodyText = todo.description.isEmpty ? localizer.localizedString(forKey: "todo_default_body") : todo.description
+        content.body = bodyText
         content.sound = .default
         
         let triggerDate = Calendar.current.dateComponents(
@@ -180,7 +182,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [morningSummaryNotificationID])
 
         let content = UNMutableNotificationContent()
-        content.title = "Morgendliche Übersicht"
+        content.title = localizer.localizedString(forKey: "morning_summary_title")
         content.body = body
         content.sound = .default
         content.userInfo = ["action": "openToday"]

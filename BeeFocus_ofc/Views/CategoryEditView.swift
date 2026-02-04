@@ -144,6 +144,7 @@ struct CategoryRow: View {
     @Binding var editingCategory: Category?
     @FocusState var focusedCategoryID: UUID?
     let todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     var body: some View {
         HStack(spacing: 14) {
@@ -158,7 +159,7 @@ struct CategoryRow: View {
 
             if editingCategory?.id == category.id {
                 TextField(
-                    "Kategorie bearbeiten",
+                    localizer.localizedString(forKey: "category_edit_placeholder"),
                     text: Binding(
                         get: { editingCategory?.name ?? "" },
                         set: { newValue in

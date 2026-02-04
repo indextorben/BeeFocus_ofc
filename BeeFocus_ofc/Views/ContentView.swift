@@ -162,11 +162,11 @@ struct ContentView: View {
                         let count = dueTodayOrOverdueNotCompleted.count
                         let body: String
                         if count == 0 {
-                            body = "Heute stehen keine fälligen Aufgaben an."
+                            body = localizer.localizedString(forKey: "morning_summary_body_none")
                         } else if count == 1 {
-                            body = "Heute ist 1 Aufgabe fällig."
+                            body = localizer.localizedString(forKey: "morning_summary_body_one")
                         } else {
-                            body = "Heute sind \(count) Aufgaben fällig."
+                            body = String(format: localizer.localizedString(forKey: "morning_summary_body_many"), count)
                         }
 
                         let seconds = Int(morningSummaryTime)
@@ -270,7 +270,14 @@ struct ContentView: View {
                                 return due <= endOfDay
                             }
                             let count = dueTodayOrOverdueNotCompleted.count
-                            let body: String = (count == 0) ? "Heute stehen keine fälligen Aufgaben an." : (count == 1 ? "Heute ist 1 Aufgabe fällig." : "Heute sind \(count) Aufgaben fällig.")
+                            let body: String
+                            if count == 0 {
+                                body = localizer.localizedString(forKey: "morning_summary_body_none")
+                            } else if count == 1 {
+                                body = localizer.localizedString(forKey: "morning_summary_body_one")
+                            } else {
+                                body = String(format: localizer.localizedString(forKey: "morning_summary_body_many"), count)
+                            }
                             let seconds = Int(morningSummaryTime)
                             let hour = max(0, min(23, seconds / 3600))
                             let minute = max(0, min(59, (seconds % 3600) / 60))

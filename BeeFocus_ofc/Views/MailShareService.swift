@@ -4,6 +4,8 @@ import UIKit
 import MessageUI
 
 final class MailShareService: ObservableObject {
+    private let localizer = LocalizationManager.shared
+
     struct MailComposerData: Identifiable {
         let id = UUID()
         let subject: String
@@ -15,7 +17,7 @@ final class MailShareService: ObservableObject {
     @Published var mailComposerData: MailComposerData?
 
     func shareTodosByMail(_ todos: [TodoItem], languageCode: String, recipients: [String]? = nil) {
-        let subject = LocalizationManager.shared.localizedString(forKey: "Todos Export")
+        let subject = localizer.localizedString(forKey: "mail_export_subject")
         let body = formattedTodoList(todos, languageCode: languageCode)
         if MFMailComposeViewController.canSendMail() {
             mailComposerData = MailComposerData(subject: subject, body: body, recipients: recipients)
@@ -29,13 +31,17 @@ final class MailShareService: ObservableObject {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         formatter.locale = Locale(identifier: languageCode)
+
+        let labelCategory = localizer.localizedString(forKey: "label_category")
+        let labelDue = localizer.localizedString(forKey: "label_due")
+
         return todos.map { todo in
             let title = todo.title
             let category = todo.category?.name ?? "-"
             let due: String
             if let d = todo.dueDate { due = formatter.string(from: d) } else { due = "—" }
             let status = todo.isCompleted ? "✅" : "⬜️"
-            return "\(status) \(title)\n  Kategorie: \(category)\n  Fällig bis: \(due)\n"
+            return "\(status) \(title)\n  \(labelCategory): \(category)\n  \(labelDue): \(due)\n"
         }.joined(separator: "\n")
     }
 

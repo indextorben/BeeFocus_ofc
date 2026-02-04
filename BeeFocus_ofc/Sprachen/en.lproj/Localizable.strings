@@ -267,6 +267,8 @@
 "add" = "Add";
 "delete" = "Delete";
 "settings" = "Settings";
+"time" = "time";
+"morning_summary_toggle" = "morning summary"; 
 
 /* AddTodoView / EditTodoView */
 "new_task_title" = "New Task";
@@ -455,6 +457,8 @@
 "Bitte richten Sie die Mail-App ein, um E-Mails zu senden." = "Please set up the Mail app to send emails.";
 "Was möchten Sie tun?" = "What would you like to do?";
 "Timer" = "Timer";
+"Nach Zeitraum löschen" = "Completed by period delete";
+"Abgeschlossene in Papierkorb" = "Completed by period delete";
 
 // English-key aliases for the same phrases
 "confirm_delete_todo_message" = "Do you really want to delete this task?";
@@ -466,3 +470,24 @@
 "email_unavailable" = "Email not available";
 "mailto_setup_message" = "Please set up the Mail app to send emails.";
 "what_would_you_like_to_do" = "What would you like to do?";
+/* CalendarView localization (keys used in code) */
+"calendar_title" = "Calendar";
+"weekday_mon" = "Mon";
+"weekday_tue" = "Tue";
+"weekday_wed" = "Wed";
+"weekday_thu" = "Thu";
+"weekday_fri" = "Fri";
+"weekday_sat" = "Sat";
+"weekday_sun" = "Sun";
+"prev" = "Previous";
+"next" = "Next";
+"tasks_on" = "Tasks on";
+"no_tasks_relax" = "No tasks. Relax 😴";
+"due_today" = "Due today";
+"due_soon" = "Due soon";
+"due_on" = "Due on:";
+"completed_exclaim" = "Completed!";
+"details" = "Details";
+"no_further_details" = "No further details.";
+"task" = "Task";
+

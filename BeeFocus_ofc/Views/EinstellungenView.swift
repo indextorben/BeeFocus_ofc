@@ -54,7 +54,7 @@ struct EinstellungenView: View {
                                 }
                             }
 
-                        Toggle("Morgendliche Übersicht", isOn: $morningSummaryEnabled)
+                        Toggle(localizer.localizedString(forKey: "morning_summary_toggle"), isOn: $morningSummaryEnabled)
                             .onChange(of: morningSummaryEnabled) { enabled in
                                 if enabled {
                                     scheduleMorningSummaryNow()
@@ -67,7 +67,7 @@ struct EinstellungenView: View {
 
                         if morningSummaryEnabled {
                             HStack {
-                                Text("Uhrzeit")
+                                Text(localizer.localizedString(forKey: "time"))
                                 Spacer()
                                 // Simple time picker using DatePicker in hour/minute, bound via a computed Date from seconds since midnight
                                 DatePicker("", selection: Binding<Date>(
@@ -338,7 +338,7 @@ struct EinstellungenView: View {
             }
         }
         bannerColor = .green
-        showBanner(message: localizer.localizedString(forKey: "Löschung abgeschlossen"))
+        showBanner(message: localizer.localizedString(forKey: "deletion_done"))
     }
     
     // MARK: - Feedback Email
@@ -373,7 +373,16 @@ struct EinstellungenView: View {
                     return due <= endOfDay
                 }
                 let count = dueTodayOrOverdueNotCompleted.count
-                let body: String = (count == 0) ? "Heute stehen keine fälligen Aufgaben an." : (count == 1 ? "Heute ist 1 Aufgabe fällig." : "Heute sind \(count) Aufgaben fällig.")
+                
+                let body: String
+                if count == 0 {
+                    body = localizer.localizedString(forKey: "morning_summary_body_none")
+                } else if count == 1 {
+                    body = localizer.localizedString(forKey: "morning_summary_body_one")
+                } else {
+                    body = String(format: localizer.localizedString(forKey: "morning_summary_body_many"), count)
+                }
+                
                 let seconds = Int(morningSummaryTime)
                 let hour = max(0, min(23, seconds / 3600))
                 let minute = max(0, min(59, (seconds % 3600) / 60))
