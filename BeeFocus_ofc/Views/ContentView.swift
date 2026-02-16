@@ -116,6 +116,18 @@ struct ContentView: View {
                 Label(localizer.localizedString(forKey: "Statistik"), systemImage: "chart.bar")
             }
             .tag(3)
+            
+            // MARK: - Weekly Goals Tab
+            Group {
+                NavigationStack {
+                    WeeklyGoalsView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .tabItem {
+                Label(localizer.localizedString(forKey: "Ziele"), systemImage: "target")
+            }
+            .tag(4)
         }
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
         .onAppear {

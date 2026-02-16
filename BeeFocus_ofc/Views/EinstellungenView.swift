@@ -331,8 +331,6 @@ struct EinstellungenView: View {
                 todoStore.todos.remove(at: idx)
             }
         }
-        bannerColor = .green
-        showBanner(message: localizer.localizedString(forKey: "deletion_done"))
     }
     
     // MARK: - Feedback Email
