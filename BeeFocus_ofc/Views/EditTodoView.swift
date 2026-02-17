@@ -38,6 +38,7 @@ struct EditTodoView: View {
     // MARK: - Kalender
     @State private var addToCalendar = false
     @State private var calendarAccessDenied = false
+    @State private var selectedWeekOption: String? = nil
     
     // MARK: - Localization
     @ObservedObject private var localizer = LocalizationManager.shared
@@ -117,6 +118,15 @@ struct EditTodoView: View {
                 Text(localizer.localizedString(forKey: "calendar_access_denied_message"))
             }
         }
+        .onAppear {
+            if hasDueDate { selectedWeekOption = presetLabel(for: dueDate) }
+        }
+        .onChange(of: dueDate) { _, newValue in
+            selectedWeekOption = hasDueDate ? presetLabel(for: newValue) : nil
+        }
+        .onChange(of: hasDueDate) { _, newValue in
+            if !newValue { selectedWeekOption = nil }
+        }
     }
     
     // MARK: - Sections
@@ -176,6 +186,56 @@ struct EditTodoView: View {
     private var calendarToggleSection: some View {
         Section {
             Toggle(localizer.localizedString(forKey: "add_to_calendar_toggle"), isOn: $addToCalendar)
+            
+            Menu {
+                Button("Heute") {
+                    withAnimation {
+                        hasDueDate = true
+                        dueDate = Date().endOfDay
+                        selectedWeekOption = "Heute"
+                    }
+                }
+                Button("Mitte der Woche") {
+                    withAnimation {
+                        hasDueDate = true
+                        let cal = Calendar.current
+                        let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
+                        let mid = cal.date(byAdding: .day, value: 3, to: start) ?? start
+                        dueDate = mid.endOfDay
+                        selectedWeekOption = "Mitte der Woche"
+                    }
+                }
+                Button("Ende dieser Woche") {
+                    withAnimation {
+                        hasDueDate = true
+                        let cal = Calendar.current
+                        let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
+                        let end = cal.date(byAdding: .day, value: 6, to: start)?.endOfDay ?? Date()
+                        dueDate = end
+                        selectedWeekOption = "Ende dieser Woche"
+                    }
+                }
+                Button("Ende nächster Woche") {
+                    withAnimation {
+                        hasDueDate = true
+                        let cal = Calendar.current
+                        let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
+                        let nextStart = cal.date(byAdding: .weekOfYear, value: 1, to: start) ?? start
+                        let nextEnd = cal.date(byAdding: .day, value: 6, to: nextStart)?.endOfDay ?? nextStart
+                        dueDate = nextEnd
+                        selectedWeekOption = "Ende nächster Woche"
+                    }
+                }
+                Divider()
+                Button("Benutzerdefiniert…") { /* Nutzer wählt im DatePicker selbst */ }
+            } label: {
+                if let sel = selectedWeekOption, !sel.isEmpty {
+                    Label("Als Wochenziel setzen: \(sel)", systemImage: "target")
+                } else {
+                    Label("Als Wochenziel setzen", systemImage: "target")
+                }
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
     
@@ -275,6 +335,24 @@ struct EditTodoView: View {
             Button(localizer.localizedString(forKey: "delete_button"), role: .destructive) { selectedImages.removeAll { $0.id == image.id } }
             Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { }
         }
+    }
+
+    private func presetLabel(for date: Date) -> String? {
+        let cal = Calendar.current
+        let today = Date()
+        let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) ?? today
+        let endOfThisWeek = cal.date(byAdding: .day, value: 6, to: start)?.endOfDay ?? today
+        let midOfWeek = cal.date(byAdding: .day, value: 3, to: start)?.endOfDay ?? today
+        let endOfNextWeek: Date = {
+            let nextStart = cal.date(byAdding: .weekOfYear, value: 1, to: start) ?? start
+            return cal.date(byAdding: .day, value: 6, to: nextStart)?.endOfDay ?? nextStart
+        }()
+        let d = date
+        if cal.isDate(d, inSameDayAs: today) { return "Heute" }
+        if cal.isDate(d, inSameDayAs: midOfWeek) { return "Mitte der Woche" }
+        if cal.isDate(d, inSameDayAs: endOfThisWeek) { return "Ende dieser Woche" }
+        if cal.isDate(d, inSameDayAs: endOfNextWeek) { return "Ende nächster Woche" }
+        return nil
     }
     
     // MARK: - Logic
@@ -392,3 +470,10 @@ struct EditTodoView: View {
     }
 }
 
+private extension Date {
+    var endOfDay: Date {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: self)
+        return cal.date(bySettingHour: 23, minute: 59, second: 59, of: start) ?? self
+    }
+}

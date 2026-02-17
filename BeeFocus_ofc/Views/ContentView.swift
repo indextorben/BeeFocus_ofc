@@ -121,6 +121,7 @@ struct ContentView: View {
             Group {
                 NavigationStack {
                     WeeklyGoalsView()
+                        .environmentObject(todoStore)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }

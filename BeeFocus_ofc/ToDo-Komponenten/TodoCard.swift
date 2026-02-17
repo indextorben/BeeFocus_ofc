@@ -33,6 +33,23 @@ struct TodoCard: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
     let onShare: (() -> Void)? // 🔹 Neu: Share-Closure
+    let showCategory: Bool
+
+    init(
+        todo: Binding<TodoItem>,
+        showCategory: Bool = false,
+        onToggle: @escaping () -> Void,
+        onEdit: @escaping () -> Void,
+        onDelete: @escaping () -> Void,
+        onShare: (() -> Void)? = nil
+    ) {
+        self._todo = todo
+        self.showCategory = showCategory
+        self.onToggle = onToggle
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+        self.onShare = onShare
+    }
 
     @State private var showingSubTasks = false
     @State private var showingImages = false
@@ -107,6 +124,16 @@ struct TodoCard: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .strikethrough(todo.isCompleted)
+                    }
+
+                    if showCategory, let categoryName = todo.category?.name, !categoryName.isEmpty {
+                        HStack(spacing: 6) {
+                            Image(systemName: "tag.fill")
+                                .foregroundColor(.secondary)
+                            Text(categoryName)
+                        }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     }
 
                     if let due = todo.dueDate {
