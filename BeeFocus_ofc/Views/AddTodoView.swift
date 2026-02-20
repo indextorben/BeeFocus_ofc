@@ -4,8 +4,9 @@ import AVFoundation
 import EventKit
 
 extension View {
-    func eraseToAnyView() -> AnyView {
-        AnyView(self)
+    @ViewBuilder
+    fileprivate func contentViewInteractiveDismiss(hasUnsavedChanges: Bool) -> some View {
+        self.interactiveDismissDisabled(hasUnsavedChanges)
     }
 }
 
@@ -147,88 +148,104 @@ struct AddTodoView: View {
     }
 
     var body: some View {
+        rootNavigationView
+    }
+
+    @ViewBuilder
+    private var rootNavigationView: some View {
         NavigationView {
-            contentView
+            let mainContent = contentView
                 .navigationTitle(localizer.localizedString(forKey: "new_task_title"))
+
+            mainContent
                 .toolbar { toolbarContent }
         }
     }
 
     private var contentView: some View {
-        Form {
+        let formContent = Form {
             basicInfoSection
             categoryAndPrioritySection
             dueDateSection
-
             // Insert Recurrence Section here
             recurrenceSection
-
             calendarToggleSection
             imagesSection
             subTasksSection
         }
-        .sheet(item: $selectedImageForPreview) { wrappedImage in
-            ImagePreviewView(image: wrappedImage.image)
-        }
-        .sheet(isPresented: $showCamera) {
-            CameraPicker { image in
-                if let image = image {
-                    selectedImages.append(IdentifiableUIImage(image: image))
-                }
-            }
-        }
-        .alert(localizer.localizedString(forKey: "camera_access_required"), isPresented: $showCameraPermissionAlert) {
-            settingsAlertButtons
-        } message: {
-            Text(localizer.localizedString(forKey: "camera_access_message"))
-        }
-        .alert(localizer.localizedString(forKey: "delete_image"), isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
-            deleteImageAlertButtons(for: image)
-        } message: { _ in
-            Text(localizer.localizedString(forKey: "delete_image_message"))
-        }
-        .alert(localizer.localizedString(forKey: "calendar_access_denied"), isPresented: $calendarAccessDenied) {
-            Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
-        } message: {
-            Text(localizer.localizedString(forKey: "calendar_access_message"))
-        }
-        .alert(localizer.localizedString(forKey: "category_missing"), isPresented: $showCategoryAlert) {
-            Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
-        } message: {
-            Text(localizer.localizedString(forKey: "category_missing_message"))
-        }
-        .onAppear {
-            // Kategorie automatisch setzen oder Default anlegen
-            if category == nil {
-                if let first = todoStore.categories.first {
-                    category = first
-                } else {
-                    let defaultCategory = Category(name: "Allgemein", colorHex: "#007AFF")
-                    todoStore.addCategory(defaultCategory)
-                    category = defaultCategory
-                }
-            }
-            reminderSelection = -1
 
-            if hasDueDate {
-                selectedWeekOption = presetLabel(for: dueDate)
+        return formContent
+            .sheet(item: $selectedImageForPreview) { wrappedImage in
+                ImagePreviewView(image: wrappedImage.image)
             }
-        }
-        .onChange(of: selectedItems) { _ in
-            Task { await processSelectedItems() }
-        }
-        .onChange(of: dueDate) { newValue in
-            selectedWeekOption = hasDueDate ? presetLabel(for: newValue) : nil
-        }
-        .onChange(of: hasDueDate) { newValue in
-            if !newValue { selectedWeekOption = nil }
-        }
-        .interactiveDismissDisabled(hasUnsavedChanges)
-        .confirmationDialog(localizer.localizedString(forKey: "discard_changes_title"), isPresented: $showDiscardDialog, titleVisibility: .visible) {
-            Button(localizer.localizedString(forKey: "discard_changes"), role: .destructive) { dismiss() }
-            Button(localizer.localizedString(forKey: "keep_editing"), role: .cancel) { }
-        } message: {
-            Text(localizer.localizedString(forKey: "discard_changes_message"))
+            .sheet(isPresented: $showCamera) {
+                CameraPicker { image in
+                    if let image = image {
+                        selectedImages.append(IdentifiableUIImage(image: image))
+                    }
+                }
+            }
+            .alert(localizer.localizedString(forKey: "camera_access_required"), isPresented: $showCameraPermissionAlert) {
+                settingsAlertButtons
+            } message: {
+                Text(localizer.localizedString(forKey: "camera_access_message"))
+            }
+            .alert(localizer.localizedString(forKey: "delete_image"), isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
+                deleteImageAlertButtons(for: image)
+            } message: { _ in
+                Text(localizer.localizedString(forKey: "delete_image_message"))
+            }
+            .alert(localizer.localizedString(forKey: "calendar_access_denied"), isPresented: $calendarAccessDenied) {
+                Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
+            } message: {
+                Text(localizer.localizedString(forKey: "calendar_access_message"))
+            }
+            .alert(localizer.localizedString(forKey: "category_missing"), isPresented: $showCategoryAlert) {
+                Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
+            } message: {
+                Text(localizer.localizedString(forKey: "category_missing_message"))
+            }
+            .onAppear {
+                // Kategorie automatisch setzen oder Default anlegen
+                if category == nil {
+                    if let first = todoStore.categories.first {
+                        category = first
+                    } else {
+                        let defaultCategory = Category(name: "Allgemein", colorHex: "#007AFF")
+                        todoStore.addCategory(defaultCategory)
+                        category = defaultCategory
+                    }
+                }
+                reminderSelection = -1
+
+                if hasDueDate {
+                    selectedWeekOption = presetLabel(for: dueDate)
+                }
+            }
+            .onChange(of: selectedItems) { _ in
+                Task { await processSelectedItems() }
+            }
+            .onChange(of: dueDate) { newValue in
+                selectedWeekOption = hasDueDate ? presetLabel(for: newValue) : nil
+            }
+            .onChange(of: hasDueDate) { newValue in
+                if !newValue { selectedWeekOption = nil }
+            }
+            .modifier(InteractiveDismissWrapper(hasUnsavedChanges: hasUnsavedChanges, showDiscardDialog: $showDiscardDialog))
+            .confirmationDialog(localizer.localizedString(forKey: "discard_changes_title"), isPresented: $showDiscardDialog, titleVisibility: .visible) {
+                Button(localizer.localizedString(forKey: "discard_changes"), role: .destructive) { dismiss() }
+                Button(localizer.localizedString(forKey: "keep_editing"), role: .cancel) { }
+            } message: {
+                Text(localizer.localizedString(forKey: "discard_changes_message"))
+            }
+    }
+
+    private struct InteractiveDismissWrapper: ViewModifier {
+        let hasUnsavedChanges: Bool
+        @Binding var showDiscardDialog: Bool
+
+        func body(content: Content) -> some View {
+            content.contentViewInteractiveDismiss(hasUnsavedChanges: hasUnsavedChanges)
         }
     }
 

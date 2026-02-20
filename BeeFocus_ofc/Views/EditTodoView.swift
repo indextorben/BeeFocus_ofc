@@ -468,7 +468,15 @@ struct EditTodoView: View {
     // MARK: - Toolbar
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) { Button(localizer.localizedString(forKey: "cancel_button")) { dismiss() } }
+        ToolbarItem(placement: .cancellationAction) {
+            Button(localizer.localizedString(forKey: "cancel_button")) {
+                if hasUnsavedChanges() {
+                    showDiscardDialog = true
+                } else {
+                    dismiss()
+                }
+            }
+        }
         ToolbarItem(placement: .confirmationAction) { Button(localizer.localizedString(forKey: "save_button")) { saveTodo() }.disabled(title.isEmpty) }
     }
     

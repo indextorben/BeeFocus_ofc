@@ -598,3 +598,10 @@
 "discard_changes" = "Discard changes";
 "keep_editing" = "Keep editing";
 "delete_task" = "Delete Task";
+
+/* Discard changes dialog */
+"discard_changes_title" = "Discard changes?";
+"discard_changes" = "Discard changes";
+"keep_editing" = "Keep editing";
+"discard_changes_message" = "You have unsaved changes. Do you want to discard them?";
+

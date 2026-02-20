@@ -571,3 +571,13 @@
 "tasks_title" = "Aufgaben";
 "search_tasks" = "Aufgaben suchen...";
 "all" = "Alle";
+
+/* Reminder edit hint */
+"reminder_edit_hint" = "Tipp: Du kannst den Titel und den Text der Erinnerung hier anpassen.";
+
+/* Discard changes dialog */
+"discard_changes_title" = "Änderungen verwerfen?";
+"discard_changes" = "Änderungen verwerfen";
+"keep_editing" = "Weiter bearbeiten";
+"discard_changes_message" = "Sie haben ungespeicherte Änderungen. Möchten Sie diese verwerfen?";
+"delete_task" = "Aufgabe löschen";
