@@ -97,6 +97,14 @@ struct EinstellungenView: View {
                             }
                         }
                         .pickerStyle(MenuPickerStyle())
+                        .onChange(of: localizer.selectedLanguage) { _ in
+                            // Re-schedule morning summary so title/body pick up the new language
+                            if morningSummaryEnabled {
+                                scheduleMorningSummaryNow()
+                                bannerColor = .green
+                                showBanner(message: localizer.localizedString(forKey: "Morgen-Übersicht aktualisiert"))
+                            }
+                        }
                     }
 
                     // MARK: - Kategorien
@@ -375,9 +383,14 @@ struct EinstellungenView: View {
                     body = String(format: localizer.localizedString(forKey: "morning_summary_body_many"), count)
                 }
                 
+                print("🧪 MorningSummary body resolved: \(body)")
+                
                 let seconds = Int(morningSummaryTime)
                 let hour = max(0, min(23, seconds / 3600))
                 let minute = max(0, min(59, (seconds % 3600) / 60))
+                
+                print("🧪 MorningSummary schedule at \(hour):\(String(format: "%02d", minute)) with title-key=morning_summary_title")
+                
                 NotificationManager.shared.scheduleDailyMorningSummary(hour: hour, minute: minute, body: body)
                 bannerColor = .green
                 showBanner(message: localizer.localizedString(forKey: "Morgen-Übersicht aktualisiert"))

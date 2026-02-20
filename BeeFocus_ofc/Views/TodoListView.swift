@@ -109,9 +109,9 @@ struct TodoListView: View {
                     Text(localizer.localizedString(forKey: "Möchten Sie wirklich alle erledigten Aufgaben in den Papierkorb verschieben?"))
                 }
                 .overlay(alignment: .bottom) { successToastOverlay }
-                .navigationTitle(LocalizedStringKey(localizer.localizedString(forKey: "Aufgaben")))
+                .navigationTitle(localizer.localizedString(forKey: "tasks_title"))
                 .navigationBarTitleDisplayMode(.large)
-                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(LocalizedStringKey(localizer.localizedString(forKey: "Aufgaben suchen"))))
+                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(localizer.localizedString(forKey: "search_tasks")))
                 .sheet(isPresented: $showingAddTodo) {
                     // Replace `AddTodoView` with the actual add-task view used in your project if the name differs
                     AddTodoView()
@@ -624,7 +624,7 @@ struct TodoListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     CategoryButton(
-                        title: LocalizedStringKey(localizer.localizedString(forKey: "Alle")),
+                        title: LocalizedStringKey(localizer.localizedString(forKey: "all")),
                         isSelected: selectedCategory == nil,
                         color: .blue
                     ) {

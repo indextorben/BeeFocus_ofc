@@ -109,22 +109,14 @@
 "priority_high" = "Hoch";
 "Keine Aufgaben" = "Keine Aufgaben";
 /* Tage der Woche */
-"Mo" = "Mo";
-"Di" = "Di";
-"Mi" = "Mi";
-"Do" = "Do";
-"Fr" = "Fr";
-"Sa" = "Sa";
-"So" = "So";
+/* Removed duplicate Tage der Woche block here */
 
 /* Aufgabenkarte */
 "Aufgaben am" = "Aufgaben am";
 "Keine Aufgaben. Chill mal 😴" = "Keine Aufgaben. Chill mal 😴";
 
 /* TodoCard Priorität */
-"priority_low" = "Niedrig";
-"priority_medium" = "Mittel";
-"priority_high" = "Hoch";
+/* Removed duplicate priority_low, priority_medium, priority_high here */
 
 /* Kontextmenü TodoCard */
 "Teilen" = "Teilen";
@@ -134,6 +126,7 @@
 "pomodoro_timer" = "Pomodoro Timer";
 "timer_mode" = "Timer-Modus";
 "pomodoro" = "Pomodoro";
+/* Removed duplicate short_break/long_break here */
 "short_break" = "Kurze Pause";
 "long_break" = "Lange Pause";
 
@@ -141,11 +134,8 @@
 "focus" = "Fokus";
 "focus_time" = "Fokuszeit";
 "breaks" = "Pausen";
-"short_break" = "Kurze Pause";
-"long_break" = "Lange Pause";
 "cycles" = "Zyklen";
 "sessions_until_long_break" = "Sessions bis lange Pause";
-"done" = "Fertig";
 
 "tutorial_next" = "Weiter";
 "tutorial_start" = "Los geht's 🚀";
@@ -223,10 +213,13 @@
 "highlights_title" = "Highlights";
 "summary_title" = "Zusammenfassung";
 "new_subtask_placeholder" = "Neue Unteraufgabe";
+/* Removed duplicate new_subtask_placeholder below */
 "subtasks_title" = "Unteraufgaben";
+/* Removed duplicate subtasks below */
 "done_button" = "Fertig";
+/* Removed duplicate done_button below */
 "images_title" = "Bilder";
-"done_button" = "Fertig";
+/* Removed duplicate images below */
 "camera_access_required" = "Kamera-Zugriff benötigt";
 "camera_access_explanation" = "Bitte erlaube den Kamerazugriff in den Einstellungen";
 "camera_settings_button" = "Zu Einstellungen";
@@ -240,16 +233,19 @@
 "due_date_picker" = "Datum & Uhrzeit";
 "add_to_calendar_toggle" = "In Systemkalender eintragen";
 "images_section" = "Bilder";
+/* Removed duplicate images below */
 "subtasks_section" = "Unteraufgaben";
-"new_subtask_placeholder" = "Neue Unteraufgabe";
+/* Removed duplicate subtasks below */
 "add_category_button" = "Kategorie hinzufügen";
 "select_from_gallery" = "Aus Galerie auswählen";
+/* Removed duplicate select_from_gallery below */
 "capture_with_camera" = "Mit Kamera aufnehmen";
+/* keep take_with_camera as different key */
 "cancel_button" = "Abbrechen";
+/* Removed duplicate cancel below */
 "save_button" = "Speichern";
 "delete_button" = "Löschen";
-"camera_access_required" = "Kamera-Zugriff benötigt";
-"camera_access_explanation" = "Bitte erlauben Sie den Kamerazugriff in den Einstellungen";
+/* Removed duplicate delete below */
 "settings_button" = "Einstellungen";
 "delete_image_title" = "Bild löschen";
 "delete_image_message" = "Möchtest du dieses Bild wirklich löschen?";
@@ -289,7 +285,7 @@
 "enable_due_date" = "Fälligkeitsdatum aktivieren";
 "date_time" = "Datum & Uhrzeit";
 "add_to_system_calendar" = "In Systemkalender eintragen";
-"images" = "Bilder";
+/* Removed duplicate images below */
 "select_from_gallery" = "Aus Galerie auswählen";
 "take_with_camera" = "Mit Kamera aufnehmen";
 "camera_access_required" = "Kamera-Zugriff benötigt";
@@ -299,6 +295,7 @@
 "calendar_access_denied" = "Kalender-Zugriff verweigert";
 "calendar_access_message" = "Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.";
 "subtasks" = "Unteraufgaben";
+/* Removed duplicate new_subtask_placeholder below */
 "new_subtask_placeholder" = "Neue Unteraufgabe";
 "alert_delete_task" = "Aufgabe löschen?";
 "alert_delete_task_message" = "Diese Aktion kann nicht rückgängig gemacht werden.";
@@ -498,3 +495,79 @@
 "no_further_details" = "Keine weiteren Details.";
 "task" = "Aufgabe";
 
+"morning_summary_title" = "Morgendliche Übersicht";
+"morning_summary_body_none" = "Heute stehen keine Aufgaben an.";
+"morning_summary_body_one" = "Heute steht 1 Aufgabe an.";
+"morning_summary_body_many" = "Heute stehen %d Aufgaben an.";
+
+/* Wiederholung (Recurrence) */
+"recurrence_section_header" = "Wiederholung";
+"recurrence_enabled_toggle" = "Wiederholung aktivieren";
+"recurrence_frequency_picker" = "Wiederholungsintervall";
+"recurrence_daily" = "Täglich";
+"recurrence_weekly" = "Wöchentlich";
+"recurrence_monthly" = "Monatlich";
+"recurrence_interval" = "Intervall";
+"recurrence_weekdays_label" = "Wochentage";
+
+/* WeeklyGoalsView (Ziele) */
+"weekly_goals_title" = "Wochenziele";
+"weekly_planned_label" = "Geplant";
+"weekly_completed_label" = "Erledigt";
+"weekly_next_week_cta" = "Zeige %d nächste Woche";
+"weekly_menu_this_week" = "Diese Woche";
+"weekly_menu_next_week" = "Nächste Woche";
+"weekly_menu_last_week" = "Letzte Woche";
+"weekly_empty_title" = "Noch keine Wochenziele";
+"weekly_empty_message" = "Setze ein Fälligkeitsdatum innerhalb der ausgewählten Woche, um Aufgaben hier anzuzeigen. Verwende oben das Kalendermenü, um die richtige Woche zu wählen.";
+"weekly_empty_info" = "%d Aufgaben haben ein Fälligkeitsdatum, aber nicht in dieser Woche. Wechsle die Woche über das Kalendermenü oben.";
+"weekly_button_this_week" = "Diese Woche";
+"weekly_button_next_week" = "Nächste Woche";
+"weekly_jump_to_next_due" = "Zur nächsten fälligen Aufgabe springen";
+"weekly_overdue" = "Überfällig";
+"weekly_today" = "Heute";
+"weekly_done_swipe" = "Erledigt";
+"weekly_debug_line" = "Woche: %@ • In Woche: %d • Nächste Fälligkeit: %@";
+
+/* TrashView */
+"Keine gelöschten Aufgaben." = "Keine gelöschten Aufgaben.";
+"Wiederherstellen" = "Wiederherstellen";
+"Endgültig löschen" = "Endgültig löschen";
+"Papierkorb" = "Papierkorb";
+"Papierkorb leeren" = "Papierkorb leeren";
+"Gelöscht am %@" = "Gelöscht am %@";
+/* Einstellungen – Papierkorb & Automatisches Löschen */
+"Papierkorb öffnen" = "Papierkorb öffnen";
+"Papierkorb Einstellungen" = "Papierkorb Einstellungen";
+"Max. Einträge" = "Max. Einträge";
+"Automatisch löschen nach (Tagen)" = "Automatisch löschen nach (Tagen)";
+"Automatisches Löschen" = "Automatisches Löschen";
+"Abgeschlossene automatisch löschen" = "Abgeschlossene automatisch löschen";
+"Löschen nach (Tagen)" = "Löschen nach (Tagen)";
+"Feedback / Verbesserungen" = "Feedback / Verbesserungen";
+
+/* Weekly goal quick-set */
+"weekly_goal_today" = "Heute";
+"weekly_goal_midweek" = "Mitte der Woche";
+"weekly_goal_end_this_week" = "Ende dieser Woche";
+"weekly_goal_end_next_week" = "Ende nächster Woche";
+"weekly_goal_custom" = "Benutzerdefiniert…";
+"weekly_goal_set" = "Als Wochenziel setzen";
+"weekly_goal_set_selected" = "Als Wochenziel setzen: %@";
+
+/*Personalisierte Erinnerung*/
+"reminder_default_title_de" = "Erinnerung: %@";
+"due_default_title_de" = "Fälligkeit: %@";
+"reminder_default_body_de" = "Denke daran: %@";
+"reminder_default_body_fallback_de" = "Du wolltest dich an diese Aufgabe erinnern lassen.";
+"due_default_body_de" = "%@";
+"due_default_body_fallback_de" = "Diese Aufgabe ist jetzt fällig.";
+
+"reminder_custom_title_placeholder" = "Eigener Erinnerungstitel (optional)";
+"reminder_custom_body_placeholder" = "Eigener Erinnerungstext (optional)";
+"calendar_jump_today" = "Heute";
+"calendar_jump_to_current_month" = "Zum aktuellen Monat";
+
+"tasks_title" = "Aufgaben";
+"search_tasks" = "Aufgaben suchen...";
+"all" = "Alle";

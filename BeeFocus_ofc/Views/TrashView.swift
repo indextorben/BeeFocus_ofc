@@ -59,6 +59,7 @@ struct TrashView: View {
 
     private func dateString(_ date: Date) -> String {
         let df = DateFormatter()
+        df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
         df.dateStyle = .medium
         df.timeStyle = .short
         return String(format: localizer.localizedString(forKey: "Gelöscht am %@"), df.string(from: date))

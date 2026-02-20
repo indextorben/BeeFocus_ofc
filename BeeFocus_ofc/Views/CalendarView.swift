@@ -27,6 +27,24 @@ struct CalendarView: View {
 
                 VStack(spacing: 16) {
                     headerCard
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            let today = Date()
+                            currentMonth = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: today)) ?? today
+                            selectedDate = today
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "calendar").imageScale(.medium)
+                                Text(localizer.localizedString(forKey: "calendar_jump_today"))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.15))
+                            .clipShape(Capsule())
+                            .accessibilityLabel(Text(localizer.localizedString(forKey: "calendar_jump_to_current_month")))
+                        }
+                    }
                     calendarCard
                     todoCard
                     Spacer()
@@ -39,36 +57,42 @@ struct CalendarView: View {
 
     // MARK: - Header
     private var headerCard: some View {
-        HStack {
-            Button(action: { changeMonth(by: -1) }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text(localizer.localizedString(forKey: "prev"))
-                        .font(.subheadline.bold())
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.blue.opacity(0.2))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+        VStack(spacing: 8) {
+            ZStack {
+                Text(monthYearString(from: currentMonth))
+                    .font(.title2.bold())
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
 
-            Spacer()
-
-            Text(monthYearString(from: currentMonth))
-                .font(.title2.bold())
-
-            Spacer()
-
-            Button(action: { changeMonth(by: 1) }) {
-                HStack(spacing: 4) {
-                    Text(localizer.localizedString(forKey: "next"))
-                        .font(.subheadline.bold())
-                    Image(systemName: "chevron.right")
+            HStack {
+                Button(action: { changeMonth(by: -1) }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text(localizer.localizedString(forKey: "prev"))
+                            .font(.subheadline.bold())
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .fixedSize()
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.blue.opacity(0.2))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                Spacer()
+
+                Button(action: { changeMonth(by: 1) }) {
+                    HStack(spacing: 4) {
+                        Text(localizer.localizedString(forKey: "next"))
+                            .font(.subheadline.bold())
+                        Image(systemName: "chevron.right")
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .fixedSize()
+                }
             }
         }
         .padding()
@@ -390,3 +414,4 @@ struct TodoDetailView: View {
         todoStore.updateTodo(updated)
     }
 }
+

@@ -270,6 +270,14 @@
 "time" = "time";
 "morning_summary_toggle" = "morning summary"; 
 
+"morning_summary_title" = "Morning overview";
+"morning_summary_body_none" = "No tasks today.";
+"morning_summary_body_one" = "There is 1 task today.";
+"morning_summary_body_many" = "There are %d tasks today.";
+
+"Morgen-Übersicht aktualisiert" = "Morning summary updated";
+"Morgen-Übersicht deaktiviert" = "Morning summary disabled";
+
 /* AddTodoView / EditTodoView */
 "new_task_title" = "New Task";
 "edit_task_title" = "Edit Task";
@@ -490,4 +498,103 @@
 "details" = "Details";
 "no_further_details" = "No further details.";
 "task" = "Task";
+"reset_statistics" = "reset statistics";
+/* WeeklyGoalsView localization keys */
+"weekly_goals_title" = "Weekly Goals";
+"weekly_planned_label" = "Planned";
+"weekly_completed_label" = "Completed";
+"weekly_next_week_cta" = "View %d next week";
+"weekly_menu_this_week" = "This Week";
+"weekly_menu_next_week" = "Next Week";
+"weekly_menu_last_week" = "Last Week";
+"weekly_empty_title" = "No weekly goals yet";
+"weekly_empty_message" = "Set a due date within the selected week to show tasks here. Use the calendar menu above to pick the right week.";
+"weekly_empty_info" = "%d tasks have a due date but not in this week. Switch weeks using the calendar menu above.";
+"weekly_button_this_week" = "This Week";
+"weekly_button_next_week" = "Next Week";
+"weekly_jump_to_next_due" = "Jump to next due task";
+"weekly_overdue" = "Overdue";
+"weekly_today" = "Today";
+"weekly_done_swipe" = "Done";
+"weekly_debug_line" = "Week: %@ • In week: %d • Next due: %@";
 
+/* WeeklyGoalsView (Goals) */
+"weekly_goals_title" = "Weekly Goals";
+"weekly_planned_label" = "Planned";
+"weekly_completed_label" = "Completed";
+"weekly_next_week_cta" = "View %d next week";
+"weekly_menu_this_week" = "This Week";
+"weekly_menu_next_week" = "Next Week";
+"weekly_menu_last_week" = "Last Week";
+"weekly_empty_title" = "No weekly goals yet";
+"weekly_empty_message" = "Set a due date within the selected week to show tasks here. Use the calendar menu above to pick the right week.";
+"weekly_empty_info" = "%d tasks have a due date but not in this week. Switch weeks using the calendar menu above.";
+"weekly_button_this_week" = "This Week";
+"weekly_button_next_week" = "Next Week";
+"weekly_jump_to_next_due" = "Jump to next due task";
+"weekly_overdue" = "Overdue";
+"weekly_today" = "Today";
+"weekly_done_swipe" = "Done";
+"weekly_debug_line" = "Week: %@ • In week: %d • Next due: %@";
+
+/* TrashView */
+"Keine gelöschten Aufgaben." = "No deleted tasks.";
+"Wiederherstellen" = "Restore";
+"Endgültig löschen" = "Delete permanently";
+"Papierkorb" = "Trash";
+"Papierkorb leeren" = "Empty Trash";
+"Gelöscht am %@" = "Deleted on %@";
+
+/* Settings – Trash & Auto Delete */
+"Papierkorb öffnen" = "Open Trash";
+"Papierkorb Einstellungen" = "Trash Settings";
+"Max. Einträge" = "Max. entries";
+"Automatisch löschen nach (Tagen)" = "Auto delete after (days)";
+"Automatisches Löschen" = "Automatic Deletion";
+"Abgeschlossene automatisch löschen" = "Automatically delete completed";
+"Löschen nach (Tagen)" = "Delete after (days)";
+"Feedback / Verbesserungen" = "Feedback / Improvements";
+/* Weekly goal quick-set */
+"weekly_goal_today" = "Today";
+"weekly_goal_midweek" = "Midweek";
+"weekly_goal_end_this_week" = "End of this week";
+"weekly_goal_end_next_week" = "End of next week";
+"weekly_goal_custom" = "Custom…";
+"weekly_goal_set" = "Set as weekly goal";
+"weekly_goal_set_selected" = "Set as weekly goal: %@";
+
+"tasks_title" = "Tasks";
+"search_tasks" = "Search tasks...";
+"all" = "All";
+
+"recurrence_section_header" = "Recurrence";
+"recurrence_enabled_toggle" = "Repeat";
+"recurrence_frequency_picker" = "Frequency";
+"recurrence_daily" = "Daily";
+"recurrence_weekly" = "Weekly";
+"recurrence_monthly" = "Monthly";
+"recurrence_interval" = "Interval";
+"recurrence_weekdays_label" = "Weekdays";
+"calendar_jump_today" = "Heute";
+"calendar_jump_to_current_month" = "Zum aktuellen Monat";
+
+/*Personalisierte Erinnerung*/
+"reminder_default_title_en" = "Reminder: %@";
+"due_default_title_en" = "Due: %@";
+"reminder_default_body_en" = "Remember: %@";
+"reminder_default_body_fallback_en" = "You wanted to be reminded about this task.";
+"due_default_body_en" = "%@";
+"due_default_body_fallback_en" = "This task is now due.";
+
+"reminder_custom_title_placeholder" = "Custom reminder title (optional)";
+"reminder_custom_body_placeholder" = "Custom reminder text (optional)";
+
+"calendar_jump_today" = "today";
+"calendar_jump_to_current_month" = "To the current month";
+"reminder_edit_hint" = "Hinweis: Sie können den Titel und den Text bearbeiten. Diese Notiz wird in der Erinnerung nicht angezeigt.";
+
+"discard_changes_title" = "Discard changes?";
+"discard_changes_message" = "Do you want to discard your changes or keep editing?";
+"discard_changes" = "Discard changes";
+"keep_editing" = "Keep editing";
+"delete_task" = "Delete Task";

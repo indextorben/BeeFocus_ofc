@@ -182,8 +182,11 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [morningSummaryNotificationID])
 
         let content = UNMutableNotificationContent()
-        content.title = localizer.localizedString(forKey: "morning_summary_title")
+        let resolvedTitle = localizer.localizedString(forKey: "morning_summary_title")
+        print("🧪 MorningSummary title resolved: \(resolvedTitle)")
+        content.title = resolvedTitle
         content.body = body
+        print("🧪 MorningSummary body passed in: \(body)")
         content.sound = .default
         content.userInfo = ["action": "openToday"]
         content.categoryIdentifier = "MORNING_SUMMARY"
@@ -221,6 +224,35 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             NotificationCenter.default.post(name: .openTodayDueFromNotification, object: nil)
         }
         completionHandler()
+    }
+    
+    /// Neue Methode: Plant eine Benachrichtigung für ein Todo an einem bestimmten Datum mit ID, Titel und Body
+    func scheduleTodoNotification(at date: Date, id: String, title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        
+        let triggerDate = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: date
+        )
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+        
+        let request = UNNotificationRequest(
+            identifier: id,
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Fehler beim Planen der Todo-Notification (custom): \(error)")
+            } else {
+                print("✅ Benachrichtigung geplant (custom) mit ID: \(id)")
+            }
+        }
     }
 }
 

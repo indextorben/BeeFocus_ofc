@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-struct SubTask: Identifiable, Codable {
+struct SubTask: Identifiable, Codable, Equatable {
     let id: UUID
     var title: String
     var isCompleted: Bool

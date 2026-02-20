@@ -6,6 +6,7 @@ struct WeeklyGoalsView: View {
     @State private var startOfWeek: Date = Calendar.current.date(from: Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
     @State private var weekSegment: Int = 0 // -1: last, 0: this, 1: next
     @State private var editingTodo: TodoItem? = nil
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     // MARK: - Helpers
     private func isInCurrentWeek(_ date: Date) -> Bool {
@@ -76,10 +77,11 @@ struct WeeklyGoalsView: View {
     private var diagnosticLineText: String {
         let df = DateFormatter()
         df.dateStyle = .medium
+        df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
         let nextStr: String = {
             if let nd = nextDueDate { return df.string(from: nd) } else { return "–" }
         }()
-        return "Woche: \(weekRangeString()) • In Woche: \(todosThisWeek.count) • Nächstes Fällig: \(nextStr)"
+        return String(format: localizer.localizedString(forKey: "weekly_debug_line"), weekRangeString(), todosThisWeek.count, nextStr)
     }
 
     private struct TodoGroup: Identifiable {
@@ -146,20 +148,20 @@ struct WeeklyGoalsView: View {
                                         Button {
                                             todoStore.toggleTodo(todo)
                                         } label: {
-                                            Label("Erledigt", systemImage: "checkmark")
+                                            Label(localizer.localizedString(forKey: "weekly_done_swipe"), systemImage: "checkmark")
                                         }
                                         .tint(.green)
 
                                         Button(role: .destructive) {
                                             todoStore.deleteTodo(todo)
                                         } label: {
-                                            Label("Löschen", systemImage: "trash")
+                                            Label(localizer.localizedString(forKey: "delete"), systemImage: "trash")
                                         }
 
                                         Button {
                                             TodoShare.share(todo: todo)
                                         } label: {
-                                            Label("Teilen", systemImage: "square.and.arrow.up")
+                                            Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
                                         }
                                         .tint(.blue)
                                     }
@@ -176,7 +178,7 @@ struct WeeklyGoalsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle("Wöchentliche Ziele")
+        .navigationTitle(LocalizedStringKey(localizer.localizedString(forKey: "weekly_goals_title")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
@@ -200,9 +202,9 @@ struct WeeklyGoalsView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button("Diese Woche") { setWeekAbsolute(0) }
-                    Button("Nächste Woche") { setWeekAbsolute(1) }
-                    Button("Letzte Woche") { setWeekAbsolute(-1) }
+                    Button(localizer.localizedString(forKey: "weekly_menu_this_week")) { setWeekAbsolute(0) }
+                    Button(localizer.localizedString(forKey: "weekly_menu_next_week")) { setWeekAbsolute(1) }
+                    Button(localizer.localizedString(forKey: "weekly_menu_last_week")) { setWeekAbsolute(-1) }
                 } label: {
                     Label("Woche", systemImage: "calendar")
                 }
@@ -222,8 +224,8 @@ struct WeeklyGoalsView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 16) {
-                Label("Geplant: \(todosThisWeek.count)", systemImage: "target")
-                Label("Erledigt: \(completedThisWeekCount)", systemImage: "checkmark.circle")
+                Label("\(localizer.localizedString(forKey: "weekly_planned_label")): \(todosThisWeek.count)", systemImage: "target")
+                Label("\(localizer.localizedString(forKey: "weekly_completed_label")): \(completedThisWeekCount)", systemImage: "checkmark.circle")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
@@ -243,7 +245,7 @@ struct WeeklyGoalsView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.right.circle")
-                        Text("\(plannedNextWeekCount) in nächster Woche ansehen")
+                        Text(String(format: localizer.localizedString(forKey: "weekly_next_week_cta"), plannedNextWeekCount))
                     }
                 }
                 .font(.subheadline)
@@ -306,9 +308,9 @@ struct WeeklyGoalsView: View {
             Image(systemName: "target")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
-            Text("Noch keine Wochenziele")
+            Text(localizer.localizedString(forKey: "weekly_empty_title"))
                 .font(.headline)
-            Text("Lege in einer Aufgabe ein Fälligkeitsdatum innerhalb der ausgewählten Woche fest, damit sie hier erscheint. Nutze das Menü oben (Kalender), um die richtige Woche zu wählen.")
+            Text(localizer.localizedString(forKey: "weekly_empty_message"))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
@@ -316,7 +318,7 @@ struct WeeklyGoalsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "info.circle")
                         .foregroundStyle(.secondary)
-                    Text("Es gibt \(dueDatedOutsideCurrentWeekCount) Aufgaben mit Fälligkeitsdatum, aber nicht in dieser Woche. Wechsle die Woche über das Kalender-Menü oben.")
+                    Text(String(format: localizer.localizedString(forKey: "weekly_empty_info"), dueDatedOutsideCurrentWeekCount))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -327,13 +329,13 @@ struct WeeklyGoalsView: View {
                 Button {
                     setWeekAbsolute(0)
                 } label: {
-                    Label("Diese Woche", systemImage: "calendar")
+                    Label(localizer.localizedString(forKey: "weekly_button_this_week"), systemImage: "calendar")
                 }
                 .buttonStyle(.bordered)
                 Button {
                     setWeekAbsolute(1)
                 } label: {
-                    Label("Nächste Woche", systemImage: "calendar")
+                    Label(localizer.localizedString(forKey: "weekly_button_next_week"), systemImage: "calendar")
                 }
                 .buttonStyle(.bordered)
             }
@@ -341,7 +343,7 @@ struct WeeklyGoalsView: View {
                 Button {
                     jumpToWeek(of: nd)
                 } label: {
-                    Label("Zur nächstfälligen Aufgabe springen", systemImage: "arrowshape.turn.up.right.circle")
+                    Label(localizer.localizedString(forKey: "weekly_jump_to_next_due"), systemImage: "arrowshape.turn.up.right.circle")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.blue)
@@ -381,6 +383,7 @@ struct WeeklyGoalsView: View {
     private func weekRangeString() -> String {
         let df = DateFormatter()
         df.dateStyle = .medium
+        df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
         let startStr = df.string(from: startOfWeek.startOfDay)
         let endStr = df.string(from: endOfWeek)
         return "\(startStr) – \(endStr)"
@@ -417,10 +420,19 @@ private struct WeeklyTodoRow: View {
             return ("Heute", .orange)
         } else {
             let df = DateFormatter()
+            df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
             df.dateStyle = .short
             df.timeStyle = .none
             return (df.string(from: due), .blue)
         }
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
+        df.dateStyle = .medium
+        df.timeStyle = .none
+        return df.string(from: date)
     }
 
     var body: some View {
@@ -447,9 +459,7 @@ private struct WeeklyTodoRow: View {
                     }
                 }
                 if let due: Date = todo.dueDate {
-                    Text(due, style: .date)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Text(formattedDate(due))
                 }
             }
             Spacer()

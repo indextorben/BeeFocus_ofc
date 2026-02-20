@@ -303,6 +303,13 @@ class TodoStore: ObservableObject {
             print("📊 Focus minutes updated: before=\(before) after=\(after)")
         }
         
+        // Beobachte Tageswechsel, um Wiederholungen um 00:00 zu aktualisieren
+        NotificationCenter.default.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.refreshRecurrencesForToday()
+        }
+        // Beim Start einmal prüfen
+        refreshRecurrencesForToday()
+        
         // Starte periodischen Cloud-Sync
         syncTimer = Timer.scheduledTimer(withTimeInterval: syncInterval, repeats: true) { [weak self] _ in
             self?.performPeriodicSync()
@@ -453,23 +460,49 @@ class TodoStore: ObservableObject {
                     isReminderBeforeDue = false
                 }
 
-                // Build title/body depending on reminder vs due
+                // Build title/body with personalization fallback
+                let loc = LocalizationManager.shared
+                let isGerman = (loc.selectedLanguage == "Deutsch" || loc.selectedLanguage == "German" || Locale.current.language.languageCode?.identifier == "de")
+
+                // Personalized override if provided
+                let personalizedTitle = todo.reminderTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let personalizedBody = todo.reminderBody?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                let defaultReminderTitle = {
+                    let key = isGerman ? "reminder_default_title_de" : "reminder_default_title_en"
+                    let template = loc.localizedString(forKey: key)
+                    return template.replacingOccurrences(of: "%@", with: todo.title)
+                }()
+                let defaultDueTitle = {
+                    let key = isGerman ? "due_default_title_de" : "due_default_title_en"
+                    let template = loc.localizedString(forKey: key)
+                    return template.replacingOccurrences(of: "%@", with: todo.title)
+                }()
+
+                let defaultReminderBody: String = {
+                    let key = isGerman ? "reminder_default_body_de" : "reminder_default_body_en"
+                    var template = loc.localizedString(forKey: key)
+                    let desc = todo.description.isEmpty ? (isGerman ? loc.localizedString(forKey: "reminder_default_body_fallback_de") : loc.localizedString(forKey: "reminder_default_body_fallback_en")) : todo.description
+                    template = template.replacingOccurrences(of: "%@", with: desc)
+                    return template
+                }()
+
+                let defaultDueBody: String = {
+                    let key = isGerman ? "due_default_body_de" : "due_default_body_en"
+                    var template = loc.localizedString(forKey: key)
+                    let desc = todo.description.isEmpty ? (isGerman ? loc.localizedString(forKey: "due_default_body_fallback_de") : loc.localizedString(forKey: "due_default_body_fallback_en")) : todo.description
+                    template = template.replacingOccurrences(of: "%@", with: desc)
+                    return template
+                }()
+
                 let title: String
                 let body: String
                 if hasReminder && isReminderBeforeDue {
-                    title = "Erinnerung: \(todo.title)"
-                    if todo.description.isEmpty {
-                        body = "Du wolltest dich an diese Aufgabe erinnern lassen."
-                    } else {
-                        body = "Denke daran: \(todo.description)"
-                    }
+                    title = (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultReminderTitle)
+                    body = (personalizedBody?.isEmpty == false ? personalizedBody! : defaultReminderBody)
                 } else {
-                    title = "Fälligkeit: \(todo.title)"
-                    if todo.description.isEmpty {
-                        body = "Diese Aufgabe ist jetzt fällig."
-                    } else {
-                        body = todo.description
-                    }
+                    title = defaultDueTitle
+                    body = defaultDueBody
                 }
 
                 NotificationManager.shared.scheduleTimerNotification(
@@ -512,22 +545,49 @@ class TodoStore: ObservableObject {
                         isReminderBeforeDue = false
                     }
 
+                    // Build title/body with personalization fallback
+                    let loc = LocalizationManager.shared
+                    let isGerman = (loc.selectedLanguage == "Deutsch" || loc.selectedLanguage == "German" || Locale.current.language.languageCode?.identifier == "de")
+
+                    // Personalized override if provided
+                    let personalizedTitle = newTodo.reminderTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let personalizedBody = newTodo.reminderBody?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    let defaultReminderTitle = {
+                        let key = isGerman ? "reminder_default_title_de" : "reminder_default_title_en"
+                        let template = loc.localizedString(forKey: key)
+                        return template.replacingOccurrences(of: "%@", with: newTodo.title)
+                    }()
+                    let defaultDueTitle = {
+                        let key = isGerman ? "due_default_title_de" : "due_default_title_en"
+                        let template = loc.localizedString(forKey: key)
+                        return template.replacingOccurrences(of: "%@", with: newTodo.title)
+                    }()
+
+                    let defaultReminderBody: String = {
+                        let key = isGerman ? "reminder_default_body_de" : "reminder_default_body_en"
+                        var template = loc.localizedString(forKey: key)
+                        let desc = newTodo.description.isEmpty ? (isGerman ? loc.localizedString(forKey: "reminder_default_body_fallback_de") : loc.localizedString(forKey: "reminder_default_body_fallback_en")) : newTodo.description
+                        template = template.replacingOccurrences(of: "%@", with: desc)
+                        return template
+                    }()
+
+                    let defaultDueBody: String = {
+                        let key = isGerman ? "due_default_body_de" : "due_default_body_en"
+                        var template = loc.localizedString(forKey: key)
+                        let desc = newTodo.description.isEmpty ? (isGerman ? loc.localizedString(forKey: "due_default_body_fallback_de") : loc.localizedString(forKey: "due_default_body_fallback_en")) : newTodo.description
+                        template = template.replacingOccurrences(of: "%@", with: desc)
+                        return template
+                    }()
+
                     let title: String
                     let body: String
                     if hasReminder && isReminderBeforeDue {
-                        title = "Erinnerung: \(newTodo.title)"
-                        if newTodo.description.isEmpty {
-                            body = "Du wolltest dich an diese Aufgabe erinnern lassen."
-                        } else {
-                            body = "Denke daran: \(newTodo.description)"
-                        }
+                        title = (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultReminderTitle)
+                        body = (personalizedBody?.isEmpty == false ? personalizedBody! : defaultReminderBody)
                     } else {
-                        title = "Fälligkeit: \(newTodo.title)"
-                        if newTodo.description.isEmpty {
-                            body = "Diese Aufgabe ist jetzt fällig."
-                        } else {
-                            body = newTodo.description
-                        }
+                        title = defaultDueTitle
+                        body = defaultDueBody
                     }
 
                     NotificationManager.shared.scheduleTimerNotification(
@@ -1074,6 +1134,40 @@ class TodoStore: ObservableObject {
             deletedTodos = Array(deletedTodos.suffix(count))
         }
         saveTrash()
+    }
+    
+    /// Aktualisiert wiederkehrende Todos so, dass sie am Wiederholungstag um 00:00 Uhr erscheinen.
+    /// Diese Methode setzt das Fälligkeitsdatum auf den heutigen Tagesanfang und markiert die Aufgabe als nicht erledigt,
+    /// wenn laut Wiederholungsregel heute ein neuer Zyklus beginnt.
+    func refreshRecurrencesForToday() {
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: Date())
+        let yesterday = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
+
+        var itemsToUpdate: [TodoItem] = []
+        for item in todos {
+            guard item.recurrenceEnabled else { continue }
+            // Nur wieder erscheinen lassen, wenn zuvor erledigt, um keine doppelten offenen Einträge zu erzeugen
+            guard item.isCompleted else { continue }
+            // Schon heute zurückgesetzt?
+            if let last = item.lastResetDate, cal.isDate(last, inSameDayAs: todayStart) { continue }
+
+            // Bestimme nächstes Reset-Datum basierend auf der vorhandenen Logik.
+            if let next = item.nextReset(after: yesterday), cal.isDate(next, inSameDayAs: todayStart) {
+                var updated = item
+                updated.dueDate = todayStart
+                updated.isCompleted = false
+                updated.completedAt = nil
+                updated.lastResetDate = todayStart
+                updated.updatedAt = Date()
+                itemsToUpdate.append(updated)
+            }
+        }
+
+        // Anwenden über updateTodo, damit Notifications/CloudKit korrekt aktualisiert werden
+        for updated in itemsToUpdate {
+            self.updateTodo(updated)
+        }
     }
 }
 
