@@ -44,6 +44,7 @@ final class TimerManager: ObservableObject {
     private var elapsedFocusSeconds: TimeInterval = 0
     private var nextLiveMinuteThreshold: TimeInterval = 60
     private var timer: Timer?
+    private var timerTask: Task<Void, Never>?
     private var activity: Activity<TimerActivityAttributes>?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 
@@ -55,6 +56,21 @@ final class TimerManager: ObservableObject {
 
     private init() {
         restoreTimer()
+        
+        // Listen for memory warnings to save state
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.saveState()
+        }
+    }
+    
+    deinit {
+        stopTimer()
+        endBackgroundTask()
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - 🔥 SETTINGS LIVE UPDATE
@@ -189,28 +205,42 @@ final class TimerManager: ObservableObject {
             )
         }
 
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self, self.isRunning else { return }
+        // Use modern Swift Concurrency for timer instead of Foundation Timer
+        timerTask = Task { [weak self] in
+            guard let self = self else { return }
+            
+            while !Task.isCancelled && self.isRunning {
+                // Sleep for 1 second
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                
+                // Check if cancelled during sleep
+                guard !Task.isCancelled else { break }
+                
+                // Update on main actor
+                await MainActor.run { [weak self] in
+                    guard let self = self, self.isRunning else { return }
+                    
+                    self.timeRemaining -= 1
 
-            self.timeRemaining -= 1
+                    // Live minute accumulation during focus sessions
+                    if self.isRunning && !self.isBreak {
+                        self.elapsedFocusSeconds += 1
+                        if self.elapsedFocusSeconds >= self.nextLiveMinuteThreshold {
+                            // Post +1 minute and move threshold forward by 60s
+                            print("🟢 Live minute tick: +1 (elapsed=\(self.elapsedFocusSeconds)s)")
+                            NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": 1])
+                            self.nextLiveMinuteThreshold += 60
+                        }
+                    }
 
-            // Live minute accumulation during focus sessions
-            if self.isRunning && !self.isBreak {
-                self.elapsedFocusSeconds += 1
-                if self.elapsedFocusSeconds >= self.nextLiveMinuteThreshold {
-                    // Post +1 minute and move threshold forward by 60s
-                    print("🟢 Live minute tick: +1 (elapsed=\(self.elapsedFocusSeconds)s)")
-                    NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": 1])
-                    self.nextLiveMinuteThreshold += 60
+                    Task {
+                        await self.activity?.update(using: self.liveState())
+                    }
+
+                    if self.timeRemaining <= 0 {
+                        self.timerCompleted()
+                    }
                 }
-            }
-
-            Task {
-                await self.activity?.update(using: self.liveState())
-            }
-
-            if self.timeRemaining <= 0 {
-                self.timerCompleted()
             }
         }
     }
@@ -218,6 +248,8 @@ final class TimerManager: ObservableObject {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+        timerTask?.cancel()
+        timerTask = nil
     }
 
     private func stopInternal() {
@@ -306,9 +338,13 @@ final class TimerManager: ObservableObject {
     }
 
     private func endBackgroundTask() {
-        if backgroundTaskID != .invalid {
-            UIApplication.shared.endBackgroundTask(backgroundTaskID)
-            backgroundTaskID = .invalid
+        guard backgroundTaskID != .invalid else { return }
+        
+        let taskID = backgroundTaskID
+        backgroundTaskID = .invalid
+        
+        DispatchQueue.main.async {
+            UIApplication.shared.endBackgroundTask(taskID)
         }
     }
 

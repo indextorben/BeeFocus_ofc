@@ -98,6 +98,7 @@ class TodoStore: ObservableObject {
     private let syncInterval: TimeInterval = 10 // alle 10 Sekunden (anpassbar)
     private var syncTimer: Timer?
     private var isSyncInProgress = false
+    private var syncTask: Task<Void, Never>?
 
     // MARK: - Undo/Redo Engine
     private enum Action: Codable {
@@ -286,12 +287,22 @@ class TodoStore: ObservableObject {
         loadStats()
         loadFocusMinutes()
         loadTrash()
+        
+        // Initial sync beim App-Start
+        print("🚀 Initial CloudKit sync beim App-Start...")
         CloudKitManager.shared.fetchDailyStats { [weak self] cloudDaily in
             self?.applyDailyStatsFromCloud(cloudDaily)
         }
         CloudKitManager.shared.fetchFocusStats { [weak self] cloudFocus in
             self?.applyFocusStatsFromCloud(cloudFocus)
         }
+        
+        // IMPORTANT: Force full todo sync on startup to resolve conflicts
+        CloudKitManager.shared.fetchTodos { [weak self] cloudTodos in
+            print("📥 Initial fetch: \(cloudTodos.count) todos from CloudKit")
+            self?.mergeFromCloud(cloudTodos)
+        }
+        
         // Beobachte abgeschlossene Fokus-Sessions aus dem Timer
         NotificationCenter.default.addObserver(forName: .focusSessionCompleted, object: nil, queue: .main) { [weak self] note in
             guard let self = self else { return }
@@ -310,12 +321,131 @@ class TodoStore: ObservableObject {
         // Beim Start einmal prüfen
         refreshRecurrencesForToday()
         
-        // Starte periodischen Cloud-Sync
-        syncTimer = Timer.scheduledTimer(withTimeInterval: syncInterval, repeats: true) { [weak self] _ in
-            self?.performPeriodicSync()
-        }
-        syncTimer?.tolerance = syncInterval * 0.1
+        // Starte periodischen Cloud-Sync (verbesserte Version mit Swift Concurrency)
+        startPeriodicSync()
     }
+    
+    // MARK: - Periodic Sync Management
+    
+    /// Force-synct alle Daten aus CloudKit (nützlich bei Problemen)
+    func forceFullSync() {
+        print("🔄 Force Full Sync gestartet...")
+        
+        isSyncInProgress = false // Reset flag falls hängengeblieben
+        
+        let group = DispatchGroup()
+        
+        group.enter()
+        CloudKitManager.shared.fetchTodos { [weak self] cloudTodos in
+            print("  📥 Fetched \(cloudTodos.count) todos from CloudKit")
+            self?.mergeFromCloud(cloudTodos)
+            group.leave()
+        }
+        
+        group.enter()
+        CloudKitManager.shared.fetchDailyStats { [weak self] cloudDaily in
+            print("  📥 Fetched \(cloudDaily.count) daily stats from CloudKit")
+            self?.applyDailyStatsFromCloud(cloudDaily)
+            group.leave()
+        }
+        
+        group.enter()
+        CloudKitManager.shared.fetchFocusStats { [weak self] cloudFocus in
+            print("  📥 Fetched \(cloudFocus.count) focus stats from CloudKit")
+            self?.applyFocusStatsFromCloud(cloudFocus)
+            group.leave()
+        }
+        
+        group.enter()
+        CloudKitManager.shared.fetchCategories { [weak self] cloudCategories in
+            print("  📥 Fetched \(cloudCategories.count) categories from CloudKit")
+            self?.applyCategoriesFromCloud(cloudCategories)
+            group.leave()
+        }
+        
+        group.notify(queue: .main) {
+            print("✅ Force Full Sync abgeschlossen")
+            // Trigger UI update
+            self.objectWillChange.send()
+        }
+    }
+    
+    /// Startet den periodischen Cloud-Sync mit Swift Concurrency
+    private func startPeriodicSync() {
+        // Cancel any existing task
+        syncTask?.cancel()
+        
+        // Create a new repeating task
+        syncTask = Task { [weak self] in
+            guard let self = self else { return }
+            
+            while !Task.isCancelled {
+                // Perform sync
+                await self.performPeriodicSyncAsync()
+                
+                // Wait for the interval (check for cancellation)
+                try? await Task.sleep(nanoseconds: UInt64(self.syncInterval * 1_000_000_000))
+                
+                // Check if cancelled
+                if Task.isCancelled {
+                    break
+                }
+            }
+        }
+    }
+    
+    /// Async wrapper for periodic sync
+    private func performPeriodicSyncAsync() async {
+        guard !isSyncInProgress else { return }
+        
+        await MainActor.run {
+            self.isSyncInProgress = true
+        }
+        
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { [weak self] in
+                await withCheckedContinuation { continuation in
+                    CloudKitManager.shared.fetchTodos { [weak self] cloudTodos in
+                        self?.mergeFromCloud(cloudTodos)
+                        continuation.resume()
+                    }
+                }
+            }
+            
+            group.addTask { [weak self] in
+                await withCheckedContinuation { continuation in
+                    CloudKitManager.shared.fetchDailyStats { [weak self] cloudDaily in
+                        self?.applyDailyStatsFromCloud(cloudDaily)
+                        continuation.resume()
+                    }
+                }
+            }
+            
+            group.addTask { [weak self] in
+                await withCheckedContinuation { continuation in
+                    CloudKitManager.shared.fetchFocusStats { [weak self] cloudFocus in
+                        self?.applyFocusStatsFromCloud(cloudFocus)
+                        continuation.resume()
+                    }
+                }
+            }
+            
+            group.addTask { [weak self] in
+                await withCheckedContinuation { continuation in
+                    CloudKitManager.shared.fetchCategories { [weak self] cloudCategories in
+                        self?.applyCategoriesFromCloud(cloudCategories)
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+        
+        await MainActor.run {
+            self.isSyncInProgress = false
+            print("⏱️ Periodic Cloud sync completed")
+        }
+    }
+    
     
     func setCompleted(todo: TodoItem, completed: Bool) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
@@ -885,43 +1015,6 @@ class TodoStore: ObservableObject {
         }
     }
     
-    /// Führt einen periodischen Sync mit CloudKit durch: Todos, DailyStats und FocusStats.
-    private func performPeriodicSync() {
-        guard !isSyncInProgress else { return }
-        isSyncInProgress = true
-
-        let group = DispatchGroup()
-
-        group.enter()
-        CloudKitManager.shared.fetchTodos { [weak self] cloudTodos in
-            self?.mergeFromCloud(cloudTodos)
-            group.leave()
-        }
-
-        group.enter()
-        CloudKitManager.shared.fetchDailyStats { [weak self] cloudDaily in
-            self?.applyDailyStatsFromCloud(cloudDaily)
-            group.leave()
-        }
-
-        group.enter()
-        CloudKitManager.shared.fetchFocusStats { [weak self] cloudFocus in
-            self?.applyFocusStatsFromCloud(cloudFocus)
-            group.leave()
-        }
-
-        group.enter()
-        CloudKitManager.shared.fetchCategories { [weak self] cloudCategories in
-            self?.applyCategoriesFromCloud(cloudCategories)
-            group.leave()
-        }
-
-        group.notify(queue: .main) { [weak self] in
-            self?.isSyncInProgress = false
-            print("⏱️ Periodic Cloud sync completed")
-        }
-    }
-    
     // MARK: - Kalender-Integration
     
     func requestCalendarAccess(completion: @escaping (Bool) -> Void) {
@@ -976,7 +1069,7 @@ class TodoStore: ObservableObject {
     }
     
     // MARK: - Cloud Merge
-    /// Mergt Todos aus der Cloud in den lokalen Store. Favorisiert Cloud-Daten.
+    /// Mergt Todos aus der Cloud in den lokalen Store mit verbesserter Conflict Resolution.
     func mergeFromCloud(_ cloudTodos: [TodoItem]) {
         // Deduplicate local todos by id (keep latest updatedAt) to avoid fatal error on duplicate keys
         var dedupedLocal: [UUID: TodoItem] = [:]
@@ -994,22 +1087,13 @@ class TodoStore: ObservableObject {
 
         var changed = false
 
-        // Cloud → Lokal: Einfügen/Aktualisieren
+        // Cloud → Lokal: Einfügen/Aktualisieren mit verbesserter Conflict Resolution
         for cloud in cloudTodos {
             if let local = localByID[cloud.id] {
-                // Last-Writer-Wins anhand updatedAt
-                let pickingCloud = cloud.updatedAt >= local.updatedAt
-                let chosen = pickingCloud ? cloud : local
-
-                // Debug: Log Konflikt & Entscheidung
-                if cloud.updatedAt != local.updatedAt {
-                    print("🔁 Merge LWW for todo \(cloud.id): cloud.updatedAt=\(cloud.updatedAt), local.updatedAt=\(local.updatedAt) -> chosen=\(pickingCloud ? "cloud" : "local") (isCompleted: \(chosen.isCompleted))")
-                } else if cloud.isCompleted != local.isCompleted {
-                    // Gleiches updatedAt, aber unterschiedliche Completion-States – Cloud bevorzugen
-                    print("⚠️ Merge tie on updatedAt for \(cloud.id). Different completion states. Preferring cloud.isCompleted=\(cloud.isCompleted)")
-                }
-
-                if chosen.updatedAt != local.updatedAt || cloud.isCompleted != local.isCompleted {
+                // IMPROVED: Smart conflict resolution
+                let chosen = resolveConflict(local: local, cloud: cloud)
+                
+                if chosen.updatedAt != local.updatedAt || chosen.isCompleted != local.isCompleted {
                     changed = true
                 }
 
@@ -1070,6 +1154,77 @@ class TodoStore: ObservableObject {
         }
     }
     
+    // MARK: - Smart Conflict Resolution
+    
+    /// Intelligente Konfliktauflösung zwischen lokalem und Cloud-Todo
+    /// Regeln:
+    /// 1. Neuestes updatedAt gewinnt (Last Writer Wins)
+    /// 2. Bei gleichem updatedAt: completedAt entscheidet (neueste Completion gewinnt)
+    /// 3. Bei gleichem updatedAt UND keinem completedAt: Completed = true gewinnt (defensiv)
+    /// 4. Logging für Debugging
+    private func resolveConflict(local: TodoItem, cloud: TodoItem) -> TodoItem {
+        // Case 1: Different updatedAt → Newest wins
+        if cloud.updatedAt > local.updatedAt {
+            print("🔁 Merge: Cloud newer → cloud.updatedAt=\(cloud.updatedAt) > local.updatedAt=\(local.updatedAt) (isCompleted: \(cloud.isCompleted))")
+            return cloud
+        } else if local.updatedAt > cloud.updatedAt {
+            print("🔁 Merge: Local newer → local.updatedAt=\(local.updatedAt) > cloud.updatedAt=\(cloud.updatedAt) (isCompleted: \(local.isCompleted))")
+            return local
+        }
+        
+        // Case 2: Same updatedAt → need tiebreaker
+        print("⚖️ Merge tie: same updatedAt=\(local.updatedAt)")
+        
+        // Tiebreaker 1: Different completion states
+        if cloud.isCompleted != local.isCompleted {
+            // Check completedAt to see which one was marked completed more recently
+            let cloudCompletedAt = cloud.completedAt ?? Date.distantPast
+            let localCompletedAt = local.completedAt ?? Date.distantPast
+            
+            if cloudCompletedAt > localCompletedAt {
+                print("  ↪️ Cloud has newer completedAt → choosing cloud.isCompleted=\(cloud.isCompleted)")
+                return cloud
+            } else if localCompletedAt > cloudCompletedAt {
+                print("  ↪️ Local has newer completedAt → choosing local.isCompleted=\(local.isCompleted)")
+                return local
+            } else {
+                // Same completedAt (or both nil) but different completion states
+                // Defensive: prefer completed=true to avoid losing work
+                if cloud.isCompleted {
+                    print("  ↪️ Tie on completedAt, but cloud is completed → choosing cloud")
+                    return cloud
+                } else {
+                    print("  ↪️ Tie on completedAt, but local is completed → choosing local")
+                    return local
+                }
+            }
+        }
+        
+        // Case 3: Same updatedAt AND same completion state
+        // Check other fields for differences
+        let hasDifferences = 
+            cloud.title != local.title ||
+            cloud.description != local.description ||
+            cloud.priority != local.priority ||
+            cloud.isFavorite != local.isFavorite ||
+            cloud.dueDate != local.dueDate
+        
+        if hasDifferences {
+            // Tiebreaker 2: Use createdAt (older item wins as "authoritative")
+            if cloud.createdAt < local.createdAt {
+                print("  ↪️ Content differs, cloud is older → choosing cloud")
+                return cloud
+            } else {
+                print("  ↪️ Content differs, local is older → choosing local")
+                return local
+            }
+        }
+        
+        // Case 4: Completely identical → doesn't matter, return cloud
+        print("  ↪️ Completely identical → choosing cloud")
+        return cloud
+    }
+    
     func restoreDeleted(at index: Int) {
         guard deletedTodos.indices.contains(index) else { return }
         let entry = deletedTodos.remove(at: index)
@@ -1097,6 +1252,7 @@ class TodoStore: ObservableObject {
     
     deinit {
         syncTimer?.invalidate()
+        syncTask?.cancel()
     }
     
     private func saveTrash() {

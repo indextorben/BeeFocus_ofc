@@ -581,3 +581,9 @@
 "keep_editing" = "Weiter bearbeiten";
 "discard_changes_message" = "Sie haben ungespeicherte Änderungen. Möchten Sie diese verwerfen?";
 "delete_task" = "Aufgabe löschen";
+
+"select_calendar" = "Kalender auswählen";
+"default_calendar" = "Standard-Kalender";
+"no_calendars_available" = "Keine Kalender verfügbar";
+"calendar_settings_header" = "Kalender";
+"calendar_settings_info" = "Wählen Sie beim Erstellen oder Bearbeiten von Aufgaben einen Kalender aus, wenn Sie diese zum System-Kalender hinzufügen möchten.";

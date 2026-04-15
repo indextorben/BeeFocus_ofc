@@ -61,6 +61,7 @@ struct TodoListView: View {
     // New states for delete snackbar
     @State private var showDeleteSnackbar = false
     @State private var lastDeletedTitle: String = ""
+    @State private var snackbarDismissTask: Task<Void, Never>? = nil
     
     //Fileimporter
     @State private var showingActionSheet = false
@@ -154,9 +155,22 @@ struct TodoListView: View {
                     Text(mailUnavailableMessage)
                 }
                 .onChange(of: showDeleteSnackbar) { newValue in
+                    // Cancel any existing timer
+                    snackbarDismissTask?.cancel()
+                    
                     if newValue {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                            withAnimation { showDeleteSnackbar = false }
+                        // Create a new Task that can be cancelled
+                        snackbarDismissTask = Task {
+                            try? await Task.sleep(nanoseconds: 4_000_000_000) // 4 seconds
+                            
+                            // Check if task wasn't cancelled
+                            guard !Task.isCancelled else { return }
+                            
+                            await MainActor.run {
+                                withAnimation {
+                                    showDeleteSnackbar = false
+                                }
+                            }
                         }
                     }
                 }
@@ -164,6 +178,10 @@ struct TodoListView: View {
                     // Reset category to all and enable today filter
                     selectedCategory = nil
                     showOnlyTodayFromNotification = true
+                }
+                .onDisappear {
+                    // Cancel the snackbar timer when view disappears
+                    snackbarDismissTask?.cancel()
                 }
         }
         .modifier(AlertModifiers(
@@ -319,11 +337,12 @@ struct TodoListView: View {
                             .lineLimit(1)
                         Spacer()
                         Button(action: {
-                            withAnimation { showDeleteSnackbar = false }
-                            isResortSuspended = true
-                            todoStore.undo()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                                isResortSuspended = false
+                            // Cancel the auto-dismiss timer
+                            snackbarDismissTask?.cancel()
+                            
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                showDeleteSnackbar = false
+                                todoStore.undo()
                             }
                         }) {
                             Text("Rückgängig")
@@ -397,10 +416,8 @@ struct TodoListView: View {
                 }
                 
                 Button(action: {
-                    isResortSuspended = true
-                    todoStore.undo()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                        isResortSuspended = false
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        todoStore.undo()
                     }
                 }) {
                     Image(systemName: "arrow.uturn.backward")
@@ -410,10 +427,8 @@ struct TodoListView: View {
                 .disabled(!todoStore.canUndo)
 
                 Button(action: {
-                    isResortSuspended = true
-                    todoStore.redo()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                        isResortSuspended = false
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        todoStore.redo()
                     }
                 }) {
                     Image(systemName: "arrow.uturn.forward")
@@ -838,12 +853,9 @@ struct TodoListView: View {
 
                         TodoCard(todo: binding) {
                             if !isSelecting {
-                                isResortSuspended = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                // Smooth animation for toggle
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     todoStore.toggleTodo(todo)
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                                    isResortSuspended = false
                                 }
                             } else {
                                 // In selection mode, tap on primary action toggles selection instead of completing
@@ -870,12 +882,8 @@ struct TodoListView: View {
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         if !isSelecting {
                             Button {
-                                isResortSuspended = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     todoStore.toggleTodo(todo)
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                                    isResortSuspended = false
                                 }
                             } label: {
                                 Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark")
@@ -900,9 +908,14 @@ struct TodoListView: View {
                     }
                     .strikethrough(todo.isCompleted, color: .gray)
                     .opacity(todo.isCompleted ? 0.6 : 1.0)
-                    .animation(.easeInOut(duration: 0.2), value: todo.isCompleted)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.95).combined(with: .opacity),
+                        removal: .scale(scale: 0.95).combined(with: .opacity)
+                    ))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: todo.isCompleted)
                 }
             }
+            .animation(.spring(response: 0.35, dampingFraction: 0.75), value: sortedTodos.map { $0.id })
             .padding()
             .padding(.bottom, 80)
         }

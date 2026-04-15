@@ -48,6 +48,7 @@ struct EditTodoView: View {
     @State private var addToCalendar = false
     @State private var calendarAccessDenied = false
     @State private var selectedWeekOption: String? = nil
+    @State private var selectedCalendar: EKCalendar? = nil
     
     // MARK: - Localization
     @ObservedObject private var localizer = LocalizationManager.shared
@@ -352,6 +353,11 @@ struct EditTodoView: View {
         Section {
             Toggle(localizer.localizedString(forKey: "add_to_calendar_toggle"), isOn: $addToCalendar)
             
+            // Kalenderauswahl anzeigen, wenn "Zum Kalender hinzufügen" aktiviert ist
+            if addToCalendar {
+                CalendarPickerView(selectedCalendar: $selectedCalendar)
+            }
+            
             Menu {
                 Button(localizer.localizedString(forKey: "weekly_goal_today")) {
                     withAnimation {
@@ -642,7 +648,6 @@ struct EditTodoView: View {
                 event.notes = description
                 event.startDate = dueDate
                 event.endDate = dueDate.addingTimeInterval(3600)
-                event.calendar = eventStore.defaultCalendarForNewEvents
                 
                 let offsetForAlarm: Int?
                 switch reminderSelection {
@@ -652,6 +657,13 @@ struct EditTodoView: View {
                 if let off = offsetForAlarm, off >= 0 {
                     let alarm = EKAlarm(relativeOffset: TimeInterval(-off * 60))
                     event.addAlarm(alarm)
+                }
+                
+                // Verwende den ausgewählten Kalender oder den Standard-Kalender
+                if let selectedCal = selectedCalendar {
+                    event.calendar = selectedCal
+                } else {
+                    event.calendar = eventStore.defaultCalendarForNewEvents
                 }
                 
                 do { try eventStore.save(event, span: .thisEvent) }

@@ -605,3 +605,8 @@
 "keep_editing" = "Keep editing";
 "discard_changes_message" = "You have unsaved changes. Do you want to discard them?";
 
+"select_calendar" = "Select Calendar";
+"default_calendar" = "Default Calendar";
+"no_calendars_available" = "No calendars available";
+"calendar_settings_header" = "Calendar";
+"calendar_settings_info" = "When creating or editing tasks, you can select a calendar when adding them to the system calendar.";

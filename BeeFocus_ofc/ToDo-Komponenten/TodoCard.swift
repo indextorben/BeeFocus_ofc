@@ -103,11 +103,15 @@ struct TodoCard: View {
                 ZStack {
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        onToggle()
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            onToggle()
+                        }
                     }) {
                         Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(todo.isCompleted ? .green : .gray)
+                            .scaleEffect(todo.isCompleted ? 1.1 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: todo.isCompleted)
                     }
                     .buttonStyle(.plain)
                 }
@@ -118,12 +122,14 @@ struct TodoCard: View {
                         .font(.headline)
                         .foregroundColor(todo.isCompleted ? .gray : .primary)
                         .strikethrough(todo.isCompleted)
+                        .animation(.easeInOut(duration: 0.25), value: todo.isCompleted)
 
                     if !todo.description.isEmpty {
                         Text(todo.description)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .strikethrough(todo.isCompleted)
+                            .animation(.easeInOut(duration: 0.25), value: todo.isCompleted)
                     }
 
                     if showCategory, let categoryName = todo.category?.name, !categoryName.isEmpty {
@@ -239,7 +245,11 @@ struct TodoCard: View {
                     }
                 }
             }
-            .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.95).combined(with: .opacity),
+                removal: .scale(scale: 0.95).combined(with: .opacity)
+            ))
+            .animation(.spring(response: 0.35, dampingFraction: 0.75), value: todo.isCompleted)
             .sheet(isPresented: $showingSubTasks) { SubTasksView(todo: todo) }
             .sheet(isPresented: $showingImages) { ImagesView(images: $images) }
 

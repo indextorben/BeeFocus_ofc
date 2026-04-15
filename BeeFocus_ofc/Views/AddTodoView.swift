@@ -102,6 +102,7 @@ struct AddTodoView: View {
     @State private var calendarAccessDenied = false
     @State private var showCategoryAlert = false
     @State private var selectedWeekOption: String? = nil
+    @State private var selectedCalendar: EKCalendar? = nil
 
     @State private var showAddCategoryAlert = false
     @State private var newCategoryName = ""
@@ -391,6 +392,11 @@ struct AddTodoView: View {
     private var calendarToggleSection: some View {
         Section {
             Toggle(localizer.localizedString(forKey: "add_to_system_calendar"), isOn: $addToCalendar)
+            
+            // Kalenderauswahl anzeigen, wenn "Zum Kalender hinzufügen" aktiviert ist
+            if addToCalendar {
+                CalendarPickerView(selectedCalendar: $selectedCalendar)
+            }
 
             Menu {
                 Button(localizer.localizedString(forKey: "weekly_goal_today")) {
@@ -708,7 +714,12 @@ struct AddTodoView: View {
                     let alarm = EKAlarm(relativeOffset: TimeInterval(-off * 60))
                     event.addAlarm(alarm)
                 }
-                event.calendar = eventStore.defaultCalendarForNewEvents
+                // Verwende den ausgewählten Kalender oder den Standard-Kalender
+                if let selectedCal = selectedCalendar {
+                    event.calendar = selectedCal
+                } else {
+                    event.calendar = eventStore.defaultCalendarForNewEvents
+                }
                 do {
                     try eventStore.save(event, span: .thisEvent)
                 } catch {

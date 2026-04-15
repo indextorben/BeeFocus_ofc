@@ -24,6 +24,7 @@ struct EinstellungenView: View {
     @State private var showDeduplicateConfirm = false
     @State private var showResetStatsConfirm = false
     @State private var showResetStatsAlert = false
+    @State private var bannerDismissTask: Task<Void, Never>? = nil
 
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
@@ -137,10 +138,25 @@ struct EinstellungenView: View {
                                 showBanner(message: message)
                             }
                         }
+                        
+                        Button("🔄 Force Full Sync (bei Problemen)") {
+                            todoStore.forceFullSync()
+                            bannerColor = .blue
+                            showBanner(message: "Force Sync gestartet...")
+                        }
+                        .foregroundColor(.blue)
+                        
                         Button(localizer.localizedString(forKey: "deduplicate_categories")) {
                             showDeduplicateConfirm = true
                         }
                         Text(localizer.localizedString(forKey: "deduplicate_explainer"))
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // MARK: - Kalender
+                    Section(header: Text(localizer.localizedString(forKey: "calendar_settings_header"))) {
+                        Text(localizer.localizedString(forKey: "calendar_settings_info"))
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -321,10 +337,21 @@ struct EinstellungenView: View {
     // MARK: - Banner
     private func showBanner(message: String) {
         notificationMessage = message
+        
+        // Cancel any existing banner timer
+        bannerDismissTask?.cancel()
+        
         withAnimation(.spring()) { showNotificationBanner = true }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation(.easeOut) { showNotificationBanner = false }
+        // Create new cancellable timer
+        bannerDismissTask = Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                withAnimation(.easeOut) { showNotificationBanner = false }
+            }
         }
     }
     
