@@ -10,6 +10,58 @@ struct StatistikView: View {
     @State private var headerAppeared = false
     @State private var sectionsAppeared = false
     @AppStorage("fokuspunkteAusgegeben") private var fokuspunkteAusgegeben: Int = 0
+    @AppStorage("freigeschalteteItems") private var freigeschalteteItemsString: String = ""
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @State private var kaufBestaetigung: StoreItem? = nil
+    @State private var verkaufBestaetigung: StoreItem? = nil
+    @State private var kaufErfolg: String? = nil
+
+    private var freigeschalteteItems: Set<String> {
+        Set(freigeschalteteItemsString.components(separatedBy: ",").filter { !$0.isEmpty })
+    }
+
+    private func kaufeItem(_ item: StoreItem) {
+        guard fokuspunkteVerfuegbar >= item.kosten else { return }
+        fokuspunkteAusgegeben += item.kosten
+        var current = freigeschalteteItems
+        current.insert(item.name)
+        freigeschalteteItemsString = current.joined(separator: ",")
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+            aktivesThema = item.name
+        }
+        kaufErfolg = item.name
+        Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            await MainActor.run { kaufErfolg = nil }
+        }
+    }
+
+    private func aktiviereThema(_ item: StoreItem) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            aktivesThema = aktivesThema == item.name ? "" : item.name
+        }
+    }
+
+    private func verkaufeItem(_ item: StoreItem) {
+        let erstattung = item.kosten / 2
+        fokuspunkteAusgegeben = max(0, fokuspunkteAusgegeben - erstattung)
+        var current = freigeschalteteItems
+        current.remove(item.name)
+        freigeschalteteItemsString = current.joined(separator: ",")
+        if aktivesThema == item.name { aktivesThema = "" }
+    }
+
+    private func themaFarben(fuer name: String) -> (Color, Color, Color) {
+        switch name {
+        case "Ozean":       return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
+        case "Wald":        return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
+        case "Nacht":       return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
+        case "Solar":       return (.orange, .yellow, Color(red: 1.0, green: 0.4, blue: 0.0))
+        case "Kirschblüte": return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
+        case "Vulkan":      return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
+        default:            return (.purple, .blue, Color(red: 0.4, green: 0.2, blue: 0.9))
+        }
+    }
 
     var isDark: Bool { colorScheme == .dark }
 
@@ -260,8 +312,13 @@ struct StatistikView: View {
 
     // MARK: - Background
 
+    private var aktiveThemaFarben: (Color, Color, Color) {
+        aktivesThema.isEmpty ? (.purple, .blue, Color(red: 1, green: 0.6, blue: 0.2)) : themaFarben(fuer: aktivesThema)
+    }
+
     private var backgroundGradient: some View {
-        ZStack {
+        let (c1, c2, c3) = aktiveThemaFarben
+        return ZStack {
             if isDark {
                 LinearGradient(
                     colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
@@ -277,25 +334,26 @@ struct StatistikView: View {
             }
             GeometryReader { geo in
                 Circle()
-                    .fill(RadialGradient(colors: [Color.purple.opacity(isDark ? 0.28 : 0.13), .clear],
+                    .fill(RadialGradient(colors: [c1.opacity(isDark ? 0.32 : 0.15), .clear],
                                         center: .center, startRadius: 0, endRadius: geo.size.width * 0.45))
                     .frame(width: geo.size.width * 0.9, height: geo.size.width * 0.9)
                     .position(x: geo.size.width * 0.1, y: geo.size.height * 0.10)
                     .blur(radius: 12)
                 Circle()
-                    .fill(RadialGradient(colors: [Color.blue.opacity(isDark ? 0.20 : 0.10), .clear],
+                    .fill(RadialGradient(colors: [c2.opacity(isDark ? 0.24 : 0.12), .clear],
                                         center: .center, startRadius: 0, endRadius: geo.size.width * 0.4))
                     .frame(width: geo.size.width * 0.8, height: geo.size.width * 0.8)
                     .position(x: geo.size.width * 0.88, y: geo.size.height * 0.60)
                     .blur(radius: 12)
                 Circle()
-                    .fill(RadialGradient(colors: [Color(red: 1, green: 0.6, blue: 0.2).opacity(isDark ? 0.14 : 0.08), .clear],
+                    .fill(RadialGradient(colors: [c3.opacity(isDark ? 0.16 : 0.09), .clear],
                                         center: .center, startRadius: 0, endRadius: geo.size.width * 0.35))
                     .frame(width: geo.size.width * 0.7, height: geo.size.width * 0.7)
                     .position(x: geo.size.width * 0.5, y: geo.size.height * 0.82)
                     .blur(radius: 14)
             }
         }
+        .animation(.easeInOut(duration: 0.6), value: aktivesThema)
         .ignoresSafeArea()
     }
 
@@ -425,63 +483,190 @@ struct StatistikView: View {
 
     private var storeCard: some View {
         VStack(spacing: 10) {
+            // Guthaben + aktives Theme
             glassCard {
-                HStack(spacing: 12) {
-                    iconBadge(icon: "bolt.fill", color: Color(red: 1, green: 0.55, blue: 0.0))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Dein Guthaben").font(.system(size: 13)).foregroundStyle(.secondary)
-                        Text("\(fokuspunkteVerfuegbar) Fokuspunkte")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+                VStack(spacing: 0) {
+                    HStack(spacing: 12) {
+                        iconBadge(icon: "bolt.fill", color: Color(red: 1, green: 0.55, blue: 0.0))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Dein Guthaben").font(.system(size: 13)).foregroundStyle(.secondary)
+                            Text("\(fokuspunkteVerfuegbar) Fokuspunkte")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+                        }
+                        Spacer()
+                        if let name = kaufErfolg {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                                Text("\(name) freigeschaltet!").font(.system(size: 11, weight: .semibold)).foregroundStyle(.green)
+                            }
+                            .transition(.opacity.combined(with: .scale))
+                        }
                     }
-                    Spacer()
-                    Text("Bald verfügbar").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+
+                    if !aktivesThema.isEmpty {
+                        Divider().opacity(0.3)
+                        let (tc, _, _) = themaFarben(fuer: aktivesThema)
+                        HStack(spacing: 8) {
+                            Circle().fill(tc).frame(width: 8, height: 8)
+                            Text("Aktives Theme:").font(.system(size: 12)).foregroundStyle(.secondary)
+                            Text(aktivesThema).font(.system(size: 12, weight: .semibold)).foregroundStyle(tc)
+                            Spacer()
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.4)) { aktivesThema = "" }
+                            } label: {
+                                Text("Deaktivieren")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .background(Color.primary.opacity(0.07), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                    }
                 }
-                .padding(.horizontal, 16).padding(.vertical, 14)
             }
 
+            // Store-Raster
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(storeItems) { item in
                     storeCell(item)
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: kaufErfolg)
+        .animation(.easeInOut(duration: 0.3), value: aktivesThema)
+        // Kauf-Dialog
+        .confirmationDialog(
+            kaufBestaetigung.map { "\"\($0.name)\" für \($0.kosten) FP freischalten?" } ?? "",
+            isPresented: Binding(get: { kaufBestaetigung != nil }, set: { if !$0 { kaufBestaetigung = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let item = kaufBestaetigung {
+                Button("Freischalten (\(item.kosten) FP)") {
+                    kaufeItem(item); kaufBestaetigung = nil
+                }
+                Button("Abbrechen", role: .cancel) { kaufBestaetigung = nil }
+            }
+        }
+        // Verkauf-Dialog
+        .confirmationDialog(
+            verkaufBestaetigung.map { "\"\($0.name)\" verkaufen? Du erhältst \($0.kosten / 2) FP zurück." } ?? "",
+            isPresented: Binding(get: { verkaufBestaetigung != nil }, set: { if !$0 { verkaufBestaetigung = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let item = verkaufBestaetigung {
+                Button("Verkaufen (\(item.kosten / 2) FP Rückerstattung)", role: .destructive) {
+                    verkaufeItem(item); verkaufBestaetigung = nil
+                }
+                Button("Abbrechen", role: .cancel) { verkaufBestaetigung = nil }
+            }
+        }
     }
 
     private func storeCell(_ item: StoreItem) -> some View {
-        ZStack {
+        let istFreigeschaltet = freigeschalteteItems.contains(item.name)
+        let istAktiv = aktivesThema == item.name
+        let kannKaufen = !istFreigeschaltet && fokuspunkteVerfuegbar >= item.kosten
+        return ZStack {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(LinearGradient(
-                        colors: [item.farbe.opacity(isDark ? 0.4 : 0.3), item.farbe.opacity(0.1)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
+                .fill(istAktiv
+                    ? LinearGradient(colors: [item.farbe.opacity(isDark ? 0.45 : 0.25), item.farbe.opacity(isDark ? 0.2 : 0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    : (istFreigeschaltet
+                        ? LinearGradient(colors: [item.farbe.opacity(isDark ? 0.22 : 0.12), item.farbe.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        : LinearGradient(colors: [Color.clear, Color.clear], startPoint: .top, endPoint: .bottom)))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [item.farbe.opacity(istAktiv ? 0.9 : (istFreigeschaltet ? 0.5 : (kannKaufen ? 0.35 : 0.12))),
+                                         item.farbe.opacity(0.08)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: istAktiv ? 2 : 1)
+                )
 
             VStack(spacing: 6) {
                 ZStack(alignment: .bottomTrailing) {
-                    Circle().fill(item.farbe.opacity(0.15)).frame(width: 44, height: 44)
-                    Image(systemName: item.icon)
-                        .font(.system(size: 20, weight: .semibold)).foregroundStyle(item.farbe.opacity(0.5))
+                    Circle()
+                        .fill(item.farbe.opacity(istFreigeschaltet ? 0.22 : 0.10))
                         .frame(width: 44, height: 44)
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.9))
-                        .padding(4).background(Color.black.opacity(0.4), in: Circle())
+                    Image(systemName: item.icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(istFreigeschaltet ? item.farbe : item.farbe.opacity(0.4))
+                        .frame(width: 44, height: 44)
+                    if istAktiv {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                            .padding(2).background(item.farbe, in: Circle())
+                    } else if !istFreigeschaltet && !kannKaufen {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.85))
+                            .padding(4).background(Color.black.opacity(0.4), in: Circle())
+                    }
                 }
 
-                Text(item.name).font(.system(size: 12, weight: .semibold))
+                Text(item.name)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(istFreigeschaltet ? item.farbe : .primary)
 
-                HStack(spacing: 2) {
-                    Image(systemName: "bolt.fill").font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
-                    Text("\(item.kosten)").font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(fokuspunkteVerfuegbar >= item.kosten
-                                         ? Color(red: 1, green: 0.55, blue: 0.0) : .secondary)
+                // Status-Badge / Preis
+                if istAktiv {
+                    Text("Aktiv")
+                        .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 2)
+                        .background(item.farbe.gradient, in: Capsule())
+                } else if istFreigeschaltet {
+                    Text("Aktivieren")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(item.farbe)
+                        .padding(.horizontal, 8).padding(.vertical, 2)
+                        .background(item.farbe.opacity(0.15), in: Capsule())
+                } else {
+                    HStack(spacing: 2) {
+                        Image(systemName: "bolt.fill").font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+                        Text("\(item.kosten)").font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(kannKaufen ? Color(red: 1, green: 0.55, blue: 0.0) : .secondary)
+                    }
                 }
             }
             .padding(.vertical, 12)
         }
         .frame(height: 110)
-        .opacity(0.75)
+        .opacity(istFreigeschaltet ? 1.0 : (kannKaufen ? 0.92 : 0.55))
+        .shadow(color: istAktiv ? item.farbe.opacity(0.45) : (istFreigeschaltet ? item.farbe.opacity(0.15) : .clear), radius: istAktiv ? 12 : 6, x: 0, y: istAktiv ? 5 : 2)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: istAktiv)
+        .onTapGesture {
+            if istFreigeschaltet {
+                aktiviereThema(item)
+            } else if kannKaufen {
+                kaufBestaetigung = item
+            }
+        }
+        .contextMenu {
+            if istFreigeschaltet {
+                Button {
+                    aktiviereThema(item)
+                } label: {
+                    Label(istAktiv ? "Deaktivieren" : "Aktivieren", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    verkaufBestaetigung = item
+                } label: {
+                    Label("Verkaufen (\(item.kosten / 2) FP zurück)", systemImage: "arrow.uturn.left.circle")
+                }
+            } else if kannKaufen {
+                Button {
+                    kaufBestaetigung = item
+                } label: {
+                    Label("Freischalten (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                }
+            }
+        }
     }
 
     // MARK: - Overview Card

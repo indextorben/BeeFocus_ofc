@@ -13,6 +13,7 @@ struct CalendarView: View {
         return Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: today)) ?? today
     }()
     @State private var showingCalendarImport = false
+    @State private var showingAddTodo = false
     @GestureState private var dragOffset: CGFloat = 0
 
     private let cal = Calendar.current
@@ -67,6 +68,10 @@ struct CalendarView: View {
             }
             .sheet(isPresented: $showingCalendarImport) {
                 CalendarImportView()
+                    .environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showingAddTodo) {
+                AddTodoView(prefilledDate: selectedDate)
                     .environmentObject(todoStore)
             }
         }
@@ -251,6 +256,12 @@ struct CalendarView: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(Color.blue, in: Capsule())
+                }
+
+                Button(action: { showingAddTodo = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.blue)
                 }
             }
             .padding(.horizontal, 16)

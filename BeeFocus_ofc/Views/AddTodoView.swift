@@ -82,8 +82,13 @@ struct AddTodoView: View {
 
     @State private var title = ""
     @State private var description = ""
-    @State private var dueDate = Date()
-    @State private var hasDueDate = false
+    @State private var dueDate: Date
+    @State private var hasDueDate: Bool
+
+    init(prefilledDate: Date? = nil) {
+        _dueDate = State(initialValue: prefilledDate ?? Date())
+        _hasDueDate = State(initialValue: prefilledDate != nil)
+    }
     @State private var reminderSelection: Int = -1 // -1 = no reminder, 0 = at time, >0 = minutes before, -2 = custom
     @State private var category: Category?
     @State private var priority = TodoPriority.medium

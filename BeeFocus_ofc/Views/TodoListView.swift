@@ -82,6 +82,9 @@ struct TodoListView: View {
     @State private var draggingCategoryID: UUID? = nil
     @State private var dropTargetIndex: Int? = nil
 
+    @AppStorage("folderOrder") private var folderOrderString = ""
+    @State private var isReorderingFolders = false
+
     @State private var showingCalendarImport = false
     @StateObject private var calendarImporter = CalendarImporter()
 
@@ -835,6 +838,27 @@ struct TodoListView: View {
         .frame(maxHeight: .infinity)
     }
 
+    // MARK: - Folder Order Helpers
+
+    private var folderOrder: [String] {
+        folderOrderString.isEmpty ? [] : folderOrderString.components(separatedBy: ",")
+    }
+
+    private func orderedGroups(_ groups: [TodoFolderGroup]) -> [TodoFolderGroup] {
+        let order = folderOrder
+        guard !order.isEmpty else { return groups }
+        let dict = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+        var result: [TodoFolderGroup] = order.compactMap { dict[$0] }
+        for g in groups where !order.contains(g.id) { result.append(g) }
+        return result
+    }
+
+    private func moveFolderGroup(from source: IndexSet, to destination: Int) {
+        var current = orderedGroups(todoGroups)
+        current.move(fromOffsets: source, toOffset: destination)
+        folderOrderString = current.map { $0.id }.joined(separator: ",")
+    }
+
     // MARK: - Folder Group Model
 
     private struct TodoFolderGroup: Identifiable {
@@ -856,6 +880,15 @@ struct TodoListView: View {
         var completedCount: Int { allTodos.filter { $0.isCompleted }.count }
     }
 
+    private func isBirthdayOrHoliday(_ todo: TodoItem) -> Bool {
+        let keywords = ["geburtstag", "birthday", "feiertag", "holiday", "feiertage", "birthdays", "holidays"]
+        if let catName = todo.category?.name.lowercased(), keywords.contains(where: { catName.contains($0) }) {
+            return true
+        }
+        let titleLower = todo.title.lowercased()
+        return keywords.contains(where: { titleLower.hasPrefix($0) })
+    }
+
     private var todoGroups: [TodoFolderGroup] {
         let todos = sortedTodos
         let cal = Calendar.current
@@ -866,12 +899,16 @@ struct TodoListView: View {
         let endOfMonth   = cal.date(byAdding: .day, value: 29, to: endOfToday) ?? now
         let eng          = localizer.selectedLanguage == "Englisch"
 
-        let noDue     = todos.filter { $0.dueDate == nil }
-        let overdue   = todos.filter { guard let d = $0.dueDate else { return false }; return d < startOfToday && !$0.isCompleted }
-        let todayDue  = todos.filter { guard let d = $0.dueDate else { return false }; return d >= startOfToday && d <= endOfToday && !$0.isCompleted }
-        let thisWeek  = todos.filter { guard let d = $0.dueDate else { return false }; return d > endOfToday && d <= endOfWeek }
-        let thisMonth = todos.filter { guard let d = $0.dueDate else { return false }; return d > endOfWeek && d <= endOfMonth }
-        let later     = todos.filter { guard let d = $0.dueDate else { return false }; return d > endOfMonth }
+        let specialTodos = todos.filter { isBirthdayOrHoliday($0) }
+        let specialIDs   = Set(specialTodos.map { $0.id })
+        let remaining    = todos.filter { !specialIDs.contains($0.id) }
+
+        let noDue     = remaining.filter { $0.dueDate == nil }
+        let overdue   = remaining.filter { guard let d = $0.dueDate else { return false }; return d < startOfToday && !$0.isCompleted }
+        let todayDue  = remaining.filter { guard let d = $0.dueDate else { return false }; return d >= startOfToday && d <= endOfToday && !$0.isCompleted }
+        let thisWeek  = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfToday && d <= endOfWeek }
+        let thisMonth = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfWeek && d <= endOfMonth }
+        let later     = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfMonth }
 
         var groups: [TodoFolderGroup] = []
 
@@ -886,7 +923,40 @@ struct TodoListView: View {
             ))
         }
 
-        // 2. Dringend – Überfällig + Heute als Unterordner (wenn beides vorhanden)
+        // 2. Geburtstage & Feiertage
+        if !specialTodos.isEmpty {
+            let birthdays  = specialTodos.filter { $0.category?.name.lowercased().contains("geburtstag") == true || $0.category?.name.lowercased().contains("birthday") == true }
+            let holidays   = specialTodos.filter { $0.category?.name.lowercased().contains("feiertag") == true || $0.category?.name.lowercased().contains("holiday") == true }
+            let uncategorized = specialTodos.filter { todo in
+                !birthdays.contains(where: { $0.id == todo.id }) && !holidays.contains(where: { $0.id == todo.id })
+            }
+
+            if !birthdays.isEmpty && !holidays.isEmpty {
+                let bdGroup = TodoFolderGroup(id: "__birthdays__",
+                    title: eng ? "Birthdays" : "Geburtstage",
+                    icon: "gift.fill", color: .pink, todos: birthdays)
+                let hdGroup = TodoFolderGroup(id: "__holidays__",
+                    title: eng ? "Holidays" : "Feiertage",
+                    icon: "star.fill", color: .yellow, todos: holidays)
+                var subs = [bdGroup, hdGroup]
+                if !uncategorized.isEmpty {
+                    subs.append(TodoFolderGroup(id: "__special_other__",
+                        title: eng ? "Other" : "Weitere",
+                        icon: "sparkles", color: .orange, todos: uncategorized))
+                }
+                groups.append(TodoFolderGroup(id: "__special__",
+                    title: eng ? "Birthdays & Holidays" : "Geburtstage & Feiertage",
+                    icon: "calendar.badge.exclamationmark", color: .pink,
+                    subGroups: subs))
+            } else {
+                groups.append(TodoFolderGroup(id: "__special__",
+                    title: eng ? "Birthdays & Holidays" : "Geburtstage & Feiertage",
+                    icon: "calendar.badge.exclamationmark", color: .pink,
+                    todos: specialTodos))
+            }
+        }
+
+        // 3. Dringend – Überfällig + Heute als Unterordner (wenn beides vorhanden)
         if !overdue.isEmpty && !todayDue.isEmpty {
             let overdueGroup = TodoFolderGroup(id: "__overdue__",
                 title: eng ? "Overdue" : "Überfällig",
@@ -908,14 +978,14 @@ struct TodoListView: View {
                 icon: "sun.max.fill", color: .orange, todos: todayDue))
         }
 
-        // 3. Diese Woche
+        // 4. Diese Woche
         if !thisWeek.isEmpty {
             groups.append(TodoFolderGroup(id: "__week__",
                 title: eng ? "This Week" : "Diese Woche",
                 icon: "calendar.badge.clock", color: .blue, todos: thisWeek))
         }
 
-        // 4. Geplant – Dieser Monat + Später als Unterordner (wenn beides vorhanden)
+        // 5. Geplant – Dieser Monat + Später als Unterordner (wenn beides vorhanden)
         if !thisMonth.isEmpty && !later.isEmpty {
             let monthGroup = TodoFolderGroup(id: "__month__",
                 title: eng ? "This Month" : "Dieser Monat",
@@ -943,15 +1013,64 @@ struct TodoListView: View {
     // MARK: - Folder List View
 
     private var folderListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 14) {
-                ForEach(todoGroups) { group in
-                    folderSection(group: group)
+        ZStack(alignment: .topTrailing) {
+            if isReorderingFolders {
+                List {
+                    ForEach(orderedGroups(todoGroups)) { group in
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(LinearGradient(
+                                        colors: [group.color, group.color.opacity(0.7)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: group.icon)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            Text(group.title)
+                                .font(.system(size: 16, weight: .semibold))
+                            Spacer()
+                            Text("\(group.totalCount)")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(group.color.gradient, in: Capsule())
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onMove(perform: moveFolderGroup)
+                }
+                .listStyle(.insetGrouped)
+                .environment(\.editMode, .constant(.active))
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 14) {
+                        ForEach(orderedGroups(todoGroups)) { group in
+                            folderSection(group: group)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 90)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 10)
-            .padding(.bottom, 90)
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isReorderingFolders.toggle()
+                }
+            } label: {
+                Image(systemName: isReorderingFolders ? "checkmark.circle.fill" : "arrow.up.arrow.down.circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(isReorderingFolders ? Color.green : Color.secondary)
+                    .padding(8)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 12)
+            .padding(.trailing, 20)
         }
     }
 
