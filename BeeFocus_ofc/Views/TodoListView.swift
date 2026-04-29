@@ -11,6 +11,7 @@ import UserNotifications
 import UIKit
 import MessageUI
 import UniformTypeIdentifiers
+import EventKit
 
 // MARK: - BlurView (UIKit Wrapper für SwiftUI)
 struct BlurView: UIViewRepresentable {
@@ -69,6 +70,7 @@ struct TodoListView: View {
     @State private var showingDeleteCompletedByDateSheet = false
     
     @State private var showingConfirmTrashCompleted = false
+    @State private var showingDeleteDuplicatesConfirm = false
     @State private var presetRange: Int = 0 // 0: Alle, 1: Letzte 7 Tage, 2: Letzte 30 Tage, 3: Benutzerdefiniert
     @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEndDate: Date = Date()
@@ -79,7 +81,12 @@ struct TodoListView: View {
     
     @State private var draggingCategoryID: UUID? = nil
     @State private var dropTargetIndex: Int? = nil
-    
+
+    @State private var showingCalendarImport = false
+    @StateObject private var calendarImporter = CalendarImporter()
+
+    @State private var collapsedSections: Set<String> = []
+
     let languages = ["Deutsch", "Englisch"]
     
     private func readLocalTodosFallback() -> [TodoItem] {
@@ -109,6 +116,19 @@ struct TodoListView: View {
                 } message: {
                     Text(localizer.localizedString(forKey: "Möchten Sie wirklich alle erledigten Aufgaben in den Papierkorb verschieben?"))
                 }
+                .alert("Duplikate entfernen", isPresented: $showingDeleteDuplicatesConfirm) {
+                    Button(role: .destructive) {
+                        removeDuplicateTodos()
+                    } label: {
+                        Text("Entfernen")
+                    }
+                    Button(role: .cancel) { } label: {
+                        Text(localizer.localizedString(forKey: "Abbrechen"))
+                    }
+                } message: {
+                    let count = duplicateTodos.count
+                    Text(count > 0 ? "\(count) doppelte Aufgabe(n) gefunden. Möchten Sie diese entfernen?" : "Keine Duplikate gefunden.")
+                }
                 .overlay(alignment: .bottom) { successToastOverlay }
                 .navigationTitle(localizer.localizedString(forKey: "tasks_title"))
                 .navigationBarTitleDisplayMode(.large)
@@ -131,6 +151,10 @@ struct TodoListView: View {
                 }
                 .sheet(isPresented: $showingCategoryEdit) {
                     CategoryEditView()
+                        .environmentObject(todoStore)
+                }
+                .sheet(isPresented: $showingCalendarImport) {
+                    CalendarImportSheet(importer: calendarImporter)
                         .environmentObject(todoStore)
                 }
                 .alert(localizer.localizedString(forKey: "Löschen"), isPresented: $showingDeleteAlert, presenting: todoToDelete) { todo in
@@ -448,6 +472,11 @@ struct TodoListView: View {
                     } label: {
                         Label(localizer.localizedString(forKey: "Abgeschlossene in Papierkorb"), systemImage: "trash")
                     }
+                    Button(role: .destructive) {
+                        showingDeleteDuplicatesConfirm = true
+                    } label: {
+                        Label("Duplikate entfernen", systemImage: "doc.on.doc")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 13, weight: .bold))
@@ -517,6 +546,7 @@ struct TodoListView: View {
                 .confirmationDialog("Was möchten Sie tun?", isPresented: $showingActionSheet) {
                     Button(localizer.localizedString(forKey: "Neue Aufgabe hinzufügen")) { showingAddTodo = true }
                     Button(localizer.localizedString(forKey: "Aufgabe importieren")) { showingFileImporter = true }
+                    Button("Aus Kalender importieren") { showingCalendarImport = true }
                     Button(localizer.localizedString(forKey: "Abbrechen"), role: .cancel) { }
                 }
                 .fileImporter(
@@ -649,6 +679,7 @@ struct TodoListView: View {
                     
                     ForEach(Array(todoStore.categories.enumerated()), id: \.element) { index, category in
                         categoryButton(for: category)
+
                             .overlay(alignment: .leading) {
                                 // Insertion indicator before this item
                                 if let target = dropTargetIndex, target == index {
@@ -755,19 +786,21 @@ struct TodoListView: View {
                         endPoint: .bottom
                     )
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
-            .padding(.horizontal)
-            .padding(.top, 8)
         }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
     
     private func categoryButton(for category: Category) -> some View {
         CategoryButton(
             title: LocalizedStringKey(category.name),
             isSelected: selectedCategory == category,
-            color: .blue
+            color: category.color
         ) {
             selectedCategory = category
             showOnlyTodayFromNotification = false
@@ -793,13 +826,349 @@ struct TodoListView: View {
         Group {
             if filteredTodos.isEmpty {
                 emptyStateView
+            } else if selectedCategory == nil && searchText.isEmpty {
+                folderListView
             } else {
                 todoListView
             }
         }
         .frame(maxHeight: .infinity)
     }
-    
+
+    // MARK: - Folder Group Model
+
+    private struct TodoFolderGroup: Identifiable {
+        let id: String
+        let title: String
+        let icon: String
+        let color: Color
+        var directTodos: [TodoItem]
+        var subGroups: [TodoFolderGroup]
+
+        init(id: String, title: String, icon: String, color: Color,
+             todos: [TodoItem] = [], subGroups: [TodoFolderGroup] = []) {
+            self.id = id; self.title = title; self.icon = icon; self.color = color
+            self.directTodos = todos; self.subGroups = subGroups
+        }
+
+        var allTodos: [TodoItem] { directTodos + subGroups.flatMap(\.directTodos) }
+        var totalCount: Int { allTodos.count }
+        var completedCount: Int { allTodos.filter { $0.isCompleted }.count }
+    }
+
+    private var todoGroups: [TodoFolderGroup] {
+        let todos = sortedTodos
+        let cal = Calendar.current
+        let now = Date()
+        let startOfToday = cal.startOfDay(for: now)
+        let endOfToday   = cal.date(bySettingHour: 23, minute: 59, second: 59, of: startOfToday) ?? now
+        let endOfWeek    = cal.date(byAdding: .day, value: 6, to: endOfToday) ?? now
+        let endOfMonth   = cal.date(byAdding: .day, value: 29, to: endOfToday) ?? now
+        let eng          = localizer.selectedLanguage == "Englisch"
+
+        let noDue     = todos.filter { $0.dueDate == nil }
+        let overdue   = todos.filter { guard let d = $0.dueDate else { return false }; return d < startOfToday && !$0.isCompleted }
+        let todayDue  = todos.filter { guard let d = $0.dueDate else { return false }; return d >= startOfToday && d <= endOfToday && !$0.isCompleted }
+        let thisWeek  = todos.filter { guard let d = $0.dueDate else { return false }; return d > endOfToday && d <= endOfWeek }
+        let thisMonth = todos.filter { guard let d = $0.dueDate else { return false }; return d > endOfWeek && d <= endOfMonth }
+        let later     = todos.filter { guard let d = $0.dueDate else { return false }; return d > endOfMonth }
+
+        var groups: [TodoFolderGroup] = []
+
+        // 1. Allgemein – immer ganz oben (keine Fälligkeit)
+        if !noDue.isEmpty {
+            groups.append(TodoFolderGroup(
+                id: "__general__",
+                title: eng ? "General" : "Allgemein",
+                icon: "tray.fill",
+                color: Color(.systemGray),
+                todos: noDue
+            ))
+        }
+
+        // 2. Dringend – Überfällig + Heute als Unterordner (wenn beides vorhanden)
+        if !overdue.isEmpty && !todayDue.isEmpty {
+            let overdueGroup = TodoFolderGroup(id: "__overdue__",
+                title: eng ? "Overdue" : "Überfällig",
+                icon: "exclamationmark.circle.fill", color: .red, todos: overdue)
+            let todayGroup = TodoFolderGroup(id: "__today__",
+                title: eng ? "Today" : "Heute",
+                icon: "sun.max.fill", color: .orange, todos: todayDue)
+            groups.append(TodoFolderGroup(id: "__urgent__",
+                title: eng ? "Urgent" : "Dringend",
+                icon: "flame.fill", color: .red,
+                subGroups: [overdueGroup, todayGroup]))
+        } else if !overdue.isEmpty {
+            groups.append(TodoFolderGroup(id: "__overdue__",
+                title: eng ? "Overdue" : "Überfällig",
+                icon: "exclamationmark.circle.fill", color: .red, todos: overdue))
+        } else if !todayDue.isEmpty {
+            groups.append(TodoFolderGroup(id: "__today__",
+                title: eng ? "Today" : "Heute",
+                icon: "sun.max.fill", color: .orange, todos: todayDue))
+        }
+
+        // 3. Diese Woche
+        if !thisWeek.isEmpty {
+            groups.append(TodoFolderGroup(id: "__week__",
+                title: eng ? "This Week" : "Diese Woche",
+                icon: "calendar.badge.clock", color: .blue, todos: thisWeek))
+        }
+
+        // 4. Geplant – Dieser Monat + Später als Unterordner (wenn beides vorhanden)
+        if !thisMonth.isEmpty && !later.isEmpty {
+            let monthGroup = TodoFolderGroup(id: "__month__",
+                title: eng ? "This Month" : "Dieser Monat",
+                icon: "calendar", color: .purple, todos: thisMonth)
+            let laterGroup = TodoFolderGroup(id: "__later__",
+                title: eng ? "Later" : "Später",
+                icon: "arrow.forward.circle.fill", color: .teal, todos: later)
+            groups.append(TodoFolderGroup(id: "__planned__",
+                title: eng ? "Planned" : "Geplant",
+                icon: "calendar.badge.plus", color: .indigo,
+                subGroups: [monthGroup, laterGroup]))
+        } else if !thisMonth.isEmpty {
+            groups.append(TodoFolderGroup(id: "__month__",
+                title: eng ? "This Month" : "Dieser Monat",
+                icon: "calendar", color: .purple, todos: thisMonth))
+        } else if !later.isEmpty {
+            groups.append(TodoFolderGroup(id: "__later__",
+                title: eng ? "Later" : "Später",
+                icon: "arrow.forward.circle.fill", color: .teal, todos: later))
+        }
+
+        return groups
+    }
+
+    // MARK: - Folder List View
+
+    private var folderListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 14) {
+                ForEach(todoGroups) { group in
+                    folderSection(group: group)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 90)
+        }
+    }
+
+    // Renders todo items list shared between main folders and sub-folders
+    @ViewBuilder
+    private func todoItemsContent(todos: [TodoItem], color: Color) -> some View {
+        VStack(spacing: 10) {
+            ForEach(todos) { todo in
+                let binding = Binding<TodoItem>(
+                    get: { todoStore.todos.first(where: { $0.id == todo.id }) ?? todo },
+                    set: { updated in
+                        if let idx = todoStore.todos.firstIndex(where: { $0.id == updated.id }) {
+                            todoStore.todos[idx] = updated
+                        }
+                    }
+                )
+                HStack(alignment: .top, spacing: 8) {
+                    if isSelecting {
+                        Button(action: {
+                            if selectedTodoIDs.contains(todo.id) { selectedTodoIDs.remove(todo.id) }
+                            else { selectedTodoIDs.insert(todo.id) }
+                        }) {
+                            Image(systemName: selectedTodoIDs.contains(todo.id) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(selectedTodoIDs.contains(todo.id) ? color : .secondary)
+                                .font(.title3)
+                                .padding(.top, 6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    TodoCard(todo: binding) {
+                        if !isSelecting {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { todoStore.toggleTodo(todo) }
+                        } else {
+                            if selectedTodoIDs.contains(todo.id) { selectedTodoIDs.remove(todo.id) }
+                            else { selectedTodoIDs.insert(todo.id) }
+                        }
+                    } onEdit: {
+                        if !isSelecting { editingTodo = todo }
+                    } onDelete: {
+                        if !isSelecting { todoToDelete = todo; showingDeleteAlert = true }
+                    } onShare: {
+                        if !isSelecting { TodoShare.share(todo: todo) }
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if !isSelecting {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { todoStore.toggleTodo(todo) }
+                        } label: { Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark") }
+                        .tint(.green)
+
+                        Button(role: .destructive) {
+                            categoryToDelete = nil; todoToDelete = todo; showingDeleteAlert = true
+                        } label: { Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash") }
+
+                        Button { TodoShare.share(todo: todo) } label: {
+                            Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
+                        }
+                        .tint(.blue)
+                    }
+                }
+                .strikethrough(todo.isCompleted, color: .gray)
+                .opacity(todo.isCompleted ? 0.55 : 1.0)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.96).combined(with: .opacity),
+                    removal: .scale(scale: 0.96).combined(with: .opacity)
+                ))
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: todo.isCompleted)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    private func folderSection(group: TodoFolderGroup, isSubFolder: Bool = false) -> AnyView {
+        let isCollapsed = collapsedSections.contains(group.id)
+        let totalCount = group.totalCount
+        let completedCount = group.completedCount
+        let iconSize: CGFloat = isSubFolder ? 12 : 16
+        let circleSize: CGFloat = isSubFolder ? 28 : 36
+        let cornerRadius: CGFloat = isSubFolder ? 14 : 22
+        let hPad: CGFloat = isSubFolder ? 12 : 16
+        let vPad: CGFloat = isSubFolder ? 10 : 14
+
+        return AnyView(VStack(spacing: 0) {
+            // Header
+            Button {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    if isCollapsed { collapsedSections.remove(group.id) }
+                    else { collapsedSections.insert(group.id) }
+                }
+            } label: {
+                HStack(spacing: isSubFolder ? 10 : 13) {
+                    ZStack {
+                        if !isSubFolder {
+                            Circle()
+                                .fill(group.color.opacity(0.15))
+                                .frame(width: 42, height: 42)
+                                .blur(radius: isCollapsed ? 0 : 4)
+                        }
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [group.color, group.color.opacity(0.7)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: circleSize, height: circleSize)
+                            .shadow(
+                                color: group.color.opacity(isCollapsed ? 0.3 : 0.6),
+                                radius: isCollapsed ? 4 : 12, x: 0, y: isCollapsed ? 2 : 5)
+                        Image(systemName: group.icon)
+                            .font(.system(size: iconSize, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(group.title)
+                            .font(.system(size: isSubFolder ? 14 : 16, weight: .semibold))
+                            .foregroundStyle(.primary)
+
+                        if !isSubFolder {
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color.primary.opacity(0.08)).frame(height: 3)
+                                    Capsule()
+                                        .fill(group.color.gradient)
+                                        .frame(
+                                            width: totalCount == 0 ? 0 : geo.size.width * CGFloat(completedCount) / CGFloat(totalCount),
+                                            height: 3)
+                                        .shadow(color: group.color.opacity(0.5), radius: 3)
+                                }
+                            }
+                            .frame(width: 80, height: 3)
+                        }
+                    }
+
+                    Spacer()
+
+                    HStack(spacing: 6) {
+                        if completedCount > 0 {
+                            Text("\(completedCount)/\(totalCount)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(group.color)
+                                .padding(.horizontal, 7).padding(.vertical, 3)
+                                .background(group.color.opacity(0.12), in: Capsule())
+                        } else {
+                            Text("\(totalCount)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(group.color.gradient, in: Capsule())
+                                .shadow(color: group.color.opacity(0.4), radius: 4, x: 0, y: 2)
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary.opacity(0.6))
+                            .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                    }
+                }
+                .padding(.horizontal, hPad)
+                .padding(.vertical, vPad)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Expanded content
+            if !isCollapsed {
+                Divider().padding(.horizontal, hPad).opacity(0.4)
+
+                if group.subGroups.isEmpty {
+                    // Leaf folder: show todos directly
+                    todoItemsContent(todos: group.directTodos, color: group.color)
+                } else {
+                    // Parent folder: show sub-folder cards
+                    VStack(spacing: 10) {
+                        if !group.directTodos.isEmpty {
+                            todoItemsContent(todos: group.directTodos, color: group.color)
+                        }
+                        ForEach(group.subGroups) { sub in
+                            folderSection(group: sub, isSubFolder: true)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+        .background {
+            if isSubFolder {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.primary.opacity(0.05))
+            } else {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            group.color.opacity(isCollapsed ? (isSubFolder ? 0.18 : 0.2) : (isSubFolder ? 0.35 : 0.45)),
+                            group.color.opacity(isCollapsed ? 0.04 : 0.12)
+                        ],
+                        startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: isSubFolder ? 0.8 : 1.2)
+        )
+        .shadow(
+            color: isSubFolder ? .clear : group.color.opacity(isCollapsed ? 0.1 : 0.3),
+            radius: isCollapsed ? 6 : 18, x: 0, y: isCollapsed ? 3 : 8)
+        .shadow(
+            color: isSubFolder ? .clear : group.color.opacity(isCollapsed ? 0.0 : 0.15),
+            radius: 30, x: 0, y: 4)
+        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isCollapsed)
+        )
+    }
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle")
@@ -950,6 +1319,26 @@ struct TodoListView: View {
             showPastTasksStorage.toggle()
         }
     }
+
+    private var duplicateTodos: [TodoItem] {
+        var seen: Set<String> = []
+        var dupes: [TodoItem] = []
+        for todo in todoStore.todos {
+            let key = "\(todo.title)|\(todo.description)|\(String(todo.dueDate?.timeIntervalSince1970 ?? -1))|\(todo.category?.name ?? "")|\(todo.priority)"
+            if seen.contains(key) {
+                dupes.append(todo)
+            } else {
+                seen.insert(key)
+            }
+        }
+        return dupes
+    }
+
+    private func removeDuplicateTodos() {
+        for todo in duplicateTodos {
+            todoStore.deleteTodo(todo)
+        }
+    }
 }
 
 // MARK: - InsertionIndicator
@@ -972,6 +1361,151 @@ struct InsertionIndicator: View {
     }
 }
 
+// MARK: - CalendarImporter
+@MainActor
+class CalendarImporter: ObservableObject {
+    private let eventStore = EKEventStore()
+
+    @Published var authStatus: EKAuthorizationStatus = EKEventStore.authorizationStatus(for: .event)
+    @Published var availableCalendars: [EKCalendar] = []
+    @Published var selectedCalendarIDs: Set<String> = []
+    @Published var lastImportCount: Int? = nil
+
+    var isAccessGranted: Bool {
+        if #available(iOS 17.0, *) {
+            return authStatus == .fullAccess
+        }
+        return authStatus == .authorized
+    }
+
+    func requestAccessIfNeeded() async {
+        if isAccessGranted {
+            loadCalendars()
+            return
+        }
+        do {
+            let granted: Bool
+            if #available(iOS 17.0, *) {
+                granted = try await eventStore.requestFullAccessToEvents()
+            } else {
+                granted = try await eventStore.requestAccess(to: .event)
+            }
+            authStatus = EKEventStore.authorizationStatus(for: .event)
+            if granted { loadCalendars() }
+        } catch {
+            print("❌ Kalender-Zugriff Fehler: \(error)")
+        }
+    }
+
+    private func loadCalendars() {
+        availableCalendars = eventStore.calendars(for: .event)
+        selectedCalendarIDs = Set(availableCalendars.map { $0.calendarIdentifier })
+    }
+
+    func importEvents(from startDate: Date, to endDate: Date, into todoStore: TodoStore) {
+        let cals = availableCalendars.filter { selectedCalendarIDs.contains($0.calendarIdentifier) }
+        guard !cals.isEmpty else { lastImportCount = 0; return }
+
+        let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: cals)
+        let events = eventStore.events(matching: predicate)
+
+        let existing = Set(todoStore.todos.compactMap { $0.calendarEventIdentifier })
+
+        var count = 0
+        for event in events {
+            guard !existing.contains(event.eventIdentifier) else { continue }
+            let todo = TodoItem(
+                title: event.title ?? "Kalendereintrag",
+                description: event.notes ?? "",
+                dueDate: event.startDate,
+                calendarEventIdentifier: event.eventIdentifier,
+                calendarEnabled: false
+            )
+            todoStore.addTodo(todo)
+            count += 1
+        }
+        lastImportCount = count
+    }
+}
+
+// MARK: - CalendarImportSheet
+struct CalendarImportSheet: View {
+    @ObservedObject var importer: CalendarImporter
+    @EnvironmentObject var todoStore: TodoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var startDate = Date()
+    @State private var endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if !importer.isAccessGranted {
+                    Section {
+                        Button("Kalender-Zugriff erlauben") {
+                            Task { await importer.requestAccessIfNeeded() }
+                        }
+                    } footer: {
+                        Text("BeeFocus benötigt Lesezugriff auf den Kalender, um Einträge zu importieren.")
+                    }
+                } else {
+                    Section("Zeitraum") {
+                        DatePicker("Von", selection: $startDate, displayedComponents: [.date])
+                        DatePicker("Bis", selection: $endDate, in: startDate..., displayedComponents: [.date])
+                    }
+
+                    Section("Kalender auswählen") {
+                        ForEach(importer.availableCalendars, id: \.calendarIdentifier) { cal in
+                            let calID = cal.calendarIdentifier
+                            Toggle(isOn: Binding(
+                                get: { importer.selectedCalendarIDs.contains(calID) },
+                                set: { on in
+                                    if on { importer.selectedCalendarIDs.insert(calID) }
+                                    else { importer.selectedCalendarIDs.remove(calID) }
+                                }
+                            )) {
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color(cgColor: cal.cgColor))
+                                        .frame(width: 12, height: 12)
+                                    Text(cal.title)
+                                }
+                            }
+                        }
+                    }
+
+                    if let count = importer.lastImportCount {
+                        Section {
+                            Label(
+                                count > 0 ? "\(count) Einträge importiert" : "Keine neuen Einträge gefunden",
+                                systemImage: count > 0 ? "checkmark.circle.fill" : "info.circle"
+                            )
+                            .foregroundColor(count > 0 ? .green : .secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Aus Kalender importieren")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Schließen") { dismiss() }
+                }
+                if importer.isAccessGranted {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Importieren") {
+                            importer.importEvents(from: startDate, to: endDate, into: todoStore)
+                        }
+                    }
+                }
+            }
+            .task {
+                await importer.requestAccessIfNeeded()
+            }
+        }
+    }
+}
+
 // MARK: - ActivityView (UIKit Share Sheet Wrapper)
 struct ActivityView: UIViewControllerRepresentable {
     var activityItems: [Any]
@@ -990,19 +1524,30 @@ struct CategoryButton: View {
     let isSelected: Bool
     let color: Color
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.system(size: 14, weight: .semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? color.opacity(0.15) : Color.gray.opacity(0.08))
-                )
-                .foregroundColor(isSelected ? color : .primary)
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(color.opacity(0.18))
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(color.opacity(0.4), lineWidth: 1)
+                            )
+                    } else {
+                        Capsule()
+                            .fill(Color.primary.opacity(0.06))
+                    }
+                }
+                .foregroundStyle(isSelected ? color : .primary)
+                .shadow(color: isSelected ? color.opacity(0.45) : .clear, radius: 8, x: 0, y: 3)
+                .scaleEffect(isSelected ? 1.03 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
         }
         .buttonStyle(.plain)
     }

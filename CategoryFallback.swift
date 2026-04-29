@@ -8,19 +8,6 @@
 import Foundation
 import SwiftUI
 
-// Falls Category noch nicht existiert, hier ist eine kompatible Version
-struct Category: Identifiable, Codable, Equatable {
-    let id: UUID
-    var name: String
-    var color: String // Hex-String oder Color-Name
-    
-    init(id: UUID = UUID(), name: String, color: String = "blue") {
-        self.id = id
-        self.name = name
-        self.color = color
-    }
-    
-    static func == (lhs: Category, rhs: Category) -> Bool {
-        lhs.id == rhs.id
-    }
-}
+// The Category struct is now defined in ToDoStore.swift
+// This file is kept for reference but the duplicate definition has been removed
+// to resolve the "Ambiguous type name 'Category'" error

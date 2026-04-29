@@ -10,6 +10,17 @@
 		4C463DE52F8F8949000E20A5 /* CalendarPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C463DE42F8F8949000E20A5 /* CalendarPickerView.swift */; };
 		4C5964352EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4C5964342EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist */; };
 		4C8B69602E1C82D800C30F43 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 4C8B695F2E1C82D800C30F43 /* Lottie */; };
+		4CC00CEC2F8F968D002984B8 /* TodoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CEB2F8F968D002984B8 /* TodoWidgetBundle.swift */; };
+		4CC00CEE2F8F96B4002984B8 /* TodoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CED2F8F96B4002984B8 /* TodoWidget.swift */; };
+		4CC00CF02F8F96BF002984B8 /* WidgetDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CEF2F8F96BF002984B8 /* WidgetDataManager.swift */; };
+		4CC00CF22F8F96DD002984B8 /* WIDGET_SETUP_ANLEITUNG.md in Resources */ = {isa = PBXBuildFile; fileRef = 4CC00CF12F8F96DD002984B8 /* WIDGET_SETUP_ANLEITUNG.md */; };
+		4CC00CF42F8F96EA002984B8 /* CategoryFallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CF32F8F96EA002984B8 /* CategoryFallback.swift */; };
+		4CC00CF62F8F96FF002984B8 /* TodoStore+Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CF52F8F96FF002984B8 /* TodoStore+Widget.swift */; };
+		4CC00CF82F8F971D002984B8 /* TodoWidgetPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CF72F8F971D002984B8 /* TodoWidgetPreviews.swift */; };
+		4CC00CFA2F8F9748002984B8 /* WIDGET_SCHNELLSTART.md in Resources */ = {isa = PBXBuildFile; fileRef = 4CC00CF92F8F9748002984B8 /* WIDGET_SCHNELLSTART.md */; };
+		4CC00CFC2F8F9779002984B8 /* TodoWidgetDesignVariants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CFB2F8F9779002984B8 /* TodoWidgetDesignVariants.swift */; };
+		4CC00CFE2F8F9804002984B8 /* WIDGET_TEST_ANLEITUNG.md in Resources */ = {isa = PBXBuildFile; fileRef = 4CC00CFD2F8F9804002984B8 /* WIDGET_TEST_ANLEITUNG.md */; };
+		4CC00D002F8F9838002984B8 /* WidgetTestUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC00CFF2F8F9838002984B8 /* WidgetTestUtility.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -40,6 +51,17 @@
 		4C5964342EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "BeeFocus-ofc-Info.plist"; sourceTree = "<group>"; };
 		4C63FC752EA12A540062E93F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4C63FC772EA12A540062E93F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		4CC00CEB2F8F968D002984B8 /* TodoWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoWidgetBundle.swift; sourceTree = "<group>"; };
+		4CC00CED2F8F96B4002984B8 /* TodoWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoWidget.swift; sourceTree = "<group>"; };
+		4CC00CEF2F8F96BF002984B8 /* WidgetDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDataManager.swift; sourceTree = "<group>"; };
+		4CC00CF12F8F96DD002984B8 /* WIDGET_SETUP_ANLEITUNG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = WIDGET_SETUP_ANLEITUNG.md; sourceTree = "<group>"; };
+		4CC00CF32F8F96EA002984B8 /* CategoryFallback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryFallback.swift; sourceTree = "<group>"; };
+		4CC00CF52F8F96FF002984B8 /* TodoStore+Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TodoStore+Widget.swift"; sourceTree = "<group>"; };
+		4CC00CF72F8F971D002984B8 /* TodoWidgetPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoWidgetPreviews.swift; sourceTree = "<group>"; };
+		4CC00CF92F8F9748002984B8 /* WIDGET_SCHNELLSTART.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = WIDGET_SCHNELLSTART.md; sourceTree = "<group>"; };
+		4CC00CFB2F8F9779002984B8 /* TodoWidgetDesignVariants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoWidgetDesignVariants.swift; sourceTree = "<group>"; };
+		4CC00CFD2F8F9804002984B8 /* WIDGET_TEST_ANLEITUNG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = WIDGET_TEST_ANLEITUNG.md; sourceTree = "<group>"; };
+		4CC00CFF2F8F9838002984B8 /* WidgetTestUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTestUtility.swift; sourceTree = "<group>"; };
 		4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocus_ofc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -80,6 +102,17 @@
 				4C84FD8E2E1C561600DEF053 /* Frameworks */,
 				4CCA1DCE2DFF618A007F640D /* Products */,
 				4C463DE42F8F8949000E20A5 /* CalendarPickerView.swift */,
+				4CC00CEB2F8F968D002984B8 /* TodoWidgetBundle.swift */,
+				4CC00CED2F8F96B4002984B8 /* TodoWidget.swift */,
+				4CC00CEF2F8F96BF002984B8 /* WidgetDataManager.swift */,
+				4CC00CF12F8F96DD002984B8 /* WIDGET_SETUP_ANLEITUNG.md */,
+				4CC00CF32F8F96EA002984B8 /* CategoryFallback.swift */,
+				4CC00CF52F8F96FF002984B8 /* TodoStore+Widget.swift */,
+				4CC00CF72F8F971D002984B8 /* TodoWidgetPreviews.swift */,
+				4CC00CF92F8F9748002984B8 /* WIDGET_SCHNELLSTART.md */,
+				4CC00CFB2F8F9779002984B8 /* TodoWidgetDesignVariants.swift */,
+				4CC00CFD2F8F9804002984B8 /* WIDGET_TEST_ANLEITUNG.md */,
+				4CC00CFF2F8F9838002984B8 /* WidgetTestUtility.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -164,6 +197,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C5964352EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist in Resources */,
+				4CC00CFA2F8F9748002984B8 /* WIDGET_SCHNELLSTART.md in Resources */,
+				4CC00CFE2F8F9804002984B8 /* WIDGET_TEST_ANLEITUNG.md in Resources */,
+				4CC00CF22F8F96DD002984B8 /* WIDGET_SETUP_ANLEITUNG.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,6 +210,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4CC00D002F8F9838002984B8 /* WidgetTestUtility.swift in Sources */,
+				4CC00CEE2F8F96B4002984B8 /* TodoWidget.swift in Sources */,
+				4CC00CFC2F8F9779002984B8 /* TodoWidgetDesignVariants.swift in Sources */,
+				4CC00CF02F8F96BF002984B8 /* WidgetDataManager.swift in Sources */,
+				4CC00CF62F8F96FF002984B8 /* TodoStore+Widget.swift in Sources */,
+				4CC00CF82F8F971D002984B8 /* TodoWidgetPreviews.swift in Sources */,
+				4CC00CF42F8F96EA002984B8 /* CategoryFallback.swift in Sources */,
+				4CC00CEC2F8F968D002984B8 /* TodoWidgetBundle.swift in Sources */,
 				4C463DE52F8F8949000E20A5 /* CalendarPickerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

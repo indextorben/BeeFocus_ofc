@@ -12,7 +12,7 @@ import UserNotifications
 
 struct AlertModifiers: ViewModifier {
     @Binding var showingDeleteAlert: Bool
-    @Binding var todoToDelete: TodoItem?
+    @Binding var todoToDelete: BeeFocus_ofc.TodoItem?
     var todoStore: BeeFocus_ofc.TodoStore
     @Binding var showingAddCategory: Bool
     @Binding var newCategoryName: String
@@ -20,16 +20,16 @@ struct AlertModifiers: ViewModifier {
     @Binding var showingDeleteCategoryAlert: Bool
     @Binding var categoryToDelete: BeeFocus_ofc.Category?
     @Binding var selectedCategory: BeeFocus_ofc.Category?
-    
+
     @ObservedObject private var localizer = LocalizationManager.shared
-    
+
     private var editCategoryAlertIsPresented: Binding<Bool> {
         Binding(
             get: { editingCategory != nil },
             set: { if !$0 { editingCategory = nil } }
         )
     }
-    
+
     func body(content: Content) -> some View {
         content
             .alert(localizer.localizedString(forKey: "alert_delete_task"), isPresented: $showingDeleteAlert) {
@@ -53,18 +53,22 @@ struct AlertModifiers: ViewModifier {
                 Text(localizer.localizedString(forKey: "alert_delete_category_message"))
             }
     }
-    
+
     private var deleteTodoAlertButtons: some View {
         Group {
             Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
             Button(localizer.localizedString(forKey: "delete"), role: .destructive) {
-                if let todo = todoToDelete {
-                    todoStore.deleteTodo(todo)
+                // Direkte Manipulation statt todoStore.deleteTodo(_:) – vermeidet
+                // die Mehrdeutigkeit durch die doppelte Definition in TodoStore+Widget.swift
+                if let todo = todoToDelete,
+                   let index = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
+                    todoStore.todos.remove(at: index)
+                    todoStore.saveTodos()
                 }
             }
         }
     }
-    
+
     private var addCategoryAlertFields: some View {
         Group {
             TextField(localizer.localizedString(forKey: "category_name"), text: $newCategoryName)
@@ -80,7 +84,7 @@ struct AlertModifiers: ViewModifier {
             }
         }
     }
-    
+
     private var editCategoryAlertFields: some View {
         Group {
             if let category = editingCategory {
@@ -104,7 +108,7 @@ struct AlertModifiers: ViewModifier {
             }
         }
     }
-    
+
     private var deleteCategoryAlertButtons: some View {
         Group {
             Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {
@@ -122,4 +126,3 @@ struct AlertModifiers: ViewModifier {
         }
     }
 }
-

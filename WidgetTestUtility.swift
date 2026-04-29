@@ -99,9 +99,9 @@ class WidgetTestUtility {
             
         case .allDone:
             var todos = [
-                TodoItem(title: "Erledigt 1", dueDate: today, isCompleted: true),
-                TodoItem(title: "Erledigt 2", dueDate: today, isCompleted: true),
-                TodoItem(title: "Erledigt 3", dueDate: today, isCompleted: true)
+                TodoItem(title: "Erledigt 1", isCompleted: true, dueDate: today),
+                TodoItem(title: "Erledigt 2", isCompleted: true, dueDate: today),
+                TodoItem(title: "Erledigt 3", isCompleted: true, dueDate: today)
             ]
             todos[0].completedAt = today
             todos[1].completedAt = today

@@ -27,26 +27,6 @@ extension TodoStore {
         WidgetDataManager.shared.saveTodos(self.todos)
     }
     
-    /// Aufgabe hinzufügen und Widget aktualisieren
-    func addTodo(_ todo: TodoItem) {
-        todos.append(todo)
-        saveAndUpdateWidget()
-    }
-    
-    /// Aufgabe aktualisieren und Widget aktualisieren
-    func updateTodo(_ todo: TodoItem) {
-        if let index = todos.firstIndex(where: { $0.id == todo.id }) {
-            todos[index] = todo
-            saveAndUpdateWidget()
-        }
-    }
-    
-    /// Aufgabe löschen und Widget aktualisieren
-    func deleteTodo(_ todo: TodoItem) {
-        todos.removeAll { $0.id == todo.id }
-        saveAndUpdateWidget()
-    }
-    
     /// Aufgabe als erledigt/unerledigt markieren und Widget aktualisieren
     func toggleCompletion(for todo: TodoItem) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {

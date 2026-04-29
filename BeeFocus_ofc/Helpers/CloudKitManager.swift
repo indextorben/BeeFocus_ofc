@@ -243,9 +243,9 @@ final class CloudKitManager: ObservableObject {
                             subTasks = decoded
                         }
 
-                        var category: BeeFocus_ofc.Category? = nil
+                        var category: Category? = nil
                         if let data = record["category"] as? Data, data.count > 0,
-                           let decoded = try? JSONDecoder().decode(BeeFocus_ofc.Category.self, from: data) {
+                           let decoded = try? JSONDecoder().decode(Category.self, from: data) {
                             category = decoded
                         }
 
@@ -513,7 +513,7 @@ final class CloudKitManager: ObservableObject {
     }
     
     // MARK: - Categories
-    func fetchCategories(completion: @escaping ([BeeFocus_ofc.Category]) -> Void) {
+    func fetchCategories(completion: @escaping ([Category]) -> Void) {
         let query = CKQuery(recordType: "Category", predicate: NSPredicate(value: true))
         var records: [CKRecord] = []
         let op = CKQueryOperation(query: query)
@@ -525,14 +525,14 @@ final class CloudKitManager: ObservableObject {
         }
         op.queryResultBlock = { (_: Result<CKQueryOperation.Cursor?, Error>) in
             DispatchQueue.main.async {
-                let cats: [BeeFocus_ofc.Category] = records.compactMap { rec in
+                let cats: [Category] = records.compactMap { rec in
                     let idString = (rec["id"] as? String) ?? rec.recordID.recordName
                     guard
                         let name = rec["name"] as? String,
                         let colorHex = rec["colorHex"] as? String,
                         let id = UUID(uuidString: idString)
                     else { return nil }
-                    return BeeFocus_ofc.Category(id: id, name: name, colorHex: colorHex)
+                    return Category(id: id, name: name, colorHex: colorHex)
                 }
                 completion(cats)
             }
@@ -540,7 +540,7 @@ final class CloudKitManager: ObservableObject {
         database.add(op)
     }
 
-    func saveCategory(_ category: BeeFocus_ofc.Category) {
+    func saveCategory(_ category: Category) {
         let recordID = CKRecord.ID(recordName: category.id.uuidString)
         let record = CKRecord(recordType: "Category", recordID: recordID)
         record["id"] = category.id.uuidString as CKRecordValue
@@ -558,7 +558,7 @@ final class CloudKitManager: ObservableObject {
         }
     }
 
-    func deleteCategory(_ category: BeeFocus_ofc.Category) {
+    func deleteCategory(_ category: Category) {
         // Prefer deleting by custom 'id' field to handle legacy records with different recordName
         let idPredicate = NSPredicate(format: "id == %@", category.id.uuidString)
         let idQuery = CKQuery(recordType: "Category", predicate: idPredicate)
