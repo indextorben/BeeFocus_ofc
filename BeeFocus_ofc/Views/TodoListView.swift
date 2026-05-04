@@ -1045,13 +1045,13 @@ struct TodoListView: View {
                 .environment(\.editMode, .constant(.active))
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 14) {
+                    LazyVStack(spacing: 10) {
                         ForEach(orderedGroups(todoGroups)) { group in
                             folderSection(group: group)
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.top, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
                     .padding(.bottom, 90)
                 }
             }
@@ -1150,82 +1150,61 @@ struct TodoListView: View {
         let isCollapsed = collapsedSections.contains(group.id)
         let totalCount = group.totalCount
         let completedCount = group.completedCount
-        let iconSize: CGFloat = isSubFolder ? 12 : 16
-        let circleSize: CGFloat = isSubFolder ? 28 : 36
-        let cornerRadius: CGFloat = isSubFolder ? 14 : 22
-        let hPad: CGFloat = isSubFolder ? 12 : 16
-        let vPad: CGFloat = isSubFolder ? 10 : 14
+        let cornerRadius: CGFloat = isSubFolder ? 12 : 16
+        let hPad: CGFloat = isSubFolder ? 10 : 14
+        let vPad: CGFloat = isSubFolder ? 9 : 12
 
         return AnyView(VStack(spacing: 0) {
             // Header
             Button {
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     if isCollapsed { collapsedSections.remove(group.id) }
                     else { collapsedSections.insert(group.id) }
                 }
             } label: {
-                HStack(spacing: isSubFolder ? 10 : 13) {
-                    ZStack {
-                        if !isSubFolder {
-                            Circle()
-                                .fill(group.color.opacity(0.15))
-                                .frame(width: 42, height: 42)
-                                .blur(radius: isCollapsed ? 0 : 4)
-                        }
-                        Circle()
-                            .fill(LinearGradient(
-                                colors: [group.color, group.color.opacity(0.7)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: circleSize, height: circleSize)
-                            .shadow(
-                                color: group.color.opacity(isCollapsed ? 0.3 : 0.6),
-                                radius: isCollapsed ? 4 : 12, x: 0, y: isCollapsed ? 2 : 5)
-                        Image(systemName: group.icon)
-                            .font(.system(size: iconSize, weight: .semibold))
-                            .foregroundStyle(.white)
+                HStack(spacing: 10) {
+                    // Farbiger Akzent-Streifen links
+                    if !isSubFolder {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(group.color)
+                            .frame(width: 3, height: 28)
                     }
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(group.title)
-                            .font(.system(size: isSubFolder ? 14 : 16, weight: .semibold))
-                            .foregroundStyle(.primary)
+                    // Icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: isSubFolder ? 7 : 9, style: .continuous)
+                            .fill(group.color.opacity(0.15))
+                            .frame(width: isSubFolder ? 28 : 34, height: isSubFolder ? 28 : 34)
+                        Image(systemName: group.icon)
+                            .font(.system(size: isSubFolder ? 13 : 15, weight: .semibold))
+                            .foregroundStyle(group.color)
+                    }
 
-                        if !isSubFolder {
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    Capsule().fill(Color.primary.opacity(0.08)).frame(height: 3)
-                                    Capsule()
-                                        .fill(group.color.gradient)
-                                        .frame(
-                                            width: totalCount == 0 ? 0 : geo.size.width * CGFloat(completedCount) / CGFloat(totalCount),
-                                            height: 3)
-                                        .shadow(color: group.color.opacity(0.5), radius: 3)
-                                }
-                            }
-                            .frame(width: 80, height: 3)
+                    // Titel + optionaler Fortschritt
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(group.title)
+                            .font(.system(size: isSubFolder ? 14 : 15, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        if !isSubFolder && completedCount > 0 {
+                            Text("\(completedCount) von \(totalCount) erledigt")
+                                .font(.system(size: 11, weight: .regular))
+                                .foregroundStyle(.secondary)
                         }
                     }
 
                     Spacer()
 
-                    HStack(spacing: 6) {
-                        if completedCount > 0 {
-                            Text("\(completedCount)/\(totalCount)")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(group.color)
-                                .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(group.color.opacity(0.12), in: Capsule())
-                        } else {
-                            Text("\(totalCount)")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8).padding(.vertical, 4)
-                                .background(group.color.gradient, in: Capsule())
-                                .shadow(color: group.color.opacity(0.4), radius: 4, x: 0, y: 2)
-                        }
+                    // Badge + Chevron
+                    HStack(spacing: 8) {
+                        Text(completedCount > 0 ? "\(totalCount - completedCount)" : "\(totalCount)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(group.color)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(group.color.opacity(0.12), in: Capsule())
+
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.secondary.opacity(0.6))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.tertiary)
                             .rotationEffect(.degrees(isCollapsed ? 0 : 90))
                     }
                 }
@@ -1237,14 +1216,14 @@ struct TodoListView: View {
 
             // Expanded content
             if !isCollapsed {
-                Divider().padding(.horizontal, hPad).opacity(0.4)
+                Divider()
+                    .padding(.horizontal, hPad)
+                    .opacity(0.25)
 
                 if group.subGroups.isEmpty {
-                    // Leaf folder: show todos directly
                     todoItemsContent(todos: group.directTodos, color: group.color)
                 } else {
-                    // Parent folder: show sub-folder cards
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         if !group.directTodos.isEmpty {
                             todoItemsContent(todos: group.directTodos, color: group.color)
                         }
@@ -1259,32 +1238,17 @@ struct TodoListView: View {
             }
         }
         .background {
-            if isSubFolder {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.primary.opacity(0.05))
-            } else {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(isSubFolder
+                      ? Color(uiColor: .secondarySystemGroupedBackground)
+                      : Color(uiColor: .systemBackground))
         }
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            group.color.opacity(isCollapsed ? (isSubFolder ? 0.18 : 0.2) : (isSubFolder ? 0.35 : 0.45)),
-                            group.color.opacity(isCollapsed ? 0.04 : 0.12)
-                        ],
-                        startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: isSubFolder ? 0.8 : 1.2)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
         )
-        .shadow(
-            color: isSubFolder ? .clear : group.color.opacity(isCollapsed ? 0.1 : 0.3),
-            radius: isCollapsed ? 6 : 18, x: 0, y: isCollapsed ? 3 : 8)
-        .shadow(
-            color: isSubFolder ? .clear : group.color.opacity(isCollapsed ? 0.0 : 0.15),
-            radius: 30, x: 0, y: 4)
-        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isCollapsed)
+        .shadow(color: .black.opacity(isSubFolder ? 0 : 0.06), radius: 6, x: 0, y: 2)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCollapsed)
         )
     }
 

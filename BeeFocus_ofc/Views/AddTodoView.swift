@@ -633,9 +633,10 @@ struct AddTodoView: View {
 
         let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
         let newCategory = Category(name: trimmedName, colorHex: randomColor)
-
         todoStore.addCategory(newCategory)
-        category = newCategory
+
+        // Always use the persisted category (handles duplicate name gracefully)
+        category = todoStore.categories.first(where: { $0.name == trimmedName }) ?? newCategory
         newCategoryName = ""
     }
 

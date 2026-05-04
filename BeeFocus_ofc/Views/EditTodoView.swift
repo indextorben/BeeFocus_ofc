@@ -231,7 +231,7 @@ struct EditTodoView: View {
         .alert(localizer.localizedString(forKey: "new_category_title"), isPresented: $showAddCategoryAlert) {
             VStack { TextField(localizer.localizedString(forKey: "new_category_placeholder"), text: $newCategoryName) }
             Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { newCategoryName = "" }
-            Button(localizer.localizedString(forKey: "add_button")) { addNewCategory() }
+            Button(localizer.localizedString(forKey: "add")) { addNewCategory() }
         } message: {
             Text(localizer.localizedString(forKey: "new_category_message"))
         }
@@ -582,9 +582,10 @@ struct EditTodoView: View {
         guard !trimmedName.isEmpty else { return }
         let randomColor = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
         let newCategory = Category(name: trimmedName, colorHex: randomColor)
-        // Persist via store so it syncs to CloudKit and updates the dashboard
         todoStore.addCategory(newCategory)
-        category = newCategory
+
+        // Always use the persisted category (handles duplicate name gracefully)
+        category = todoStore.categories.first(where: { $0.name == trimmedName }) ?? newCategory
         newCategoryName = ""
     }
     

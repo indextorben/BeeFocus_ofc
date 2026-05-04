@@ -1035,6 +1035,9 @@ class TodoStore: ObservableObject {
     // MARK: - Cloud Merge
     /// Mergt Todos aus der Cloud in den lokalen Store mit verbesserter Conflict Resolution.
     func mergeFromCloud(_ cloudTodos: [TodoItem]) {
+        // IDs lokal gelöschter Todos – dürfen nicht aus der Cloud zurückkehren
+        let deletedIDs = Set(deletedTodos.map { $0.todo.id })
+
         // Deduplicate local todos by id (keep latest updatedAt) to avoid fatal error on duplicate keys
         var dedupedLocal: [UUID: TodoItem] = [:]
         for item in todos {
@@ -1053,10 +1056,16 @@ class TodoStore: ObservableObject {
 
         // Cloud → Lokal: Einfügen/Aktualisieren mit verbesserter Conflict Resolution
         for cloud in cloudTodos {
+            // Lokal gelöschte Todos nicht zurück einfügen; CloudKit-Löschung erneut anstoßen
+            if deletedIDs.contains(cloud.id) {
+                CloudKitManager.shared.deleteTodo(cloud)
+                continue
+            }
+
             if let local = localByID[cloud.id] {
                 // IMPROVED: Smart conflict resolution
                 let chosen = resolveConflict(local: local, cloud: cloud)
-                
+
                 if chosen.updatedAt != local.updatedAt || chosen.isCompleted != local.isCompleted {
                     changed = true
                 }
