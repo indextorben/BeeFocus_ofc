@@ -152,6 +152,11 @@ final class CloudKitManager: ObservableObject {
                 if let comp = todo.completedAt { record["completedAt"] = comp as CKRecordValue } else { record["completedAt"] = nil }
                 record["calendarEnabled"] = todo.calendarEnabled as CKRecordValue
                 record["isFavorite"] = todo.isFavorite as CKRecordValue
+                if let calID = todo.calendarEventIdentifier {
+                    record["calendarEventIdentifier"] = calID as CKRecordValue
+                } else {
+                    record["calendarEventIdentifier"] = nil
+                }
 
                 if !todo.subTasks.isEmpty, let subTasksData = try? JSONEncoder().encode(todo.subTasks) {
                     record["subTasks"] = subTasksData as CKRecordValue
@@ -171,15 +176,19 @@ final class CloudKitManager: ObservableObject {
                     record["categoryID"] = nil
                 }
 
-                self.database.save(record) { savedRecord, error in
+                let saveOp = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
+                saveOp.savePolicy = .allKeys  // Verhindert "client oplock error": lokale Version gewinnt immer
+                saveOp.modifyRecordsResultBlock = { (result: Result<Void, Error>) in
                     DispatchQueue.main.async {
-                        if let error = error {
+                        switch result {
+                        case .success:
+                            print("✅ Todo gespeichert: \(record.recordID.recordName)")
+                        case .failure(let error):
                             print("❌ Fehler beim Speichern: \(error.localizedDescription)")
-                        } else {
-                            print("✅ Todo gespeichert: \(savedRecord?.recordID.recordName ?? "(no id)")")
                         }
                     }
                 }
+                self.database.add(saveOp)
             case .failure(let error):
                 DispatchQueue.main.async { print("❌ Fehler beim Upsert-Query: \(error.localizedDescription)") }
             }
@@ -255,6 +264,7 @@ final class CloudKitManager: ObservableObject {
                         }
 
                         let updatedAt = (record["updatedAt"] as? Date) ?? createdAt
+                        let calendarEventIdentifier = record["calendarEventIdentifier"] as? String
 
                         let todo = TodoItem(
                             id: id,
@@ -270,6 +280,7 @@ final class CloudKitManager: ObservableObject {
                             createdAt: createdAt,
                             updatedAt: updatedAt,
                             completedAt: completedAt,
+                            calendarEventIdentifier: calendarEventIdentifier,
                             calendarEnabled: calendarEnabled,
                             isFavorite: isFavorite
                         )
@@ -297,7 +308,7 @@ final class CloudKitManager: ObservableObject {
                 }
             }
         }
-
+ 
         database.add(operation)
     }
 

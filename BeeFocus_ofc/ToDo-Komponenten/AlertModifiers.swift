@@ -32,11 +32,6 @@ struct AlertModifiers: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert(localizer.localizedString(forKey: "alert_delete_task"), isPresented: $showingDeleteAlert) {
-                deleteTodoAlertButtons
-            } message: {
-                Text(localizer.localizedString(forKey: "alert_delete_task_message"))
-            }
             .alert(localizer.localizedString(forKey: "alert_new_category"), isPresented: $showingAddCategory) {
                 addCategoryAlertFields
             } message: {
@@ -52,21 +47,6 @@ struct AlertModifiers: ViewModifier {
             } message: {
                 Text(localizer.localizedString(forKey: "alert_delete_category_message"))
             }
-    }
-
-    private var deleteTodoAlertButtons: some View {
-        Group {
-            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
-            Button(localizer.localizedString(forKey: "delete"), role: .destructive) {
-                // Direkte Manipulation statt todoStore.deleteTodo(_:) – vermeidet
-                // die Mehrdeutigkeit durch die doppelte Definition in TodoStore+Widget.swift
-                if let todo = todoToDelete,
-                   let index = todoStore.todos.firstIndex(where: { $0.id == todo.id }) {
-                    todoStore.todos.remove(at: index)
-                    todoStore.saveTodos()
-                }
-            }
-        }
     }
 
     private var addCategoryAlertFields: some View {

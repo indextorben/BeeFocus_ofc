@@ -258,7 +258,6 @@ struct TodoCard: View {
                 PriorityBadge(text: priorityText, color: priorityColor)
             }
             .padding(10)
-            .offset(y: -10)
             .transition(.opacity)
         }
         .padding(.vertical, 2)

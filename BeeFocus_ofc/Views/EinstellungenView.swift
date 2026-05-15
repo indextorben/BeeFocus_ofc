@@ -10,9 +10,12 @@ struct EinstellungenView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
 
     @AppStorage("showPastTasksGlobal") private var showPastTasksGlobal = false
+    @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
     @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled = false
     @AppStorage("autoDeleteCompletedDays") private var autoDeleteCompletedDays = 30
     @AppStorage("skipOverdueOnImport") private var skipOverdueOnImport = false
+    @AppStorage("autoCalendarSyncEnabled") private var autoCalendarSyncEnabled = false
+    @AppStorage("autoCalendarSyncRange") private var autoCalendarSyncRange = 1
 
     @AppStorage("morningSummaryEnabled") private var morningSummaryEnabled: Bool = true
     @AppStorage("morningSummaryTime") private var morningSummaryTime: Double = 6 * 3600
@@ -26,6 +29,7 @@ struct EinstellungenView: View {
     @State private var showResetStatsConfirm = false
     @State private var showResetStatsAlert = false
     @State private var showDeleteOverdueConfirm = false
+    @State private var showDeleteCalendarImportsConfirm = false
     @State private var bannerDismissTask: Task<Void, Never>? = nil
     @State private var headerAppeared = false
 
@@ -222,6 +226,20 @@ struct EinstellungenView: View {
             } message: {
                 Text("Alle nicht erledigten Aufgaben, deren Fälligkeitsdatum mehr als 1 Monat zurückliegt, werden gelöscht. Aufgaben der letzten 30 Tage bleiben erhalten.")
             }
+            .confirmationDialog(
+                "Kalender-Importe löschen",
+                isPresented: $showDeleteCalendarImportsConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Alle löschen", role: .destructive) {
+                    let count = deleteAllCalendarImports()
+                    bannerColor = count > 0 ? .orange : .gray
+                    showBanner(message: count > 0 ? "\(count) Kalender-Aufgabe\(count == 1 ? "" : "n") gelöscht" : "Keine Kalender-Importe gefunden")
+                }
+                Button(localizer.localizedString(forKey: "cancel"), role: .cancel) { }
+            } message: {
+                Text("Alle aus dem Kalender importierten Aufgaben werden gelöscht und beim nächsten Sync nicht wieder importiert.")
+            }
         }
         .onAppear {
             if autoDeleteCompletedEnabled { performAutoDeleteIfNeeded() }
@@ -303,6 +321,8 @@ struct EinstellungenView: View {
             iconToggleRow(icon: "moon.fill", color: .indigo, label: localizer.localizedString(forKey: "Darkmode"), isOn: $darkModeEnabled)
             cardDivider()
             iconToggleRow(icon: "clock.arrow.circlepath", color: .blue, label: localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
+            cardDivider()
+            iconToggleRow(icon: "calendar", color: .orange, label: "Nur aktuellen Monat anzeigen", isOn: $filterCurrentMonthOnly)
         }
     }
 
@@ -442,6 +462,55 @@ struct EinstellungenView: View {
                 label: "Überfällige beim Import überspringen",
                 isOn: $skipOverdueOnImport
             )
+            cardDivider()
+            iconToggleRow(
+                icon: "arrow.triangle.2.circlepath.circle.fill",
+                color: .blue,
+                label: "Kalender automatisch synchronisieren",
+                isOn: $autoCalendarSyncEnabled
+            )
+            if autoCalendarSyncEnabled {
+                cardDivider()
+                HStack(spacing: 12) {
+                    iconBadge(icon: "clock.arrow.2.circlepath", color: .teal)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Synchronisationszeitraum")
+                            .font(.system(size: 16))
+                        Text("Vergangene Events werden nie importiert")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Picker("", selection: $autoCalendarSyncRange) {
+                        Text("Akt. Monat").tag(1)
+                        Text("1 Jahr").tag(12)
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            cardDivider()
+            Button {
+                showDeleteCalendarImportsConfirm = true
+            } label: {
+                HStack(spacing: 12) {
+                    iconBadge(icon: "calendar.badge.minus", color: .red)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Kalender-Importe löschen")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.red)
+                        Text("Gelöschte werden nicht erneut importiert")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -508,6 +577,8 @@ struct EinstellungenView: View {
                 .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
+            cardDivider()
+            DeleteDuplicatesRow()
         }
     }
 
@@ -739,6 +810,16 @@ struct EinstellungenView: View {
         return toDelete.count
     }
 
+    // MARK: - Delete All Calendar Imports
+    @discardableResult
+    private func deleteAllCalendarImports() -> Int {
+        let toDelete = todoStore.todos.filter { $0.calendarEventIdentifier != nil }
+        for todo in toDelete {
+            todoStore.deleteTodo(todo)
+        }
+        return toDelete.count
+    }
+
     // MARK: - Auto Delete Completed
     private func performAutoDeleteIfNeeded() {
         let cutoff = Calendar.current.date(byAdding: .day, value: -autoDeleteCompletedDays, to: Date()) ?? Date.distantPast
@@ -807,6 +888,58 @@ struct EinstellungenView: View {
                 showBanner(message: localizer.localizedString(forKey: "Morgen-Übersicht aktualisiert"))
             }
         }
+    }
+}
+
+// MARK: - DeleteDuplicatesRow
+private struct DeleteDuplicatesRow: View {
+    @EnvironmentObject var todoStore: TodoStore
+    @State private var showConfirm = false
+
+    var body: some View {
+        Button { showConfirm = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "doc.on.doc.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        LinearGradient(colors: [.purple, .purple.opacity(0.75)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing),
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    )
+                    .shadow(color: Color.purple.opacity(0.35), radius: 4, x: 0, y: 2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Duplikate löschen")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.primary)
+                    Text("Identische Aufgaben permanent entfernen")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .confirmationDialog("Duplikate löschen", isPresented: $showConfirm, titleVisibility: .visible) {
+            Button("Duplikate entfernen", role: .destructive) { deleteDuplicates() }
+            Button("Abbrechen", role: .cancel) { }
+        } message: {
+            Text("Identische Aufgaben (gleicher Titel, Beschreibung, Datum, Kategorie und Priorität) werden permanent gelöscht.")
+        }
+    }
+
+    private func deleteDuplicates() {
+        var seenKeys: Set<String> = []
+        var toDelete: [TodoItem] = []
+        for todo in todoStore.todos {
+            let key = "\(todo.title)|\(todo.description)|\(String(todo.dueDate?.timeIntervalSince1970 ?? -1))|\(todo.category?.name ?? "")|\(todo.priority)"
+            if seenKeys.contains(key) { toDelete.append(todo) }
+            else { seenKeys.insert(key) }
+        }
+        for todo in toDelete { todoStore.deleteTodo(todo) }
     }
 }
 

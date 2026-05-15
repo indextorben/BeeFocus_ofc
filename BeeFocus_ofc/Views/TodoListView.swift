@@ -46,6 +46,7 @@ struct TodoListView: View {
     @State private var isPlusPressed = false
     @State private var showSuccessToast = false
     @AppStorage("showPastTasksGlobal") private var showPastTasksStorage = true
+    @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
     private var showPastTasks: Bool {
         get { showPastTasksStorage }
         set { showPastTasksStorage = newValue }
@@ -88,6 +89,10 @@ struct TodoListView: View {
     @State private var showingCalendarImport = false
     @StateObject private var calendarImporter = CalendarImporter()
 
+    @AppStorage("autoCalendarSyncEnabled") private var autoCalendarSyncEnabled = false
+    @AppStorage("autoCalendarSyncRange") private var autoCalendarSyncRange = 1
+    @State private var hasAutoSynced = false
+
     @State private var collapsedSections: Set<String> = []
 
     let languages = ["Deutsch", "Englisch"]
@@ -106,6 +111,22 @@ struct TodoListView: View {
         NavigationStack {
             mainContentView
                 .toolbar { toolbarContent }
+                .alert(localizer.localizedString(forKey: "Löschen"), isPresented: $showingDeleteAlert, presenting: todoToDelete) { todo in
+                    Button(role: .destructive) {
+                        todoStore.deleteTodo(todo)
+                        lastDeletedTitle = todo.title
+                        withAnimation { showDeleteSnackbar = true }
+                    } label: {
+                        Text(localizer.localizedString(forKey: "Löschen"))
+                    }
+                    Button(role: .cancel) {
+                        todoToDelete = nil
+                    } label: {
+                        Text(localizer.localizedString(forKey: "Abbrechen"))
+                    }
+                } message: { todo in
+                    Text(localizer.localizedString(forKey: "Möchten Sie diese Aufgabe wirklich löschen?"))
+                }
                 .alert(localizer.localizedString(forKey: "Bestätigen"), isPresented: $showingConfirmTrashCompleted) {
                     Button(role: .destructive) {
                         let completed = todoStore.todos.filter { $0.isCompleted }
@@ -160,22 +181,6 @@ struct TodoListView: View {
                     CalendarImportSheet(importer: calendarImporter)
                         .environmentObject(todoStore)
                 }
-                .alert(localizer.localizedString(forKey: "Löschen"), isPresented: $showingDeleteAlert, presenting: todoToDelete) { todo in
-                    Button(role: .destructive) {
-                        todoStore.deleteTodo(todo)
-                        lastDeletedTitle = todo.title
-                        withAnimation { showDeleteSnackbar = true }
-                    } label: {
-                        Text(localizer.localizedString(forKey: "Löschen"))
-                    }
-                    Button(role: .cancel) {
-                        todoToDelete = nil
-                    } label: {
-                        Text(localizer.localizedString(forKey: "Abbrechen"))
-                    }
-                } message: { todo in
-                    Text(localizer.localizedString(forKey: "Möchten Sie diese Aufgabe wirklich löschen?"))
-                }
                 .alert(localizer.localizedString(forKey: "E-Mail nicht verfügbar"), isPresented: $showMailUnavailableAlert) {
                     Button(localizer.localizedString(forKey: "OK"), role: .cancel) { }
                 } message: {
@@ -222,6 +227,22 @@ struct TodoListView: View {
             categoryToDelete: $categoryToDelete,
             selectedCategory: $selectedCategory
         ))
+        .task {
+            guard autoCalendarSyncEnabled, !hasAutoSynced else { return }
+            hasAutoSynced = true
+            await calendarImporter.requestAccessIfNeeded()
+            guard calendarImporter.isAccessGranted else { return }
+            let cal = Calendar.current
+            let end: Date
+            if autoCalendarSyncRange == 12 {
+                end = cal.date(byAdding: .year, value: 1, to: Date()) ?? Date()
+            } else {
+                // Ende des aktuellen Monats
+                let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? Date()
+                end = cal.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) ?? Date()
+            }
+            calendarImporter.importEvents(from: Date(), to: end, into: todoStore, skipPastEvents: true)
+        }
     }
     
     // MARK: - Computed Properties
@@ -264,10 +285,20 @@ struct TodoListView: View {
     var filteredTodos: [TodoItem] {
         let baseTodos = todoStore.todos.isEmpty ? readLocalTodosFallback() : todoStore.todos
 
-        let todayStart = Calendar.current.startOfDay(for: Date())
-        let todayEnd = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: todayStart) ?? Date()
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: Date())
+        let todayEnd = cal.date(bySettingHour: 23, minute: 59, second: 59, of: todayStart) ?? Date()
 
-        return baseTodos.filter { todo in
+        // Aktueller Monat: erster und letzter Tag
+        let currentMonthStart: Date = {
+            let comps = cal.dateComponents([.year, .month], from: Date())
+            return cal.date(from: comps) ?? todayStart
+        }()
+        let currentMonthEnd: Date = {
+            cal.date(byAdding: DateComponents(month: 1, second: -1), to: currentMonthStart) ?? todayEnd
+        }()
+
+        let filtered = baseTodos.filter { todo in
             // Search
             let matchesSearch: Bool
             if searchText.isEmpty {
@@ -291,17 +322,33 @@ struct TodoListView: View {
             let matchesToday: Bool = {
                 guard showOnlyTodayFromNotification else { return true }
                 guard let due = todo.dueDate else { return false }
-                return due <= todayEnd // heute fällig oder überfällig
+                return due <= todayEnd
+            }()
+
+            // Aktueller-Monat-Filter: Todos mit Datum außerhalb des Monats ausblenden
+            let matchesCurrentMonth: Bool = {
+                guard filterCurrentMonthOnly else { return true }
+                guard let due = todo.dueDate else { return true } // ohne Datum: immer anzeigen
+                return due >= currentMonthStart && due <= currentMonthEnd
             }()
 
             // Show all when toggled
             if showPastTasks {
-                return matchesSearch && matchesCategory && matchesToday
+                return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth
             }
 
             // Default: hide completed
             let isNotCompleted = !todo.isCompleted
-            return matchesSearch && matchesCategory && matchesToday && isNotCompleted
+            return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth && isNotCompleted
+        }
+
+        // Deduplicate: keep first occurrence of each unique key
+        var seenKeys: Set<String> = []
+        return filtered.filter { todo in
+            let key = "\(todo.title)|\(todo.description)|\(String(todo.dueDate?.timeIntervalSince1970 ?? -1))|\(todo.category?.name ?? "")|\(todo.priority)"
+            guard !seenKeys.contains(key) else { return false }
+            seenKeys.insert(key)
+            return true
         }
     }
     
@@ -1485,7 +1532,7 @@ class CalendarImporter: ObservableObject {
         selectedCalendarIDs = Set(availableCalendars.map { $0.calendarIdentifier })
     }
 
-    func importEvents(from startDate: Date, to endDate: Date, into todoStore: TodoStore) {
+    func importEvents(from startDate: Date, to endDate: Date, into todoStore: TodoStore, skipPastEvents: Bool = false) {
         let cals = availableCalendars.filter { selectedCalendarIDs.contains($0.calendarIdentifier) }
         guard !cals.isEmpty else { lastImportCount = 0; return }
 
@@ -1493,10 +1540,15 @@ class CalendarImporter: ObservableObject {
         let events = eventStore.events(matching: predicate)
 
         let existing = Set(todoStore.todos.compactMap { $0.calendarEventIdentifier })
+        let dismissed = Set((UserDefaults.standard.array(forKey: "dismissedCalendarEventIDs") as? [String]) ?? [])
+        let skipOverdue = skipPastEvents || UserDefaults.standard.bool(forKey: "skipOverdueOnImport")
+        let now = Date()
 
         var count = 0
         for event in events {
             guard !existing.contains(event.eventIdentifier) else { continue }
+            guard !dismissed.contains(event.eventIdentifier) else { continue }
+            if skipOverdue && event.startDate < now { continue }
             let todo = TodoItem(
                 title: event.title ?? "Kalendereintrag",
                 description: event.notes ?? "",

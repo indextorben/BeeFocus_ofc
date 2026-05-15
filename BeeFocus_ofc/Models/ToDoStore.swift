@@ -39,6 +39,11 @@ class TodoStore: ObservableObject {
     private let trashKey = "deletedTodos"
     private let trashMaxCountKey = "trashMaxCount"
     private let trashMaxDaysKey = "trashMaxDays"
+    private let graveyardKey = "deletedTodoIDGraveyard"
+
+    // Leichtgewichtiges Persistenz-Dict: UUID-String → Löschdatum
+    // Verhindert zuverlässig, dass CloudKit gelöschte Todos zurückbringt.
+    private var deletedIDGraveyard: [String: Date] = [:]
     
     private var trashMaxCount: Int {
         let v = UserDefaults.standard.integer(forKey: trashMaxCountKey)
@@ -207,6 +212,7 @@ class TodoStore: ObservableObject {
             let beforeCount = deletedTodos.count
             deletedTodos.removeAll { $0.todo.id == t.id }
             if deletedTodos.count != beforeCount { saveTrash() }
+            removeFromGraveyard(t.id)
 
             stack.append(.delete(todo: t, originalIndex: insertIndex))
         case .complete(let todoID, let prev):
@@ -251,6 +257,7 @@ class TodoStore: ObservableObject {
         loadStats()
         loadFocusMinutes()
         loadTrash()
+        loadGraveyard()
         
         // Initial sync beim App-Start
         print("🚀 Initial CloudKit sync beim App-Start...")
@@ -718,7 +725,17 @@ class TodoStore: ObservableObject {
         // CloudKit löschen
         CloudKitManager.shared.deleteTodo(todo)
 
+        // Dauerhaft als gelöscht markieren – verhindert Rückkehr via CloudKit-Sync
+        addToGraveyard(todos[index].id)
+
         // Notification & Calendar
+        if let calID = todos[index].calendarEventIdentifier {
+            var dismissed = (UserDefaults.standard.array(forKey: "dismissedCalendarEventIDs") as? [String]) ?? []
+            if !dismissed.contains(calID) {
+                dismissed.append(calID)
+                UserDefaults.standard.set(dismissed, forKey: "dismissedCalendarEventIDs")
+            }
+        }
         deleteCalendarEvent(for: todo)
         NotificationManager.shared.cancelNotification(id: todo.id.uuidString)
 
@@ -770,9 +787,10 @@ class TodoStore: ObservableObject {
                     // Restore in CloudKit
                     CloudKitManager.shared.saveTodo(last.todo)
                 }
-                // Remove from trash history
+                // Remove from trash history and graveyard
                 _ = self.deletedTodos.popLast()
                 self.saveTrash()
+                self.removeFromGraveyard(last.todo.id)
             } else if let todo = self.lastDeletedTodo, let index = self.lastDeletedIndex {
                 let safeIndex = min(max(0, index), self.todos.count)
                 if !self.todos.contains(where: { $0.id == todo.id }) {
@@ -785,6 +803,7 @@ class TodoStore: ObservableObject {
                     self.objectWillChange.send()
                     CloudKitManager.shared.saveTodo(todo)
                 }
+                self.removeFromGraveyard(todo.id)
                 // Reset flags to avoid repeated stale reinsertions
                 self.lastDeletedTodo = nil
                 self.lastDeletedIndex = nil
@@ -1035,8 +1054,11 @@ class TodoStore: ObservableObject {
     // MARK: - Cloud Merge
     /// Mergt Todos aus der Cloud in den lokalen Store mit verbesserter Conflict Resolution.
     func mergeFromCloud(_ cloudTodos: [TodoItem]) {
-        // IDs lokal gelöschter Todos – dürfen nicht aus der Cloud zurückkehren
-        let deletedIDs = Set(deletedTodos.map { $0.todo.id })
+        // Kombinierte Blockliste: Papierkorb + persistentes Graveyard
+        // Das Graveyard ist crashresistent und unabhängig vom Papierkorb-Ablauf.
+        let trashIDs = Set(deletedTodos.map { $0.todo.id.uuidString })
+        let graveyardIDs = Set(deletedIDGraveyard.keys)
+        let deletedIDStrings = trashIDs.union(graveyardIDs)
 
         // Deduplicate local todos by id (keep latest updatedAt) to avoid fatal error on duplicate keys
         var dedupedLocal: [UUID: TodoItem] = [:]
@@ -1057,14 +1079,19 @@ class TodoStore: ObservableObject {
         // Cloud → Lokal: Einfügen/Aktualisieren mit verbesserter Conflict Resolution
         for cloud in cloudTodos {
             // Lokal gelöschte Todos nicht zurück einfügen; CloudKit-Löschung erneut anstoßen
-            if deletedIDs.contains(cloud.id) {
+            if deletedIDStrings.contains(cloud.id.uuidString) {
                 CloudKitManager.shared.deleteTodo(cloud)
                 continue
             }
 
             if let local = localByID[cloud.id] {
                 // IMPROVED: Smart conflict resolution
-                let chosen = resolveConflict(local: local, cloud: cloud)
+                var chosen = resolveConflict(local: local, cloud: cloud)
+
+                // Preserve calendarEventIdentifier from local if cloud doesn't have it
+                if chosen.calendarEventIdentifier == nil, let localCalID = local.calendarEventIdentifier {
+                    chosen.calendarEventIdentifier = localCalID
+                }
 
                 if chosen.updatedAt != local.updatedAt || chosen.isCompleted != local.isCompleted {
                     changed = true
@@ -1207,6 +1234,7 @@ class TodoStore: ObservableObject {
         DispatchQueue.main.async { self.objectWillChange.send() }
         CloudKitManager.shared.saveTodo(entry.todo)
         saveTrash()
+        removeFromGraveyard(entry.todo.id)
     }
     
     func removeFromTrash(at index: Int) {
@@ -1235,19 +1263,57 @@ class TodoStore: ObservableObject {
         }
     }
 
+    // MARK: - Graveyard (persistente Blockliste gelöschter IDs)
+
+    private func loadGraveyard() {
+        guard let data = UserDefaults.standard.data(forKey: graveyardKey),
+              let dict = try? JSONDecoder().decode([String: Date].self, from: data) else { return }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -60, to: Date()) ?? Date()
+        deletedIDGraveyard = dict.filter { $0.value >= cutoff }
+    }
+
+    private func saveGraveyard() {
+        if let data = try? JSONEncoder().encode(deletedIDGraveyard) {
+            UserDefaults.standard.set(data, forKey: graveyardKey)
+        }
+    }
+
+    private func addToGraveyard(_ id: UUID) {
+        deletedIDGraveyard[id.uuidString] = Date()
+        saveGraveyard()
+    }
+
+    private func removeFromGraveyard(_ id: UUID) {
+        if deletedIDGraveyard.removeValue(forKey: id.uuidString) != nil {
+            saveGraveyard()
+        }
+    }
+
     private func loadTrash() {
         if let data = UserDefaults.standard.data(forKey: trashKey),
            let entries = try? JSONDecoder().decode([TrashEntry].self, from: data) {
             self.deletedTodos = entries
-            
+
             // Cleanup deletedTodos entries older than trashMaxDays
             let cutoff = Calendar.current.date(byAdding: .day, value: -trashMaxDays, to: Date()) ?? Date().addingTimeInterval(TimeInterval(-trashMaxDays * 24 * 3600))
             self.deletedTodos = self.deletedTodos.filter { $0.deletedAt >= cutoff }
-            
+
             if self.deletedTodos.count > trashMaxCount {
                 self.deletedTodos = Array(self.deletedTodos.suffix(trashMaxCount))
                 saveTrash()
             }
+
+            // Rückwirkend: alle Papierkorb-IDs ins Graveyard aufnehmen,
+            // damit bereits vorher gelöschte Todos nicht via CloudKit zurückkehren.
+            var graveyardChanged = false
+            for entry in self.deletedTodos {
+                let key = entry.todo.id.uuidString
+                if deletedIDGraveyard[key] == nil {
+                    deletedIDGraveyard[key] = entry.deletedAt
+                    graveyardChanged = true
+                }
+            }
+            if graveyardChanged { saveGraveyard() }
         }
     }
     

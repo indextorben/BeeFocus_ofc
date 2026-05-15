@@ -384,9 +384,16 @@ struct CalendarView: View {
     }
 
     private func todosForDay(_ date: Date) -> [TodoItem] {
-        todoStore.todos.filter {
+        let filtered = todoStore.todos.filter {
             guard let due = $0.dueDate else { return false }
             return cal.isDate(due, inSameDayAs: date) && !$0.isCompleted
+        }
+        var seenKeys: Set<String> = []
+        return filtered.filter { todo in
+            let key = "\(todo.title)|\(todo.description)|\(String(todo.dueDate?.timeIntervalSince1970 ?? -1))|\(todo.category?.name ?? "")|\(todo.priority)"
+            guard !seenKeys.contains(key) else { return false }
+            seenKeys.insert(key)
+            return true
         }
     }
 
@@ -649,6 +656,7 @@ struct CalendarImportView: View {
 
         // Primär: gespeicherter calendarEventIdentifier
         let existingByID = Set(todoStore.todos.compactMap { $0.calendarEventIdentifier })
+        let dismissedByID = Set((UserDefaults.standard.array(forKey: "dismissedCalendarEventIDs") as? [String]) ?? [])
 
         // Sekundär: Titel (normalisiert) + Tag als Fallback gegen Duplikate
         let dayFmt = DateFormatter()
@@ -663,9 +671,10 @@ struct CalendarImportView: View {
         for event in events {
             if skipOverdueOnImport && event.startDate < now { continue }
 
-            // Duplikat-Check: Identifier ODER Titel+Tag bereits vorhanden
+            // Duplikat-Check: Identifier ODER Titel+Tag bereits vorhanden; gelöschte überspringen
             let dayKey = "\((event.title ?? "").lowercased().trimmingCharacters(in: .whitespaces))|\(dayFmt.string(from: event.startDate))"
             guard !existingByID.contains(event.eventIdentifier),
+                  !dismissedByID.contains(event.eventIdentifier),
                   !existingByKey.contains(dayKey) else { continue }
 
             let todo = TodoItem(
@@ -715,11 +724,16 @@ struct TodoDetailView: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject private var localizer = LocalizationManager.shared
     @State private var isCompleted: Bool
+    @State private var isEditing = false
     let todo: TodoItem
 
     init(todo: TodoItem) {
         self.todo = todo
         _isCompleted = State(initialValue: todo.isCompleted)
+    }
+
+    private var currentTodo: TodoItem {
+        todoStore.todos.first(where: { $0.id == todo.id }) ?? todo
     }
 
     private var accentBlue: Color { .blue }
@@ -728,7 +742,7 @@ struct TodoDetailView: View {
     }
 
     private var dueStatus: (icon: String, text: String, color: Color)? {
-        guard !isCompleted, let dueDate = todo.dueDate else { return nil }
+        guard !isCompleted, let dueDate = currentTodo.dueDate else { return nil }
         let today = Calendar.current.startOfDay(for: Date())
         let due = Calendar.current.startOfDay(for: dueDate)
         if due < today {
@@ -755,7 +769,7 @@ struct TodoDetailView: View {
                     // Title card
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(alignment: .top) {
-                            Text(todo.title)
+                            Text(currentTodo.title)
                                 .font(.title2.bold())
                                 .foregroundStyle(.primary)
                                 .lineLimit(4)
@@ -769,7 +783,7 @@ struct TodoDetailView: View {
                             }
                         }
 
-                        if let dueDate = todo.dueDate {
+                        if let dueDate = currentTodo.dueDate {
                             HStack(spacing: 6) {
                                 if let status = dueStatus {
                                     Image(systemName: status.icon).foregroundStyle(status.color)
@@ -795,9 +809,9 @@ struct TodoDetailView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Label(localizer.localizedString(forKey: "details"), systemImage: "text.alignleft")
                             .font(.headline)
-                        Text(todo.description.isEmpty ? localizer.localizedString(forKey: "no_further_details") : todo.description)
+                        Text(currentTodo.description.isEmpty ? localizer.localizedString(forKey: "no_further_details") : currentTodo.description)
                             .font(.body)
-                            .foregroundStyle(todo.description.isEmpty ? Color.secondary : Color.primary)
+                            .foregroundStyle(currentTodo.description.isEmpty ? Color.secondary : Color.primary)
                     }
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -805,11 +819,11 @@ struct TodoDetailView: View {
                     .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
 
                     // Subtasks card
-                    if !todo.subTasks.isEmpty {
+                    if !currentTodo.subTasks.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Label(localizer.localizedString(forKey: "subtasks"), systemImage: "list.bullet")
                                 .font(.headline)
-                            ForEach(todo.subTasks) { sub in
+                            ForEach(currentTodo.subTasks) { sub in
                                 HStack(spacing: 10) {
                                     Image(systemName: sub.isCompleted ? "checkmark.circle.fill" : "circle")
                                         .foregroundStyle(sub.isCompleted ? Color.green : Color.secondary)
@@ -834,6 +848,19 @@ struct TodoDetailView: View {
         }
         .navigationTitle(localizer.localizedString(forKey: "task"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    isEditing = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+            }
+        }
+        .sheet(isPresented: $isEditing) {
+            EditTodoView(todo: currentTodo)
+                .environmentObject(todoStore)
+        }
     }
 
     private func toggleCompletion() {
