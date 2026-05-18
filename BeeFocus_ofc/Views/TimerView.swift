@@ -12,7 +12,6 @@ struct TimerView: View {
     @AppStorage("longBreakTime") private var longBreakTime: Int = 15
     @AppStorage("sessionsUntilLongBreak") private var sessionsUntilLongBreak: Int = 2
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
-
     @State private var showingNotificationAlert = false
     @State private var showingSettings = false
     @State private var showingSkipConfirmation = false
@@ -53,10 +52,6 @@ struct TimerView: View {
             : "\(localizer.localizedString(forKey: "timer_focus_session")) \(sessionDisplay)"
     }
 
-    var focusTodayMinutes: Int {
-        todoStore.dailyFocusMinutes[Calendar.current.startOfDay(for: Date())] ?? 0
-    }
-
     // MARK: - Body
 
     var body: some View {
@@ -69,15 +64,6 @@ struct TimerView: View {
                     .padding(.top, 8)
 
                 Spacer()
-
-                // Focus today banner
-                focusBanner
-                    .padding(.horizontal, 24)
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 10)
-                    .animation(.easeOut(duration: 0.5).delay(0.15), value: appeared)
-
-                Spacer().frame(height: 32)
 
                 // Timer ring
                 timerRing
@@ -319,28 +305,6 @@ struct TimerView: View {
             }
             .buttonStyle(.plain)
         }
-    }
-
-    // MARK: - Focus Banner
-
-    private var focusBanner: some View {
-        let df = DateFormatter()
-        let _ = {
-            df.locale = Locale(identifier: localizer.selectedLanguage == "Englisch" ? "en_US" : "de_DE")
-            df.dateFormat = "EEEE, d. MMM"
-        }()
-
-        return HStack(spacing: 10) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.orange)
-            Text("\(df.string(from: Date()))  ·  \(focusTodayMinutes) \(localizer.localizedString(forKey: "minutes_short")) Fokus")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 16).padding(.vertical, 11)
-        .themeGlass(cornerRadius: 14)
     }
 
     // MARK: - Timer Ring

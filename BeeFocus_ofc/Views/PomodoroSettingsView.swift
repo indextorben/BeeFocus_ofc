@@ -17,13 +17,14 @@ struct PomodoroSettingsView: View {
     @Binding var shortBreakTime: Int
     @Binding var longBreakTime: Int
     @Binding var sessionsUntilLongBreak: Int
-    
+    @AppStorage("dailyFocusGoalMinutes") private var dailyGoal: Int = 60
+
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
-    
+
     // Sheet schließen
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -31,17 +32,26 @@ struct PomodoroSettingsView: View {
                     Stepper("\(localizer.localizedString(forKey: "focus_time")): \(focusTime) min",
                             value: $focusTime, in: 5...120)
                 }
-                
+
                 Section(header: Text(localizer.localizedString(forKey: "breaks"))) {
                     Stepper("\(localizer.localizedString(forKey: "short_break")): \(shortBreakTime) min",
                             value: $shortBreakTime, in: 1...30)
                     Stepper("\(localizer.localizedString(forKey: "long_break")): \(longBreakTime) min",
                             value: $longBreakTime, in: 5...60)
                 }
-                
+
                 Section(header: Text(localizer.localizedString(forKey: "cycles"))) {
                     Stepper("\(localizer.localizedString(forKey: "sessions_until_long_break")): \(sessionsUntilLongBreak)",
                             value: $sessionsUntilLongBreak, in: 2...10)
+                }
+
+                Section(header: Text("Tagesziel"), footer: Text("Tage, an denen du dein Tagesziel erreichst, zählen für die Serie.")) {
+                    Stepper("Tagesziel: \(dailyGoal) min", value: $dailyGoal, in: 0...480, step: 5)
+                    if dailyGoal == 0 {
+                        Text("Kein Tagesziel gesetzt")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .navigationTitle(localizer.localizedString(forKey: "settings"))

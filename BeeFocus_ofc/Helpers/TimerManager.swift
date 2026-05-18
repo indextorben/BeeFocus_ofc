@@ -38,6 +38,7 @@ final class TimerManager: ObservableObject {
     @Published var isRunning: Bool = false
     @Published var isBreak: Bool = false
     @Published var currentSession: Int = 1
+    @Published var todayCompletedSessions: Int = 0
 
     // MARK: - Internals
     private var plannedFocusDuration: TimeInterval = 0
@@ -56,7 +57,8 @@ final class TimerManager: ObservableObject {
 
     private init() {
         restoreTimer()
-        
+        resetDailySessionsIfNeeded()
+
         // Listen for memory warnings to save state
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
@@ -280,6 +282,9 @@ final class TimerManager: ObservableObject {
         // Post focus session completion (minutes) when a work session ends, using actual worked time
         if isBreak == true { // we just transitioned to break, meaning a focus session finished
             postWorkedMinutesIfNeeded()
+            resetDailySessionsIfNeeded()
+            todayCompletedSessions += 1
+            UserDefaults.standard.set(todayCompletedSessions, forKey: "todayCompletedSessions")
         }
 
         saveState()
@@ -324,6 +329,20 @@ final class TimerManager: ObservableObject {
         }
 
         isRunning = false
+    }
+
+    // MARK: - Daily Session Reset
+    private func resetDailySessionsIfNeeded() {
+        let key = "lastSessionResetDate"
+        let today = Calendar.current.startOfDay(for: Date())
+        let lastReset = UserDefaults.standard.object(forKey: key) as? Date ?? .distantPast
+        if lastReset < today {
+            todayCompletedSessions = 0
+            UserDefaults.standard.set(0, forKey: "todayCompletedSessions")
+            UserDefaults.standard.set(today, forKey: key)
+        } else if todayCompletedSessions == 0 {
+            todayCompletedSessions = UserDefaults.standard.integer(forKey: "todayCompletedSessions")
+        }
     }
 
     // MARK: - Helpers

@@ -20,6 +20,16 @@ struct StatistikView: View {
     @State private var verkaufBestaetigung: StoreItem? = nil
     @State private var kaufErfolg: String? = nil
     @State private var showFPInfo = false
+    @State private var storeTab: StoreTab = .themes
+    @AppStorage("aktiverTimerModus") private var aktiverTimerModus: String = ""
+    @AppStorage("aktivePriorityStyle") private var aktivePriorityStyle: String = "standard"
+    @AppStorage("konfettiEnabled") private var konfettiEnabled: Bool = false
+    @AppStorage("fokusSperrmodus") private var fokusSperrmodus: Bool = false
+    @State private var selectedHeatmapDay: Date? = nil
+    @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
+    @State private var heatmapWidth: CGFloat = 320
+    @AppStorage("dailyFocusGoalMinutes") private var dailyGoal: Int = 60
+    @ObservedObject private var timerManager = TimerManager.shared
 
     private var freigeschalteteItems: Set<String> {
         Set(freigeschalteteItemsString.components(separatedBy: ",").filter { !$0.isEmpty })
@@ -31,8 +41,16 @@ struct StatistikView: View {
         var current = freigeschalteteItems
         current.insert(item.name)
         freigeschalteteItemsString = current.joined(separator: ",")
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-            aktivesThema = item.name
+        switch item.tab {
+        case .themes:
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) { aktivesThema = item.name }
+        case .timer:
+            aktiverTimerModus = item.name
+            applyTimerModus(item.name)
+        case .features:
+            if item.name == "Prioritäts-Emojis" { aktivePriorityStyle = "emoji" }
+            if item.name == "Konfetti-Effekt" { konfettiEnabled = true }
+            if item.name == "Fokus-Sperrmodus" { fokusSperrmodus = true }
         }
         kaufErfolg = item.name
         Task {
@@ -53,7 +71,56 @@ struct StatistikView: View {
         var current = freigeschalteteItems
         current.remove(item.name)
         freigeschalteteItemsString = current.joined(separator: ",")
-        if aktivesThema == item.name { aktivesThema = "" }
+        switch item.tab {
+        case .themes:
+            if aktivesThema == item.name { aktivesThema = "" }
+        case .timer:
+            if aktiverTimerModus == item.name { deaktiviereTimerModus() }
+        case .features:
+            if item.name == "Prioritäts-Emojis" && aktivePriorityStyle == "emoji" {
+                aktivePriorityStyle = "standard"
+            }
+            if item.name == "Konfetti-Effekt" { konfettiEnabled = false }
+            if item.name == "Fokus-Sperrmodus" { fokusSperrmodus = false }
+        }
+    }
+
+    // MARK: - Timer-Modus
+
+    private func applyTimerModus(_ name: String) {
+        switch name {
+        case "Tiefenfokus":
+            UserDefaults.standard.set(90, forKey: "focusTime")
+            UserDefaults.standard.set(20, forKey: "shortBreakTime")
+            UserDefaults.standard.set(30, forKey: "longBreakTime")
+        case "52/17 Methode":
+            UserDefaults.standard.set(52, forKey: "focusTime")
+            UserDefaults.standard.set(17, forKey: "shortBreakTime")
+            UserDefaults.standard.set(17, forKey: "longBreakTime")
+        case "Micro-Sprint":
+            UserDefaults.standard.set(10, forKey: "focusTime")
+            UserDefaults.standard.set(3,  forKey: "shortBreakTime")
+            UserDefaults.standard.set(10, forKey: "longBreakTime")
+        default: break
+        }
+        TimerManager.shared.applyUpdatedSettingsIfNeeded()
+    }
+
+    private func deaktiviereTimerModus() {
+        aktiverTimerModus = ""
+        UserDefaults.standard.set(25, forKey: "focusTime")
+        UserDefaults.standard.set(5,  forKey: "shortBreakTime")
+        UserDefaults.standard.set(15, forKey: "longBreakTime")
+        TimerManager.shared.applyUpdatedSettingsIfNeeded()
+    }
+
+    private func timerModusLabel(_ name: String) -> String {
+        switch name {
+        case "Tiefenfokus":   return "90 / 20 min"
+        case "52/17 Methode": return "52 / 17 min"
+        case "Micro-Sprint":  return "10 / 3 min"
+        default: return ""
+        }
     }
 
     private func themaFarben(fuer name: String) -> (Color, Color, Color) {
@@ -76,6 +143,19 @@ struct StatistikView: View {
 
     var isDark: Bool { colorScheme == .dark }
 
+    // MARK: - Store Tab
+    enum StoreTab: String, CaseIterable {
+        case themes  = "Themes"
+        case timer   = "Timer"
+        case features = "Features"
+        var icon: String {
+            switch self { case .themes: "paintpalette.fill"; case .timer: "clock.fill"; case .features: "star.fill" }
+        }
+        var farbe: Color {
+            switch self { case .themes: .purple; case .timer: .blue; case .features: .orange }
+        }
+    }
+
     // MARK: - Store Item Model
     struct StoreItem: Identifiable {
         let id = UUID()
@@ -83,21 +163,48 @@ struct StatistikView: View {
         let icon: String
         let kosten: Int
         let farbe: Color
+        let tab: StoreTab
+        let beschreibung: String
+
+        init(name: String, icon: String, kosten: Int, farbe: Color,
+             tab: StoreTab = .themes, beschreibung: String = "") {
+            self.name = name; self.icon = icon; self.kosten = kosten
+            self.farbe = farbe; self.tab = tab; self.beschreibung = beschreibung
+        }
     }
 
     var storeItems: [StoreItem] {[
-        StoreItem(name: "Ozean",           icon: "water.waves",              kosten: 500,  farbe: .cyan),
-        StoreItem(name: "Wald",            icon: "leaf.fill",                kosten: 750,  farbe: .green),
-        StoreItem(name: "Eis",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0)),
-        StoreItem(name: "Herbst",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1)),
-        StoreItem(name: "Nacht",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo),
-        StoreItem(name: "Lavendel",        icon: "sparkles",                 kosten: 1200, farbe: .purple),
-        StoreItem(name: "Solar",           icon: "sun.max.fill",             kosten: 1500, farbe: .orange),
-        StoreItem(name: "Sonnenuntergang", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2)),
-        StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink),
-        StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6)),
-        StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red),
-        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000, farbe: Color(red: 0.4, green: 0.2, blue: 1.0)),
+        // Themes
+        StoreItem(name: "Ozean",           icon: "water.waves",              kosten: 500,  farbe: .cyan,                              beschreibung: "Ruhige Wellen, tiefes Blau"),
+        StoreItem(name: "Wald",            icon: "leaf.fill",                kosten: 750,  farbe: .green,                             beschreibung: "Frische Natur, lebendiges Grün"),
+        StoreItem(name: "Eis",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0), beschreibung: "Kühle Stille, kristallklares Weiß"),
+        StoreItem(name: "Herbst",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1), beschreibung: "Warme Töne, goldenes Laub"),
+        StoreItem(name: "Nacht",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo,                            beschreibung: "Samtene Dunkelheit, funkelnde Sterne"),
+        StoreItem(name: "Lavendel",        icon: "sparkles",                 kosten: 1200, farbe: .purple,                            beschreibung: "Sanftes Violett, duftende Felder"),
+        StoreItem(name: "Solar",           icon: "sun.max.fill",             kosten: 1500, farbe: .orange,                            beschreibung: "Energie der Sonne, strahlend warm"),
+        StoreItem(name: "Sonnenuntergang", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2), beschreibung: "Glühendes Abendhimmel-Orange"),
+        StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink,                              beschreibung: "Zarte Blüten, japanisches Frühjahr"),
+        StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6), beschreibung: "Magisches Aurora-Spektakel"),
+        StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red,                               beschreibung: "Brennende Intensität, pure Kraft"),
+        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000, farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endloses Universum, kosmische Tiefe"),
+
+        // Timer-Modi
+        StoreItem(name: "Tiefenfokus",    icon: "brain.head.profile",        kosten: 800,  farbe: .indigo, tab: .timer,
+                  beschreibung: "90 min Fokus · 20 min Pause\nIdeal für komplexe, kreative Aufgaben"),
+        StoreItem(name: "52/17 Methode", icon: "clock.badge.checkmark.fill", kosten: 1000, farbe: .blue,   tab: .timer,
+                  beschreibung: "52 min Fokus · 17 min Pause\nMaximale Konzentration ohne Burnout"),
+        StoreItem(name: "Micro-Sprint",   icon: "bolt.circle.fill",          kosten: 400,  farbe: .yellow, tab: .timer,
+                  beschreibung: "10 min Fokus · 3 min Pause\nSchnelle Energie-Schübe für schwere Starts"),
+
+        // Features
+        StoreItem(name: "Aktivitäts-Heatmap", icon: "calendar.badge.checkmark", kosten: 1500, farbe: .green,  tab: .features,
+                  beschreibung: "Jahresansicht deiner Fokusaktivität als Heatmap – sieht aus wie GitHub"),
+        StoreItem(name: "Prioritäts-Emojis",  icon: "face.smiling.fill",        kosten: 600,  farbe: .pink,   tab: .features,
+                  beschreibung: "Ersetze Text-Prioritäts-Badges durch ausdrucksstarke Emojis 🔴🟡🟢"),
+        StoreItem(name: "Konfetti-Effekt",    icon: "party.popper.fill",        kosten: 800,  farbe: .yellow, tab: .features,
+                  beschreibung: "Feiere jeden Aufgaben-Abschluss mit einem bunten Konfetti-Regen 🎉"),
+        StoreItem(name: "Fokus-Sperrmodus",   icon: "lock.shield.fill",         kosten: 1200, farbe: .indigo, tab: .features,
+                  beschreibung: "Sperrt Bearbeiten & Löschen während der Fokuszeit – keine Ablenkung"),
     ]}
 
     // MARK: - Gefilterter Basis-Datensatz (respektiert "Nur diesen Monat")
@@ -157,6 +264,23 @@ struct StatistikView: View {
     private var focusTodayMinutes: Int {
         let today = Calendar.current.startOfDay(for: Date())
         return todoStore.dailyFocusMinutes[today] ?? 0
+    }
+
+    private var focusGoalProgress: Double {
+        guard dailyGoal > 0 else { return 0 }
+        return min(1.0, Double(focusTodayMinutes) / Double(dailyGoal))
+    }
+
+    private func weekdayLabel(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "de_DE")
+        df.dateFormat = "EEE"
+        return String(df.string(from: date).prefix(2)).capitalized
+    }
+
+    private var chartAccentColors: [Color] {
+        let (c1, c2, _) = appThemaFarben(aktivesThema)
+        return aktivesThema.isEmpty ? [.cyan, .teal] : [c1, c2]
     }
 
     private var totalFocusMinutesAll: Int {
@@ -296,6 +420,15 @@ struct StatistikView: View {
                         animatedSection(delay: 0.30) {
                             sectionGroup(icon: "timer", label: "Fokuszeit", color: .cyan) {
                                 glassCard { focusCard }
+                            }
+                        }
+
+                        // Heatmap (nur wenn freigeschaltet)
+                        if freigeschalteteItems.contains("Aktivitäts-Heatmap") {
+                            animatedSection(delay: 0.33) {
+                                sectionGroup(icon: "calendar.badge.checkmark", label: "Aktivitäts-Heatmap", color: .green) {
+                                    glassCard { heatmapView }
+                                }
                             }
                         }
 
@@ -726,8 +859,9 @@ struct StatistikView: View {
     // MARK: - Store Card
 
     private var storeCard: some View {
-        VStack(spacing: 10) {
-            // Guthaben + aktives Theme
+        VStack(spacing: 12) {
+
+            // ── Guthaben-Header ──────────────────────────────────────────
             glassCard {
                 VStack(spacing: 0) {
                     HStack(spacing: 12) {
@@ -749,39 +883,94 @@ struct StatistikView: View {
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
 
-                    if !aktivesThema.isEmpty {
+                    // Aktive Zustände (Theme / Timer / Emoji)
+                    if !aktivesThema.isEmpty || !aktiverTimerModus.isEmpty || aktivePriorityStyle == "emoji" || konfettiEnabled || fokusSperrmodus {
                         Divider().opacity(0.3)
-                        let (tc, _, _) = themaFarben(fuer: aktivesThema)
-                        HStack(spacing: 8) {
-                            Circle().fill(tc).frame(width: 8, height: 8)
-                            Text("Aktives Theme:").font(.system(size: 12)).foregroundStyle(.secondary)
-                            Text(aktivesThema).font(.system(size: 12, weight: .semibold)).foregroundStyle(tc)
-                            Spacer()
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.4)) { aktivesThema = "" }
-                            } label: {
-                                Text("Deaktivieren")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 8).padding(.vertical, 3)
-                                    .background(Color.primary.opacity(0.07), in: Capsule())
+                        VStack(spacing: 0) {
+                            if !aktivesThema.isEmpty {
+                                let (tc, _, _) = themaFarben(fuer: aktivesThema)
+                                activeStatusRow(
+                                    dot: tc, label: "Theme", value: aktivesThema, farbe: tc,
+                                    onDeactivate: { withAnimation { aktivesThema = "" } }
+                                )
                             }
-                            .buttonStyle(.plain)
+                            if !aktiverTimerModus.isEmpty {
+                                let item = storeItems.first { $0.name == aktiverTimerModus }
+                                activeStatusRow(
+                                    dot: item?.farbe ?? .blue, label: "Timer", value: "\(aktiverTimerModus) (\(timerModusLabel(aktiverTimerModus)))", farbe: item?.farbe ?? .blue,
+                                    onDeactivate: { deaktiviereTimerModus() }
+                                )
+                            }
+                            if aktivePriorityStyle == "emoji" {
+                                activeStatusRow(
+                                    dot: .pink, label: "Priorität", value: "Emojis aktiv 🔴🟡🟢", farbe: .pink,
+                                    onDeactivate: { aktivePriorityStyle = "standard" }
+                                )
+                            }
+                            if konfettiEnabled {
+                                activeStatusRow(
+                                    dot: .yellow, label: "Konfetti", value: "An 🎉", farbe: .yellow,
+                                    onDeactivate: { konfettiEnabled = false }
+                                )
+                            }
+                            if fokusSperrmodus {
+                                activeStatusRow(
+                                    dot: .indigo, label: "Sperrmodus", value: "Aktiv 🔒", farbe: .indigo,
+                                    onDeactivate: { fokusSperrmodus = false }
+                                )
+                            }
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 10)
                     }
                 }
             }
 
-            // Store-Raster
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(storeItems) { item in
-                    storeCell(item)
+            // ── Kategorie-Tabs ───────────────────────────────────────────
+            HStack(spacing: 0) {
+                ForEach(StoreTab.allCases, id: \.self) { tab in
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { storeTab = tab }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 15, weight: .semibold))
+                            Text(tab.rawValue)
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(storeTab == tab ? tab.farbe : .secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(storeTab == tab ? tab.farbe.opacity(0.12) : Color.clear)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(4)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+
+            // ── Tab-Inhalt ───────────────────────────────────────────────
+            switch storeTab {
+            case .themes:
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(storeItems.filter { $0.tab == .themes }) { item in storeCell(item) }
+                }
+
+            case .timer:
+                VStack(spacing: 10) {
+                    ForEach(storeItems.filter { $0.tab == .timer }) { item in timerModusZelle(item) }
+                }
+
+            case .features:
+                VStack(spacing: 10) {
+                    ForEach(storeItems.filter { $0.tab == .features }) { item in featureZelle(item) }
                 }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: kaufErfolg)
         .animation(.easeInOut(duration: 0.3), value: aktivesThema)
+        .animation(.easeInOut(duration: 0.2), value: storeTab)
         // Kauf-Dialog
         .confirmationDialog(
             kaufBestaetigung.map { "\"\($0.name)\" für \($0.kosten) FP freischalten?" } ?? "",
@@ -789,9 +978,7 @@ struct StatistikView: View {
             titleVisibility: .visible
         ) {
             if let item = kaufBestaetigung {
-                Button("Freischalten (\(item.kosten) FP)") {
-                    kaufeItem(item); kaufBestaetigung = nil
-                }
+                Button("Freischalten (\(item.kosten) FP)") { kaufeItem(item); kaufBestaetigung = nil }
                 Button("Abbrechen", role: .cancel) { kaufBestaetigung = nil }
             }
         }
@@ -806,6 +993,227 @@ struct StatistikView: View {
                     verkaufeItem(item); verkaufBestaetigung = nil
                 }
                 Button("Abbrechen", role: .cancel) { verkaufBestaetigung = nil }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func activeStatusRow(dot: Color, label: String, value: String, farbe: Color, onDeactivate: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Circle().fill(dot).frame(width: 7, height: 7)
+            Text("\(label):").font(.system(size: 12)).foregroundStyle(.secondary)
+            Text(value).font(.system(size: 12, weight: .semibold)).foregroundStyle(farbe).lineLimit(1)
+            Spacer()
+            Button(action: onDeactivate) {
+                Text("Aus")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color.primary.opacity(0.07), in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+    }
+
+    // ── Timer-Modus Zelle ─────────────────────────────────────────────────
+    private func timerModusZelle(_ item: StoreItem) -> some View {
+        let istFreigeschaltet = freigeschalteteItems.contains(item.name)
+        let istAktiv = aktiverTimerModus == item.name
+        let kannKaufen = !istFreigeschaltet && fokuspunkteVerfuegbar >= item.kosten
+
+        return HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(istFreigeschaltet ? item.farbe.opacity(0.18) : item.farbe.opacity(0.07))
+                    .frame(width: 52, height: 52)
+                Image(systemName: item.icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(istFreigeschaltet ? item.farbe : item.farbe.opacity(0.35))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(item.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(istFreigeschaltet ? .primary : .secondary)
+                    if istAktiv {
+                        Text("Aktiv")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(item.farbe.gradient, in: Capsule())
+                    }
+                }
+                Text(item.beschreibung)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            if istFreigeschaltet {
+                Button {
+                    if istAktiv { deaktiviereTimerModus() }
+                    else { aktiverTimerModus = item.name; applyTimerModus(item.name) }
+                } label: {
+                    Text(istAktiv ? "Deaktivieren" : "Aktivieren")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(istAktiv ? .secondary : item.farbe)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(istAktiv ? Color.primary.opacity(0.07) : item.farbe.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    if kannKaufen { kaufBestaetigung = item }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "bolt.fill").font(.system(size: 10))
+                        Text("\(item.kosten)")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(kannKaufen ? Color(red: 1, green: 0.55, blue: 0.0) : .secondary)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(kannKaufen ? Color(red: 1, green: 0.55, blue: 0.0).opacity(0.12) : Color.primary.opacity(0.05), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!kannKaufen)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(istAktiv ? item.farbe.opacity(0.5) : item.farbe.opacity(0.12), lineWidth: istAktiv ? 1.5 : 1))
+        .opacity(istFreigeschaltet ? 1.0 : (kannKaufen ? 0.9 : 0.55))
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: istAktiv)
+        .contextMenu {
+            if istFreigeschaltet {
+                Button { if istAktiv { deaktiviereTimerModus() } else { aktiverTimerModus = item.name; applyTimerModus(item.name) } } label: {
+                    Label(istAktiv ? "Deaktivieren" : "Aktivieren", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                }
+                Divider()
+                Button(role: .destructive) { verkaufBestaetigung = item } label: {
+                    Label("Verkaufen (\(item.kosten / 2) FP zurück)", systemImage: "arrow.uturn.left.circle")
+                }
+            } else if kannKaufen {
+                Button { kaufBestaetigung = item } label: {
+                    Label("Freischalten (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                }
+            }
+        }
+    }
+
+    // ── Feature-Zelle ─────────────────────────────────────────────────────
+    private func featureZelle(_ item: StoreItem) -> some View {
+        let istFreigeschaltet = freigeschalteteItems.contains(item.name)
+        let istAktiv: Bool = {
+            switch item.name {
+            case "Aktivitäts-Heatmap": return istFreigeschaltet
+            case "Prioritäts-Emojis": return aktivePriorityStyle == "emoji"
+            case "Konfetti-Effekt": return konfettiEnabled
+            case "Fokus-Sperrmodus": return fokusSperrmodus
+            default: return false
+            }
+        }()
+        let kannKaufen = !istFreigeschaltet && fokuspunkteVerfuegbar >= item.kosten
+
+        return HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(istFreigeschaltet ? item.farbe.opacity(0.18) : item.farbe.opacity(0.07))
+                    .frame(width: 52, height: 52)
+                Image(systemName: item.icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(istFreigeschaltet ? item.farbe : item.farbe.opacity(0.35))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(item.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(istFreigeschaltet ? .primary : .secondary)
+                    if istAktiv {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(item.farbe)
+                    }
+                }
+                Text(item.beschreibung)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            if istFreigeschaltet {
+                let isToggleable = ["Prioritäts-Emojis", "Konfetti-Effekt", "Fokus-Sperrmodus"].contains(item.name)
+                if isToggleable {
+                    Button {
+                        switch item.name {
+                        case "Prioritäts-Emojis": aktivePriorityStyle = aktivePriorityStyle == "emoji" ? "standard" : "emoji"
+                        case "Konfetti-Effekt": konfettiEnabled.toggle()
+                        case "Fokus-Sperrmodus": fokusSperrmodus.toggle()
+                        default: break
+                        }
+                    } label: {
+                        Text(istAktiv ? "Aus" : "An")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(istAktiv ? .secondary : item.farbe)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(istAktiv ? Color.primary.opacity(0.07) : item.farbe.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(item.farbe.opacity(0.7))
+                        .padding(.trailing, 4)
+                }
+            } else {
+                Button {
+                    if kannKaufen { kaufBestaetigung = item }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "bolt.fill").font(.system(size: 10))
+                        Text("\(item.kosten)").font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(kannKaufen ? Color(red: 1, green: 0.55, blue: 0.0) : .secondary)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(kannKaufen ? Color(red: 1, green: 0.55, blue: 0.0).opacity(0.12) : Color.primary.opacity(0.05), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!kannKaufen)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(istAktiv ? item.farbe.opacity(0.5) : item.farbe.opacity(0.12), lineWidth: istAktiv ? 1.5 : 1))
+        .opacity(istFreigeschaltet ? 1.0 : (kannKaufen ? 0.9 : 0.55))
+        .contextMenu {
+            let isToggleable = ["Prioritäts-Emojis", "Konfetti-Effekt", "Fokus-Sperrmodus"].contains(item.name)
+            if istFreigeschaltet && isToggleable {
+                Button {
+                    switch item.name {
+                    case "Prioritäts-Emojis": aktivePriorityStyle = istAktiv ? "standard" : "emoji"
+                    case "Konfetti-Effekt": konfettiEnabled.toggle()
+                    case "Fokus-Sperrmodus": fokusSperrmodus.toggle()
+                    default: break
+                    }
+                } label: {
+                    Label(istAktiv ? "Deaktivieren" : "Aktivieren", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                }
+                Divider()
+            }
+            if istFreigeschaltet {
+                Button(role: .destructive) { verkaufBestaetigung = item } label: {
+                    Label("Verkaufen (\(item.kosten / 2) FP zurück)", systemImage: "arrow.uturn.left.circle")
+                }
+            } else if kannKaufen {
+                Button { kaufBestaetigung = item } label: {
+                    Label("Freischalten (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                }
             }
         }
     }
@@ -911,6 +1319,294 @@ struct StatistikView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Aktivitäts-Heatmap
+
+    private func heatmapMonthLabel(_ date: Date, cal: Calendar) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "de_DE")
+        df.dateFormat = "MMM"
+        return df.string(from: date)
+    }
+
+    private var heatmapView: some View {
+        let weekdayLabels = ["Mo", "", "Mi", "", "Fr", "", "So"]
+        let weekdayColW: CGFloat = 24
+        let cSpacing: CGFloat = 3
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 2
+        let today = cal.startOfDay(for: Date())
+        let rawStart = cal.date(byAdding: .day, value: -111, to: today)! // 16 Wochen
+        let weekdayRaw = cal.component(.weekday, from: rawStart)
+        let daysBack = (weekdayRaw + 5) % 7
+        let alignedStart = cal.date(byAdding: .day, value: -daysBack, to: rawStart)!
+
+        var allDays: [Date?] = []
+        var cursor = alignedStart
+        while cursor <= today {
+            allDays.append(cursor)
+            cursor = cal.date(byAdding: .day, value: 1, to: cursor)!
+        }
+        while allDays.count % 7 != 0 { allDays.append(nil) }
+
+        let weeks: [[Date?]] = stride(from: 0, to: allDays.count, by: 7).map { i in
+            Array(allDays[i..<min(i + 7, allDays.count)])
+        }
+        let maxMinutes = max(todoStore.dailyFocusMinutes.values.max() ?? 1, 1)
+        let totalDays = todoStore.dailyFocusMinutes.filter { $0.value > 0 }.count
+        let nWeeks = CGFloat(weeks.count)
+
+        // Zellgröße füllt exakt die verfügbare Breite (kein Scrollen)
+        let availW = max(80, heatmapWidth - weekdayColW - 6)
+        let cSize = max(4, (availW - cSpacing * (nWeeks - 1)) / nWeeks)
+        let radius = max(2, cSize / 4)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            // Breitenmessung
+            Color.clear
+                .frame(height: 0)
+                .background(GeometryReader { geo in
+                    Color.clear.onAppear { heatmapWidth = geo.size.width }
+                })
+
+            HStack(alignment: .top, spacing: 6) {
+                // Wochentag-Labels (fest links, tippbar)
+                VStack(alignment: .trailing, spacing: cSpacing) {
+                    Color.clear.frame(height: 16)
+                    ForEach(0..<7, id: \.self) { i in
+                        let isSelected = selectedHeatmapWeekday == i
+                        let label = weekdayLabels[i]
+                        Text(label.isEmpty ? "·" : label)
+                            .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                            .foregroundStyle(
+                                label.isEmpty
+                                    ? (isSelected ? Color.green.opacity(0.7) : Color.secondary.opacity(0.25))
+                                    : (isSelected ? Color.green : Color.secondary)
+                            )
+                            .frame(width: weekdayColW, height: cSize, alignment: .trailing)
+                            .scaleEffect(isSelected ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isSelected)
+                            .onTapGesture {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                    selectedHeatmapDay = nil
+                                    selectedHeatmapWeekday = selectedHeatmapWeekday == i ? nil : i
+                                }
+                            }
+                    }
+                }
+
+                // Grid — kein Scrollen, Zellen füllen die volle Breite
+                HStack(alignment: .top, spacing: cSpacing) {
+                    ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                        VStack(spacing: cSpacing) {
+                            let monthLabel: String = {
+                                for d in week.compactMap({ $0 }) {
+                                    if cal.component(.day, from: d) <= 7 {
+                                        return heatmapMonthLabel(d, cal: cal)
+                                    }
+                                }
+                                return ""
+                            }()
+                            Text(monthLabel.isEmpty ? " " : monthLabel)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(monthLabel.isEmpty ? Color.clear : Color.secondary)
+                                .frame(width: cSize, height: 16, alignment: .leading)
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
+
+                            ForEach(0..<7, id: \.self) { di in
+                                if let day = week[di] {
+                                    let minutes = todoStore.dailyFocusMinutes[day] ?? 0
+                                    let intensity = CGFloat(minutes) / CGFloat(maxMinutes)
+                                    let isToday = cal.isDateInToday(day)
+                                    let isSelected = selectedHeatmapDay == day
+                                    RoundedRectangle(cornerRadius: radius)
+                                        .fill(minutes == 0
+                                              ? Color.primary.opacity(0.07)
+                                              : Color.green.opacity(0.15 + intensity * 0.75))
+                                        .frame(width: cSize, height: cSize)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: radius)
+                                                .stroke(
+                                                    isSelected ? Color.white : (isToday ? Color.green : Color.clear),
+                                                    lineWidth: isSelected ? 1.5 : 1
+                                                )
+                                        )
+                                        .scaleEffect(isSelected ? 1.35 : 1.0)
+                                        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isSelected)
+                                        .contentShape(Rectangle().size(CGSize(width: max(cSize, 20), height: max(cSize, 20))))
+                                        .onTapGesture {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                                selectedHeatmapWeekday = nil
+                                                selectedHeatmapDay = selectedHeatmapDay == day ? nil : day
+                                            }
+                                        }
+                                } else {
+                                    Color.clear.frame(width: cSize, height: cSize)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            heatmapDayTooltipView
+            heatmapWeekdayTooltipView
+
+            // Legende
+            HStack(spacing: 6) {
+                Text("Wenig").font(.system(size: 11)).foregroundStyle(.secondary)
+                ForEach([0.1, 0.3, 0.5, 0.75, 1.0], id: \.self) { v in
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.green.opacity(0.15 + v * 0.75))
+                        .frame(width: 13, height: 13)
+                }
+                Text("Viel").font(.system(size: 11)).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(totalDays) aktive Tage")
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 14)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedHeatmapDay)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedHeatmapWeekday)
+    }
+
+    @ViewBuilder
+    private var heatmapDayTooltipView: some View {
+        if let day = selectedHeatmapDay {
+            let minutes = todoStore.dailyFocusMinutes[day] ?? 0
+            let df = heatmapDayFormatter()
+            let h = minutes / 60
+            let m = minutes % 60
+            let timeText = h > 0 ? "\(h) Std. \(m) Min. Fokus" : "\(m) Min. Fokus"
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(minutes == 0 ? Color.primary.opacity(0.08) : Color.green.opacity(0.18))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: minutes == 0 ? "moon.zzz.fill" : "timer")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(minutes == 0 ? Color.secondary : Color.green)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(df.string(from: day))
+                        .font(.system(size: 12, weight: .semibold))
+                    if minutes == 0 {
+                        Text("Kein Fokus").font(.system(size: 11)).foregroundStyle(.secondary)
+                    } else {
+                        Text(timeText).font(.system(size: 11, weight: .medium)).foregroundStyle(Color.green)
+                    }
+                }
+                Spacer()
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { selectedHeatmapDay = nil }
+                } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 18))
+                        .foregroundStyle(Color.secondary.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.green.opacity(minutes == 0 ? 0 : 0.35), lineWidth: 1))
+            .transition(.scale(scale: 0.95).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder
+    private var heatmapWeekdayTooltipView: some View {
+        if let wd = selectedHeatmapWeekday {
+            let stats = weekdayStats(for: wd)
+            let bestDF = heatmapShortFormatter()
+            let ah = stats.avg / 60; let am = stats.avg % 60
+            let th = stats.total / 60; let tm = stats.total % 60
+            let avgText = stats.avg == 0 ? "–" : (ah > 0 ? "\(ah)h \(am)m" : "\(am) min")
+            let totalText = stats.total == 0 ? "–" : (th > 0 ? "\(th)h \(tm)m" : "\(tm) min")
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(stats.avg == 0 ? 0.07 : 0.18))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: stats.avg == 0 ? "moon.zzz.fill" : "chart.bar.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(stats.avg == 0 ? Color.secondary : Color.green)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(stats.name).font(.system(size: 13, weight: .bold))
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Ø Fokus").font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text(avgText).font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(stats.avg == 0 ? Color.secondary : Color.green)
+                        }
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Gesamt").font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text(totalText).font(.system(size: 11, weight: .semibold))
+                        }
+                        if let best = stats.best, best.minutes > 0 {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("Bester Tag").font(.system(size: 9)).foregroundStyle(.secondary)
+                                Text(bestDF.string(from: best.date))
+                                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.orange)
+                            }
+                        }
+                    }
+                }
+                Spacer()
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { selectedHeatmapWeekday = nil }
+                } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 18))
+                        .foregroundStyle(Color.secondary.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.green.opacity(stats.avg == 0 ? 0 : 0.35), lineWidth: 1))
+            .transition(.scale(scale: 0.95).combined(with: .opacity))
+        }
+    }
+
+    private struct WeekdayStats {
+        let name: String
+        let avg: Int
+        let total: Int
+        let best: (date: Date, minutes: Int)?
+    }
+
+    private func weekdayStats(for wd: Int) -> WeekdayStats {
+        let fullNames = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"]
+        let calWD = wd < 6 ? wd + 2 : 1
+        var cal2 = Calendar(identifier: .gregorian)
+        cal2.firstWeekday = 2
+        let matching = todoStore.dailyFocusMinutes.filter { cal2.component(.weekday, from: $0.key) == calWD }
+        let total = matching.values.reduce(0, +)
+        let avg = matching.isEmpty ? 0 : total / matching.count
+        let bestEntry = matching.max(by: { $0.value < $1.value })
+        let best = bestEntry.map { (date: $0.key, minutes: $0.value) }
+        return WeekdayStats(name: fullNames[wd], avg: avg, total: total, best: best)
+    }
+
+    private func heatmapDayFormatter() -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEEE, d. MMMM yyyy"
+        return f
+    }
+
+    private func heatmapShortFormatter() -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "d. MMM yyyy"
+        return f
     }
 
     // MARK: - Overview Card
@@ -1053,6 +1749,7 @@ struct StatistikView: View {
 
     private var focusCard: some View {
         VStack(spacing: 0) {
+            // Today row with streak badge
             HStack(spacing: 12) {
                 iconBadge(icon: "flame.fill", color: .orange)
                 VStack(alignment: .leading, spacing: 2) {
@@ -1061,11 +1758,63 @@ struct StatistikView: View {
                         .font(.system(size: 16, weight: .semibold))
                 }
                 Spacer()
+                if todoStore.focusStreak > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.yellow)
+                        Text("\(todoStore.focusStreak) Tage")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.14), in: Capsule())
+                }
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
 
+            // Goal progress bar
+            if dailyGoal > 0 {
+                HStack(alignment: .center, spacing: 12) {
+                    iconBadge(icon: "target", color: chartAccentColors[0])
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(focusTodayMinutes)")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                            Text("/ \(dailyGoal) min Tagesziel")
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                        }
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.primary.opacity(0.08))
+                                    .frame(height: 5)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(LinearGradient(colors: chartAccentColors, startPoint: .leading, endPoint: .trailing))
+                                    .frame(width: geo.size.width * CGFloat(focusGoalProgress), height: 5)
+                                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: focusTodayMinutes)
+                            }
+                        }
+                        .frame(height: 5)
+                    }
+                    Spacer()
+                    VStack(spacing: 1) {
+                        Text("\(timerManager.todayCompletedSessions)")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundStyle(chartAccentColors[0])
+                        Text("Sessions")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+
+                Divider().padding(.leading, 58).opacity(0.45)
+            }
+
             cardDivider()
 
+            // Total focus time
             HStack(spacing: 12) {
                 iconBadge(icon: "timer", color: .cyan)
                 Text("Gesamt Fokuszeit")
@@ -1077,6 +1826,79 @@ struct StatistikView: View {
                     .font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
+
+            cardDivider()
+
+            // Weekly chart
+            focusWeeklyChart
+                .padding(.horizontal, 16).padding(.vertical, 14)
+        }
+    }
+
+    private var focusWeeklyChart: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Verlauf – 7 Tage")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                let avg = todoStore.weeklyFocusAverage
+                if avg > 0 {
+                    Text("Ø \(avg) min")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            GeometryReader { geo in
+                let data = todoStore.weeklyFocusData
+                let maxVal = max(data.map(\.minutes).max() ?? 1, dailyGoal > 0 ? dailyGoal : 1, 1)
+                let gap: CGFloat = 5
+                let barW = (geo.size.width - gap * CGFloat(data.count - 1)) / CGFloat(max(1, data.count))
+
+                ZStack(alignment: .bottomLeading) {
+                    if dailyGoal > 0 {
+                        let goalFrac = CGFloat(dailyGoal) / CGFloat(maxVal)
+                        let goalY = geo.size.height * (1 - goalFrac)
+                        Path { p in
+                            p.move(to: CGPoint(x: 0, y: goalY))
+                            p.addLine(to: CGPoint(x: geo.size.width, y: goalY))
+                        }
+                        .stroke(chartAccentColors[0].opacity(0.5),
+                                style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    }
+
+                    HStack(alignment: .bottom, spacing: gap) {
+                        ForEach(Array(data.enumerated()), id: \.offset) { _, item in
+                            let frac = CGFloat(item.minutes) / CGFloat(maxVal)
+                            let isToday = Calendar.current.isDateInToday(item.date)
+                            let goalMet = dailyGoal > 0 && item.minutes >= dailyGoal
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(
+                                    goalMet
+                                    ? LinearGradient(colors: chartAccentColors, startPoint: .bottom, endPoint: .top)
+                                    : LinearGradient(
+                                        colors: [chartAccentColors[0].opacity(isToday ? 0.8 : 0.3),
+                                                 chartAccentColors[0].opacity(isToday ? 0.5 : 0.18)],
+                                        startPoint: .bottom, endPoint: .top)
+                                )
+                                .frame(width: barW, height: max(3, frac * geo.size.height))
+                        }
+                    }
+                    .frame(height: geo.size.height, alignment: .bottom)
+                }
+            }
+            .frame(height: 54)
+
+            HStack(spacing: 0) {
+                ForEach(Array(todoStore.weeklyFocusData.enumerated()), id: \.offset) { _, item in
+                    Text(weekdayLabel(item.date))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Calendar.current.isDateInToday(item.date)
+                                         ? chartAccentColors[0] : .secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
         }
     }
 

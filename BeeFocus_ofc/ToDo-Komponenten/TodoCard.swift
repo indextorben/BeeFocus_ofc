@@ -62,6 +62,7 @@ struct TodoCard: View {
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("aktivePriorityStyle") private var aktivePriorityStyle: String = "standard"
     
     @State private var images: [Data] = []
 
@@ -93,6 +94,13 @@ struct TodoCard: View {
     }
 
     var priorityText: String {
+        if aktivePriorityStyle == "emoji" {
+            switch todo.priority {
+            case .low:    return "🟢 " + localizer.localizedString(forKey: "priority_low")
+            case .medium: return "🟡 " + localizer.localizedString(forKey: "priority_medium")
+            case .high:   return "🔴 " + localizer.localizedString(forKey: "priority_high")
+            }
+        }
         switch todo.priority {
         case .low: return localizer.localizedString(forKey: "priority_low")
         case .medium: return localizer.localizedString(forKey: "priority_medium")

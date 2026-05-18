@@ -81,7 +81,14 @@ struct TodoListView: View {
     @State private var wavePhase2: CGFloat = 0
 
     @ObservedObject private var localizer = LocalizationManager.shared
+    @ObservedObject private var timerManager = TimerManager.shared
     @StateObject private var mailShare = MailShareService()
+
+    @AppStorage("konfettiEnabled") private var konfettiEnabled: Bool = false
+    @AppStorage("fokusSperrmodus") private var fokusSperrmodus: Bool = false
+    @State private var showKonfetti = false
+
+    private var isLocked: Bool { fokusSperrmodus && timerManager.isRunning }
     
     @State private var draggingCategoryID: UUID? = nil
     @State private var dropTargetIndex: Int? = nil
@@ -96,13 +103,26 @@ struct TodoListView: View {
     @AppStorage("autoCalendarSyncRange") private var autoCalendarSyncRange = 1
     @State private var hasAutoSynced = false
 
-    @State private var collapsedSections: Set<String> = []
+    @AppStorage("collapsedSectionsString") private var collapsedSectionsString: String = ""
+    private var collapsedSections: Set<String> {
+        Set(collapsedSectionsString.components(separatedBy: ",").filter { !$0.isEmpty })
+    }
+    private func setCollapsed(_ id: String, collapsed: Bool) {
+        var s = collapsedSections
+        if collapsed { s.insert(id) } else { s.remove(id) }
+        collapsedSectionsString = s.joined(separator: ",")
+    }
     @State private var showingAddFolderAlert = false
     @State private var newFolderName = ""
 
     // MARK: - Ordner-Zuweisung
     @State private var isShowingFolderPicker = false
     @State private var pendingFolderTodoID: UUID? = nil
+
+    // Drag-and-Drop Folder Assignment
+    @State private var isDragModeActive = false
+    @State private var draggedTodoID: UUID? = nil
+    @State private var isDragBgTargeted = false
 
     let languages = ["Deutsch", "Englisch"]
     
@@ -536,8 +556,52 @@ struct TodoListView: View {
                     .zIndex(999)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
+
+            // Drag-to-Folder Overlay
+            if isDragModeActive {
+                dragFolderPickerOverlay
+                    .zIndex(998)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            // Fokus-Sperrmodus Banner
+            if isLocked {
+                VStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.indigo)
+                        Text("Fokus aktiv – Bearbeiten gesperrt")
+                            .font(.system(size: 13, weight: .semibold))
+                        Spacer()
+                        Image(systemName: "timer")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().stroke(Color.indigo.opacity(0.3), lineWidth: 1))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    Spacer()
+                }
+                .zIndex(996)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .allowsHitTesting(false)
+            }
+
+            // Konfetti Overlay
+            if showKonfetti {
+                KonfettiOverlayView()
+                    .zIndex(1000)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isShowingFolderPicker)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isDragModeActive)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isLocked)
+        .animation(.easeInOut(duration: 0.2), value: showKonfetti)
     }
 
     // MARK: - Ordner-Zuweisung
@@ -583,6 +647,105 @@ struct TodoListView: View {
             isShowingFolderPicker = false
         }
         pendingFolderTodoID = nil
+    }
+
+    private func assignDragToFolder(targetID: String) {
+        let folder: String?
+        if targetID == "__remove__" {
+            folder = nil
+        } else if targetID.hasPrefix("__custom__") {
+            folder = String(targetID.dropFirst("__custom__".count))
+        } else {
+            return
+        }
+        if let id = draggedTodoID {
+            todoStore.assignTodo(id, toFolder: folder)
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isDragModeActive = false
+        }
+        draggedTodoID = nil
+    }
+
+    private var dragFolderPickerOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .ignoresSafeArea()
+                .onDrop(of: [UTType.plainText.identifier], isTargeted: $isDragBgTargeted) { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isDragModeActive = false
+                    }
+                    draggedTodoID = nil
+                    return false
+                }
+
+            VStack {
+                Spacer()
+                VStack(spacing: 20) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("In Ordner ziehen")
+                                .font(.title3.weight(.bold))
+                            if let id = draggedTodoID,
+                               let todo = todoStore.todos.first(where: { $0.id == id }) {
+                                Text(todo.title)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        Spacer()
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isDragModeActive = false
+                            }
+                            draggedTodoID = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+
+                    if todoStore.customFolders.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "folder.badge.questionmark")
+                                .font(.system(size: 34))
+                                .foregroundStyle(.secondary)
+                            Text("Noch keine eigenen Ordner vorhanden.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible()), count: min(3, max(1, allFolderPickerTargets.count))),
+                        spacing: 12
+                    ) {
+                        ForEach(allFolderPickerTargets) { target in
+                            FolderDropTile(
+                                id: target.id,
+                                title: target.title,
+                                icon: target.icon,
+                                color: target.color,
+                                onAssign: assignDragToFolder
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 36)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28))
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+            }
+        }
     }
 
     private var folderPickerOverlay: some View {
@@ -1454,19 +1617,29 @@ struct TodoListView: View {
                     }
                     TodoCard(todo: binding) {
                         if !isSelecting {
+                            let wasIncomplete = !todo.isCompleted
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { todoStore.toggleTodo(todo) }
+                            if wasIncomplete && konfettiEnabled {
+                                showKonfetti = true
+                                Task {
+                                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                                    await MainActor.run { showKonfetti = false }
+                                }
+                            }
                         } else {
                             if selectedTodoIDs.contains(todo.id) { selectedTodoIDs.remove(todo.id) }
                             else { selectedTodoIDs.insert(todo.id) }
                         }
                     } onEdit: {
-                        if !isSelecting { editingTodo = todo }
+                        if isLocked { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+                        else if !isSelecting { editingTodo = todo }
                     } onDelete: {
-                        if !isSelecting { todoToDelete = todo; showingDeleteAlert = true }
+                        if isLocked { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+                        else if !isSelecting { todoToDelete = todo; showingDeleteAlert = true }
                     } onShare: {
                         if !isSelecting { TodoShare.share(todo: todo) }
                     } onMoveToFolder: {
-                        if !isSelecting {
+                        if !isSelecting && !isLocked {
                             pendingFolderTodoID = todo.id
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                 isShowingFolderPicker = true
@@ -1481,6 +1654,18 @@ struct TodoListView: View {
                     removal: .scale(scale: 0.96).combined(with: .opacity)
                 ))
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: todo.isCompleted)
+                .onDrag {
+                    guard !isSelecting else { return NSItemProvider() }
+                    let todoID = todo.id
+                    DispatchQueue.main.async {
+                        draggedTodoID = todoID
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isDragModeActive = true
+                        }
+                        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    }
+                    return NSItemProvider(object: todo.id.uuidString as NSString)
+                }
             }
         }
         .padding(.horizontal, 10)
@@ -1502,8 +1687,7 @@ struct TodoListView: View {
             // Header
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    if isCollapsed { collapsedSections.remove(group.id) }
-                    else { collapsedSections.insert(group.id) }
+                    setCollapsed(group.id, collapsed: !isCollapsed)
                 }
             } label: {
                 HStack(spacing: 10) {
@@ -1673,12 +1857,18 @@ struct TodoListView: View {
 
                         TodoCard(todo: binding) {
                             if !isSelecting {
-                                // Smooth animation for toggle
+                                let wasIncomplete = !todo.isCompleted
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     todoStore.toggleTodo(todo)
                                 }
+                                if wasIncomplete && konfettiEnabled {
+                                    showKonfetti = true
+                                    Task {
+                                        try? await Task.sleep(nanoseconds: 2_500_000_000)
+                                        await MainActor.run { showKonfetti = false }
+                                    }
+                                }
                             } else {
-                                // In selection mode, tap on primary action toggles selection instead of completing
                                 if selectedTodoIDs.contains(todo.id) {
                                     selectedTodoIDs.remove(todo.id)
                                 } else {
@@ -1686,13 +1876,11 @@ struct TodoListView: View {
                                 }
                             }
                         } onEdit: {
-                            if !isSelecting { editingTodo = todo }
+                            if isLocked { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+                            else if !isSelecting { editingTodo = todo }
                         } onDelete: {
-                            if !isSelecting {
-                                // Replace direct removal with delete + alert flow
-                                todoToDelete = todo
-                                showingDeleteAlert = true
-                            }
+                            if isLocked { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+                            else if !isSelecting { todoToDelete = todo; showingDeleteAlert = true }
                         } onShare: {
                             if !isSelecting {
                                 TodoShare.share(todo: todo)
@@ -1788,6 +1976,52 @@ struct TodoListView: View {
     }
 }
 
+// MARK: - FolderDropTile
+
+private struct FolderDropTile: View {
+    let id: String
+    let title: String
+    let icon: String
+    let color: Color
+    let onAssign: (String) -> Void
+    @State private var isTargeted = false
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isTargeted ? color : color.opacity(0.15))
+                    .frame(width: 60, height: 60)
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(isTargeted ? .white : color)
+            }
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isTargeted)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isTargeted ? color.opacity(0.12) : Color(.systemFill))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(isTargeted ? color.opacity(0.6) : color.opacity(0.15), lineWidth: isTargeted ? 2 : 1)
+                )
+        )
+        .scaleEffect(isTargeted ? 1.08 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: isTargeted)
+        .onDrop(of: [UTType.plainText.identifier], isTargeted: $isTargeted) { _ in
+            onAssign(id)
+            return true
+        }
+    }
+}
+
 // MARK: - InsertionIndicator
 struct InsertionIndicator: View {
     var body: some View {
@@ -1805,6 +2039,60 @@ struct InsertionIndicator: View {
         .background(Color.accentColor.opacity(0.08))
         .clipShape(Capsule())
         .animation(.easeInOut(duration: 0.15), value: UUID())
+    }
+}
+
+// MARK: - Konfetti
+
+struct KonfettiOverlayView: View {
+    private let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink, .cyan, .mint]
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(0..<50, id: \.self) { i in
+                    KonfettiParticle(
+                        color: colors[i % colors.count],
+                        startX: geo.size.width * CGFloat(i % 10) / 9,
+                        maxY: geo.size.height + 80,
+                        delay: Double(i % 15) * 0.06
+                    )
+                }
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct KonfettiParticle: View {
+    let color: Color
+    let startX: CGFloat
+    let maxY: CGFloat
+    let delay: Double
+
+    @State private var posY: CGFloat = -20
+    @State private var offsetX: CGFloat = 0
+    @State private var rotation: Double = 0
+    @State private var opacity: Double = 1
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(color)
+            .frame(width: 8, height: 9)
+            .rotationEffect(.degrees(rotation))
+            .position(x: startX + offsetX, y: posY)
+            .opacity(opacity)
+            .onAppear {
+                let dur = Double.random(in: 1.2...1.9)
+                withAnimation(.easeIn(duration: dur).delay(delay)) {
+                    posY = maxY
+                    offsetX = CGFloat.random(in: -60...60)
+                    rotation = Double.random(in: 270...810)
+                }
+                withAnimation(.linear(duration: 0.5).delay(delay + dur - 0.5)) {
+                    opacity = 0
+                }
+            }
     }
 }
 

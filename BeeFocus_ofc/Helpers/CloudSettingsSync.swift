@@ -19,13 +19,21 @@ final class CloudSettingsSync {
         "morningSummaryEnabled",
         "morningSummaryTime",
         "fokuspunktePeak",
+        "fokuspunkteAusgegeben",
+        "freigeschalteteItemsString",
         "aktivesStatistikThema",
+        "aktiverTimerModus",
+        "aktivePriorityStyle",
+        "konfettiEnabled",
+        "fokusSperrmodus",
+        "dailyFocusGoalMinutes",
         "selectedLanguage",
         "focusTime",
         "shortBreakTime",
         "longBreakTime",
         "sessionsUntilLongBreak",
         "folderOrderString",
+        "collapsedSectionsString",
     ]
 
     private init() {}

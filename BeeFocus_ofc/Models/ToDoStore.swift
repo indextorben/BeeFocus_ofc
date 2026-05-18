@@ -983,6 +983,48 @@ class TodoStore: ObservableObject {
         }
     }
 
+    // MARK: - Focus Stats (computed)
+
+    var focusStreak: Int {
+        let goal = UserDefaults.standard.integer(forKey: "dailyFocusGoalMinutes")
+        let minGoal = goal > 0 ? goal : 1
+        let cal = Calendar.current
+        var streak = 0
+        guard var day = cal.date(byAdding: .day, value: -1, to: cal.startOfDay(for: Date())) else { return 0 }
+        while true {
+            if (dailyFocusMinutes[day] ?? 0) >= minGoal {
+                streak += 1
+                guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { break }
+                day = prev
+            } else { break }
+        }
+        return streak
+    }
+
+    var weeklyFocusData: [(date: Date, minutes: Int)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return (0..<7).map { offset in
+            let date = cal.date(byAdding: .day, value: -(6 - offset), to: today) ?? today
+            return (date: date, minutes: dailyFocusMinutes[date] ?? 0)
+        }
+    }
+
+    var weeklyFocusAverage: Int {
+        let data = weeklyFocusData
+        let total = data.reduce(0) { $0 + $1.minutes }
+        let activeDays = data.filter { $0.minutes > 0 }.count
+        guard activeDays > 0 else { return 0 }
+        return total / activeDays
+    }
+
+    var bestFocusDay: (date: Date, minutes: Int)? {
+        dailyFocusMinutes
+            .filter { $0.value > 0 }
+            .max(by: { $0.value < $1.value })
+            .map { (date: $0.key, minutes: $0.value) }
+    }
+
     func addFocusMinutes(_ minutes: Int, on date: Date) {
         guard minutes > 0 else { return }
         let day = Calendar.current.startOfDay(for: date)
