@@ -47,6 +47,7 @@ struct TodoListView: View {
     @State private var showSuccessToast = false
     @AppStorage("showPastTasksGlobal") private var showPastTasksStorage = true
     @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     private var showPastTasks: Bool {
         get { showPastTasksStorage }
         set { showPastTasksStorage = newValue }
@@ -76,7 +77,9 @@ struct TodoListView: View {
     @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEndDate: Date = Date()
     @State private var isResortSuspended = false
-    
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
+
     @ObservedObject private var localizer = LocalizationManager.shared
     @StateObject private var mailShare = MailShareService()
     
@@ -94,6 +97,12 @@ struct TodoListView: View {
     @State private var hasAutoSynced = false
 
     @State private var collapsedSections: Set<String> = []
+    @State private var showingAddFolderAlert = false
+    @State private var newFolderName = ""
+
+    // MARK: - Ordner-Zuweisung
+    @State private var isShowingFolderPicker = false
+    @State private var pendingFolderTodoID: UUID? = nil
 
     let languages = ["Deutsch", "Englisch"]
     
@@ -215,6 +224,14 @@ struct TodoListView: View {
                     // Cancel the snackbar timer when view disappears
                     snackbarDismissTask?.cancel()
                 }
+                .onAppear {
+                    withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                        wavePhase1 = .pi * 2
+                    }
+                    withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) {
+                        wavePhase2 = .pi * 2
+                    }
+                }
         }
         .modifier(AlertModifiers(
             showingDeleteAlert: $showingDeleteAlert,
@@ -249,7 +266,118 @@ struct TodoListView: View {
     var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color(red: 0.95, green: 0.97, blue: 1.0)
     }
-    
+
+    private var themeBackground: some View {
+        let (c1, c2, c3) = appThemaFarben(aktivesThema)
+        let dark = colorScheme == .dark
+        return ZStack {
+            if dark {
+                LinearGradient(
+                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
+                             Color(red: 0.10, green: 0.08, blue: 0.20),
+                             Color(red: 0.08, green: 0.06, blue: 0.16)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+            } else {
+                LinearGradient(
+                    colors: [Color(red: 0.95, green: 0.93, blue: 1.0),
+                             Color(red: 0.98, green: 0.96, blue: 1.0),
+                             Color(red: 0.93, green: 0.97, blue: 1.0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+            GeometryReader { geo in
+                Circle()
+                    .fill(RadialGradient(colors: [c1.opacity(dark ? 0.32 : 0.15), .clear],
+                                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.45))
+                    .frame(width: geo.size.width * 0.9, height: geo.size.width * 0.9)
+                    .position(x: geo.size.width * 0.15, y: geo.size.height * 0.12)
+                    .blur(radius: 12)
+                Circle()
+                    .fill(RadialGradient(colors: [c2.opacity(dark ? 0.24 : 0.12), .clear],
+                                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.40))
+                    .frame(width: geo.size.width * 0.8, height: geo.size.width * 0.8)
+                    .position(x: geo.size.width * 0.85, y: geo.size.height * 0.60)
+                    .blur(radius: 12)
+                Circle()
+                    .fill(RadialGradient(colors: [c3.opacity(dark ? 0.16 : 0.09), .clear],
+                                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.35))
+                    .frame(width: geo.size.width * 0.7, height: geo.size.width * 0.7)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height * 0.82)
+                    .blur(radius: 14)
+            }
+
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 20, frequency: 1.3)
+                    .fill(c2.opacity(dark ? 0.10 : 0.07))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.40)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.40 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 13, frequency: 2.1)
+                    .fill(c1.opacity(dark ? 0.16 : 0.11))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.28)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.28 * 0.5)
+            }
+            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+
+            if aktivesThema == "Wald" {
+                WaldDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Eis" {
+                EisDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nordlicht" {
+                NordlichtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Galaxie" {
+                GalaxieDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Vulkan" {
+                VulkanDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Herbst" {
+                HerbstDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nacht" {
+                NachtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Solar" {
+                SolarDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Kirschblüte" {
+                KirschblueteDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Lavendel" {
+                LavendelDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Sonnenuntergang" {
+                SonnenuntergangDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+        }
+        .animation(.easeInOut(duration: 0.6), value: aktivesThema)
+        .ignoresSafeArea()
+    }
+
     var sortedTodos: [TodoItem] {
         if isResortSuspended {
             // Return current filtered order without resorting to avoid janky moves during animations
@@ -355,7 +483,7 @@ struct TodoListView: View {
     // MARK: - Main View
     private var mainContentView: some View {
         ZStack {
-            backgroundColor.ignoresSafeArea()
+            themeBackground
             VStack(spacing: 0) {
                 categoryBar
                 contentView
@@ -365,39 +493,6 @@ struct TodoListView: View {
                 // Banner deaktiviert, um Verwirrung zu vermeiden
             }
 
-            // Bottom toggle button to show/hide past tasks
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: { toggleShowPastTasks() }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: showPastTasks ? "clock.arrow.circlepath" : "clock")
-                            Text(LocalizedStringKey(localizer.localizedString(forKey: showPastTasks ? "Vergangene ausblenden" : "Vergangene anzeigen")))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            BlurView(style: .systemMaterial)
-                                .clipShape(Capsule())
-                        )
-                        .overlay(
-                            Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Capsule())
-                    .background(Color.clear.contentShape(Capsule()))
-                    .padding(.bottom, 16)
-                    .allowsHitTesting(true)
-                    Spacer()
-                }
-            }
-            
             // Delete snackbar
             VStack {
                 Spacer()
@@ -434,9 +529,167 @@ struct TodoListView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: showDeleteSnackbar)
+
+            // Ordner-Zuweisung Overlay
+            if isShowingFolderPicker {
+                folderPickerOverlay
+                    .zIndex(999)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isShowingFolderPicker)
+    }
+
+    // MARK: - Ordner-Zuweisung
+
+    private struct FolderTarget: Identifiable {
+        let id: String
+        let title: String
+        let icon: String
+        let color: Color
+    }
+
+    private var allFolderPickerTargets: [FolderTarget] {
+        var targets = todoStore.customFolders.map { name in
+            FolderTarget(id: "__custom__\(name)", title: name, icon: "folder.fill", color: .indigo)
+        }
+        targets.append(FolderTarget(id: "__remove__", title: "Allgemein", icon: "tray.fill", color: Color(.systemGray)))
+        return targets
+    }
+
+    private func assignToFolder(targetID: String) {
+        let folder: String?
+        if targetID == "__remove__" {
+            folder = nil
+        } else if targetID.hasPrefix("__custom__") {
+            folder = String(targetID.dropFirst("__custom__".count))
+        } else {
+            return
+        }
+        dismissFolderPicker()
+        if let singleID = pendingFolderTodoID {
+            todoStore.assignTodo(singleID, toFolder: folder)
+            pendingFolderTodoID = nil
+        } else {
+            for id in selectedTodoIDs { todoStore.assignTodo(id, toFolder: folder) }
+            selectedTodoIDs.removeAll()
+            isSelecting = false
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    private func dismissFolderPicker() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isShowingFolderPicker = false
+        }
+        pendingFolderTodoID = nil
+    }
+
+    private var folderPickerOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+                .onTapGesture { dismissFolderPicker() }
+
+            VStack {
+                Spacer()
+                VStack(spacing: 20) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("In Ordner verschieben")
+                                .font(.title3.weight(.bold))
+                            if let id = pendingFolderTodoID,
+                               let todo = todoStore.todos.first(where: { $0.id == id }) {
+                                Text(todo.title)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            } else {
+                                Text("\(selectedTodoIDs.count) Aufgabe(n) ausgewählt")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Button { dismissFolderPicker() } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+
+                    if todoStore.customFolders.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "folder.badge.questionmark")
+                                .font(.system(size: 34))
+                                .foregroundStyle(.secondary)
+                            Text("Noch keine Ordner vorhanden.")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            Text("Erstelle einen Ordner mit dem Ordner-Button oben rechts.")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(allFolderPickerTargets) { target in
+                            Button { assignToFolder(targetID: target.id) } label: {
+                                VStack(spacing: 10) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(target.color.opacity(0.15))
+                                            .frame(width: 56, height: 56)
+                                        Image(systemName: target.icon)
+                                            .font(.system(size: 22, weight: .semibold))
+                                            .foregroundStyle(target.color)
+                                    }
+                                    Text(target.title)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(.primary)
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .fill(target.color.opacity(0.07))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18)
+                                                .stroke(target.color.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    Button { dismissFolderPicker() } label: {
+                        Text("Abbrechen")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemFill)))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 32)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28))
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+            }
         }
     }
-    
+
     // MARK: - Toolbar & Overlay Helpers
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
@@ -512,6 +765,16 @@ struct TodoListView: View {
                 .disabled(!todoStore.canRedo)
                 
                 Menu {
+                    if isSelecting && !selectedTodoIDs.isEmpty {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isShowingFolderPicker = true
+                            }
+                        } label: {
+                            Label("In Ordner verschieben", systemImage: "folder.badge.plus")
+                        }
+                        Divider()
+                    }
                     Button {
                         showingDeleteCompletedByDateSheet = true
                     } label: {
@@ -539,7 +802,7 @@ struct TodoListView: View {
                                 Circle()
                                     .fill(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [Color.blue.opacity(0.35), Color.purple.opacity(0.35)]),
+                                            gradient: Gradient(colors: [appThemaFarben(aktivesThema).0.opacity(0.35), appThemaFarben(aktivesThema).1.opacity(0.35)]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
@@ -569,22 +832,22 @@ struct TodoListView: View {
                                 Circle()
                                     .fill(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [Color.blue.opacity(0.6), Color.red]),
+                                            gradient: Gradient(colors: [appThemaFarben(aktivesThema).0, appThemaFarben(aktivesThema).1]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
                                     .blur(radius: 2)
-                                    .opacity(0.3)
+                                    .opacity(0.7)
                             }
                         )
                         .scaleEffect(isPlusPressed ? 1.05 : 1.0)
-                        .shadow(color: Color.blue.opacity(0.3), radius: 6, x: 4, y: 3)
+                        .shadow(color: appThemaFarben(aktivesThema).0.opacity(0.4), radius: 6, x: 4, y: 3)
                         .overlay(
                             Circle()
                                 .stroke(
                                     LinearGradient(
-                                        gradient: Gradient(colors: [Color.white.opacity(0.4), Color.blue.opacity(0.4)]),
+                                        gradient: Gradient(colors: [Color.white.opacity(0.5), appThemaFarben(aktivesThema).0.opacity(0.5)]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ),
@@ -831,7 +1094,7 @@ struct TodoListView: View {
                     BlurView(style: .systemUltraThinMaterial)
                         .background(Color.clear)
                     LinearGradient(
-                        colors: [Color.white.opacity(0.05), Color.blue.opacity(0.05)],
+                        colors: [Color.white.opacity(0.05), appThemaFarben(aktivesThema).0.opacity(0.07)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -892,12 +1155,23 @@ struct TodoListView: View {
     }
 
     private func orderedGroups(_ groups: [TodoFolderGroup]) -> [TodoFolderGroup] {
+        // "Heute" is always pinned at position 0
+        let todayGroup = groups.first(where: { $0.id == "__today__" })
+        let rest = groups.filter { $0.id != "__today__" }
+
         let order = folderOrder
-        guard !order.isEmpty else { return groups }
-        let dict = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
-        var result: [TodoFolderGroup] = order.compactMap { dict[$0] }
-        for g in groups where !order.contains(g.id) { result.append(g) }
-        return result
+        var ordered: [TodoFolderGroup]
+        if order.isEmpty {
+            ordered = rest
+        } else {
+            let dict = Dictionary(uniqueKeysWithValues: rest.map { ($0.id, $0) })
+            var result: [TodoFolderGroup] = order.compactMap { dict[$0] }
+            for g in rest where !order.contains(g.id) { result.append(g) }
+            ordered = result
+        }
+
+        if let today = todayGroup { return [today] + ordered }
+        return ordered
     }
 
     private func moveFolderGroup(from source: IndexSet, to destination: Int) {
@@ -937,7 +1211,8 @@ struct TodoListView: View {
     }
 
     private var todoGroups: [TodoFolderGroup] {
-        let todos = sortedTodos
+        // Tasks in custom folders are excluded from standard date-based groups
+        let todos = sortedTodos.filter { $0.customFolder == nil }
         let cal = Calendar.current
         let now = Date()
         let startOfToday = cal.startOfDay(for: now)
@@ -959,7 +1234,16 @@ struct TodoListView: View {
 
         var groups: [TodoFolderGroup] = []
 
-        // 1. Allgemein – immer ganz oben (keine Fälligkeit)
+        // 0. Heute – immer an erster Stelle, auch wenn leer
+        groups.append(TodoFolderGroup(
+            id: "__today__",
+            title: eng ? "Today" : "Heute",
+            icon: "sun.max.fill",
+            color: .orange,
+            todos: todayDue
+        ))
+
+        // 1. Allgemein – keine Fälligkeit
         if !noDue.isEmpty {
             groups.append(TodoFolderGroup(
                 id: "__general__",
@@ -1003,26 +1287,11 @@ struct TodoListView: View {
             }
         }
 
-        // 3. Dringend – Überfällig + Heute als Unterordner (wenn beides vorhanden)
-        if !overdue.isEmpty && !todayDue.isEmpty {
-            let overdueGroup = TodoFolderGroup(id: "__overdue__",
-                title: eng ? "Overdue" : "Überfällig",
-                icon: "exclamationmark.circle.fill", color: .red, todos: overdue)
-            let todayGroup = TodoFolderGroup(id: "__today__",
-                title: eng ? "Today" : "Heute",
-                icon: "sun.max.fill", color: .orange, todos: todayDue)
-            groups.append(TodoFolderGroup(id: "__urgent__",
-                title: eng ? "Urgent" : "Dringend",
-                icon: "flame.fill", color: .red,
-                subGroups: [overdueGroup, todayGroup]))
-        } else if !overdue.isEmpty {
+        // 3. Überfällig
+        if !overdue.isEmpty {
             groups.append(TodoFolderGroup(id: "__overdue__",
                 title: eng ? "Overdue" : "Überfällig",
                 icon: "exclamationmark.circle.fill", color: .red, todos: overdue))
-        } else if !todayDue.isEmpty {
-            groups.append(TodoFolderGroup(id: "__today__",
-                title: eng ? "Today" : "Heute",
-                icon: "sun.max.fill", color: .orange, todos: todayDue))
         }
 
         // 4. Diese Woche
@@ -1052,6 +1321,18 @@ struct TodoListView: View {
             groups.append(TodoFolderGroup(id: "__later__",
                 title: eng ? "Later" : "Später",
                 icon: "arrow.forward.circle.fill", color: .teal, todos: later))
+        }
+
+        // Custom user-defined folders
+        for folderName in todoStore.customFolders {
+            let folderTodos = sortedTodos.filter { $0.customFolder == folderName }
+            groups.append(TodoFolderGroup(
+                id: "__custom__\(folderName)",
+                title: folderName,
+                icon: "folder.fill",
+                color: .indigo,
+                todos: folderTodos
+            ))
         }
 
         return groups
@@ -1103,21 +1384,45 @@ struct TodoListView: View {
                 }
             }
 
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    isReorderingFolders.toggle()
+            VStack(spacing: 8) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isReorderingFolders.toggle()
+                    }
+                } label: {
+                    Image(systemName: isReorderingFolders ? "checkmark.circle.fill" : "arrow.up.arrow.down.circle")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(isReorderingFolders ? Color.green : Color.secondary)
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                 }
-            } label: {
-                Image(systemName: isReorderingFolders ? "checkmark.circle.fill" : "arrow.up.arrow.down.circle")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isReorderingFolders ? Color.green : Color.secondary)
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .buttonStyle(.plain)
+
+                Button {
+                    newFolderName = ""
+                    showingAddFolderAlert = true
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Color.indigo)
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
             .padding(.top, 12)
             .padding(.trailing, 20)
+        }
+        .alert("Neuer Ordner", isPresented: $showingAddFolderAlert) {
+            TextField("Ordnername", text: $newFolderName)
+            Button("Erstellen") {
+                todoStore.addCustomFolder(newFolderName)
+            }
+            Button("Abbrechen", role: .cancel) { }
+        } message: {
+            Text("Gib einen Namen für den neuen Ordner ein.")
         }
     }
 
@@ -1160,27 +1465,17 @@ struct TodoListView: View {
                         if !isSelecting { todoToDelete = todo; showingDeleteAlert = true }
                     } onShare: {
                         if !isSelecting { TodoShare.share(todo: todo) }
-                    }
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    if !isSelecting {
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { todoStore.toggleTodo(todo) }
-                        } label: { Label(localizer.localizedString(forKey: "Erledigt"), systemImage: "checkmark") }
-                        .tint(.green)
-
-                        Button(role: .destructive) {
-                            categoryToDelete = nil; todoToDelete = todo; showingDeleteAlert = true
-                        } label: { Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash") }
-
-                        Button { TodoShare.share(todo: todo) } label: {
-                            Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
+                    } onMoveToFolder: {
+                        if !isSelecting {
+                            pendingFolderTodoID = todo.id
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isShowingFolderPicker = true
+                            }
                         }
-                        .tint(.blue)
                     }
                 }
-                .strikethrough(todo.isCompleted, color: .gray)
                 .opacity(todo.isCompleted ? 0.55 : 1.0)
+                .strikethrough(todo.isCompleted, color: .gray)
                 .transition(.asymmetric(
                     insertion: .scale(scale: 0.96).combined(with: .opacity),
                     removal: .scale(scale: 0.96).combined(with: .opacity)
@@ -1200,6 +1495,8 @@ struct TodoListView: View {
         let cornerRadius: CGFloat = isSubFolder ? 12 : 16
         let hPad: CGFloat = isSubFolder ? 10 : 14
         let vPad: CGFloat = isSubFolder ? 9 : 12
+        let isCustomFolder = group.id.hasPrefix("__custom__")
+        let customFolderName = isCustomFolder ? String(group.id.dropFirst("__custom__".count)) : nil
 
         return AnyView(VStack(spacing: 0) {
             // Header
@@ -1241,13 +1538,24 @@ struct TodoListView: View {
 
                     Spacer()
 
-                    // Badge + Chevron
+                    // Badge + Chevron + Delete (custom folder only)
                     HStack(spacing: 8) {
                         Text(completedCount > 0 ? "\(totalCount - completedCount)" : "\(totalCount)")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(group.color)
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(group.color.opacity(0.12), in: Capsule())
+
+                        if let folderName = customFolderName {
+                            Button {
+                                todoStore.removeCustomFolder(folderName)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.red.opacity(0.7))
+                            }
+                            .buttonStyle(.plain)
+                        }
 
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .semibold))
@@ -1260,6 +1568,15 @@ struct TodoListView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .dropDestination(for: String.self) { items, _ in
+                guard let folderName = customFolderName else { return false }
+                for idString in items {
+                    if let uuid = UUID(uuidString: idString) {
+                        todoStore.assignTodo(uuid, toFolder: folderName)
+                    }
+                }
+                return !items.isEmpty
+            }
 
             // Expanded content
             if !isCollapsed {
@@ -1267,7 +1584,21 @@ struct TodoListView: View {
                     .padding(.horizontal, hPad)
                     .opacity(0.25)
 
-                if group.subGroups.isEmpty {
+                if group.subGroups.isEmpty && group.directTodos.isEmpty && group.id == "__today__" {
+                    // Freundliche Leerstand-Nachricht für "Heute"
+                    VStack(spacing: 10) {
+                        Image(systemName: "sun.and.horizon.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.orange.opacity(0.7))
+                        Text("Keine Aufgaben für heute – genieße den Tag! ☀️")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .padding(.horizontal, 16)
+                } else if group.subGroups.isEmpty {
                     todoItemsContent(todos: group.directTodos, color: group.color)
                 } else {
                     VStack(spacing: 8) {
@@ -1284,17 +1615,7 @@ struct TodoListView: View {
                 }
             }
         }
-        .background {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(isSubFolder
-                      ? Color(uiColor: .secondarySystemGroupedBackground)
-                      : Color(uiColor: .systemBackground))
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(isSubFolder ? 0 : 0.06), radius: 6, x: 0, y: 2)
+        .themeGlass(cornerRadius: cornerRadius)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCollapsed)
         )
     }
@@ -1444,11 +1765,7 @@ struct TodoListView: View {
         }
     }
     
-    private func toggleShowPastTasks() {
-        withAnimation(.easeInOut) {
-            showPastTasksStorage.toggle()
-        }
-    }
+
 
     private var duplicateTodos: [TodoItem] {
         var seen: Set<String> = []

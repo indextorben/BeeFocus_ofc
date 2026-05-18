@@ -44,7 +44,7 @@ struct TodoImport {
                     count += 1
                 }
                 todoStore.saveTodos()
-                WidgetDataManager.shared.saveTodos(todoStore.todos)
+                todoStore.writeWidgetSnapshot()
                 completion?(.success(count))
             }
         } catch {

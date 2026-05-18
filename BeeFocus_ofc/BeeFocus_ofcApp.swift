@@ -41,6 +41,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
 
+        CloudSettingsSync.shared.start()
+
         NotificationManager.shared.requestAuthorization { granted in
             if !granted {
                 print("Benachrichtigungen nicht erlaubt")

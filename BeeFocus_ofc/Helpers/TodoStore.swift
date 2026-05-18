@@ -72,6 +72,7 @@ class TodoStore: ObservableObject {
         if let data = try? JSONEncoder().encode(todos) {
             UserDefaults.standard.set(data, forKey: todosKey)
         }
+        writeWidgetSnapshot()
     }
 
     private func loadTodos() {

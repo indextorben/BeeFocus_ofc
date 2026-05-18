@@ -31,7 +31,8 @@ class TodoStore: ObservableObject {
     @Published var dailyStats: [Date: Int] = [:] // Erledigte Aufgaben pro Tag
     @Published var dailyFocusMinutes: [Date: Int] = [:] // Fokus-Minuten pro Tag
     @Published var deletedTodos: [TrashEntry] = []
-    
+    @Published var customFolders: [String] = []
+
     private let saveKey = "todos"
     private let categoriesKey = "categories"
     private let statsKey = "dailyStats"
@@ -40,6 +41,7 @@ class TodoStore: ObservableObject {
     private let trashMaxCountKey = "trashMaxCount"
     private let trashMaxDaysKey = "trashMaxDays"
     private let graveyardKey = "deletedTodoIDGraveyard"
+    private let customFoldersKey = "customFolders"
 
     // Leichtgewichtiges Persistenz-Dict: UUID-String → Löschdatum
     // Verhindert zuverlässig, dass CloudKit gelöschte Todos zurückbringt.
@@ -258,6 +260,7 @@ class TodoStore: ObservableObject {
         loadFocusMinutes()
         loadTrash()
         loadGraveyard()
+        loadCustomFolders()
         
         // Initial sync beim App-Start
         print("🚀 Initial CloudKit sync beim App-Start...")
@@ -895,10 +898,53 @@ class TodoStore: ObservableObject {
         print("✅ complete synced: id=\(todos[index].id) isCompleted=\(todos[index].isCompleted) updatedAt=\(String(describing: todos[index].updatedAt)) completedAt=\(String(describing: todos[index].completedAt))")
     }
     
+    // MARK: - Benutzerdefinierte Ordner
+
+    func addCustomFolder(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty && !customFolders.contains(trimmed) else { return }
+        customFolders.append(trimmed)
+        saveCustomFolders()
+    }
+
+    func removeCustomFolder(_ name: String) {
+        customFolders.removeAll { $0 == name }
+        for i in todos.indices where todos[i].customFolder == name {
+            todos[i].customFolder = nil
+        }
+        saveCustomFolders()
+        saveTodos()
+    }
+
+    func moveCustomFolder(from source: IndexSet, to destination: Int) {
+        customFolders.move(fromOffsets: source, toOffset: destination)
+        saveCustomFolders()
+    }
+
+    func assignTodo(_ todoID: UUID, toFolder folder: String?) {
+        guard let idx = todos.firstIndex(where: { $0.id == todoID }) else { return }
+        todos[idx].customFolder = folder
+        saveTodos()
+    }
+
+    private func saveCustomFolders() {
+        if let data = try? JSONEncoder().encode(customFolders) {
+            UserDefaults.standard.set(data, forKey: customFoldersKey)
+        }
+    }
+
+    private func loadCustomFolders() {
+        if let data = UserDefaults.standard.data(forKey: customFoldersKey),
+           let folders = try? JSONDecoder().decode([String].self, from: data) {
+            customFolders = folders
+        }
+    }
+
     func saveTodos() {
         if let encoded = try? JSONEncoder().encode(todos) {
             UserDefaults.standard.set(encoded, forKey: saveKey)
         }
+        writeWidgetSnapshot()
     }
     
     private func loadTodos() {

@@ -11,11 +11,14 @@ struct TimerView: View {
     @AppStorage("shortBreakTime") private var shortBreakTime: Int = 5
     @AppStorage("longBreakTime") private var longBreakTime: Int = 15
     @AppStorage("sessionsUntilLongBreak") private var sessionsUntilLongBreak: Int = 2
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
     @State private var showingNotificationAlert = false
     @State private var showingSettings = false
     @State private var showingSkipConfirmation = false
     @State private var appeared = false
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
 
     @StateObject private var notifDelegate = TimerNotificationDelegate()
     @ObservedObject private var localizer = LocalizationManager.shared
@@ -37,7 +40,9 @@ struct TimerView: View {
     }
 
     var accentColors: [Color] {
-        timerManager.isBreak ? [.green, .mint] : [.purple, .blue]
+        if timerManager.isBreak { return [.green, .mint] }
+        let (c1, c2, _) = appThemaFarben(aktivesThema)
+        return [c1, c2]
     }
 
     var accentColor: Color { accentColors[0] }
@@ -119,6 +124,12 @@ struct TimerView: View {
                 )
             }
             withAnimation { appeared = true }
+            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                wavePhase1 = .pi * 2
+            }
+            withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) {
+                wavePhase2 = .pi * 2
+            }
         }
         .onChange(of: timerManager.isRunning) { running in
             if running {
@@ -197,6 +208,76 @@ struct TimerView: View {
                     .blur(radius: 20)
                     .animation(.easeInOut(duration: 0.6), value: timerManager.isBreak)
             }
+
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 16, frequency: 1.5)
+                    .fill(accentColors[1].opacity(isDark ? 0.09 : 0.06))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.38)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.38 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 11, frequency: 2.2)
+                    .fill(accentColors[0].opacity(isDark ? 0.14 : 0.09))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.25)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.25 * 0.5)
+            }
+            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            .animation(.easeInOut(duration: 0.6), value: timerManager.isBreak)
+
+            if aktivesThema == "Wald" && !timerManager.isBreak {
+                WaldDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Eis" {
+                EisDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nordlicht" {
+                NordlichtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Galaxie" {
+                GalaxieDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Vulkan" {
+                VulkanDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Herbst" {
+                HerbstDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nacht" {
+                NachtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Solar" {
+                SolarDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Kirschblüte" {
+                KirschblueteDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Lavendel" {
+                LavendelDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Sonnenuntergang" {
+                SonnenuntergangDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
         }
         .ignoresSafeArea()
     }
@@ -259,13 +340,7 @@ struct TimerView: View {
             Spacer()
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .strokeBorder(LinearGradient(
-                colors: [Color.white.opacity(isDark ? 0.12 : 0.65),
-                         Color.white.opacity(isDark ? 0.04 : 0.2)],
-                startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-        .shadow(color: accentColor.opacity(isDark ? 0.12 : 0.06), radius: 10, x: 0, y: 4)
+        .themeGlass(cornerRadius: 14)
     }
 
     // MARK: - Timer Ring

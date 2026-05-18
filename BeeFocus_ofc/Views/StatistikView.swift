@@ -9,12 +9,17 @@ struct StatistikView: View {
     @StateObject private var mailShare = MailShareService()
     @State private var headerAppeared = false
     @State private var sectionsAppeared = false
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
     @AppStorage("fokuspunkteAusgegeben") private var fokuspunkteAusgegeben: Int = 0
+    @AppStorage("fokuspunktePeak") private var fokuspunktePeak: Int = 0
     @AppStorage("freigeschalteteItems") private var freigeschalteteItemsString: String = ""
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
     @State private var kaufBestaetigung: StoreItem? = nil
     @State private var verkaufBestaetigung: StoreItem? = nil
     @State private var kaufErfolg: String? = nil
+    @State private var showFPInfo = false
 
     private var freigeschalteteItems: Set<String> {
         Set(freigeschalteteItemsString.components(separatedBy: ",").filter { !$0.isEmpty })
@@ -53,13 +58,19 @@ struct StatistikView: View {
 
     private func themaFarben(fuer name: String) -> (Color, Color, Color) {
         switch name {
-        case "Ozean":       return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
-        case "Wald":        return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
-        case "Nacht":       return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
-        case "Solar":       return (.orange, .yellow, Color(red: 1.0, green: 0.4, blue: 0.0))
-        case "Kirschblüte": return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
-        case "Vulkan":      return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
-        default:            return (.purple, .blue, Color(red: 0.4, green: 0.2, blue: 0.9))
+        case "Ozean":          return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
+        case "Wald":           return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
+        case "Nacht":          return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
+        case "Solar":          return (.orange, .yellow, Color(red: 1.0, green: 0.4, blue: 0.0))
+        case "Kirschblüte":    return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
+        case "Vulkan":         return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
+        case "Eis":            return (Color(red: 0.6, green: 0.9, blue: 1.0), .cyan, .white)
+        case "Herbst":         return (Color(red: 0.8, green: 0.4, blue: 0.1), Color(red: 0.6, green: 0.3, blue: 0.05), .orange)
+        case "Lavendel":       return (.purple, Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.85, green: 0.7, blue: 1.0))
+        case "Sonnenuntergang":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
+        case "Galaxie":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
+        case "Nordlicht":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
+        default:               return (.purple, .blue, Color(red: 0.4, green: 0.2, blue: 0.9))
         }
     }
 
@@ -75,23 +86,41 @@ struct StatistikView: View {
     }
 
     var storeItems: [StoreItem] {[
-        StoreItem(name: "Ozean",       icon: "water.waves",       kosten: 500,  farbe: .cyan),
-        StoreItem(name: "Wald",        icon: "leaf.fill",         kosten: 750,  farbe: .green),
-        StoreItem(name: "Nacht",       icon: "moon.stars.fill",   kosten: 1000, farbe: .indigo),
-        StoreItem(name: "Solar",       icon: "sun.max.fill",      kosten: 1500, farbe: .orange),
-        StoreItem(name: "Kirschblüte", icon: "camera.macro",      kosten: 2000, farbe: .pink),
-        StoreItem(name: "Vulkan",      icon: "flame.fill",        kosten: 3000, farbe: .red),
+        StoreItem(name: "Ozean",           icon: "water.waves",              kosten: 500,  farbe: .cyan),
+        StoreItem(name: "Wald",            icon: "leaf.fill",                kosten: 750,  farbe: .green),
+        StoreItem(name: "Eis",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0)),
+        StoreItem(name: "Herbst",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1)),
+        StoreItem(name: "Nacht",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo),
+        StoreItem(name: "Lavendel",        icon: "sparkles",                 kosten: 1200, farbe: .purple),
+        StoreItem(name: "Solar",           icon: "sun.max.fill",             kosten: 1500, farbe: .orange),
+        StoreItem(name: "Sonnenuntergang", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2)),
+        StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink),
+        StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6)),
+        StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red),
+        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000, farbe: Color(red: 0.4, green: 0.2, blue: 1.0)),
     ]}
 
+    // MARK: - Gefilterter Basis-Datensatz (respektiert "Nur diesen Monat")
+    private var baseTodos: [TodoItem] {
+        guard filterCurrentMonthOnly else { return todoStore.todos }
+        let cal = Calendar.current
+        let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? Date()
+        let endOfMonth = cal.date(byAdding: DateComponents(month: 1, second: -1), to: startOfMonth) ?? Date()
+        return todoStore.todos.filter { todo in
+            guard let due = todo.dueDate else { return true } // ohne Datum immer anzeigen
+            return due >= startOfMonth && due <= endOfMonth
+        }
+    }
+
     // MARK: - Basisstatistiken
-    var completedTasks: Int { todoStore.todos.filter { $0.isCompleted }.count }
-    var openTasks: Int     { todoStore.todos.filter { !$0.isCompleted }.count }
+    var completedTasks: Int { baseTodos.filter { $0.isCompleted }.count }
+    var openTasks: Int     { baseTodos.filter { !$0.isCompleted }.count }
     var totalTasks: Int    { openTasks + completedTasks }
     var completionRate: Double { totalTasks > 0 ? Double(completedTasks) / Double(totalTasks) : 0 }
 
     var todayOpenTasks: Int {
         let today = Calendar.current.startOfDay(for: Date())
-        return todoStore.todos.filter { item in
+        return baseTodos.filter { item in
             guard let due = item.dueDate else { return false }
             return !item.isCompleted && Calendar.current.isDate(due, inSameDayAs: today)
         }.count
@@ -99,14 +128,14 @@ struct StatistikView: View {
 
     var todayCompletedTasks: Int {
         let today = Calendar.current.startOfDay(for: Date())
-        return todoStore.todos.filter { item in
+        return baseTodos.filter { item in
             guard let due = item.dueDate else { return false }
             return item.isCompleted && Calendar.current.isDate(due, inSameDayAs: today)
         }.count
     }
 
     var overdueTasks: Int {
-        todoStore.todos.filter { item in
+        baseTodos.filter { item in
             guard let due = item.dueDate, !item.isCompleted else { return false }
             return due < Date()
         }.count
@@ -119,7 +148,7 @@ struct StatistikView: View {
 
     var tasksByCategory: [(name: String, count: Int, color: Color)] {
         todoStore.categories.map { cat in
-            let count = todoStore.todos.filter { $0.category?.id == cat.id && !$0.isCompleted }.count
+            let count = baseTodos.filter { $0.category?.id == cat.id && !$0.isCompleted }.count
             return (cat.name, count, cat.color)
         }.sorted { $0.count > $1.count }
     }
@@ -157,13 +186,18 @@ struct StatistikView: View {
     }
 
     // MARK: - Fokuspunkte System
-    var fokuspunkteGesamt: Int {
+
+    // Live-berechneter Wert — dient nur zum Ermitteln neuer Punkte
+    private var fokuspunkteAktuellBerechnet: Int {
         completedTasks * 10
         + totalFocusMinutesAll * 2
         + currentStreak * 50
         + todoStore.todos.filter { $0.isFavorite }.count * 5
         + todoStore.todos.filter { $0.isRecurring }.count * 3
     }
+
+    // Gesamtpunkte steigen nie automatisch — nur Käufe reduzieren das Guthaben
+    var fokuspunkteGesamt: Int { max(fokuspunktePeak, fokuspunkteAktuellBerechnet) }
 
     var fokuspunkteVerfuegbar: Int { max(0, fokuspunkteGesamt - fokuspunkteAusgegeben) }
 
@@ -294,11 +328,131 @@ struct StatistikView: View {
             .sheet(item: $mailShare.mailComposerData) { data in
                 MailComposerWrapperView(subject: data.subject, body: data.body, recipients: data.recipients)
             }
+            .sheet(isPresented: $showFPInfo) {
+                fokuspunkteInfoSheet
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) { headerAppeared = true }
             withAnimation(.easeOut(duration: 0.5).delay(0.3)) { sectionsAppeared = true }
+            if fokuspunkteAktuellBerechnet > fokuspunktePeak {
+                fokuspunktePeak = fokuspunkteAktuellBerechnet
+            }
+            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                wavePhase1 = .pi * 2
+            }
+            withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) {
+                wavePhase2 = .pi * 2
+            }
         }
+        .onChange(of: fokuspunkteAktuellBerechnet) { newValue in
+            if newValue > fokuspunktePeak {
+                fokuspunktePeak = newValue
+            }
+        }
+    }
+
+    // MARK: - FP Info Sheet
+
+    private var fokuspunkteInfoSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+
+                    // Erklärung Fokuspunkte
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Fokuspunkte verdienen", systemImage: "bolt.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+                        Text("Fokuspunkte werden für deine Produktivität gutgeschrieben und sinken niemals automatisch – nur Käufe im Fokus-Store reduzieren dein Guthaben.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    VStack(spacing: 0) {
+                        fpInfoRow(icon: "checkmark.circle.fill", color: .green,
+                                  title: "Aufgabe abschließen", points: "+10 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "timer", color: .cyan,
+                                  title: "Fokusminute", points: "+2 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "flame.fill", color: .orange,
+                                  title: "Streak-Tag", points: "+50 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "star.fill", color: .yellow,
+                                  title: "Favorisierte Aufgabe", points: "+5 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "arrow.triangle.2.circlepath", color: .teal,
+                                  title: "Wiederkehrende Aufgabe", points: "+3 FP")
+                    }
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // Erklärung Fokus-Store
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Fokus-Store", systemImage: "storefront.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+                        Text("Im Fokus-Store kannst du Farbthemen für die Statistik-Ansicht freischalten. Jedes Theme verändert den Hintergrund-Farbverlauf dieser Seite.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    VStack(spacing: 0) {
+                        fpInfoRow(icon: "lock.open.fill", color: .blue,
+                                  title: "Theme freischalten", points: "FP ausgeben")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "checkmark.circle", color: .green,
+                                  title: "Theme aktivieren / wechseln", points: "kostenlos")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "arrow.uturn.left.circle", color: .orange,
+                                  title: "Theme verkaufen", points: "½ FP zurück")
+                    }
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    Text("Aktuell \(storeItems.count) Themes verfügbar – neue kommen mit App-Updates.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+                .padding(20)
+            }
+            .navigationTitle("Fokuspunkte & Store")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { showFPInfo = false }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func fpInfoRow(icon: String, color: Color, title: String, points: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(
+                    LinearGradient(colors: [color, color.opacity(0.75)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+                .shadow(color: color.opacity(0.35), radius: 3, x: 0, y: 2)
+            Text(title)
+                .font(.system(size: 15))
+            Spacer()
+            Text(points)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Animated Section
@@ -352,6 +506,78 @@ struct StatistikView: View {
                     .position(x: geo.size.width * 0.5, y: geo.size.height * 0.82)
                     .blur(radius: 14)
             }
+
+            // Animated wave decoration
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 20, frequency: 1.4)
+                    .fill(c2.opacity(isDark ? 0.10 : 0.07))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.40)
+                    .position(x: geo.size.width * 0.5,
+                               y: geo.size.height - geo.size.height * 0.40 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 13, frequency: 2.0)
+                    .fill(c1.opacity(isDark ? 0.16 : 0.11))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.28)
+                    .position(x: geo.size.width * 0.5,
+                               y: geo.size.height - geo.size.height * 0.28 * 0.5)
+            }
+            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+
+            if aktivesThema == "Wald" {
+                WaldDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Eis" {
+                EisDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nordlicht" {
+                NordlichtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Galaxie" {
+                GalaxieDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Vulkan" {
+                VulkanDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Herbst" {
+                HerbstDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nacht" {
+                NachtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Solar" {
+                SolarDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Kirschblüte" {
+                KirschblueteDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Lavendel" {
+                LavendelDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Sonnenuntergang" {
+                SonnenuntergangDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
         }
         .animation(.easeInOut(duration: 0.6), value: aktivesThema)
         .ignoresSafeArea()
@@ -360,38 +586,42 @@ struct StatistikView: View {
     // MARK: - Hero Header
 
     private var headerHero: some View {
-        VStack(spacing: 14) {
+        let (c1, c2, _) = aktiveThemaFarben
+        return VStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .stroke(LinearGradient(colors: [.purple.opacity(0.3), .blue.opacity(0.1)],
+                    .stroke(LinearGradient(colors: [c1.opacity(0.35), c2.opacity(0.12)],
                                           startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
                     .frame(width: 90, height: 90)
                     .scaleEffect(headerAppeared ? 1 : 0.5).opacity(headerAppeared ? 1 : 0)
 
                 Circle()
                     .trim(from: 0, to: headerAppeared ? completionRate : 0)
-                    .stroke(LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing),
+                    .stroke(LinearGradient(colors: [c1, c2], startPoint: .leading, endPoint: .trailing),
                             style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 82, height: 82)
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(response: 1.0, dampingFraction: 0.75).delay(0.4), value: headerAppeared)
 
                 Circle()
-                    .fill(LinearGradient(colors: [.purple, .blue.opacity(0.85)],
+                    .fill(LinearGradient(colors: [c1, c2.opacity(0.85)],
                                         startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 64, height: 64)
-                    .shadow(color: .purple.opacity(0.45), radius: 18, x: 0, y: 8)
+                    .shadow(color: c1.opacity(0.45), radius: 18, x: 0, y: 8)
 
                 Image(systemName: "chart.bar.xaxis")
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(.white)
+                    .symbolEffect(.bounce, value: aktivesThema)
             }
             .scaleEffect(headerAppeared ? 1 : 0.6).opacity(headerAppeared ? 1 : 0)
+            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: aktivesThema)
 
             VStack(spacing: 5) {
                 Text(localizer.localizedString(forKey: "Statistik"))
                     .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing))
+                    .foregroundStyle(LinearGradient(colors: [c1, c2], startPoint: .leading, endPoint: .trailing))
+                    .animation(.easeInOut(duration: 0.5), value: aktivesThema)
                 Text("\(Int(completionRate * 100))% abgeschlossen")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -422,24 +652,27 @@ struct StatistikView: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .strokeBorder(LinearGradient(colors: [Color.purple.opacity(isDark ? 0.3 : 0.2),
-                                                   Color.blue.opacity(isDark ? 0.1 : 0.05)],
+            .strokeBorder(LinearGradient(colors: [aktiveThemaFarben.0.opacity(isDark ? 0.35 : 0.22),
+                                                   aktiveThemaFarben.1.opacity(isDark ? 0.12 : 0.07)],
                                           startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-        .shadow(color: Color.purple.opacity(isDark ? 0.15 : 0.06), radius: 10, x: 0, y: 4)
+        .shadow(color: aktiveThemaFarben.0.opacity(isDark ? 0.18 : 0.08), radius: 10, x: 0, y: 4)
+        .animation(.easeInOut(duration: 0.5), value: aktivesThema)
     }
 
     // MARK: - Fokuspunkte Card
 
     private var fokuspunkteCard: some View {
         let stufe = fokuspunkteStufe
+        let (fc1, fc2, _) = aktiveThemaFarben
         return ZStack {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(LinearGradient(
                     colors: isDark
-                        ? [Color(red: 0.18, green: 0.08, blue: 0.35), Color(red: 0.08, green: 0.08, blue: 0.25)]
-                        : [Color(red: 0.55, green: 0.25, blue: 0.95), Color(red: 0.30, green: 0.15, blue: 0.80)],
+                        ? [fc1.opacity(0.65), fc2.opacity(0.45)]
+                        : [fc1, fc2],
                     startPoint: .topLeading, endPoint: .bottomTrailing))
-                .shadow(color: Color.purple.opacity(0.45), radius: 20, x: 0, y: 8)
+                .shadow(color: fc1.opacity(0.45), radius: 20, x: 0, y: 8)
+                .animation(.easeInOut(duration: 0.6), value: aktivesThema)
 
             Circle().fill(Color.white.opacity(0.07))
                 .frame(width: 120, height: 120).offset(x: 90, y: -30).blur(radius: 2)
@@ -454,10 +687,21 @@ struct StatistikView: View {
                         .shadow(color: Color.orange.opacity(0.5), radius: 10, x: 0, y: 4)
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 26, weight: .bold)).foregroundStyle(.white)
+                        .symbolEffect(.pulse)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Fokuspunkte").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.75))
+                    HStack(spacing: 6) {
+                        Text("Fokuspunkte").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.75))
+                        Button { showFPInfo = true } label: {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                     Text("\(fokuspunkteVerfuegbar)")
                         .font(.system(size: 36, weight: .bold, design: .rounded)).foregroundStyle(.white)
                     HStack(spacing: 5) {
@@ -861,15 +1105,30 @@ struct StatistikView: View {
     }
 
     private func glassCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(spacing: 0) { content() }
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        let hasTema = !aktivesThema.isEmpty
+        let (c1, c2, _) = aktiveThemaFarben
+        return VStack(spacing: 0) { content() }
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(LinearGradient(
+                        colors: [c1.opacity(isDark ? 0.14 : 0.09),
+                                 c2.opacity(isDark ? 0.07 : 0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .opacity(hasTema ? 1.0 : 0.0)
+            }
             .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(LinearGradient(
-                    colors: [Color.white.opacity(isDark ? 0.13 : 0.65),
-                             Color.white.opacity(isDark ? 0.04 : 0.2)],
+                    colors: hasTema
+                        ? [c1.opacity(isDark ? 0.50 : 0.32), c2.opacity(isDark ? 0.22 : 0.16)]
+                        : [Color.white.opacity(isDark ? 0.13 : 0.65), Color.white.opacity(isDark ? 0.04 : 0.20)],
                     startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
             .shadow(color: Color.black.opacity(isDark ? 0.22 : 0.07), radius: 14, x: 0, y: 5)
-            .shadow(color: Color.purple.opacity(isDark ? 0.10 : 0.04), radius: 18, x: 0, y: 2)
+            .shadow(color: c1.opacity(isDark ? 0.18 : 0.08), radius: 18, x: 0, y: 2)
+            .animation(.easeInOut(duration: 0.5), value: aktivesThema)
     }
 
     private func sectionGroup<Content: View>(icon: String, label: String, color: Color, @ViewBuilder content: () -> Content) -> some View {

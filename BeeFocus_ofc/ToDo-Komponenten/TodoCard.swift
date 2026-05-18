@@ -32,7 +32,8 @@ struct TodoCard: View {
     let onToggle: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
-    let onShare: (() -> Void)? // 🔹 Neu: Share-Closure
+    let onShare: (() -> Void)?
+    let onMoveToFolder: (() -> Void)?
     let showCategory: Bool
 
     init(
@@ -41,7 +42,8 @@ struct TodoCard: View {
         onToggle: @escaping () -> Void,
         onEdit: @escaping () -> Void,
         onDelete: @escaping () -> Void,
-        onShare: (() -> Void)? = nil
+        onShare: (() -> Void)? = nil,
+        onMoveToFolder: (() -> Void)? = nil
     ) {
         self._todo = todo
         self.showCategory = showCategory
@@ -49,6 +51,7 @@ struct TodoCard: View {
         self.onEdit = onEdit
         self.onDelete = onDelete
         self.onShare = onShare
+        self.onMoveToFolder = onMoveToFolder
     }
 
     @State private var showingSubTasks = false
@@ -58,6 +61,7 @@ struct TodoCard: View {
     
     @ObservedObject private var localizer = LocalizationManager.shared
     let languages = ["Deutsch", "Englisch"]
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     
     @State private var images: [Data] = []
 
@@ -203,6 +207,20 @@ struct TodoCard: View {
                     .fill(baseGradient)
                     .shadow(color: shadowColor.opacity(isPressed ? 0.2 : 0.4), radius: isPressed ? 6 : 12, x: 0, y: 4)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: aktivesThema.isEmpty
+                                ? [priorityColor.opacity(0.25), priorityColor.opacity(0.12)]
+                                : [appThemaFarben(aktivesThema).0.opacity(0.50), appThemaFarben(aktivesThema).1.opacity(0.25)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .animation(.easeInOut(duration: 0.4), value: aktivesThema)
             .scaleEffect(isPressed ? 0.97 : 1.0)
             .opacity(isPressed ? 0.95 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
@@ -224,7 +242,15 @@ struct TodoCard: View {
                         }
                     }
                 }
-                
+
+                if let onMoveToFolder = onMoveToFolder {
+                    Button {
+                        onMoveToFolder()
+                    } label: {
+                        Label("In Ordner verschieben", systemImage: "folder.badge.plus")
+                    }
+                }
+
                 Button {
                     onEdit()
                 } label: {
@@ -234,7 +260,7 @@ struct TodoCard: View {
                         Image(systemName: "pencil")
                     }
                 }
-                
+
                 Button(role: .destructive) {
                     onDelete()
                 } label: {

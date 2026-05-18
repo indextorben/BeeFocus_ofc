@@ -103,6 +103,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var imageDataArray: [Data] = []
     var calendarEnabled: Bool = false // ✅ Schalter für Kalendereintrag
     var isFavorite: Bool = false      // ✅ Lieblingsaufgabe
+    var customFolder: String? = nil   // Benutzerdefinierter Ordner (Drag & Drop)
 
     init(
         id: UUID = UUID(),
@@ -129,7 +130,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
         focusTimeInMinutes: Double? = nil,
         imageDataArray: [Data] = [],
         calendarEnabled: Bool = false,
-        isFavorite: Bool = false // ✅ hinzugefügt!
+        isFavorite: Bool = false,
+        customFolder: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -156,6 +158,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.imageDataArray = imageDataArray
         self.calendarEnabled = calendarEnabled
         self.isFavorite = isFavorite
+        self.customFolder = customFolder
     }
 
     var isOverdue: Bool {

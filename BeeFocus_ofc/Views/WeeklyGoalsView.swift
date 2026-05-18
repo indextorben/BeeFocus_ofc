@@ -7,7 +7,10 @@ struct WeeklyGoalsView: View {
     @State private var weekSegment: Int = 0
     @State private var editingTodo: TodoItem? = nil
     @State private var headerAppeared = false
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
     @ObservedObject private var localizer = LocalizationManager.shared
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
     var isDark: Bool { colorScheme == .dark }
 
@@ -155,6 +158,12 @@ struct WeeklyGoalsView: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 headerAppeared = true
             }
+            withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
+                wavePhase1 = .pi * 2
+            }
+            withAnimation(.linear(duration: 10).repeatForever(autoreverses: false)) {
+                wavePhase2 = .pi * 2
+            }
         }
         .onChange(of: startOfWeek) { _, _ in syncWeekSegmentWithStart() }
         .sheet(item: $editingTodo) { item in EditTodoView(todo: item) }
@@ -163,7 +172,8 @@ struct WeeklyGoalsView: View {
     // MARK: - Background
 
     private var backgroundGradient: some View {
-        ZStack {
+        let (c1, c2, c3) = appThemaFarben(aktivesThema)
+        return ZStack {
             if isDark {
                 LinearGradient(
                     colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
@@ -179,43 +189,118 @@ struct WeeklyGoalsView: View {
             }
             GeometryReader { geo in
                 Circle()
-                    .fill(RadialGradient(colors: [Color.purple.opacity(isDark ? 0.25 : 0.12), .clear],
+                    .fill(RadialGradient(colors: [c1.opacity(isDark ? 0.32 : 0.15), .clear],
                                         center: .center, startRadius: 0, endRadius: geo.size.width * 0.45))
                     .frame(width: geo.size.width * 0.9, height: geo.size.width * 0.9)
                     .position(x: geo.size.width * 0.1, y: geo.size.height * 0.08)
                     .blur(radius: 12)
                 Circle()
-                    .fill(RadialGradient(colors: [Color.blue.opacity(isDark ? 0.18 : 0.09), .clear],
+                    .fill(RadialGradient(colors: [c2.opacity(isDark ? 0.24 : 0.12), .clear],
                                         center: .center, startRadius: 0, endRadius: geo.size.width * 0.4))
                     .frame(width: geo.size.width * 0.8, height: geo.size.width * 0.8)
                     .position(x: geo.size.width * 0.88, y: geo.size.height * 0.65)
                     .blur(radius: 12)
                 Circle()
-                    .fill(RadialGradient(colors: [Color(red: 1, green: 0.6, blue: 0.2).opacity(isDark ? 0.12 : 0.07), .clear],
+                    .fill(RadialGradient(colors: [c3.opacity(isDark ? 0.16 : 0.09), .clear],
                                         center: .center, startRadius: 0, endRadius: geo.size.width * 0.35))
                     .frame(width: geo.size.width * 0.7, height: geo.size.width * 0.7)
                     .position(x: geo.size.width * 0.5, y: geo.size.height * 0.85)
                     .blur(radius: 14)
             }
+
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 18, frequency: 1.4)
+                    .fill(c2.opacity(isDark ? 0.10 : 0.07))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.38)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.38 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 12, frequency: 2.0)
+                    .fill(c1.opacity(isDark ? 0.15 : 0.10))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.26)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.26 * 0.5)
+            }
+            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+
+            if aktivesThema == "Wald" {
+                WaldDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Eis" {
+                EisDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nordlicht" {
+                NordlichtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Galaxie" {
+                GalaxieDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Vulkan" {
+                VulkanDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Herbst" {
+                HerbstDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nacht" {
+                NachtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Solar" {
+                SolarDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Kirschblüte" {
+                KirschblueteDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Lavendel" {
+                LavendelDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Sonnenuntergang" {
+                SonnenuntergangDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
         }
+        .animation(.easeInOut(duration: 0.6), value: aktivesThema)
         .ignoresSafeArea()
     }
 
     // MARK: - Week Banner
 
     private var weekBanner: some View {
-        VStack(spacing: 12) {
+        let (tc1, tc2, _) = appThemaFarben(aktivesThema)
+        let accent1: Color = aktivesThema.isEmpty ? .purple : tc1
+        let accent2: Color = aktivesThema.isEmpty ? .blue : tc2
+        return VStack(spacing: 12) {
             // Week label + range
             HStack(spacing: 10) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(LinearGradient(colors: [.purple, .blue.opacity(0.85)],
+                        .fill(LinearGradient(colors: [accent1, accent2.opacity(0.85)],
                                              startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 36, height: 36)
-                        .shadow(color: .purple.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .shadow(color: accent1.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .animation(.easeInOut(duration: 0.5), value: aktivesThema)
                     Image(systemName: "target")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
+                        .symbolEffect(.bounce, value: aktivesThema)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -248,7 +333,7 @@ struct WeeklyGoalsView: View {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(Color.primary.opacity(0.08)).frame(height: 8)
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(LinearGradient(colors: [.purple, .blue],
+                                .fill(LinearGradient(colors: [accent1, accent2],
                                                      startPoint: .leading, endPoint: .trailing))
                                 .frame(width: geo.size.width * completionRateThisWeek, height: 8)
                                 .animation(.spring(response: 0.8, dampingFraction: 0.7), value: completionRateThisWeek)
@@ -271,9 +356,9 @@ struct WeeklyGoalsView: View {
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14).padding(.vertical, 8)
-                    .background(LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing),
+                    .background(LinearGradient(colors: [accent1, accent2], startPoint: .leading, endPoint: .trailing),
                                 in: Capsule())
-                    .shadow(color: .purple.opacity(0.35), radius: 8, x: 0, y: 3)
+                    .shadow(color: accent1.opacity(0.35), radius: 8, x: 0, y: 3)
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -287,14 +372,7 @@ struct WeeklyGoalsView: View {
 #endif
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .strokeBorder(LinearGradient(
-                colors: [Color.white.opacity(isDark ? 0.12 : 0.65),
-                         Color.white.opacity(isDark ? 0.04 : 0.2)],
-                startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-        .shadow(color: Color.black.opacity(isDark ? 0.22 : 0.07), radius: 14, x: 0, y: 5)
-        .shadow(color: Color.purple.opacity(isDark ? 0.10 : 0.04), radius: 18, x: 0, y: 2)
+        .themeGlass(cornerRadius: 18)
         .scaleEffect(headerAppeared ? 1 : 0.96)
         .opacity(headerAppeared ? 1 : 0)
     }
@@ -313,13 +391,7 @@ struct WeeklyGoalsView: View {
                 TodoShare.share(todo: todo)
             }
         }
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(LinearGradient(
-                colors: [Color.white.opacity(isDark ? 0.10 : 0.55),
-                         Color.white.opacity(isDark ? 0.03 : 0.15)],
-                startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-        .shadow(color: Color.black.opacity(isDark ? 0.20 : 0.06), radius: 10, x: 0, y: 4)
+        .themeGlass(cornerRadius: 16)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button { todoStore.toggleTodo(todo) } label: {
                 Label(localizer.localizedString(forKey: "weekly_done_swipe"), systemImage: "checkmark")
@@ -374,13 +446,7 @@ struct WeeklyGoalsView: View {
                 }
             }
             .padding(28)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(LinearGradient(
-                    colors: [Color.white.opacity(isDark ? 0.12 : 0.65),
-                             Color.white.opacity(isDark ? 0.04 : 0.2)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-            .shadow(color: Color.black.opacity(isDark ? 0.22 : 0.07), radius: 18, x: 0, y: 6)
+            .themeGlass(cornerRadius: 24)
             .padding(.horizontal, 24)
 
             // Action buttons
@@ -402,10 +468,10 @@ struct WeeklyGoalsView: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(LinearGradient(colors: [.purple, .blue],
+                        .background(LinearGradient(colors: [appThemaFarben(aktivesThema).0, appThemaFarben(aktivesThema).1],
                                                    startPoint: .leading, endPoint: .trailing),
                                     in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .shadow(color: .purple.opacity(0.35), radius: 8, x: 0, y: 3)
+                        .shadow(color: appThemaFarben(aktivesThema).0.opacity(0.35), radius: 8, x: 0, y: 3)
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 24)
@@ -425,9 +491,7 @@ struct WeeklyGoalsView: View {
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 11)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1))
+            .themeGlass(cornerRadius: 12)
         }
         .buttonStyle(.plain)
     }

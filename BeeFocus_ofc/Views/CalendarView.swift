@@ -6,6 +6,7 @@ struct CalendarView: View {
     @Environment(\.colorScheme) var colorScheme
 
     @ObservedObject private var localizer = LocalizationManager.shared
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
     @State private var selectedDate: Date = Date()
     @State private var currentMonth: Date = {
@@ -15,20 +16,127 @@ struct CalendarView: View {
     @State private var showingCalendarImport = false
     @State private var showingAddTodo = false
     @GestureState private var dragOffset: CGFloat = 0
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
 
     private let cal = Calendar.current
     private let weekdayKeys = ["weekday_mon", "weekday_tue", "weekday_wed", "weekday_thu", "weekday_fri", "weekday_sat", "weekday_sun"]
 
-    private var background: Color {
-        colorScheme == .dark
-            ? Color(red: 0.07, green: 0.09, blue: 0.16)
-            : Color(red: 0.93, green: 0.96, blue: 1.0)
+    private var themeBackground: some View {
+        let (c1, c2, c3) = appThemaFarben(aktivesThema)
+        let dark = colorScheme == .dark
+        return ZStack {
+            if dark {
+                LinearGradient(
+                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
+                             Color(red: 0.10, green: 0.08, blue: 0.20),
+                             Color(red: 0.08, green: 0.06, blue: 0.16)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+            } else {
+                LinearGradient(
+                    colors: [Color(red: 0.95, green: 0.93, blue: 1.0),
+                             Color(red: 0.98, green: 0.96, blue: 1.0),
+                             Color(red: 0.93, green: 0.97, blue: 1.0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+            GeometryReader { geo in
+                Circle()
+                    .fill(RadialGradient(colors: [c1.opacity(dark ? 0.32 : 0.15), .clear],
+                                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.45))
+                    .frame(width: geo.size.width * 0.9, height: geo.size.width * 0.9)
+                    .position(x: geo.size.width * 0.15, y: geo.size.height * 0.12)
+                    .blur(radius: 12)
+                Circle()
+                    .fill(RadialGradient(colors: [c2.opacity(dark ? 0.24 : 0.12), .clear],
+                                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.40))
+                    .frame(width: geo.size.width * 0.8, height: geo.size.width * 0.8)
+                    .position(x: geo.size.width * 0.85, y: geo.size.height * 0.60)
+                    .blur(radius: 12)
+                Circle()
+                    .fill(RadialGradient(colors: [c3.opacity(dark ? 0.16 : 0.09), .clear],
+                                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.35))
+                    .frame(width: geo.size.width * 0.7, height: geo.size.width * 0.7)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height * 0.82)
+                    .blur(radius: 14)
+            }
+
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 18, frequency: 1.4)
+                    .fill(c2.opacity(dark ? 0.10 : 0.07))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.38)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.38 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 12, frequency: 2.0)
+                    .fill(c1.opacity(dark ? 0.15 : 0.10))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.26)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.26 * 0.5)
+            }
+            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+
+            if aktivesThema == "Wald" {
+                WaldDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Eis" {
+                EisDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nordlicht" {
+                NordlichtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Galaxie" {
+                GalaxieDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Vulkan" {
+                VulkanDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Herbst" {
+                HerbstDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Nacht" {
+                NachtDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Solar" {
+                SolarDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Kirschblüte" {
+                KirschblueteDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Lavendel" {
+                LavendelDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+            if aktivesThema == "Sonnenuntergang" {
+                SonnenuntergangDecorationLayer()
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+            }
+        }
+        .animation(.easeInOut(duration: 0.6), value: aktivesThema)
+        .ignoresSafeArea()
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                background.ignoresSafeArea()
+                themeBackground
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 18) {
@@ -54,7 +162,8 @@ struct CalendarView: View {
                     } label: {
                         Image(systemName: "calendar.badge.clock")
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(Color.blue)
+                            .foregroundStyle(aktivesThema.isEmpty ? Color.blue : appThemaFarben(aktivesThema).0)
+                            .symbolEffect(.bounce, value: aktivesThema)
                     }
 
                     Button {
@@ -62,7 +171,7 @@ struct CalendarView: View {
                     } label: {
                         Image(systemName: "square.and.arrow.down.on.square")
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(Color.blue)
+                            .foregroundStyle(aktivesThema.isEmpty ? Color.blue : appThemaFarben(aktivesThema).0)
                     }
                 }
             }
@@ -74,33 +183,44 @@ struct CalendarView: View {
                 AddTodoView(prefilledDate: selectedDate)
                     .environmentObject(todoStore)
             }
+            .onAppear {
+                withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                    wavePhase1 = .pi * 2
+                }
+                withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) {
+                    wavePhase2 = .pi * 2
+                }
+            }
         }
     }
 
     // MARK: - Month Header
     private var monthHeader: some View {
-        ZStack {
+        let (tc1, tc2, _) = appThemaFarben(aktivesThema)
+        let accent: Color = aktivesThema.isEmpty ? .blue : tc1
+        return ZStack {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color.blue.opacity(0.18), Color.purple.opacity(0.10)],
+                                colors: [accent.opacity(0.18), tc2.opacity(0.10)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                 )
-                .shadow(color: Color.blue.opacity(0.12), radius: 16, x: 0, y: 6)
+                .shadow(color: accent.opacity(0.15), radius: 16, x: 0, y: 6)
+                .animation(.easeInOut(duration: 0.5), value: aktivesThema)
 
             HStack(spacing: 0) {
                 Button(action: { changeMonth(by: -1) }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 17, weight: .semibold))
                         .frame(width: 44, height: 44)
-                        .foregroundStyle(Color.blue)
-                        .background(Color.blue.opacity(0.10), in: Circle())
+                        .foregroundStyle(accent)
+                        .background(accent.opacity(0.10), in: Circle())
                 }
 
                 Spacer()
@@ -108,7 +228,10 @@ struct CalendarView: View {
                 VStack(spacing: 2) {
                     Text(monthName(from: currentMonth))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(aktivesThema.isEmpty
+                            ? AnyShapeStyle(Color.primary)
+                            : AnyShapeStyle(LinearGradient(colors: [tc1, tc2], startPoint: .leading, endPoint: .trailing)))
+                        .animation(.easeInOut(duration: 0.4), value: aktivesThema)
                     Text(yearString(from: currentMonth))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.secondary)
@@ -120,8 +243,8 @@ struct CalendarView: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 17, weight: .semibold))
                         .frame(width: 44, height: 44)
-                        .foregroundStyle(Color.blue)
-                        .background(Color.blue.opacity(0.10), in: Circle())
+                        .foregroundStyle(accent)
+                        .background(accent.opacity(0.10), in: Circle())
                 }
             }
             .padding(.horizontal, 12)
@@ -298,12 +421,7 @@ struct CalendarView: View {
 
             Spacer(minLength: 12)
         }
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 5)
+        .themeGlass(cornerRadius: 22)
         .padding(.bottom, 4)
     }
 
@@ -690,7 +808,7 @@ struct CalendarImportView: View {
 
         if count > 0 {
             todoStore.saveTodos()
-            WidgetDataManager.shared.saveTodos(todoStore.todos)
+            todoStore.writeWidgetSnapshot()
             showBanner(state: .success(count), autoDismiss: true)
         } else {
             showBanner(state: .empty, autoDismiss: false)
@@ -802,8 +920,7 @@ struct TodoDetailView: View {
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+                    .themeGlass(cornerRadius: 24)
 
                     // Description card
                     VStack(alignment: .leading, spacing: 10) {
@@ -815,8 +932,7 @@ struct TodoDetailView: View {
                     }
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+                    .themeGlass(cornerRadius: 20)
 
                     // Subtasks card
                     if !currentTodo.subTasks.isEmpty {
@@ -835,8 +951,7 @@ struct TodoDetailView: View {
                         }
                         .padding(18)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .shadow(color: .black.opacity(0.05), radius: 7, x: 0, y: 3)
+                        .themeGlass(cornerRadius: 20)
                     }
 
                     Spacer(minLength: 16)
