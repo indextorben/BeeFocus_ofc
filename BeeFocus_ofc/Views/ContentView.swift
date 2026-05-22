@@ -29,6 +29,7 @@ struct ContentView: View {
     @AppStorage("didSeedCloud") private var didSeedCloud = false
     @AppStorage("morningSummaryEnabled") private var morningSummaryEnabled: Bool = true
     @AppStorage("morningSummaryTime") private var morningSummaryTime: Double = 6 * 3600
+    @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly: Bool = false
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -117,16 +118,17 @@ struct ContentView: View {
             }
             .tag(3)
             
-            // MARK: - Weekly Goals Tab
+            // MARK: - Fokusmodus Tab
             Group {
-                NavigationStack {
-                    WeeklyGoalsView()
-                        .environmentObject(todoStore)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if #available(iOS 16, *) {
+                    NavigationStack {
+                        FokusModeView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
             }
             .tabItem {
-                Label(localizer.localizedString(forKey: "Ziele"), systemImage: "target")
+                Label("Fokus", systemImage: "shield.fill")
             }
             .tag(4)
         }
@@ -163,12 +165,16 @@ struct ContentView: View {
                 NotificationManager.shared.requestAuthorization { granted in
                     guard granted else { return }
                     DispatchQueue.main.async {
-                        let today = Calendar.current.startOfDay(for: Date())
-                        let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: today) ?? Date()
+                        let cal = Calendar.current
+                        let today = cal.startOfDay(for: Date())
+                        let endOfDay = cal.date(bySettingHour: 23, minute: 59, second: 59, of: today) ?? Date()
+                        let currentMonthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today
+                        let currentMonthEnd = cal.date(byAdding: DateComponents(month: 1, second: -1), to: currentMonthStart) ?? endOfDay
 
                         let dueTodayOrOverdueNotCompleted = todoStore.todos.filter { todo in
                             guard !todo.isCompleted else { return false }
                             guard let due = todo.dueDate else { return false }
+                            if filterCurrentMonthOnly && (due < currentMonthStart || due > currentMonthEnd) { return false }
                             return due <= endOfDay
                         }
 
@@ -275,12 +281,16 @@ struct ContentView: View {
                     NotificationManager.shared.requestAuthorization { granted in
                         guard granted else { return }
                         DispatchQueue.main.async {
-                            let today = Calendar.current.startOfDay(for: Date())
-                            let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: today) ?? Date()
+                            let cal2 = Calendar.current
+                            let today2 = cal2.startOfDay(for: Date())
+                            let endOfDay2 = cal2.date(bySettingHour: 23, minute: 59, second: 59, of: today2) ?? Date()
+                            let monthStart2 = cal2.date(from: cal2.dateComponents([.year, .month], from: Date())) ?? today2
+                            let monthEnd2 = cal2.date(byAdding: DateComponents(month: 1, second: -1), to: monthStart2) ?? endOfDay2
                             let dueTodayOrOverdueNotCompleted = todoStore.todos.filter { todo in
                                 guard !todo.isCompleted else { return false }
                                 guard let due = todo.dueDate else { return false }
-                                return due <= endOfDay
+                                if filterCurrentMonthOnly && (due < monthStart2 || due > monthEnd2) { return false }
+                                return due <= endOfDay2
                             }
                             let count = dueTodayOrOverdueNotCompleted.count
                             let body: String

@@ -1378,22 +1378,25 @@ struct TodoListView: View {
         let todos = sortedTodos.filter { $0.customFolder == nil }
         let cal = Calendar.current
         let now = Date()
-        let startOfToday = cal.startOfDay(for: now)
-        let endOfToday   = cal.date(bySettingHour: 23, minute: 59, second: 59, of: startOfToday) ?? now
-        let endOfWeek    = cal.date(byAdding: .day, value: 6, to: endOfToday) ?? now
-        let endOfMonth   = cal.date(byAdding: .day, value: 29, to: endOfToday) ?? now
-        let eng          = localizer.selectedLanguage == "Englisch"
+        let startOfToday    = cal.startOfDay(for: now)
+        let endOfToday      = cal.date(bySettingHour: 23, minute: 59, second: 59, of: startOfToday) ?? now
+        let startOfTomorrow = cal.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        let endOfTomorrow   = cal.date(bySettingHour: 23, minute: 59, second: 59, of: startOfTomorrow) ?? now
+        let endOfWeek       = cal.date(byAdding: .day, value: 6, to: endOfToday) ?? now
+        let endOfMonth      = cal.date(byAdding: .day, value: 29, to: endOfToday) ?? now
+        let eng             = localizer.selectedLanguage == "Englisch"
 
         let specialTodos = todos.filter { isBirthdayOrHoliday($0) }
         let specialIDs   = Set(specialTodos.map { $0.id })
         let remaining    = todos.filter { !specialIDs.contains($0.id) }
 
-        let noDue     = remaining.filter { $0.dueDate == nil }
-        let overdue   = remaining.filter { guard let d = $0.dueDate else { return false }; return d < startOfToday && !$0.isCompleted }
-        let todayDue  = remaining.filter { guard let d = $0.dueDate else { return false }; return d >= startOfToday && d <= endOfToday && !$0.isCompleted }
-        let thisWeek  = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfToday && d <= endOfWeek }
-        let thisMonth = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfWeek && d <= endOfMonth }
-        let later     = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfMonth }
+        let noDue        = remaining.filter { $0.dueDate == nil }
+        let overdue      = remaining.filter { guard let d = $0.dueDate else { return false }; return d < startOfToday && !$0.isCompleted }
+        let todayDue     = remaining.filter { guard let d = $0.dueDate else { return false }; return d >= startOfToday && d <= endOfToday && !$0.isCompleted }
+        let tomorrowDue  = remaining.filter { guard let d = $0.dueDate else { return false }; return d >= startOfTomorrow && d <= endOfTomorrow }
+        let thisWeek     = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfTomorrow && d <= endOfWeek }
+        let thisMonth    = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfWeek && d <= endOfMonth }
+        let later        = remaining.filter { guard let d = $0.dueDate else { return false }; return d > endOfMonth }
 
         var groups: [TodoFolderGroup] = []
 
@@ -1406,7 +1409,18 @@ struct TodoListView: View {
             todos: todayDue
         ))
 
-        // 1. Allgemein – keine Fälligkeit
+        // 1. Morgen – nur wenn Todos vorhanden
+        if !tomorrowDue.isEmpty {
+            groups.append(TodoFolderGroup(
+                id: "__tomorrow__",
+                title: eng ? "Tomorrow" : "Morgen",
+                icon: "moon.stars.fill",
+                color: .indigo,
+                todos: tomorrowDue
+            ))
+        }
+
+        // 2. Allgemein – keine Fälligkeit
         if !noDue.isEmpty {
             groups.append(TodoFolderGroup(
                 id: "__general__",

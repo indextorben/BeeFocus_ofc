@@ -144,6 +144,7 @@ struct CalendarView: View {
                         weekdayRow
                         dayGrid
                         selectedDaySection
+                        weeklyGoalsButton
                         Spacer(minLength: 32)
                     }
                     .padding(.horizontal, 16)
@@ -475,6 +476,50 @@ struct CalendarView: View {
         case .high: return .orange
         case .medium: return .blue
         default: return .teal
+        }
+    }
+
+    // MARK: - Weekly Goals Button
+
+    private var weeklyGoalsButton: some View {
+        let dark = colorScheme == .dark
+        let (c1, _, _) = appThemaFarben(aktivesThema)
+        let accent = aktivesThema.isEmpty ? Color.indigo : c1
+
+        return NavigationLink(destination: WeeklyGoalsView().environmentObject(todoStore)) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(accent.opacity(dark ? 0.25 : 0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "target")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(accent)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(localizer.localizedString(forKey: "Ziele"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(dark ? .white : .primary)
+                    Text("Wochenziele anzeigen")
+                        .font(.caption)
+                        .foregroundStyle(dark ? .white.opacity(0.5) : .secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(dark ? .white.opacity(0.3) : Color(.tertiaryLabel))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(accent.opacity(0.2), lineWidth: 1)
+            )
         }
     }
 
