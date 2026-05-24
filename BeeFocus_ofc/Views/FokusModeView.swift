@@ -9,49 +9,102 @@ struct FokusModeView: View {
     @State private var appeared = false
     @State private var glowPulse = false
     @State private var ringRotation: Double = 0
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
+    @State private var liveSeconds: Int = 0
     @Environment(\.colorScheme) var colorScheme
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
     var isDark: Bool { colorScheme == .dark }
 
-    var activeGlowColor: Color { manager.isFocusModeActive ? .green : .indigo }
-    var secondaryGlowColor: Color { manager.isFocusModeActive ? Color(red: 0.2, green: 0.9, blue: 0.6) : Color(red: 0.5, green: 0.4, blue: 1.0) }
+    private var themeColors: (Color, Color) {
+        if aktivesThema.isEmpty {
+            return manager.isFocusModeActive
+                ? (.green, Color(red: 0.2, green: 0.9, blue: 0.6))
+                : (.indigo, Color(red: 0.5, green: 0.4, blue: 1.0))
+        }
+        let (c1, c2, _) = appThemaFarben(aktivesThema)
+        return (c1, c2)
+    }
+
+    var activeGlowColor: Color { themeColors.0 }
+    var secondaryGlowColor: Color { themeColors.1 }
 
     var body: some View {
         ZStack {
             backgroundLayer
 
-            VStack(spacing: 0) {
-                header
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+            GeometryReader { geo in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        header
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
 
-                Spacer()
+                        Spacer()
 
-                shieldIcon
-                    .scaleEffect(appeared ? 1 : 0.8)
-                    .opacity(appeared ? 1 : 0)
-                    .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.05), value: appeared)
+                        shieldIcon
+                            .scaleEffect(appeared ? 1 : 0.8)
+                            .opacity(appeared ? 1 : 0)
+                            .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.05), value: appeared)
 
-                Spacer().frame(height: 28)
+                        Spacer().frame(height: 20)
 
-                statusText
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 10)
-                    .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
+                        if manager.isFocusModeActive {
+                            Text(formatDuration(liveSeconds))
+                                .font(.system(size: 42, weight: .bold, design: .monospaced))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [activeGlowColor, secondaryGlowColor],
+                                        startPoint: .leading, endPoint: .trailing))
+                                .shadow(color: activeGlowColor.opacity(0.4), radius: 8)
+                                .opacity(appeared ? 1 : 0)
+                                .animation(.easeOut(duration: 0.4).delay(0.15), value: appeared)
 
-                Spacer()
+                            Text("Fokusmodus aktiv")
+                                .font(.caption)
+                                .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                                .padding(.top, 2)
+                        }
 
-                bottomPanel
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 30)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: appeared)
-                    .padding(.bottom, 32)
+                        Spacer().frame(height: manager.isFocusModeActive ? 16 : 28)
+
+                        statusText
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 10)
+                            .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
+
+                        Spacer()
+
+                        statsButton
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 20)
+                            .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.22), value: appeared)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 14)
+
+                        bottomPanel
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 30)
+                            .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: appeared)
+                            .padding(.bottom, 32)
+                    }
+                    .frame(minHeight: geo.size.height)
+                }
             }
         }
         .familyActivityPicker(isPresented: $showingPicker, selection: $manager.selection)
         .onChange(of: manager.selection) { _ in
             manager.saveSelection()
             if manager.isFocusModeActive { manager.enableFocusMode() }
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if manager.isFocusModeActive, let start = manager.currentSessionStart {
+                liveSeconds = Int(Date().timeIntervalSince(start))
+            }
+        }
+        .onChange(of: manager.isFocusModeActive) { active in
+            if !active { liveSeconds = 0 }
         }
         .task { await manager.requestAuthorizationIfNeeded() }
         .onAppear {
@@ -62,32 +115,31 @@ struct FokusModeView: View {
             withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
                 ringRotation = 360
             }
+            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                wavePhase1 = .pi * 2
+            }
+            withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) {
+                wavePhase2 = .pi * 2
+            }
         }
     }
 
     // MARK: - Background
 
     private var backgroundLayer: some View {
-        ZStack {
+        let (c1, c2, _) = appThemaFarben(aktivesThema)
+        return ZStack {
             if isDark {
                 LinearGradient(
-                    colors: manager.isFocusModeActive
-                        ? [Color(red: 0.04, green: 0.12, blue: 0.08),
-                           Color(red: 0.06, green: 0.14, blue: 0.10),
-                           Color(red: 0.04, green: 0.10, blue: 0.06)]
-                        : [Color(red: 0.06, green: 0.06, blue: 0.14),
-                           Color(red: 0.10, green: 0.08, blue: 0.20),
-                           Color(red: 0.08, green: 0.06, blue: 0.16)],
+                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
+                             Color(red: 0.10, green: 0.08, blue: 0.20),
+                             Color(red: 0.08, green: 0.06, blue: 0.16)],
                     startPoint: .topLeading, endPoint: .bottomTrailing)
             } else {
                 LinearGradient(
-                    colors: manager.isFocusModeActive
-                        ? [Color(red: 0.90, green: 0.98, blue: 0.93),
-                           Color(red: 0.95, green: 1.0, blue: 0.96),
-                           Color(red: 0.88, green: 0.97, blue: 0.91)]
-                        : [Color(red: 0.95, green: 0.93, blue: 1.0),
-                           Color(red: 0.98, green: 0.96, blue: 1.0),
-                           Color(red: 0.93, green: 0.97, blue: 1.0)],
+                    colors: [Color(red: 0.95, green: 0.93, blue: 1.0),
+                             Color(red: 0.98, green: 0.96, blue: 1.0),
+                             Color(red: 0.93, green: 0.97, blue: 1.0)],
                     startPoint: .topLeading, endPoint: .bottomTrailing)
             }
 
@@ -99,7 +151,7 @@ struct FokusModeView: View {
                     .frame(width: geo.size.width, height: geo.size.width)
                     .position(x: geo.size.width * 0.5, y: geo.size.height * 0.42)
                     .blur(radius: 35)
-                    .animation(.easeInOut(duration: 0.6), value: manager.isFocusModeActive)
+                    .animation(.easeInOut(duration: 0.6), value: aktivesThema)
 
                 Circle()
                     .fill(RadialGradient(
@@ -108,11 +160,36 @@ struct FokusModeView: View {
                     .frame(width: geo.size.width * 0.7, height: geo.size.width * 0.7)
                     .position(x: geo.size.width * 0.82, y: geo.size.height * 0.75)
                     .blur(radius: 22)
-                    .animation(.easeInOut(duration: 0.6), value: manager.isFocusModeActive)
+                    .animation(.easeInOut(duration: 0.6), value: aktivesThema)
             }
+
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 16, frequency: 1.5)
+                    .fill(c2.opacity(isDark ? 0.09 : 0.06))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.38)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.38 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 11, frequency: 2.2)
+                    .fill(c1.opacity(isDark ? 0.14 : 0.09))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.25)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.25 * 0.5)
+            }
+            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+
+            if aktivesThema == "Wald" { WaldDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Eis" { EisDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Nordlicht" { NordlichtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Galaxie" { GalaxieDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Vulkan" { VulkanDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Herbst" { HerbstDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Nacht" { NachtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Solar" { SolarDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Kirschblüte" { KirschblueteDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Lavendel" { LavendelDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Sonnenuntergang" { SonnenuntergangDecorationLayer().transition(.opacity) }
         }
+        .animation(.easeInOut(duration: 0.8), value: aktivesThema)
         .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.8), value: manager.isFocusModeActive)
     }
 
     // MARK: - Header
@@ -242,6 +319,9 @@ struct FokusModeView: View {
             .disabled(!manager.isAuthorized)
             .padding(.horizontal, 20)
 
+            // Website blocking section
+            websiteSection
+
             // Main action button
             if manager.isAuthorized {
                 Button {
@@ -299,32 +379,147 @@ struct FokusModeView: View {
 
     private var selectionSummary: String {
         if !manager.isAuthorized {
-            return "Erlaube den Zugriff auf die Bildschirmzeit,\num Apps sperren zu können"
+            return NSLocalizedString("fokus.selection.no_access", comment: "")
         }
         if manager.isFocusModeActive && manager.hasSelection {
             var parts: [String] = []
             if manager.selectedAppCount > 0 {
-                parts.append("\(manager.selectedAppCount) App\(manager.selectedAppCount == 1 ? "" : "s")")
+                let key = manager.selectedAppCount == 1 ? "fokus.app_count" : "fokus.apps_count"
+                parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedAppCount))
             }
             if manager.selectedCategoryCount > 0 {
-                parts.append("\(manager.selectedCategoryCount) Kategorie\(manager.selectedCategoryCount == 1 ? "" : "n")")
+                let key = manager.selectedCategoryCount == 1 ? "fokus.category_count" : "fokus.categories_count"
+                parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedCategoryCount))
             }
-            return parts.joined(separator: " & ") + " gesperrt"
+            return String(format: NSLocalizedString("fokus.selection.active", comment: ""), parts.joined(separator: " & "))
         } else if manager.hasSelection {
-            return "Bereit – tippe auf Aktivieren, um zu starten"
+            return NSLocalizedString("fokus.selection.ready", comment: "")
         }
-        return "Wähle Apps aus, die du sperren möchtest"
+        return NSLocalizedString("fokus.selection.choose", comment: "")
+    }
+
+    // MARK: - Stats Button
+
+    private var statsButton: some View {
+        NavigationLink(destination: FokusStatistikView()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.purple.opacity(isDark ? 0.25 : 0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.purple)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Fokus-Statistik")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isDark ? .white : .primary)
+                    Text(statsSubtitle)
+                        .font(.caption)
+                        .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.3) : Color(.tertiaryLabel))
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+            )
+        }
+    }
+
+    private var statsSubtitle: String {
+        var secs = manager.todaySeconds
+        if manager.isFocusModeActive, let start = manager.currentSessionStart {
+            secs += Int(Date().timeIntervalSince(start))
+        }
+        guard secs > 0 else { return NSLocalizedString("Noch kein Fokus heute", comment: "") }
+        let h = secs / 3600
+        let m = (secs % 3600) / 60
+        if h > 0 && m > 0 { return String(format: NSLocalizedString("fokus.today_hours", comment: ""), h, m) }
+        if h > 0 { return String(format: NSLocalizedString("fokus.today_hours_only", comment: ""), h) }
+        return String(format: NSLocalizedString("fokus.today_minutes", comment: ""), m)
+    }
+
+    // MARK: - Website Section
+
+    private var websiteSection: some View {
+        NavigationLink(destination: WebsiteSettingsView()) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.orange.opacity(0.2))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "globe.badge.chevron.backward")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Websites sperren")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isDark ? .white : .primary)
+                    Text(verbatim: domainsLabel)
+                        .font(.caption)
+                        .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.3) : Color(.tertiaryLabel))
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.orange.opacity(manager.blockedDomains.isEmpty ? 0.2 : 0.4), lineWidth: 1)
+            )
+        }
+        .padding(.horizontal, 20)
+        .disabled(!manager.isAuthorized)
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        let s = seconds % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%02d:%02d", m, s)
     }
 
     private var appSelectionLabel: String {
         var parts: [String] = []
         if manager.selectedAppCount > 0 {
-            parts.append("\(manager.selectedAppCount) App\(manager.selectedAppCount == 1 ? "" : "s")")
+            let key = manager.selectedAppCount == 1 ? "fokus.app_count" : "fokus.apps_count"
+            parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedAppCount))
         }
         if manager.selectedCategoryCount > 0 {
-            parts.append("\(manager.selectedCategoryCount) Kategorie\(manager.selectedCategoryCount == 1 ? "" : "n")")
+            let key = manager.selectedCategoryCount == 1 ? "fokus.category_count" : "fokus.categories_count"
+            parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedCategoryCount))
         }
-        return parts.isEmpty ? "Noch keine ausgewählt" : parts.joined(separator: ", ")
+        return parts.isEmpty ? NSLocalizedString("Noch keine ausgewählt", comment: "") : parts.joined(separator: ", ")
+    }
+
+    private var domainsLabel: String {
+        guard !manager.blockedDomains.isEmpty else {
+            return NSLocalizedString("Kategorien & eigene Domains", comment: "")
+        }
+        let key = manager.blockedDomains.count == 1 ? "fokus.domains_count" : "fokus.domains_count_plural"
+        return String(format: NSLocalizedString(key, comment: ""), manager.blockedDomains.count)
     }
 }
 

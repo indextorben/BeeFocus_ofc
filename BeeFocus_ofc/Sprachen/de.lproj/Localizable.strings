@@ -587,3 +587,31 @@
 "no_calendars_available" = "Keine Kalender verfügbar";
 "calendar_settings_header" = "Kalender";
 "calendar_settings_info" = "Wählen Sie beim Erstellen oder Bearbeiten von Aufgaben einen Kalender aus, wenn Sie diese zum System-Kalender hinzufügen möchten.";
+
+// MARK: - FokusModeView
+"Fokusmodus" = "Fokusmodus";
+"Fokusmodus aktiv" = "Fokusmodus aktiv";
+"Aktiv" = "Aktiv";
+"Inaktiv" = "Inaktiv";
+"Gesperrte Apps" = "Gesperrte Apps";
+"Fokus-Statistik" = "Fokus-Statistik";
+"Websites sperren" = "Websites sperren";
+"Kategorien & eigene Domains" = "Kategorien & eigene Domains";
+"Deaktivieren" = "Deaktivieren";
+"Jetzt aktivieren" = "Jetzt aktivieren";
+"Bildschirmzeit-Zugriff erlauben" = "Bildschirmzeit-Zugriff erlauben";
+"Noch keine ausgewählt" = "Noch keine ausgewählt";
+"Noch kein Fokus heute" = "Noch kein Fokus heute";
+"fokus.selection.no_access" = "Erlaube den Zugriff auf die Bildschirmzeit,\num Apps sperren zu können";
+"fokus.selection.active" = "%@ gesperrt";
+"fokus.selection.ready" = "Bereit – tippe auf Aktivieren, um zu starten";
+"fokus.selection.choose" = "Wähle Apps aus, die du sperren möchtest";
+"fokus.app_count" = "%d App";
+"fokus.apps_count" = "%d Apps";
+"fokus.category_count" = "%d Kategorie";
+"fokus.categories_count" = "%d Kategorien";
+"fokus.domains_count" = "%d Domain";
+"fokus.domains_count_plural" = "%d Domains";
+"fokus.today_hours" = "Heute: %dh %dm";
+"fokus.today_hours_only" = "Heute: %dh";
+"fokus.today_minutes" = "Heute: %d min";

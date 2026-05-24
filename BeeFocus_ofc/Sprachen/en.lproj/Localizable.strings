@@ -610,3 +610,31 @@
 "no_calendars_available" = "No calendars available";
 "calendar_settings_header" = "Calendar";
 "calendar_settings_info" = "When creating or editing tasks, you can select a calendar when adding them to the system calendar.";
+
+// MARK: - FokusModeView
+"Fokusmodus" = "Focus Mode";
+"Fokusmodus aktiv" = "Focus mode active";
+"Aktiv" = "Active";
+"Inaktiv" = "Inactive";
+"Gesperrte Apps" = "Blocked Apps";
+"Fokus-Statistik" = "Focus Statistics";
+"Websites sperren" = "Block Websites";
+"Kategorien & eigene Domains" = "Categories & custom domains";
+"Deaktivieren" = "Deactivate";
+"Jetzt aktivieren" = "Activate now";
+"Bildschirmzeit-Zugriff erlauben" = "Allow Screen Time Access";
+"Noch keine ausgewählt" = "None selected yet";
+"Noch kein Fokus heute" = "No focus yet today";
+"fokus.selection.no_access" = "Allow Screen Time access\nto block apps";
+"fokus.selection.active" = "%@ blocked";
+"fokus.selection.ready" = "Ready – tap Activate to start";
+"fokus.selection.choose" = "Choose apps to block";
+"fokus.app_count" = "%d App";
+"fokus.apps_count" = "%d Apps";
+"fokus.category_count" = "%d Category";
+"fokus.categories_count" = "%d Categories";
+"fokus.domains_count" = "%d Domain";
+"fokus.domains_count_plural" = "%d Domains";
+"fokus.today_hours" = "Today: %dh %dm";
+"fokus.today_hours_only" = "Today: %dh";
+"fokus.today_minutes" = "Today: %d min";
