@@ -60,16 +60,14 @@ struct TagesplanerView: View {
                 }
                 Menu {
                     Button {
-                        shareItems = [buildDayExport()]
-                        showingShareSheet = true
+                        if let url = buildDayPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Tag exportieren", systemImage: "calendar")
+                        Label("Tag als PDF", systemImage: "doc.fill")
                     }
                     Button {
-                        shareItems = [buildWeekExport()]
-                        showingShareSheet = true
+                        if let url = buildWeekPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Woche exportieren", systemImage: "calendar.badge.clock")
+                        Label("Woche als PDF", systemImage: "doc.on.doc.fill")
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -313,28 +311,47 @@ struct TagesplanerView: View {
     private let minsPerPt: CGFloat = 1.0
 
     private var treeTimeline: some View {
-        VStack(spacing: 0) {
-            treeSection(label: "Morgen", icon: "sun.and.horizon.fill", color: .orange, hours: 6..<12)
-            treeSection(label: "Mittag", icon: "sun.max.fill",         color: themeC1, hours: 12..<18)
-            treeSection(label: "Abend",  icon: "moon.stars.fill",      color: .indigo, hours: 18..<24)
+        let midStart = cal.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+        let eveStart = cal.date(bySettingHour: 18, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+
+        // Find tasks from earlier sections whose endDate reaches into the next section
+        let morningTasks = tasksForHours(6..<12)
+        let middayTasks  = tasksForHours(12..<18)
+
+        let spanToMidday  = morningTasks.last(where: { $0.endDate.map { $0 > midStart } == true })
+        let spanToEvening = (morningTasks + middayTasks).last(where: { $0.endDate.map { $0 > eveStart } == true })
+
+        return VStack(spacing: 0) {
+            treeSection(label: "Morgen", icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
+            treeSection(label: "Mittag", icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
+            treeSection(label: "Abend",  icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
         }
         .padding(.horizontal, 4)
     }
 
     @ViewBuilder
-    private func treeSection(label: String, icon: String, color: Color, hours: Range<Int>) -> some View {
+    private func treeSection(label: String, icon: String, color: Color, hours: Range<Int>, spanningIn: TodoItem?) -> some View {
         let tasks = tasksForHours(hours)
         let sectionStart = cal.date(bySettingHour: hours.lowerBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
         let sectionEnd   = cal.date(bySettingHour: hours.upperBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
 
+        // Effective start: either where the spanning task ends, or the section boundary
+        let effectiveStart: Date = spanningIn?.endDate ?? sectionStart
+
         VStack(spacing: 0) {
-            treeSectionHeader(label: label, icon: icon, color: color)
+            // Only show section header when no prior task is still running into this section
+            if spanningIn == nil {
+                treeSectionHeader(label: label, icon: icon, color: color)
+            }
 
             if tasks.isEmpty {
-                freeTimeRow(minutes: CGFloat(hours.count * 60), color: color, showHint: true)
+                // Only show free-time placeholder when there's no spanning task covering this slot
+                if spanningIn == nil {
+                    freeTimeRow(minutes: CGFloat(hours.count * 60), color: color, showHint: true)
+                }
             } else {
-                // Gap before first task
-                let gapBefore = tasks[0].dueDate.map { $0.timeIntervalSince(sectionStart) / 60 } ?? 0
+                // Gap from effective start to first task in this section
+                let gapBefore = tasks[0].dueDate.map { $0.timeIntervalSince(effectiveStart) / 60 } ?? 0
                 if gapBefore > 10 { freeTimeRow(minutes: CGFloat(gapBefore), color: color, showHint: gapBefore >= 20) }
 
                 ForEach(Array(tasks.enumerated()), id: \.element.id) { idx, task in
@@ -352,216 +369,196 @@ struct TagesplanerView: View {
         }
     }
 
-    // Section header: label right, big dot center, empty left
+    // Section header: aligns with the timeline spine
     private func treeSectionHeader(label: String, icon: String, color: Color) -> some View {
-        HStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(color)
-                Text(label)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(isDark ? .white : .primary)
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, 12)
+        HStack(alignment: .center, spacing: 0) {
+            Spacer().frame(width: 52) // time column (44) + gap (8)
 
             ZStack {
-                Circle().fill(color.opacity(0.2)).frame(width: 30, height: 30)
-                Circle().fill(color).frame(width: 16, height: 16)
+                Circle().fill(color.opacity(0.18)).frame(width: 22, height: 22)
+                Circle().fill(color).frame(width: 11, height: 11)
             }
-            .frame(width: 34)
+            .frame(width: 20)
 
-            Spacer().frame(maxWidth: .infinity)
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                Text(label)
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .foregroundStyle(color)
+            .padding(.leading, 10)
+
+            Rectangle()
+                .fill(color.opacity(0.18))
+                .frame(height: 1)
+                .padding(.leading, 8)
         }
-        .padding(.top, 24)
-        .padding(.bottom, 2)
+        .padding(.top, 22)
+        .padding(.bottom, 4)
+        .padding(.trailing, 4)
     }
 
-    // Task row — alternating sides, spine shows duration
+    // Task row — time left (44pt), spine center (20pt), card right
     private func taskTreeRow(task: TodoItem, flipSide: Bool) -> some View {
         let hasDuration = task.endDate.map { $0 > (task.dueDate ?? .distantPast) } == true
         let durationMins: CGFloat = hasDuration
             ? CGFloat(task.endDate!.timeIntervalSince(task.dueDate!) / 60)
             : 0
-
+        let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
         let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
 
         return HStack(alignment: .top, spacing: 0) {
-            if flipSide {
-                taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins)
-                    .frame(maxWidth: .infinity).padding(.trailing, 10).padding(.top, 8)
-                taskDurationSpine(hasDuration: hasDuration, durationMins: durationMins)
-                timeRangeLabel(task: task, timeFmt: timeFmt, alignment: .leading)
-                    .frame(width: 48, alignment: .leading).padding(.leading, 8).padding(.top, 16)
-            } else {
-                timeRangeLabel(task: task, timeFmt: timeFmt, alignment: .trailing)
-                    .frame(width: 48, alignment: .trailing).padding(.trailing, 8).padding(.top, 16)
-                taskDurationSpine(hasDuration: hasDuration, durationMins: durationMins)
-                taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins)
-                    .frame(maxWidth: .infinity).padding(.leading, 10).padding(.top, 8)
-            }
-        }
-    }
-
-    // Time label: only start time on the side (end is inside the block card)
-    @ViewBuilder
-    private func timeRangeLabel(task: TodoItem, timeFmt: DateFormatter, alignment: Alignment) -> some View {
-        if let s = task.dueDate {
-            Text(timeFmt.string(from: s))
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(themeC1)
-        }
-    }
-
-    // Spine: dot at top, thin line fills the card height
-    private func taskDurationSpine(hasDuration: Bool, durationMins: CGFloat) -> some View {
-        let lineColor = isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.10)
-        return VStack(spacing: 0) {
-            Rectangle().fill(lineColor).frame(width: 2, height: 14)
-            Circle().fill(themeC1.opacity(hasDuration ? 1.0 : 0.55))
-                .frame(width: hasDuration ? 12 : 10, height: hasDuration ? 12 : 10)
-            Rectangle().fill(lineColor).frame(width: 2).frame(maxHeight: .infinity)
-        }
-        .frame(width: 34)
-    }
-
-    // Free-time gap on the spine with optional hint
-    private func freeTimeRow(minutes: CGFloat, color: Color, showHint: Bool) -> some View {
-        let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
-        let height = max(min(minutes * minsPerPt, 90), 24)
-
-        return HStack(spacing: 0) {
-            Spacer().frame(maxWidth: .infinity)
-
-            Rectangle().fill(lineColor).frame(width: 2, height: height)
-                .frame(width: 34)
-
+            // Time label
             Group {
-                if showHint {
-                    Button { showingQuickAdd = true } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus").font(.system(size: 9, weight: .bold))
-                            Text(minutes >= 60
-                                 ? "\(Int(minutes/60))h \(Int(minutes)%60 > 0 ? "\(Int(minutes)%60)min" : "") frei"
-                                 : "\(Int(minutes))min frei")
-                                .font(.system(size: 10))
-                        }
-                        .foregroundStyle(isDark ? .white.opacity(0.22) : Color.secondary.opacity(0.5))
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .overlay(RoundedRectangle(cornerRadius: 8)
-                            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                            .foregroundStyle(color.opacity(0.25)))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 8)
+                if let due = task.dueDate {
+                    Text(timeFmt.string(from: due))
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(themeC1)
                 } else {
-                    Spacer().frame(maxWidth: .infinity)
+                    Color.clear
                 }
             }
+            .frame(width: 44, alignment: .trailing)
+            .padding(.trailing, 8)
+            .padding(.top, 10)
+
+            // Spine: dot + continuing line
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(hasDuration ? themeC1 : themeC1.opacity(0.6))
+                    .frame(width: hasDuration ? 11 : 9, height: hasDuration ? 11 : 9)
+                    .padding(.top, 8)
+                Rectangle()
+                    .fill(lineColor)
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(width: 20)
+
+            // Card
+            taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins)
+                .padding(.leading, 10)
+                .padding(.bottom, 6)
+                .frame(maxWidth: .infinity)
         }
     }
 
-    // Task card — stretched block when duration is set
+    // Free-time gap — aligns with timeline spine
+    private func freeTimeRow(minutes: CGFloat, color: Color, showHint: Bool) -> some View {
+        let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+        let height = max(min(minutes * minsPerPt, 90), 20)
+
+        return HStack(alignment: .center, spacing: 0) {
+            Spacer().frame(width: 52) // matches time col + gap
+
+            Rectangle().fill(lineColor).frame(width: 2, height: height)
+                .frame(width: 20)
+
+            if showHint {
+                Button { showingQuickAdd = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus").font(.system(size: 9, weight: .bold))
+                        Text(minutes >= 60
+                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") frei"
+                             : "\(Int(minutes))min frei")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundStyle(isDark ? .white.opacity(0.22) : Color.secondary.opacity(0.5))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .overlay(RoundedRectangle(cornerRadius: 8)
+                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .foregroundStyle(color.opacity(0.25)))
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 10)
+            }
+
+            Spacer()
+        }
+    }
+
+    // Task card — compact row or stretched duration block
     private func taskTreeCard(_ todo: TodoItem, hasDuration: Bool, durationMins: CGFloat) -> some View {
-        let blockH: CGFloat = hasDuration ? max(durationMins * minsPerPt, 72) : 52
+        let blockH: CGFloat = hasDuration ? max(durationMins * minsPerPt, 68) : 40
         let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
 
-        return HStack(spacing: 0) {
-            // Left accent bar — full block height via gradient
-            RoundedRectangle(cornerRadius: 2)
-                .fill(LinearGradient(colors: [themeC1, themeC2], startPoint: .top, endPoint: .bottom))
-                .frame(width: 4)
-                .padding(.vertical, 10)
-                .padding(.leading, 10)
-                .padding(.trailing, 8)
-
-            if hasDuration, let startDate = todo.dueDate, let endDate = todo.endDate {
-                // BLOCK MODE: start top, title middle, end bottom
+        return Group {
+            if hasDuration, let endDate = todo.endDate {
+                // Duration block: title top, end-time bottom
                 VStack(alignment: .leading, spacing: 0) {
-                    // Top row: start time + complete button
-                    HStack(alignment: .top) {
-                        Text(timeFmt.string(from: startDate))
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(themeC1)
-                        Spacer()
+                    HStack(alignment: .top, spacing: 6) {
+                        Text(todo.title)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 4)
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 todoStore.toggleTodo(todo)
                             }
                         } label: {
-                            Image(systemName: "circle")
-                                .font(.system(size: 18))
-                                .foregroundStyle(themeC1.opacity(0.5))
+                            Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 17))
+                                .foregroundStyle(themeC1.opacity(todo.isCompleted ? 1.0 : 0.5))
                         }
                         .buttonStyle(.plain)
                     }
-
-                    // Title in the middle
-                    Spacer(minLength: 6)
-                    Text(todo.title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 6)
-
-                    // Bottom row: end time + edit button
+                    Spacer(minLength: 4)
                     HStack(alignment: .bottom) {
-                        Text(timeFmt.string(from: endDate))
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(themeC1.opacity(0.6))
+                        Text("bis \(timeFmt.string(from: endDate))")
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Button { planningTodo = todo } label: {
                             Image(systemName: "pencil.circle")
-                                .font(.system(size: 16))
-                                .foregroundStyle(themeC1.opacity(0.4))
+                                .font(.system(size: 15))
+                                .foregroundStyle(themeC1.opacity(0.35))
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.vertical, 10)
-                .padding(.trailing, 12)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 9)
                 .frame(maxWidth: .infinity, minHeight: blockH)
+                .background(themeC1.opacity(isDark ? 0.12 : 0.07), in: RoundedRectangle(cornerRadius: 11))
+                .overlay(RoundedRectangle(cornerRadius: 11).stroke(themeC1.opacity(0.28), lineWidth: 1.5))
 
             } else {
-                // COMPACT MODE: no end time
-                HStack(spacing: 10) {
+                // Compact single row
+                HStack(spacing: 8) {
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             todoStore.toggleTodo(todo)
                         }
                     } label: {
-                        Image(systemName: "circle")
-                            .font(.system(size: 20))
-                            .foregroundStyle(themeC1.opacity(0.5))
+                        Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 17))
+                            .foregroundStyle(themeC1.opacity(todo.isCompleted ? 1.0 : 0.5))
                     }
                     .buttonStyle(.plain)
 
                     Text(todo.title)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(isDark ? .white.opacity(0.88) : .primary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 0)
 
                     Button { planningTodo = todo } label: {
                         Image(systemName: "pencil.circle")
-                            .font(.system(size: 18))
-                            .foregroundStyle(themeC1.opacity(0.45))
+                            .font(.system(size: 15))
+                            .foregroundStyle(themeC1.opacity(0.35))
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.trailing, 12)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, minHeight: blockH)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(themeC1.opacity(0.12), lineWidth: 1))
             }
         }
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(themeC1.opacity(hasDuration ? 0.4 : 0.18), lineWidth: hasDuration ? 1.5 : 1)
-        )
     }
 
     private func tasksForHours(_ hours: Range<Int>) -> [TodoItem] {
@@ -728,83 +725,65 @@ struct TagesplanerView: View {
         .padding(.vertical, 11)
     }
 
-    // MARK: - Export
+    // MARK: - PDF Export
 
-    private func buildDayExport() -> String {
-        let dateFmt = DateFormatter()
-        dateFmt.locale = Locale(identifier: "de_DE")
-        dateFmt.dateFormat = "EEEE, d. MMMM yyyy"
-        let timeFmt = DateFormatter()
-        timeFmt.dateFormat = "HH:mm"
-
-        var lines: [String] = []
-        lines.append("📅 Tagesplan – \(dateFmt.string(from: selectedDate))")
-        lines.append("")
-
-        let blocks: [(String, String, Range<Int>)] = [
-            ("🌅 Morgen", "6 – 12 Uhr", 0..<12),
-            ("☀️ Mittag", "12 – 18 Uhr", 12..<18),
-            ("🌙 Abend", "18 – 24 Uhr", 18..<24),
-        ]
-        let dayTasks = todoStore.todos
-            .filter { !$0.isCompleted && ($0.dueDate.map { cal.isDate($0, inSameDayAs: selectedDate) } == true) }
-            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
-
-        for (label, range, hours) in blocks {
-            lines.append("\(label) (\(range))")
-            let block = dayTasks.filter { t in
-                guard let d = t.dueDate else { return false }
-                return hours.contains(cal.component(.hour, from: d))
-            }
-            if block.isEmpty {
-                lines.append("  – Nichts geplant")
-            } else {
-                for t in block {
-                    let time = t.dueDate.map { timeFmt.string(from: $0) } ?? "?"
-                    lines.append("  ○ \(time)  \(t.title)")
-                }
-            }
-            lines.append("")
-        }
-        lines.append("──────────────────")
-        lines.append("Erstellt mit BeeFocus")
-        return lines.joined(separator: "\n")
+    @MainActor
+    private func buildDayPDF() -> URL? {
+        let view = TagesplanExportView(
+            date: selectedDate, todos: todoStore.todos, themeC1: themeC1, themeC2: themeC2
+        )
+        return renderToPDF(view: view, filename: "BeeFocus_Tagesplan")
     }
 
-    private func buildWeekExport() -> String {
-        let weekDays = currentWeekDays()
-        let headerFmt = DateFormatter()
-        headerFmt.locale = Locale(identifier: "de_DE")
-        headerFmt.dateFormat = "EEE, d. MMM"
-        let timeFmt = DateFormatter()
-        timeFmt.dateFormat = "HH:mm"
-
-        var cal2 = Calendar(identifier: .gregorian)
-        cal2.firstWeekday = 2
+    @MainActor
+    private func buildWeekPDF() -> URL? {
+        let days = currentWeekDays()
+        var cal2 = Calendar(identifier: .gregorian); cal2.firstWeekday = 2
         let kw = cal2.component(.weekOfYear, from: selectedDate)
+        let view = TagesplanWocheExportView(
+            days: days, todos: todoStore.todos, themeC1: themeC1, themeC2: themeC2, kw: kw
+        )
+        return renderToPDF(view: view, filename: "BeeFocus_Wochenplan_KW\(kw)")
+    }
 
-        var lines: [String] = []
-        lines.append("📅 Wochenplan – KW \(kw)")
-        lines.append("")
+    @MainActor
+    private func renderToPDF<V: View>(view: V, filename: String) -> URL? {
+        let a4W: CGFloat = 595, a4H: CGFloat = 842, margin: CGFloat = 36
+        let contentW = a4W - margin * 2
 
-        for day in weekDays {
-            lines.append("📍 \(headerFmt.string(from: day))")
-            let tasks = todoStore.todos
-                .filter { !$0.isCompleted && ($0.dueDate.map { cal.isDate($0, inSameDayAs: day) } == true) }
-                .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
-            if tasks.isEmpty {
-                lines.append("  – Nichts geplant")
-            } else {
-                for t in tasks {
-                    let time = t.dueDate.map { timeFmt.string(from: $0) } ?? "?"
-                    lines.append("  ○ \(time)  \(t.title)")
+        let renderer = ImageRenderer(content:
+            view.frame(width: contentW).environment(\.colorScheme, .light)
+        )
+        renderer.scale = 2.0
+        guard let image = renderer.uiImage, let cgImg = image.cgImage else { return nil }
+
+        let contentH = a4H - margin * 2
+        let scale = image.scale
+        let totalH = image.size.height
+
+        let pdfRenderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: a4W, height: a4H))
+        let data = pdfRenderer.pdfData { ctx in
+            var yOffset: CGFloat = 0
+            while yOffset < totalH {
+                ctx.beginPage()
+                let sliceH = min(contentH, totalH - yOffset)
+                let cropRect = CGRect(
+                    x: 0, y: yOffset * scale,
+                    width: image.size.width * scale,
+                    height: sliceH * scale
+                )
+                if let slice = cgImg.cropping(to: cropRect) {
+                    let sliceImg = UIImage(cgImage: slice, scale: scale, orientation: .up)
+                    sliceImg.draw(in: CGRect(x: margin, y: margin, width: contentW, height: sliceH))
                 }
+                yOffset += contentH
             }
-            lines.append("")
         }
-        lines.append("──────────────────")
-        lines.append("Erstellt mit BeeFocus")
-        return lines.joined(separator: "\n")
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(filename).pdf")
+        try? data.write(to: url)
+        return url
     }
 
 }
@@ -1417,6 +1396,7 @@ struct EinplanenSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @State private var editedTitle: String
     @State private var selectedDate: Date
     @State private var selectedEndDate: Date
     @State private var appeared = false
@@ -1428,6 +1408,7 @@ struct EinplanenSheet: View {
     init(todo: TodoItem, onSave: @escaping (TodoItem) -> Void) {
         self.todo = todo
         self.onSave = onSave
+        _editedTitle = State(initialValue: todo.title)
         let cal = Calendar.current
         let base = todo.dueDate ?? Date()
         let dateBase = cal.startOfDay(for: base)
@@ -1452,16 +1433,15 @@ struct EinplanenSheet: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
 
-                        // Task preview
+                        // Task title — editable
                         HStack(spacing: 12) {
-                            Image(systemName: "checkmark.circle")
-                                .font(.system(size: 22))
+                            Image(systemName: "pencil.line")
+                                .font(.system(size: 20))
                                 .foregroundStyle(themeC1)
-                            Text(todo.title)
+                            TextField("Aufgabenname", text: $editedTitle)
                                 .font(.headline)
                                 .foregroundStyle(isDark ? .white : .primary)
-                                .lineLimit(2)
-                            Spacer()
+                                .submitLabel(.done)
                         }
                         .padding(14)
                         .themeGlass(cornerRadius: 14)
@@ -1551,6 +1531,8 @@ struct EinplanenSheet: View {
                         // Save button
                         Button {
                             var updated = todo
+                            let trimmed = editedTitle.trimmingCharacters(in: .whitespaces)
+                            updated.title = trimmed.isEmpty ? todo.title : trimmed
                             updated.dueDate = selectedDate
                             updated.endDate = selectedEndDate > selectedDate ? selectedEndDate : nil
                             onSave(updated)
@@ -1581,6 +1563,283 @@ struct EinplanenSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
+    }
+}
+
+// MARK: - Export Views (for PDF rendering)
+
+private struct ExportSectionView: View {
+    let label: String
+    let icon: String
+    let color: Color
+    let tasks: [TodoItem]
+    let themeC1: Color
+
+    private let timeFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.primary)
+                Rectangle().fill(color.opacity(0.2)).frame(height: 1)
+            }
+            .padding(.bottom, 8)
+
+            if tasks.isEmpty {
+                Text("Keine Aufgaben")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+                    .padding(.bottom, 8)
+            } else {
+                ForEach(tasks) { task in
+                    HStack(alignment: .top, spacing: 10) {
+                        // Time column
+                        VStack(alignment: .trailing, spacing: 2) {
+                            if let due = task.dueDate {
+                                Text(timeFmt.string(from: due))
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(themeC1)
+                            }
+                            if let end = task.endDate {
+                                Text(timeFmt.string(from: end))
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(width: 40, alignment: .trailing)
+
+                        // Bullet
+                        Circle()
+                            .fill(themeC1.opacity(task.isCompleted ? 0.3 : 0.8))
+                            .frame(width: 7, height: 7)
+                            .padding(.top, 3)
+
+                        // Title + duration
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(task.title)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                                .strikethrough(task.isCompleted)
+                            if let due = task.dueDate, let end = task.endDate, end > due {
+                                let mins = Int(end.timeIntervalSince(due) / 60)
+                                let dur = mins >= 60
+                                    ? (mins % 60 == 0 ? "\(mins/60)h" : "\(mins/60)h \(mins%60)min")
+                                    : "\(mins)min"
+                                Text(dur)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 5)
+
+                    if task.id != tasks.last?.id {
+                        Divider().opacity(0.2).padding(.leading, 50)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.2), lineWidth: 1))
+    }
+}
+
+struct TagesplanExportView: View {
+    let date: Date
+    let todos: [TodoItem]
+    let themeC1: Color
+    let themeC2: Color
+
+    private var cal: Calendar { Calendar.current }
+
+    private func tasks(for hours: Range<Int>) -> [TodoItem] {
+        todos.filter { t in
+            guard let due = t.dueDate else { return false }
+            guard cal.isDate(due, inSameDayAs: date) else { return false }
+            return hours.contains(cal.component(.hour, from: due))
+        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    private var dateString: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEEE, d. MMMM yyyy"
+        return f.string(from: date)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Tagesplan")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(themeC1)
+                    Text(dateString)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .padding(.bottom, 4)
+
+            Divider()
+
+            ExportSectionView(label: "Morgen",  icon: "sun.and.horizon.fill", color: .orange,
+                              tasks: tasks(for: 6..<12), themeC1: themeC1)
+            ExportSectionView(label: "Mittag",  icon: "sun.max.fill",         color: themeC1,
+                              tasks: tasks(for: 12..<18), themeC1: themeC1)
+            ExportSectionView(label: "Abend",   icon: "moon.stars.fill",      color: .indigo,
+                              tasks: tasks(for: 18..<24), themeC1: themeC1)
+
+            Spacer(minLength: 12)
+
+            // Footer
+            HStack {
+                Spacer()
+                Text("Erstellt mit BeeFocus")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .background(Color.white)
+    }
+}
+
+struct TagesplanWocheExportView: View {
+    let days: [Date]
+    let todos: [TodoItem]
+    let themeC1: Color
+    let themeC2: Color
+    let kw: Int
+
+    private var cal: Calendar { Calendar.current }
+
+    private func tasks(for day: Date) -> [TodoItem] {
+        todos.filter { t in
+            guard let due = t.dueDate else { return false }
+            return cal.isDate(due, inSameDayAs: day)
+        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    private let dayFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEE d. MMM"
+        return f
+    }()
+
+    private let timeFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Wochenplan")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(themeC1)
+                    Text("KW \(kw)")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .padding(.bottom, 4)
+
+            Divider()
+
+            ForEach(days, id: \.self) { day in
+                let dayTasks = tasks(for: day)
+                let isToday = cal.isDateInToday(day)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    // Day header
+                    HStack(spacing: 8) {
+                        Text(dayFmt.string(from: day).capitalized)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(isToday ? themeC1 : .primary)
+                        if isToday {
+                            Text("Heute")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(themeC1, in: Capsule())
+                        }
+                        Rectangle().fill(Color.gray.opacity(0.2)).frame(height: 1)
+                    }
+
+                    if dayTasks.isEmpty {
+                        Text("Keine Aufgaben")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 4)
+                    } else {
+                        ForEach(dayTasks) { task in
+                            HStack(alignment: .top, spacing: 8) {
+                                if let due = task.dueDate {
+                                    Text(timeFmt.string(from: due))
+                                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(themeC1)
+                                        .frame(width: 36, alignment: .trailing)
+                                } else {
+                                    Spacer().frame(width: 36)
+                                }
+                                Circle()
+                                    .fill(themeC1.opacity(0.7))
+                                    .frame(width: 6, height: 6)
+                                    .padding(.top, 3)
+                                Text(task.title)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Spacer()
+                                if let due = task.dueDate, let end = task.endDate, end > due {
+                                    let mins = Int(end.timeIntervalSince(due) / 60)
+                                    let dur = mins >= 60 ? "\(mins/60)h" : "\(mins)min"
+                                    Text(dur).font(.system(size: 9)).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            Spacer(minLength: 12)
+
+            HStack {
+                Spacer()
+                Text("Erstellt mit BeeFocus")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .background(Color.white)
     }
 }
 
