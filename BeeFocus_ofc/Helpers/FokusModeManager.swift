@@ -18,6 +18,7 @@ class FokusModeManager: ObservableObject {
     private var focusStartTime: Date?
 
     private init() {
+        // Lokale Daten laden
         isFocusModeActive = UserDefaults.standard.bool(forKey: "focusModeActive")
         if let data = UserDefaults.standard.data(forKey: "focusModeSelection"),
            let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
@@ -32,8 +33,13 @@ class FokusModeManager: ObservableObject {
             focusStartTime = Date(timeIntervalSince1970: ts)
         }
         checkAuthorizationStatus()
+
+        // iCloud: synchronisieren und mit lokalen Daten zusammenführen
+        // Beim ersten Start nach Neuinstallation (leere UserDefaults) werden alle
+        // Einstellungen aus iCloud wiederhergestellt.
         iCloud.synchronize()
         mergeFromiCloud()
+
         NotificationCenter.default.addObserver(
             forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
             object: iCloud,
@@ -43,6 +49,7 @@ class FokusModeManager: ObservableObject {
     }
 
     private func mergeFromiCloud() {
+        // Fokus-Statistik: nimm jeweils den höheren Wert pro Tag
         if let remote = iCloud.dictionary(forKey: "focusDailySeconds") as? [String: Int] {
             var changed = false
             for (key, value) in remote {
@@ -51,11 +58,31 @@ class FokusModeManager: ObservableObject {
             }
             if changed { UserDefaults.standard.set(dailyFocusSeconds, forKey: "focusDailySeconds") }
         }
+
+        // Gesperrte Domains: Vereinigung beider Geräte
         if let remote = iCloud.array(forKey: "focusModeBlockedDomains") as? [String] {
             let merged = Array(Set(blockedDomains).union(Set(remote))).sorted()
             if merged != blockedDomains.sorted() {
                 blockedDomains = merged
                 UserDefaults.standard.set(blockedDomains, forKey: "focusModeBlockedDomains")
+            }
+        }
+
+        // App-Auswahl: Vereinigung der Token beider Geräte
+        if let remoteData = iCloud.data(forKey: "focusModeSelection"),
+           let remote = try? JSONDecoder().decode(FamilyActivitySelection.self, from: remoteData) {
+            let mergedApps = selection.applicationTokens.union(remote.applicationTokens)
+            let mergedCats = selection.categoryTokens.union(remote.categoryTokens)
+            let mergedWeb  = selection.webDomainTokens.union(remote.webDomainTokens)
+            if mergedApps != selection.applicationTokens ||
+               mergedCats != selection.categoryTokens ||
+               mergedWeb  != selection.webDomainTokens {
+                selection.applicationTokens = mergedApps
+                selection.categoryTokens    = mergedCats
+                selection.webDomainTokens   = mergedWeb
+                if let data = try? JSONEncoder().encode(selection) {
+                    UserDefaults.standard.set(data, forKey: "focusModeSelection")
+                }
             }
         }
     }
@@ -170,6 +197,8 @@ class FokusModeManager: ObservableObject {
     func saveSelection() {
         if let data = try? JSONEncoder().encode(selection) {
             UserDefaults.standard.set(data, forKey: "focusModeSelection")
+            iCloud.set(data, forKey: "focusModeSelection")
+            iCloud.synchronize()
         }
     }
 

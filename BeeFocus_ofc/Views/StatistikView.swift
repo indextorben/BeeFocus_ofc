@@ -25,6 +25,10 @@ struct StatistikView: View {
     @AppStorage("aktivePriorityStyle") private var aktivePriorityStyle: String = "standard"
     @AppStorage("konfettiEnabled") private var konfettiEnabled: Bool = false
     @AppStorage("fokusSperrmodus") private var fokusSperrmodus: Bool = false
+    @AppStorage("dailyGoalEnabled") private var dailyGoalEnabled: Bool = false
+    @AppStorage("fokusStreakEnabled") private var fokusStreakEnabled: Bool = false
+    @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
+    @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -51,6 +55,10 @@ struct StatistikView: View {
             if item.name == "Prioritäts-Emojis" { aktivePriorityStyle = "emoji" }
             if item.name == "Konfetti-Effekt" { konfettiEnabled = true }
             if item.name == "Fokus-Sperrmodus" { fokusSperrmodus = true }
+            if item.name == "Tägliches Fokus-Ziel" { dailyGoalEnabled = true }
+            if item.name == "Streak-Tracker" { fokusStreakEnabled = true }
+            if item.name == "Fokus-Zitat" { fokusZitatEnabled = true }
+            if item.name == "Wochenrückblick" { wochenrueckblickEnabled = true }
         }
         kaufErfolg = item.name
         Task {
@@ -82,6 +90,10 @@ struct StatistikView: View {
             }
             if item.name == "Konfetti-Effekt" { konfettiEnabled = false }
             if item.name == "Fokus-Sperrmodus" { fokusSperrmodus = false }
+            if item.name == "Tägliches Fokus-Ziel" { dailyGoalEnabled = false }
+            if item.name == "Streak-Tracker" { fokusStreakEnabled = false }
+            if item.name == "Fokus-Zitat" { fokusZitatEnabled = false }
+            if item.name == "Wochenrückblick" { wochenrueckblickEnabled = false }
         }
     }
 
@@ -205,6 +217,14 @@ struct StatistikView: View {
                   beschreibung: "Feiere jeden Aufgaben-Abschluss mit einem bunten Konfetti-Regen 🎉"),
         StoreItem(name: "Fokus-Sperrmodus",   icon: "lock.shield.fill",         kosten: 1200, farbe: .indigo, tab: .features,
                   beschreibung: "Sperrt Bearbeiten & Löschen während der Fokuszeit – keine Ablenkung"),
+        StoreItem(name: "Tägliches Fokus-Ziel", icon: "target",                 kosten: 1000, farbe: .mint,   tab: .features,
+                  beschreibung: "Fortschrittsring für dein tägliches Fokus-Ziel – sieh wie nah du dran bist"),
+        StoreItem(name: "Streak-Tracker",     icon: "flame.fill",               kosten: 1500, farbe: .orange, tab: .features,
+                  beschreibung: "Verfolge deine Fokus-Streak – wie viele Tage am Stück du fokussiert warst 🔥"),
+        StoreItem(name: "Fokus-Zitat",        icon: "quote.bubble.fill",        kosten: 600,  farbe: .teal,   tab: .features,
+                  beschreibung: "Zeigt ein motivierendes Zitat während des Fokusmodus – täglich neu"),
+        StoreItem(name: "Wochenrückblick",    icon: "chart.bar.doc.horizontal", kosten: 1200, farbe: Color(red: 0.4, green: 0.6, blue: 1.0), tab: .features,
+                  beschreibung: "Vergleich dieser Woche mit der letzten – sieh deinen Fortschritt auf einen Blick"),
     ]}
 
     // MARK: - Gefilterter Basis-Datensatz (respektiert "Nur diesen Monat")
@@ -972,27 +992,33 @@ struct StatistikView: View {
         .animation(.easeInOut(duration: 0.3), value: aktivesThema)
         .animation(.easeInOut(duration: 0.2), value: storeTab)
         // Kauf-Dialog
-        .confirmationDialog(
-            kaufBestaetigung.map { "\"\($0.name)\" für \($0.kosten) FP freischalten?" } ?? "",
-            isPresented: Binding(get: { kaufBestaetigung != nil }, set: { if !$0 { kaufBestaetigung = nil } }),
-            titleVisibility: .visible
+        .alert(
+            kaufBestaetigung.map { "\"\($0.name)\" freischalten?" } ?? "",
+            isPresented: Binding(get: { kaufBestaetigung != nil }, set: { if !$0 { kaufBestaetigung = nil } })
         ) {
             if let item = kaufBestaetigung {
                 Button("Freischalten (\(item.kosten) FP)") { kaufeItem(item); kaufBestaetigung = nil }
                 Button("Abbrechen", role: .cancel) { kaufBestaetigung = nil }
             }
+        } message: {
+            if let item = kaufBestaetigung {
+                Text("Kostet \(item.kosten) Fokuspunkte. Du hast \(fokuspunkteVerfuegbar) FP.")
+            }
         }
         // Verkauf-Dialog
-        .confirmationDialog(
-            verkaufBestaetigung.map { "\"\($0.name)\" verkaufen? Du erhältst \($0.kosten / 2) FP zurück." } ?? "",
-            isPresented: Binding(get: { verkaufBestaetigung != nil }, set: { if !$0 { verkaufBestaetigung = nil } }),
-            titleVisibility: .visible
+        .alert(
+            verkaufBestaetigung.map { "\"\($0.name)\" verkaufen?" } ?? "",
+            isPresented: Binding(get: { verkaufBestaetigung != nil }, set: { if !$0 { verkaufBestaetigung = nil } })
         ) {
             if let item = verkaufBestaetigung {
-                Button("Verkaufen (\(item.kosten / 2) FP Rückerstattung)", role: .destructive) {
+                Button("Verkaufen (\(item.kosten / 2) FP zurück)", role: .destructive) {
                     verkaufeItem(item); verkaufBestaetigung = nil
                 }
                 Button("Abbrechen", role: .cancel) { verkaufBestaetigung = nil }
+            }
+        } message: {
+            if let item = verkaufBestaetigung {
+                Text("Du erhältst \(item.kosten / 2) FP zurück.")
             }
         }
     }
@@ -1005,11 +1031,9 @@ struct StatistikView: View {
             Text(value).font(.system(size: 12, weight: .semibold)).foregroundStyle(farbe).lineLimit(1)
             Spacer()
             Button(action: onDeactivate) {
-                Text("Aus")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.primary.opacity(0.07), in: Capsule())
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
             }
             .buttonStyle(.plain)
         }
@@ -1113,6 +1137,10 @@ struct StatistikView: View {
             case "Prioritäts-Emojis": return aktivePriorityStyle == "emoji"
             case "Konfetti-Effekt": return konfettiEnabled
             case "Fokus-Sperrmodus": return fokusSperrmodus
+            case "Tägliches Fokus-Ziel": return dailyGoalEnabled
+            case "Streak-Tracker": return fokusStreakEnabled
+            case "Fokus-Zitat": return fokusZitatEnabled
+            case "Wochenrückblick": return wochenrueckblickEnabled
             default: return false
             }
         }()
@@ -1148,21 +1176,30 @@ struct StatistikView: View {
             Spacer()
 
             if istFreigeschaltet {
-                let isToggleable = ["Prioritäts-Emojis", "Konfetti-Effekt", "Fokus-Sperrmodus"].contains(item.name)
+                let isToggleable = ["Prioritäts-Emojis", "Konfetti-Effekt", "Fokus-Sperrmodus", "Tägliches Fokus-Ziel", "Streak-Tracker", "Fokus-Zitat", "Wochenrückblick"].contains(item.name)
                 if isToggleable {
                     Button {
                         switch item.name {
                         case "Prioritäts-Emojis": aktivePriorityStyle = aktivePriorityStyle == "emoji" ? "standard" : "emoji"
                         case "Konfetti-Effekt": konfettiEnabled.toggle()
                         case "Fokus-Sperrmodus": fokusSperrmodus.toggle()
+                        case "Tägliches Fokus-Ziel": dailyGoalEnabled.toggle()
+                        case "Streak-Tracker": fokusStreakEnabled.toggle()
+                        case "Fokus-Zitat": fokusZitatEnabled.toggle()
+                        case "Wochenrückblick": wochenrueckblickEnabled.toggle()
                         default: break
                         }
                     } label: {
-                        Text(istAktiv ? "Aus" : "An")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(istAktiv ? .secondary : item.farbe)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(istAktiv ? Color.primary.opacity(0.07) : item.farbe.opacity(0.12), in: Capsule())
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(istAktiv ? item.farbe : Color.secondary.opacity(0.4))
+                                .frame(width: 6, height: 6)
+                            Text(istAktiv ? "An" : "Aus")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(istAktiv ? item.farbe : .secondary)
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(istAktiv ? item.farbe.opacity(0.12) : Color.primary.opacity(0.07), in: Capsule())
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -1192,13 +1229,17 @@ struct StatistikView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(istAktiv ? item.farbe.opacity(0.5) : item.farbe.opacity(0.12), lineWidth: istAktiv ? 1.5 : 1))
         .opacity(istFreigeschaltet ? 1.0 : (kannKaufen ? 0.9 : 0.55))
         .contextMenu {
-            let isToggleable = ["Prioritäts-Emojis", "Konfetti-Effekt", "Fokus-Sperrmodus"].contains(item.name)
+            let isToggleable = ["Prioritäts-Emojis", "Konfetti-Effekt", "Fokus-Sperrmodus", "Tägliches Fokus-Ziel", "Streak-Tracker", "Fokus-Zitat", "Wochenrückblick"].contains(item.name)
             if istFreigeschaltet && isToggleable {
                 Button {
                     switch item.name {
                     case "Prioritäts-Emojis": aktivePriorityStyle = istAktiv ? "standard" : "emoji"
                     case "Konfetti-Effekt": konfettiEnabled.toggle()
                     case "Fokus-Sperrmodus": fokusSperrmodus.toggle()
+                    case "Tägliches Fokus-Ziel": dailyGoalEnabled.toggle()
+                    case "Streak-Tracker": fokusStreakEnabled.toggle()
+                    case "Fokus-Zitat": fokusZitatEnabled.toggle()
+                    case "Wochenrückblick": wochenrueckblickEnabled.toggle()
                     default: break
                     }
                 } label: {

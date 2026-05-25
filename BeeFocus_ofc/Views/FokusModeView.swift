@@ -14,6 +14,25 @@ struct FokusModeView: View {
     @State private var liveSeconds: Int = 0
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
+
+    private static let zitate: [String] = [
+        "Tiefe Arbeit ist der Superkraft der Zukunft.",
+        "Fang einfach an. Der Mut kommt beim Tun.",
+        "Konzentration ist die Wurzel aller Stärke.",
+        "Eine Sache. Jetzt. Vollständig.",
+        "Dein zukünftiges Ich dankt dir.",
+        "Kein Lärm. Nur du und die Aufgabe.",
+        "Fortschritt, nicht Perfektion.",
+        "Jede Minute zählt. Diese hier auch.",
+        "Bleib dran – du bist näher als du denkst.",
+        "Großes entsteht durch kleine, fokussierte Momente.",
+    ]
+
+    private var tagesZitat: String {
+        let dayIndex = Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0
+        return Self.zitate[dayIndex % Self.zitate.count]
+    }
 
     var isDark: Bool { colorScheme == .dark }
 
@@ -34,63 +53,68 @@ struct FokusModeView: View {
         ZStack {
             backgroundLayer
 
-            GeometryReader { geo in
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        header
-                            .padding(.horizontal, 20)
-                            .padding(.top, 8)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
 
-                        Spacer()
+                shieldIcon
+                    .scaleEffect(manager.isFocusModeActive
+                        ? (appeared ? 0.72 : 0.58)
+                        : (appeared ? 1.0  : 0.8))
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.05), value: appeared)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.75), value: manager.isFocusModeActive)
 
-                        shieldIcon
-                            .scaleEffect(appeared ? 1 : 0.8)
-                            .opacity(appeared ? 1 : 0)
-                            .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.05), value: appeared)
+                Spacer().frame(height: manager.isFocusModeActive ? 4 : 20)
 
-                        Spacer().frame(height: 20)
+                if manager.isFocusModeActive {
+                    Text(formatDuration(liveSeconds))
+                        .font(.system(size: 38, weight: .bold, design: .monospaced))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [activeGlowColor, secondaryGlowColor],
+                                startPoint: .leading, endPoint: .trailing))
+                        .shadow(color: activeGlowColor.opacity(0.4), radius: 8)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.4).delay(0.15), value: appeared)
 
-                        if manager.isFocusModeActive {
-                            Text(formatDuration(liveSeconds))
-                                .font(.system(size: 42, weight: .bold, design: .monospaced))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [activeGlowColor, secondaryGlowColor],
-                                        startPoint: .leading, endPoint: .trailing))
-                                .shadow(color: activeGlowColor.opacity(0.4), radius: 8)
-                                .opacity(appeared ? 1 : 0)
-                                .animation(.easeOut(duration: 0.4).delay(0.15), value: appeared)
+                    Text("Fokusmodus aktiv")
+                        .font(.caption)
+                        .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                        .padding(.top, 2)
 
-                            Text("Fokusmodus aktiv")
-                                .font(.caption)
-                                .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
-                                .padding(.top, 2)
-                        }
-
-                        Spacer().frame(height: manager.isFocusModeActive ? 16 : 28)
-
-                        statusText
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 10)
-                            .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
-
-                        Spacer()
-
-                        statsButton
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 20)
-                            .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.22), value: appeared)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 14)
-
-                        bottomPanel
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 30)
-                            .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: appeared)
-                            .padding(.bottom, 32)
+                    if fokusZitatEnabled {
+                        Text("\u{201E}\(tagesZitat)\u{201C}")
+                            .font(.system(size: 12, weight: .medium, design: .serif))
+                            .italic()
+                            .foregroundStyle(isDark ? .white.opacity(0.35) : Color.secondary.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                            .padding(.top, 6)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
-                    .frame(minHeight: geo.size.height)
                 }
+
+                Spacer().frame(height: manager.isFocusModeActive ? 10 : 24)
+
+                statusText
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 10)
+                    .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
+
+                Spacer(minLength: 20)
+
+                statsButton
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 20)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.22), value: appeared)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+
+                bottomPanel
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 30)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: appeared)
+                    .padding(.bottom, 20)
             }
         }
         .familyActivityPicker(isPresented: $showingPicker, selection: $manager.selection)
@@ -190,18 +214,6 @@ struct FokusModeView: View {
         }
         .animation(.easeInOut(duration: 0.8), value: aktivesThema)
         .ignoresSafeArea()
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack {
-            Text("Fokusmodus")
-                .font(.title2.bold())
-                .foregroundStyle(isDark ? .white : .primary)
-            Spacer()
-        }
-        .padding(.vertical, 12)
     }
 
     // MARK: - Shield Icon

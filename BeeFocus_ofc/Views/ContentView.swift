@@ -55,24 +55,14 @@ struct ContentView: View {
             }
             .tag(0)
             
-            //MARK - Kalender Tab
-            Group {
-                if sizeClass == .compact {
-                    NavigationStack {
-                        CalendarView()
-                            .environmentObject(todoStore)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                } else {
-                    NavigationStack {
-                        CalendarView()
-                            .environmentObject(todoStore)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                }
+            // MARK: - Tagesplaner Tab
+            NavigationStack {
+                TagesplanerView()
+                    .environmentObject(todoStore)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .tabItem {
-                Label(localizer.localizedString(forKey: "Kalender"), systemImage: "calendar.badge.clock")
+                Label("Tag", systemImage: "calendar.day.timeline.left")
             }
             .tag(1)
             

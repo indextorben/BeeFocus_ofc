@@ -1162,10 +1162,8 @@ struct UeberfaelligeDetailView: View {
                     return due < oneMonthAgo
                 }
                 for todo in toDelete {
-                    CloudKitManager.shared.deleteTodo(todo)
-                    todoStore.todos.removeAll { $0.id == todo.id }
+                    todoStore.deleteTodo(todo)
                 }
-                todoStore.saveTodos()
                 let count = toDelete.count
                 result = count > 0 ? "\(count) überfällige Aufgabe\(count == 1 ? "" : "n") gelöscht" : "Keine überfälligen Aufgaben gefunden"
             }

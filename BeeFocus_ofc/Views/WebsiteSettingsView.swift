@@ -3,23 +3,29 @@ import SwiftUI
 @available(iOS 16, *)
 struct WebsiteSettingsView: View {
     @StateObject private var manager = FokusModeManager.shared
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @State private var showingAddDomain = false
     @State private var newDomain = ""
     @Environment(\.colorScheme) var colorScheme
 
     var isDark: Bool { colorScheme == .dark }
+    private var themeC1: Color { appThemaFarben(aktivesThema).0 }
+    private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                categoriesSection
-                manualDomainsSection
+        ZStack {
+            ThemeBackgroundView()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    categoriesSection
+                    manualDomainsSection
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 40)
         }
-        .background(Color(.systemGroupedBackground))
         .navigationTitle("Websites sperren")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -60,7 +66,7 @@ struct WebsiteSettingsView: View {
         return HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(category.color.opacity(0.18))
+                    .fill(category.color.opacity(0.20))
                     .frame(width: 46, height: 46)
                 Image(systemName: category.icon)
                     .font(.system(size: 20, weight: .semibold))
@@ -77,7 +83,7 @@ struct WebsiteSettingsView: View {
                         ? "\(addedCount) von \(category.domains.count) gesperrt"
                         : "\(category.domains.count) Domains")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
             }
 
             Spacer()
@@ -95,21 +101,20 @@ struct WebsiteSettingsView: View {
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(allAdded ? Color.red.opacity(0.12) : category.color.opacity(0.15))
+                    .background(allAdded ? Color.red.opacity(0.15) : category.color.opacity(0.18))
                     .foregroundStyle(allAdded ? .red : category.color)
                     .clipShape(Capsule())
                     .overlay(Capsule().stroke(
-                        allAdded ? Color.red.opacity(0.3) : category.color.opacity(0.3),
+                        allAdded ? Color.red.opacity(0.35) : category.color.opacity(0.35),
                         lineWidth: 1
                     ))
             }
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .themeGlass(cornerRadius: 16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(someAdded ? category.color.opacity(0.35) : Color.clear, lineWidth: 1)
+                .stroke(someAdded ? category.color.opacity(0.45) : Color.clear, lineWidth: 1.5)
         )
     }
 
@@ -119,7 +124,9 @@ struct WebsiteSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(
                 title: "Einzelne Domains",
-                subtitle: manager.blockedDomains.isEmpty ? "Noch keine hinzugefügt" : "\(manager.blockedDomains.count) Domain\(manager.blockedDomains.count == 1 ? "" : "s") gesperrt"
+                subtitle: manager.blockedDomains.isEmpty
+                    ? "Noch keine hinzugefügt"
+                    : "\(manager.blockedDomains.count) Domain\(manager.blockedDomains.count == 1 ? "" : "s") gesperrt"
             )
 
             if manager.blockedDomains.isEmpty {
@@ -138,11 +145,11 @@ struct WebsiteSettingsView: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 9)
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(themeC1.opacity(0.18))
                     .frame(width: 34, height: 34)
                 Image(systemName: "globe")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(themeC1)
             }
 
             Text(domain)
@@ -163,8 +170,7 @@ struct WebsiteSettingsView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .themeGlass(cornerRadius: 14)
     }
 
     private var emptyDomainsPlaceholder: some View {
@@ -175,19 +181,18 @@ struct WebsiteSettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 18))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(themeC1)
                 Text("Domain manuell hinzufügen")
                     .font(.subheadline)
                     .foregroundStyle(isDark ? .white.opacity(0.7) : .secondary)
                 Spacer()
             }
             .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .themeGlass(cornerRadius: 14)
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                    .foregroundStyle(Color.orange.opacity(0.3))
+                    .foregroundStyle(themeC1.opacity(0.4))
             )
         }
     }
@@ -196,48 +201,53 @@ struct WebsiteSettingsView: View {
 
     private var addDomainSheet: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Domain eingeben")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+            ZStack {
+                ThemeBackgroundView()
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Domain eingeben")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
 
-                    HStack {
-                        Image(systemName: "globe")
-                            .foregroundStyle(.secondary)
-                        TextField("z. B. instagram.com", text: $newDomain)
-                            .keyboardType(.URL)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .onSubmit { submitDomain() }
+                        HStack {
+                            Image(systemName: "globe")
+                                .foregroundStyle(themeC1)
+                            TextField("z. B. instagram.com", text: $newDomain)
+                                .keyboardType(.URL)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .onSubmit { submitDomain() }
+                        }
+                        .padding(14)
+                        .themeGlass(cornerRadius: 12)
+
+                        Text("www. und https:// werden automatisch entfernt.")
+                            .font(.caption)
+                            .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     }
-                    .padding(14)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                    Text("www. und https:// werden automatisch entfernt.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Button {
+                        submitDomain()
+                    } label: {
+                        Text("Hinzufügen")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                newDomain.trimmingCharacters(in: .whitespaces).isEmpty
+                                    ? AnyShapeStyle(Color.secondary.opacity(0.3))
+                                    : AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                                   startPoint: .leading, endPoint: .trailing))
+                            )
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .disabled(newDomain.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    Spacer()
                 }
-
-                Button {
-                    submitDomain()
-                } label: {
-                    Text("Hinzufügen")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(newDomain.trimmingCharacters(in: .whitespaces).isEmpty
-                                    ? Color.secondary.opacity(0.3) : Color.orange)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .disabled(newDomain.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                Spacer()
+                .padding(20)
             }
-            .padding(20)
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("Website sperren")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -258,7 +268,7 @@ struct WebsiteSettingsView: View {
                 .foregroundStyle(isDark ? .white : .primary)
             Text(subtitle)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
         }
     }
 

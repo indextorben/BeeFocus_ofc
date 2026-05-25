@@ -4,22 +4,79 @@ import Charts
 @available(iOS 16, *)
 struct FokusStatistikView: View {
     @StateObject private var manager = FokusModeManager.shared
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("dailyGoalEnabled") private var dailyGoalEnabled: Bool = false
+    @AppStorage("fokusStreakEnabled") private var fokusStreakEnabled: Bool = false
+    @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
+    @AppStorage("dailyFocusGoalMinutes") private var dailyGoal: Int = 60
     @State private var liveSeconds: Int = 0
     @State private var ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @Environment(\.colorScheme) var colorScheme
 
     var isDark: Bool { colorScheme == .dark }
 
+    private var themeC1: Color { appThemaFarben(aktivesThema).0 }
+    private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+
     private var todayTotal: Int { manager.todaySeconds + liveSeconds }
     private var weekTotal: Int { manager.weekSeconds + liveSeconds }
 
+    private var currentStreak: Int {
+        let cal = Calendar.current
+        var streak = 0
+        var checkDate = Date()
+        // If today has no focus yet, start checking from yesterday
+        let todayKey = manager.dateKey(for: checkDate)
+        if (manager.dailyFocusSeconds[todayKey] ?? 0) == 0 && !manager.isFocusModeActive {
+            guard let yesterday = cal.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
+            checkDate = yesterday
+        }
+        for _ in 0..<365 {
+            let key = manager.dateKey(for: checkDate)
+            let secs = manager.dailyFocusSeconds[key] ?? 0
+            let isToday = cal.isDateInToday(checkDate) && manager.isFocusModeActive
+            if secs > 0 || isToday {
+                streak += 1
+                guard let prev = cal.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                checkDate = prev
+            } else {
+                break
+            }
+        }
+        return streak
+    }
+
+    private var goalProgress: Double {
+        guard dailyGoal > 0 else { return 0 }
+        return min(1.0, Double(todayTotal) / Double(dailyGoal * 60))
+    }
+
+    private var lastWeekSeconds: Int {
+        let cal = Calendar.current
+        return (7..<14).compactMap { offset -> Int? in
+            guard let day = cal.date(byAdding: .day, value: -offset, to: Date()) else { return nil }
+            return manager.dailyFocusSeconds[manager.dateKey(for: day)]
+        }.reduce(0, +)
+    }
+
+    private var weekTrend: Double {
+        guard lastWeekSeconds > 0 else { return weekTotal > 0 ? 1.0 : 0.0 }
+        return Double(weekTotal - lastWeekSeconds) / Double(lastWeekSeconds)
+    }
+
     var body: some View {
         ZStack {
-            background
+            ThemeBackgroundView()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
+                VStack(spacing: 18) {
                     topCards
+                    if dailyGoalEnabled || fokusStreakEnabled {
+                        bonusCards
+                    }
+                    if wochenrueckblickEnabled {
+                        wochenrueckblickCard
+                    }
                     chartCard
                     allTimeStat
                 }
@@ -39,36 +96,6 @@ struct FokusStatistikView: View {
         }
     }
 
-    // MARK: - Background
-
-    private var background: some View {
-        ZStack {
-            if isDark {
-                LinearGradient(
-                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
-                             Color(red: 0.10, green: 0.08, blue: 0.20),
-                             Color(red: 0.08, green: 0.06, blue: 0.16)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)
-            } else {
-                LinearGradient(
-                    colors: [Color(red: 0.95, green: 0.93, blue: 1.0),
-                             Color(red: 0.98, green: 0.96, blue: 1.0),
-                             Color(red: 0.93, green: 0.97, blue: 1.0)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-            GeometryReader { geo in
-                Circle()
-                    .fill(RadialGradient(
-                        colors: [Color.indigo.opacity(isDark ? 0.22 : 0.12), .clear],
-                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.5))
-                    .frame(width: geo.size.width, height: geo.size.width)
-                    .position(x: geo.size.width * 0.2, y: geo.size.height * 0.15)
-                    .blur(radius: 30)
-            }
-        }
-        .ignoresSafeArea()
-    }
-
     // MARK: - Top Cards
 
     private var topCards: some View {
@@ -78,7 +105,7 @@ struct FokusStatistikView: View {
                 value: formatDuration(todayTotal),
                 subtitle: manager.isFocusModeActive ? "Aktiv" : "Gesamt",
                 icon: "sun.max.fill",
-                color: .orange,
+                color: themeC1,
                 isLive: manager.isFocusModeActive
             )
             statCard(
@@ -86,7 +113,7 @@ struct FokusStatistikView: View {
                 value: formatDuration(weekTotal),
                 subtitle: "7 Tage",
                 icon: "calendar",
-                color: .indigo,
+                color: themeC2,
                 isLive: false
             )
         }
@@ -120,12 +147,167 @@ struct FokusStatistikView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(color.opacity(0.2), lineWidth: 1)
-        )
+        .themeGlass(cornerRadius: 18)
+    }
+
+    // MARK: - Bonus Cards (Streak + Goal)
+
+    private var bonusCards: some View {
+        HStack(spacing: 14) {
+            if fokusStreakEnabled {
+                streakCard
+            }
+            if dailyGoalEnabled {
+                goalCard
+            }
+        }
+    }
+
+    private var streakCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.orange)
+                Text("Streak")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
+                Spacer()
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(currentStreak)")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(currentStreak > 0 ? Color.orange : (isDark ? .white.opacity(0.3) : Color.secondary))
+                Text(currentStreak == 1 ? "Tag" : "Tage")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                    .padding(.bottom, 2)
+            }
+            Text(currentStreak == 0 ? "Fang heute an!" : currentStreak < 3 ? "Weiter so!" : currentStreak < 7 ? "Super Lauf!" : "Unaufhaltsam!")
+                .font(.caption)
+                .foregroundStyle(Color.orange.opacity(0.9))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .themeGlass(cornerRadius: 18)
+    }
+
+    private var goalCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "target")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.mint)
+                Text("Tagesziel")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
+                Spacer()
+                if goalProgress >= 1.0 {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.mint)
+                }
+            }
+            ZStack {
+                Circle()
+                    .stroke(Color.mint.opacity(0.15), lineWidth: 7)
+                Circle()
+                    .trim(from: 0, to: goalProgress)
+                    .stroke(
+                        LinearGradient(colors: [.mint, themeC1], startPoint: .leading, endPoint: .trailing),
+                        style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.5), value: goalProgress)
+                Text("\(Int(goalProgress * 100))%")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(isDark ? .white : .primary)
+            }
+            .frame(width: 60, height: 60)
+            .frame(maxWidth: .infinity)
+            Text("\(dailyGoal) min Ziel")
+                .font(.caption)
+                .foregroundStyle(Color.mint.opacity(0.9))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .themeGlass(cornerRadius: 18)
+    }
+
+    // MARK: - Wochenrückblick
+
+    private var wochenrueckblickCard: some View {
+        let trendPositiv = weekTrend >= 0
+        let trendColor: Color = trendPositiv ? .green : .red
+        let trendIcon = trendPositiv ? "arrow.up.right" : "arrow.down.right"
+        let trendText = lastWeekSeconds == 0
+            ? "Erste Woche"
+            : String(format: "%+.0f%%", weekTrend * 100)
+        let blueAccent = Color(red: 0.4, green: 0.6, blue: 1.0)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(blueAccent)
+                Text("Wochenrückblick")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isDark ? .white : .primary)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: trendIcon)
+                        .font(.system(size: 11, weight: .bold))
+                    Text(trendText)
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(lastWeekSeconds == 0 ? blueAccent : trendColor)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background((lastWeekSeconds == 0 ? blueAccent : trendColor).opacity(0.12), in: Capsule())
+            }
+
+            HStack(spacing: 0) {
+                weekBar(label: "Letzte Woche", seconds: lastWeekSeconds, color: blueAccent.opacity(0.5))
+                Spacer().frame(width: 12)
+                weekBar(label: "Diese Woche", seconds: weekTotal, color: blueAccent)
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Letzte Woche")
+                        .font(.caption2)
+                        .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                    Text(formatDuration(lastWeekSeconds))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isDark ? .white.opacity(0.6) : Color.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Diese Woche")
+                        .font(.caption2)
+                        .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                    Text(formatDuration(weekTotal))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(isDark ? .white : .primary)
+                }
+            }
+        }
+        .padding(18)
+        .themeGlass(cornerRadius: 18)
+    }
+
+    private func weekBar(label: String, seconds: Int, color: Color) -> some View {
+        let maxSec = max(weekTotal, lastWeekSeconds, 1)
+        let ratio = CGFloat(seconds) / CGFloat(maxSec)
+        return GeometryReader { geo in
+            VStack(alignment: .leading, spacing: 4) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(color)
+                    .frame(width: max(4, geo.size.width * ratio), height: 12)
+                    .animation(.easeOut(duration: 0.6), value: seconds)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 12)
     }
 
     // MARK: - Chart Card
@@ -152,8 +334,8 @@ struct FokusStatistikView: View {
                     )
                     .foregroundStyle(
                         isToday
-                            ? LinearGradient(colors: [.indigo, Color(red: 0.5, green: 0.4, blue: 1.0)], startPoint: .bottom, endPoint: .top)
-                            : LinearGradient(colors: [Color.indigo.opacity(0.4), Color.indigo.opacity(0.6)], startPoint: .bottom, endPoint: .top)
+                            ? LinearGradient(colors: [themeC1, themeC2], startPoint: .bottom, endPoint: .top)
+                            : LinearGradient(colors: [themeC1.opacity(0.35), themeC1.opacity(0.55)], startPoint: .bottom, endPoint: .top)
                     )
                     .cornerRadius(6)
                 }
@@ -175,12 +357,7 @@ struct FokusStatistikView: View {
             .frame(height: 180)
         }
         .padding(18)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.indigo.opacity(0.15), lineWidth: 1)
-        )
+        .themeGlass(cornerRadius: 18)
     }
 
     // MARK: - All Time
@@ -191,30 +368,25 @@ struct FokusStatistikView: View {
         let maxDay = manager.last7Days.max(by: { $0.seconds < $1.seconds })
 
         return VStack(spacing: 0) {
-            statRow(label: "Gesamt (alle Zeit)", value: formatDuration(total), icon: "infinity", color: .purple)
-            Divider().opacity(0.3).padding(.horizontal, 16)
-            statRow(label: "Aktive Tage", value: "\(sessions)", icon: "calendar.badge.checkmark", color: .green)
-            Divider().opacity(0.3).padding(.horizontal, 16)
+            statRow(label: "Gesamt (alle Zeit)", value: formatDuration(total), icon: "infinity", color: themeC1)
+            Divider().opacity(0.2).padding(.horizontal, 16)
+            statRow(label: "Aktive Tage", value: "\(sessions)", icon: "calendar.badge.checkmark", color: themeC2)
+            Divider().opacity(0.2).padding(.horizontal, 16)
             statRow(
                 label: "Bester Tag (7T)",
                 value: maxDay.map { formatDuration($0.seconds) } ?? "—",
                 icon: "trophy.fill",
-                color: .orange
+                color: themeC1
             )
         }
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.purple.opacity(0.15), lineWidth: 1)
-        )
+        .themeGlass(cornerRadius: 18)
     }
 
     private func statRow(label: String, value: String, icon: String, color: Color) -> some View {
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 9)
-                    .fill(color.opacity(0.15))
+                    .fill(color.opacity(0.18))
                     .frame(width: 34, height: 34)
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))

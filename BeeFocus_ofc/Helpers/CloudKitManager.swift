@@ -145,6 +145,7 @@ final class CloudKitManager: ObservableObject {
                 record["description"] = todo.description as CKRecordValue
                 record["isCompleted"] = todo.isCompleted as CKRecordValue
                 if let due = todo.dueDate { record["dueDate"] = due as CKRecordValue } else { record["dueDate"] = nil }
+                if let end = todo.endDate { record["endDate"] = end as CKRecordValue } else { record["endDate"] = nil }
                 if let offset = todo.reminderOffsetMinutes { record["reminderOffsetMinutes"] = NSNumber(value: offset) } else { record["reminderOffsetMinutes"] = nil }
                 record["priority"] = todo.priority.rawValue as CKRecordValue
                 record["createdAt"] = todo.createdAt as CKRecordValue
@@ -238,6 +239,7 @@ final class CloudKitManager: ObservableObject {
                         let description = record["description"] as? String ?? ""
                         let isCompleted = record["isCompleted"] as? Bool ?? false
                         let dueDate = record["dueDate"] as? Date
+                        let endDate = record["endDate"] as? Date
                         let reminderOffset = (record["reminderOffsetMinutes"] as? NSNumber)?.intValue
                         let completedAt = record["completedAt"] as? Date
                         let calendarEnabled = record["calendarEnabled"] as? Bool ?? false
@@ -282,7 +284,8 @@ final class CloudKitManager: ObservableObject {
                             completedAt: completedAt,
                             calendarEventIdentifier: calendarEventIdentifier,
                             calendarEnabled: calendarEnabled,
-                            isFavorite: isFavorite
+                            isFavorite: isFavorite,
+                            endDate: endDate
                         )
                         result.append(todo)
                     }

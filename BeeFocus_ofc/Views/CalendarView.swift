@@ -382,6 +382,11 @@ struct CalendarView: View {
                         .background(Color.blue, in: Capsule())
                 }
 
+                NavigationLink(destination: TagesplanerView(initialDate: selectedDate).environmentObject(todoStore)) {
+                    Image(systemName: "calendar.day.timeline.left")
+                        .font(.system(size: 22))
+                        .foregroundStyle(aktivesThema.isEmpty ? Color.blue : appThemaFarben(aktivesThema).0)
+                }
                 Button(action: { showingAddTodo = true }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 28))

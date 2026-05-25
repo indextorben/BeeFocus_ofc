@@ -908,6 +908,92 @@ struct SonnenuntergangDecorationLayer: View {
     }
 }
 
+// MARK: - Reusable themed background
+struct ThemeBackgroundView: View {
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var glowPulse = false
+    @State private var wavePhase1: CGFloat = 0
+    @State private var wavePhase2: CGFloat = 0
+
+    private var isDark: Bool { colorScheme == .dark }
+    private var c1: Color { appThemaFarben(aktivesThema).0 }
+    private var c2: Color { appThemaFarben(aktivesThema).1 }
+
+    private let waveThemes: [String] = ["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan",
+                                        "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"]
+
+    var body: some View {
+        ZStack {
+            if isDark {
+                LinearGradient(
+                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
+                             Color(red: 0.10, green: 0.08, blue: 0.20),
+                             Color(red: 0.08, green: 0.06, blue: 0.16)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+            } else {
+                LinearGradient(
+                    colors: [Color(red: 0.95, green: 0.93, blue: 1.0),
+                             Color(red: 0.98, green: 0.96, blue: 1.0),
+                             Color(red: 0.93, green: 0.97, blue: 1.0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+
+            GeometryReader { geo in
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [c1.opacity(isDark ? (glowPulse ? 0.28 : 0.16) : (glowPulse ? 0.14 : 0.08)), .clear],
+                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.5))
+                    .frame(width: geo.size.width, height: geo.size.width)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height * 0.42)
+                    .blur(radius: 35)
+                    .animation(.easeInOut(duration: 0.6), value: aktivesThema)
+
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [c2.opacity(isDark ? 0.15 : 0.08), .clear],
+                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.35))
+                    .frame(width: geo.size.width * 0.7, height: geo.size.width * 0.7)
+                    .position(x: geo.size.width * 0.82, y: geo.size.height * 0.75)
+                    .blur(radius: 22)
+                    .animation(.easeInOut(duration: 0.6), value: aktivesThema)
+            }
+
+            GeometryReader { geo in
+                WaveShape(phase: wavePhase2, amplitude: 16, frequency: 1.5)
+                    .fill(c2.opacity(isDark ? 0.09 : 0.06))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.38)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.38 * 0.5)
+                WaveShape(phase: wavePhase1, amplitude: 11, frequency: 2.2)
+                    .fill(c1.opacity(isDark ? 0.14 : 0.09))
+                    .frame(width: geo.size.width, height: geo.size.height * 0.25)
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.25 * 0.5)
+            }
+            .opacity(waveThemes.contains(aktivesThema) ? 0.0 : 1.0)
+            .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+
+            if aktivesThema == "Wald"           { WaldDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Eis"            { EisDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Nordlicht"      { NordlichtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Galaxie"        { GalaxieDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Vulkan"         { VulkanDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Herbst"         { HerbstDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Nacht"          { NachtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Solar"          { SolarDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Kirschblüte"    { KirschblueteDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Lavendel"       { LavendelDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Sonnenuntergang"{ SonnenuntergangDecorationLayer().transition(.opacity) }
+        }
+        .animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) { glowPulse = true }
+            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { wavePhase1 = .pi * 2 }
+            withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) { wavePhase2 = .pi * 2 }
+        }
+    }
+}
+
 // MARK: - Shared themed glass card modifier
 struct ThemeGlassModifier: ViewModifier {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""

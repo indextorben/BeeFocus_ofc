@@ -848,9 +848,11 @@ class TodoStore: ObservableObject {
             var updatedTodo = todo
             updatedTodo.isCompleted.toggle()
             if updatedTodo.isCompleted {
-                updatedTodo.completedAt = Date()
+                let now = Date()
+                updatedTodo.completedAt = now
+                updatedTodo.lastCompletionDate = now
                 updateStats(for: updatedTodo)
-                
+
                 // 🔹 Notification abbrechen
                 NotificationManager.shared.cancelNotification(id: updatedTodo.id.uuidString)
                 pushUndo(.complete(todoID: updatedTodo.id, previousCompletedAt: previousCompletedAt))
@@ -1253,6 +1255,13 @@ class TodoStore: ObservableObject {
     private func resolveConflict(local: TodoItem, cloud: TodoItem) -> TodoItem {
         // Case 1: Different updatedAt → Newest wins
         if cloud.updatedAt > local.updatedAt {
+            // Never let cloud revert a locally completed task when the local completion
+            // happened after the cloud's last known state (guards against server-timestamp skew)
+            if local.isCompleted, !cloud.isCompleted,
+               let completedAt = local.completedAt, completedAt >= cloud.updatedAt {
+                print("🛡 Merge: Protecting local completion (completedAt=\(completedAt) >= cloud.updatedAt=\(cloud.updatedAt))")
+                return local
+            }
             print("🔁 Merge: Cloud newer → cloud.updatedAt=\(cloud.updatedAt) > local.updatedAt=\(local.updatedAt) (isCompleted: \(cloud.isCompleted))")
             return cloud
         } else if local.updatedAt > cloud.updatedAt {
