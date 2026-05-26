@@ -17,6 +17,7 @@ struct TagesplanerView: View {
     @State private var collapsedGroups: Set<String> = []
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
+    @State private var now: Date = Date()
 
     init(initialDate: Date = Date()) {
         _selectedDate = State(initialValue: Calendar.current.startOfDay(for: initialDate))
@@ -33,16 +34,40 @@ struct TagesplanerView: View {
     var body: some View {
         ZStack {
             ThemeBackgroundView()
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    weekStrip
-                    progressCard
-                    treeTimeline
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        weekStrip
+                        progressCard
+                        treeTimeline
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 40)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 40)
+                .onAppear {
+                    now = Date()
+                    if isToday {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                proxy.scrollTo("nowIndicator", anchor: .center)
+                            }
+                        }
+                    }
+                }
+                .onChange(of: selectedDate) { _ in
+                    if isToday {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                proxy.scrollTo("nowIndicator", anchor: .center)
+                            }
+                        }
+                    }
+                }
             }
+        }
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+            now = Date()
         }
         .navigationTitle(selectedDateString)
         .navigationBarTitleDisplayMode(.large)
@@ -52,11 +77,6 @@ struct TagesplanerView: View {
                     CalendarView().environmentObject(todoStore)
                 } label: {
                     Image(systemName: "calendar.badge.clock")
-                }
-                NavigationLink {
-                    WeeklyGoalsView().environmentObject(todoStore)
-                } label: {
-                    Image(systemName: "target")
                 }
                 Menu {
                     Button {
@@ -117,10 +137,17 @@ struct TagesplanerView: View {
             AddTodoView().environmentObject(todoStore)
         }
         .sheet(item: $planningTodo) { todo in
-            EinplanenSheet(todo: todo) { updated in
-                todoStore.updateTodo(updated)
-                planningTodo = nil
-            }
+            EinplanenSheet(
+                todo: todo,
+                onSave: { updated in
+                    todoStore.updateTodo(updated)
+                    planningTodo = nil
+                },
+                onDelete: {
+                    todoStore.deleteTodo(todo)
+                    planningTodo = nil
+                }
+            )
             .environmentObject(todoStore)
         }
         .sheet(isPresented: $showingShareSheet) {
@@ -270,7 +297,6 @@ struct TagesplanerView: View {
             }
             Spacer()
 
-            // Today shortcut
             if !isToday {
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -333,40 +359,113 @@ struct TagesplanerView: View {
     private func treeSection(label: String, icon: String, color: Color, hours: Range<Int>, spanningIn: TodoItem?) -> some View {
         let tasks = tasksForHours(hours)
         let sectionStart = cal.date(bySettingHour: hours.lowerBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
-        let sectionEnd   = cal.date(bySettingHour: hours.upperBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
-
-        // Effective start: either where the spanning task ends, or the section boundary
+        let sectionEnd: Date = {
+            if hours.upperBound == 24 {
+                return cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: selectedDate)) ?? selectedDate
+            }
+            return cal.date(bySettingHour: hours.upperBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+        }()
         let effectiveStart: Date = spanningIn?.endDate ?? sectionStart
+        let nowInSection = isToday && now >= sectionStart && now < sectionEnd
+        // If the spanning-in task itself covers now, its overlay handles the indicator —
+        // suppress the row-based indicator for this section.
+        let spanningCoversNow = nowInSection
+            && (spanningIn?.dueDate.map { now >= $0 } ?? false)
+            && (spanningIn?.endDate.map { now < $0 } ?? false)
+        let nowInSectionEff = nowInSection && !spanningCoversNow
+
+        // Where should nowIndicatorRow be inserted?
+        // nowIdx == -1            → not today / section doesn't contain now
+        // nowIdx == -2            → now is inside a duration block (overlay handles it)
+        // nowIdx == i             → before tasks[i]
+        // nowIdx == tasks.count   → after all tasks (or no tasks)
+        let nowIdx: Int = {
+            guard nowInSectionEff else { return -1 }
+            for (i, task) in tasks.enumerated() {
+                let due = task.dueDate ?? .distantFuture
+                let end = task.endDate ?? due
+                if now < due { return i }
+                if now < end {
+                    let hasDur = task.endDate.map { $0 > (task.dueDate ?? .distantPast) } == true
+                    return hasDur ? -2 : i + 1
+                }
+            }
+            return tasks.count
+        }()
 
         VStack(spacing: 0) {
-            // Only show section header when no prior task is still running into this section
             if spanningIn == nil {
                 treeSectionHeader(label: label, icon: icon, color: color)
             }
 
             if tasks.isEmpty {
-                // Only show free-time placeholder when there's no spanning task covering this slot
-                if spanningIn == nil {
-                    freeTimeRow(minutes: CGFloat(hours.count * 60), color: color, showHint: true)
-                }
+                if nowInSectionEff { nowIndicatorRow() }
+                let mins = CGFloat(max(sectionEnd.timeIntervalSince(effectiveStart) / 60, 0))
+                if mins > 5 { freeTimeRow(minutes: mins, color: color, showHint: spanningIn == nil) }
             } else {
-                // Gap from effective start to first task in this section
-                let gapBefore = tasks[0].dueDate.map { $0.timeIntervalSince(effectiveStart) / 60 } ?? 0
-                if gapBefore > 10 { freeTimeRow(minutes: CGFloat(gapBefore), color: color, showHint: gapBefore >= 20) }
+                // Gap before first task
+                let preGap = CGFloat(max((tasks[0].dueDate ?? sectionEnd).timeIntervalSince(effectiveStart) / 60, 0))
+                if preGap > 5 { freeTimeRow(minutes: preGap, color: color, showHint: false) }
+
+                if nowIdx == 0 { nowIndicatorRow() }
 
                 ForEach(Array(tasks.enumerated()), id: \.element.id) { idx, task in
-                    taskTreeRow(task: task, flipSide: idx % 2 == 0)
+                    taskTreeRow(task: task, flipSide: idx % 2 == 0, isNowSection: nowInSectionEff)
 
-                    // Gap only between tasks, not after the last one
+                    if nowIdx == idx + 1 { nowIndicatorRow() }
+
                     if idx + 1 < tasks.count {
                         let gapStart = task.endDate ?? task.dueDate ?? sectionEnd
                         let gapEnd   = tasks[idx + 1].dueDate ?? sectionEnd
-                        let gapMins  = CGFloat(gapEnd.timeIntervalSince(gapStart) / 60)
-                        if gapMins > 10 { freeTimeRow(minutes: gapMins, color: color, showHint: gapMins >= 20) }
+                        let gapMins  = CGFloat(max(gapEnd.timeIntervalSince(gapStart) / 60, 0))
+                        if gapMins > 5 { freeTimeRow(minutes: gapMins, color: color, showHint: false) }
                     }
+                }
+
+                if nowIdx == tasks.count { nowIndicatorRow() }
+
+                // Gap after last task
+                if let lastTask = tasks.last {
+                    let lastEnd  = lastTask.endDate ?? lastTask.dueDate ?? sectionEnd
+                    let postGap  = CGFloat(max(sectionEnd.timeIntervalSince(lastEnd) / 60, 0))
+                    if postGap > 5 { freeTimeRow(minutes: postGap, color: color, showHint: false) }
                 }
             }
         }
+    }
+
+    // Current-time indicator row — aligned to the spine
+    @ViewBuilder
+    private func nowIndicatorRow() -> some View {
+        let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+        HStack(spacing: 0) {
+            Text(timeFmt.string(from: now))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(themeC1)
+                .frame(width: 44, alignment: .trailing)
+                .padding(.trailing, 8)
+
+            ZStack {
+                Circle()
+                    .fill(themeC1.opacity(0.2))
+                    .frame(width: 18, height: 18)
+                Circle()
+                    .fill(themeC1)
+                    .frame(width: 9, height: 9)
+            }
+            .frame(width: 20)
+
+            Rectangle()
+                .fill(
+                    LinearGradient(colors: [themeC1, themeC1.opacity(0)],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
+                .frame(height: 1.5)
+                .padding(.leading, 10)
+                .padding(.trailing, 4)
+        }
+        .padding(.vertical, 4)
+        .id("nowIndicator")
     }
 
     // Section header: aligns with the timeline spine
@@ -400,13 +499,16 @@ struct TagesplanerView: View {
     }
 
     // Task row — time left (44pt), spine center (20pt), card right
-    private func taskTreeRow(task: TodoItem, flipSide: Bool) -> some View {
+    private func taskTreeRow(task: TodoItem, flipSide: Bool, isNowSection: Bool = false) -> some View {
         let hasDuration = task.endDate.map { $0 > (task.dueDate ?? .distantPast) } == true
         let durationMins: CGFloat = hasDuration
             ? CGFloat(task.endDate!.timeIntervalSince(task.dueDate!) / 60)
             : 0
         let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
         let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+        let isActive = isToday && !task.isCompleted
+            && (task.dueDate.map { now >= $0 } ?? false)
+            && (task.endDate.map { now < $0 } ?? false)
 
         return HStack(alignment: .top, spacing: 0) {
             // Time label
@@ -414,7 +516,7 @@ struct TagesplanerView: View {
                 if let due = task.dueDate {
                     Text(timeFmt.string(from: due))
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(themeC1)
+                        .foregroundStyle(task.isCompleted ? .secondary : (isActive ? themeC1 : themeC1))
                 } else {
                     Color.clear
                 }
@@ -425,10 +527,28 @@ struct TagesplanerView: View {
 
             // Spine: dot + continuing line
             VStack(spacing: 0) {
-                Circle()
-                    .fill(hasDuration ? themeC1 : themeC1.opacity(0.6))
-                    .frame(width: hasDuration ? 11 : 9, height: hasDuration ? 11 : 9)
-                    .padding(.top, 8)
+                ZStack {
+                    if task.isCompleted {
+                        Circle()
+                            .fill(Color.green.opacity(0.25))
+                            .frame(width: 14, height: 14)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(Color.green)
+                    } else if isActive {
+                        Circle()
+                            .fill(themeC1.opacity(0.2))
+                            .frame(width: 16, height: 16)
+                        Circle()
+                            .fill(themeC1)
+                            .frame(width: 8, height: 8)
+                    } else {
+                        Circle()
+                            .fill(hasDuration ? themeC1 : themeC1.opacity(0.6))
+                            .frame(width: hasDuration ? 11 : 9, height: hasDuration ? 11 : 9)
+                    }
+                }
+                .padding(.top, 8)
                 Rectangle()
                     .fill(lineColor)
                     .frame(width: 2)
@@ -437,10 +557,38 @@ struct TagesplanerView: View {
             .frame(width: 20)
 
             // Card
-            taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins)
+            taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins, isActive: isActive)
                 .padding(.leading, 10)
                 .padding(.bottom, 6)
                 .frame(maxWidth: .infinity)
+        }
+        .opacity(task.isCompleted ? 0.55 : 1.0)
+        .overlay(alignment: .topLeading) {
+            if isActive, hasDuration, let due = task.dueDate, let end = task.endDate {
+                let frac = min(max(CGFloat(now.timeIntervalSince(due) / end.timeIntervalSince(due)), 0), 1)
+                GeometryReader { geo in
+                    let y = frac * geo.size.height
+                    // Time label in the time column (44pt wide, right-aligned)
+                    Text(timeFmt.string(from: now))
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(themeC1)
+                        .frame(width: 44, alignment: .trailing)
+                        .offset(x: 0, y: y - 7)
+                    // Circle on the spine (spine starts at x=52)
+                    ZStack {
+                        Circle().fill(themeC1.opacity(0.25)).frame(width: 18, height: 18)
+                        Circle().fill(themeC1).frame(width: 9, height: 9)
+                    }
+                    .offset(x: 52, y: y - 9)
+                    // Horizontal line extending from spine into card area
+                    Rectangle()
+                        .fill(LinearGradient(colors: [themeC1, themeC1.opacity(0)],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(geo.size.width - 72, 0), height: 1.5)
+                        .offset(x: 72, y: y)
+                }
+                .allowsHitTesting(false)
+            }
         }
     }
 
@@ -479,18 +627,24 @@ struct TagesplanerView: View {
     }
 
     // Task card — compact row or stretched duration block
-    private func taskTreeCard(_ todo: TodoItem, hasDuration: Bool, durationMins: CGFloat) -> some View {
+    private func taskTreeCard(_ todo: TodoItem, hasDuration: Bool, durationMins: CGFloat, isActive: Bool = false) -> some View {
         let blockH: CGFloat = hasDuration ? max(durationMins * minsPerPt, 68) : 40
         let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+        let borderColor: Color = todo.isCompleted ? .green.opacity(0.35)
+                               : isActive         ? themeC1.opacity(0.6)
+                               :                    themeC1.opacity(0.28)
+        let bgColor: Color = todo.isCompleted ? .green.opacity(isDark ? 0.08 : 0.05)
+                           : isActive         ? themeC1.opacity(isDark ? 0.18 : 0.10)
+                           :                   themeC1.opacity(isDark ? 0.12 : 0.07)
 
         return Group {
             if hasDuration, let endDate = todo.endDate {
-                // Duration block: title top, end-time bottom
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top, spacing: 6) {
                         Text(todo.title)
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                            .strikethrough(todo.isCompleted, color: .secondary)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 4)
                         Button {
@@ -500,15 +654,23 @@ struct TagesplanerView: View {
                         } label: {
                             Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 17))
-                                .foregroundStyle(themeC1.opacity(todo.isCompleted ? 1.0 : 0.5))
+                                .foregroundStyle(todo.isCompleted ? Color.green : themeC1.opacity(0.5))
                         }
                         .buttonStyle(.plain)
                     }
                     Spacer(minLength: 4)
                     HStack(alignment: .bottom) {
-                        Text("bis \(timeFmt.string(from: endDate))")
-                            .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            if isActive {
+                                Circle().fill(themeC1).frame(width: 5, height: 5)
+                                Text("läuft")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(themeC1)
+                            }
+                            Text("bis \(timeFmt.string(from: endDate))")
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
                         Button { planningTodo = todo } label: {
                             Image(systemName: "pencil.circle")
@@ -521,11 +683,13 @@ struct TagesplanerView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 9)
                 .frame(maxWidth: .infinity, minHeight: blockH)
-                .background(themeC1.opacity(isDark ? 0.12 : 0.07), in: RoundedRectangle(cornerRadius: 11))
-                .overlay(RoundedRectangle(cornerRadius: 11).stroke(themeC1.opacity(0.28), lineWidth: 1.5))
+                .background(bgColor, in: RoundedRectangle(cornerRadius: 11))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 11)
+                        .stroke(borderColor, lineWidth: isActive ? 1.8 : 1.5)
+                )
 
             } else {
-                // Compact single row
                 HStack(spacing: 8) {
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -534,16 +698,21 @@ struct TagesplanerView: View {
                     } label: {
                         Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 17))
-                            .foregroundStyle(themeC1.opacity(todo.isCompleted ? 1.0 : 0.5))
+                            .foregroundStyle(todo.isCompleted ? Color.green : themeC1.opacity(0.5))
                     }
                     .buttonStyle(.plain)
 
                     Text(todo.title)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.88) : .primary)
+                        .strikethrough(todo.isCompleted, color: .secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 0)
+
+                    if isActive {
+                        Circle().fill(themeC1).frame(width: 6, height: 6)
+                    }
 
                     Button { planningTodo = todo } label: {
                         Image(systemName: "pencil.circle")
@@ -556,14 +725,15 @@ struct TagesplanerView: View {
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, minHeight: blockH)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(themeC1.opacity(0.12), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 10).fill(bgColor))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: isActive ? 1.5 : 1))
             }
         }
     }
 
     private func tasksForHours(_ hours: Range<Int>) -> [TodoItem] {
         todoStore.todos.filter { todo in
-            guard !todo.isCompleted, let due = todo.dueDate else { return false }
+            guard let due = todo.dueDate else { return false }
             guard cal.isDate(due, inSameDayAs: selectedDate) else { return false }
             return hours.contains(cal.component(.hour, from: due))
         }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
@@ -1392,8 +1562,10 @@ struct AufgabenUebersichtSheet: View {
 struct EinplanenSheet: View {
     let todo: TodoItem
     let onSave: (TodoItem) -> Void
+    var onDelete: (() -> Void)? = nil
 
     @Environment(\.dismiss) var dismiss
+    @State private var showDeleteConfirm = false
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @State private var editedTitle: String
@@ -1405,9 +1577,10 @@ struct EinplanenSheet: View {
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
-    init(todo: TodoItem, onSave: @escaping (TodoItem) -> Void) {
+    init(todo: TodoItem, onSave: @escaping (TodoItem) -> Void, onDelete: (() -> Void)? = nil) {
         self.todo = todo
         self.onSave = onSave
+        self.onDelete = onDelete
         _editedTitle = State(initialValue: todo.title)
         let cal = Calendar.current
         let base = todo.dueDate ?? Date()
@@ -1546,6 +1719,33 @@ struct EinplanenSheet: View {
                                                            startPoint: .leading, endPoint: .trailing))
                                 .foregroundStyle(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+
+                        if onDelete != nil {
+                            Button(role: .destructive) {
+                                showDeleteConfirm = true
+                            } label: {
+                                Label("Aufgabe löschen", systemImage: "trash")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(Color.red.opacity(isDark ? 0.18 : 0.10),
+                                                in: RoundedRectangle(cornerRadius: 14))
+                                    .foregroundStyle(Color.red)
+                                    .overlay(RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.red.opacity(0.25), lineWidth: 1))
+                            }
+                            .confirmationDialog("Aufgabe löschen?",
+                                               isPresented: $showDeleteConfirm,
+                                               titleVisibility: .visible) {
+                                Button("Löschen", role: .destructive) {
+                                    onDelete?()
+                                    dismiss()
+                                }
+                                Button("Abbrechen", role: .cancel) {}
+                            } message: {
+                                Text("\"\(todo.title)\" wird unwiderruflich gelöscht.")
+                            }
                         }
                     }
                     .padding(20)

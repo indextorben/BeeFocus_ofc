@@ -480,14 +480,9 @@ struct TodoListView: View {
                 return due >= currentMonthStart && due <= currentMonthEnd
             }()
 
-            // Show all when toggled
-            if showPastTasks {
-                return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth
-            }
-
-            // Default: hide completed
-            let isNotCompleted = !todo.isCompleted
-            return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth && isNotCompleted
+            // Completed tasks are always hidden in the main list
+            guard !todo.isCompleted else { return false }
+            return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth
         }
 
         // Deduplicate: keep first occurrence of each unique key
@@ -1557,8 +1552,9 @@ struct TodoListView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-                    .padding(.bottom, 90)
+                    .padding(.bottom, 16)
                 }
+                .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 80) }
             }
 
             VStack(spacing: 8) {
@@ -1939,8 +1935,9 @@ struct TodoListView: View {
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: sortedTodos.map { $0.id })
             .padding()
-            .padding(.bottom, 80)
+            .padding(.bottom, 16)
         }
+        .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 64) }
     }
     
     // MARK: - Helpers

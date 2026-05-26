@@ -15,6 +15,8 @@
 		4CAAF9462FC383530066FDCD /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CB7E88B5D4B788699D26E /* ManagedSettings.framework */; };
 		4CAAF9482FC383530066FDCD /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CAAF9472FC383530066FDCD /* ManagedSettingsUI.framework */; };
 		4CAAF9502FC383530066FDCD /* BeeFocusShieldExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4CAAF9452FC383530066FDCD /* BeeFocusShieldExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4CAAF9842FC4F3A10066FDCD /* BeeFocusWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4CAAF9832FC4F3A10066FDCD /* BeeFocusWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4CAAF9BF2FC4F45A0066FDCD /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CAAF9BE2FC4F45A0066FDCD /* WatchConnectivity.framework */; };
 		86B155A9361B45D786613AC8 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8D885247F580478E8C853ED3 /* FamilyControls.framework */; };
 		DF03D380025D4A078E8C6B13 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CB7E88B5D4B788699D26E /* ManagedSettings.framework */; };
 /* End PBXBuildFile section */
@@ -33,6 +35,41 @@
 			proxyType = 1;
 			remoteGlobalIDString = 4CAAF9442FC383530066FDCD;
 			remoteInfo = BeeFocusShieldExtension;
+		};
+		4CAAF96E2FC4F3A10066FDCD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4CAAF9602FC4F3A10066FDCD;
+			remoteInfo = BeeFocusWatch;
+		};
+		4CAAF9782FC4F3A10066FDCD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4CAAF9602FC4F3A10066FDCD;
+			remoteInfo = BeeFocusWatch;
+		};
+		4CAAF9852FC4F3A10066FDCD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4CAAF9822FC4F3A10066FDCD;
+			remoteInfo = "BeeFocusWatch Watch App";
+		};
+		4CAAF9932FC4F3A20066FDCD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4CAAF9822FC4F3A10066FDCD;
+			remoteInfo = "BeeFocusWatch Watch App";
+		};
+		4CAAF99D2FC4F3A20066FDCD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4CAAF9822FC4F3A10066FDCD;
+			remoteInfo = "BeeFocusWatch Watch App";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -59,6 +96,17 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4CAAF9A72FC4F3A20066FDCD /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				4CAAF9842FC4F3A10066FDCD /* BeeFocusWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +118,13 @@
 		4C63FC772EA12A540062E93F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		4CAAF9452FC383530066FDCD /* BeeFocusShieldExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeeFocusShieldExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4CAAF9472FC383530066FDCD /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
+		4CAAF9612FC4F3A10066FDCD /* BeeFocusWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocusWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAAF96D2FC4F3A10066FDCD /* BeeFocusWatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeeFocusWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAAF9772FC4F3A10066FDCD /* BeeFocusWatchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeeFocusWatchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAAF9832FC4F3A10066FDCD /* BeeFocusWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BeeFocusWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAAF9922FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BeeFocusWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAAF99C2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BeeFocusWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAAF9BE2FC4F45A0066FDCD /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
 		4CC00CF32F8F96EA002984B8 /* CategoryFallback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryFallback.swift; sourceTree = "<group>"; };
 		4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocus_ofc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F2CB7E88B5D4B788699D26E /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
@@ -142,6 +197,36 @@
 			path = Widget;
 			sourceTree = "<group>";
 		};
+		4CAAF9622FC4F3A10066FDCD /* BeeFocusWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BeeFocusWatch;
+			sourceTree = "<group>";
+		};
+		4CAAF9702FC4F3A10066FDCD /* BeeFocusWatchTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BeeFocusWatchTests;
+			sourceTree = "<group>";
+		};
+		4CAAF97A2FC4F3A10066FDCD /* BeeFocusWatchUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BeeFocusWatchUITests;
+			sourceTree = "<group>";
+		};
+		4CAAF9872FC4F3A10066FDCD /* BeeFocusWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "BeeFocusWatch Watch App";
+			sourceTree = "<group>";
+		};
+		4CAAF9952FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "BeeFocusWatch Watch AppTests";
+			sourceTree = "<group>";
+		};
+		4CAAF99F2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "BeeFocusWatch Watch AppUITests";
+			sourceTree = "<group>";
+		};
 		4CCA1DCF2DFF618A007F640D /* BeeFocus_ofc */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BeeFocus_ofc;
@@ -168,6 +253,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4CAAF95E2FC4F3A10066FDCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CAAF9BF2FC4F45A0066FDCD /* WatchConnectivity.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF96A2FC4F3A10066FDCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9742FC4F3A10066FDCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9802FC4F3A10066FDCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF98F2FC4F3A20066FDCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9992FC4F3A20066FDCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4CCA1DCA2DFF618A007F640D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -184,6 +312,7 @@
 		4C84FD8E2E1C561600DEF053 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4CAAF9BE2FC4F45A0066FDCD /* WatchConnectivity.framework */,
 				4C63FC752EA12A540062E93F /* WidgetKit.framework */,
 				4C63FC772EA12A540062E93F /* SwiftUI.framework */,
 				8D885247F580478E8C853ED3 /* FamilyControls.framework */,
@@ -210,6 +339,12 @@
 				4CCA1DCF2DFF618A007F640D /* BeeFocus_ofc */,
 				4C311F452FBA5B6200FC057E /* BeeFocusWidget */,
 				4CAAF9492FC383530066FDCD /* BeeFocusShieldExtension */,
+				4CAAF9622FC4F3A10066FDCD /* BeeFocusWatch */,
+				4CAAF9702FC4F3A10066FDCD /* BeeFocusWatchTests */,
+				4CAAF97A2FC4F3A10066FDCD /* BeeFocusWatchUITests */,
+				4CAAF9872FC4F3A10066FDCD /* BeeFocusWatch Watch App */,
+				4CAAF9952FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */,
+				4CAAF99F2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */,
 				4C84FD8E2E1C561600DEF053 /* Frameworks */,
 				4CAAF9562FC386210066FDCD /* Widget */,
 				4CCA1DCE2DFF618A007F640D /* Products */,
@@ -224,6 +359,12 @@
 				4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */,
 				4C311F422FBA5B6100FC057E /* BeeFocusWidgetExtension.appex */,
 				4CAAF9452FC383530066FDCD /* BeeFocusShieldExtension.appex */,
+				4CAAF9612FC4F3A10066FDCD /* BeeFocusWatch.app */,
+				4CAAF96D2FC4F3A10066FDCD /* BeeFocusWatchTests.xctest */,
+				4CAAF9772FC4F3A10066FDCD /* BeeFocusWatchUITests.xctest */,
+				4CAAF9832FC4F3A10066FDCD /* BeeFocusWatch Watch App.app */,
+				4CAAF9922FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests.xctest */,
+				4CAAF99C2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -276,6 +417,144 @@
 			productReference = 4CAAF9452FC383530066FDCD /* BeeFocusShieldExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		4CAAF9602FC4F3A10066FDCD /* BeeFocusWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CAAF9A82FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch" */;
+			buildPhases = (
+				4CAAF95D2FC4F3A10066FDCD /* Sources */,
+				4CAAF95E2FC4F3A10066FDCD /* Frameworks */,
+				4CAAF95F2FC4F3A10066FDCD /* Resources */,
+				4CAAF9A72FC4F3A20066FDCD /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CAAF9862FC4F3A10066FDCD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4CAAF9622FC4F3A10066FDCD /* BeeFocusWatch */,
+			);
+			name = BeeFocusWatch;
+			packageProductDependencies = (
+			);
+			productName = BeeFocusWatch;
+			productReference = 4CAAF9612FC4F3A10066FDCD /* BeeFocusWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4CAAF96C2FC4F3A10066FDCD /* BeeFocusWatchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CAAF9AB2FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatchTests" */;
+			buildPhases = (
+				4CAAF9692FC4F3A10066FDCD /* Sources */,
+				4CAAF96A2FC4F3A10066FDCD /* Frameworks */,
+				4CAAF96B2FC4F3A10066FDCD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CAAF96F2FC4F3A10066FDCD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4CAAF9702FC4F3A10066FDCD /* BeeFocusWatchTests */,
+			);
+			name = BeeFocusWatchTests;
+			packageProductDependencies = (
+			);
+			productName = BeeFocusWatchTests;
+			productReference = 4CAAF96D2FC4F3A10066FDCD /* BeeFocusWatchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4CAAF9762FC4F3A10066FDCD /* BeeFocusWatchUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CAAF9AE2FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatchUITests" */;
+			buildPhases = (
+				4CAAF9732FC4F3A10066FDCD /* Sources */,
+				4CAAF9742FC4F3A10066FDCD /* Frameworks */,
+				4CAAF9752FC4F3A10066FDCD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CAAF9792FC4F3A10066FDCD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4CAAF97A2FC4F3A10066FDCD /* BeeFocusWatchUITests */,
+			);
+			name = BeeFocusWatchUITests;
+			packageProductDependencies = (
+			);
+			productName = BeeFocusWatchUITests;
+			productReference = 4CAAF9772FC4F3A10066FDCD /* BeeFocusWatchUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		4CAAF9822FC4F3A10066FDCD /* BeeFocusWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CAAF9A42FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch Watch App" */;
+			buildPhases = (
+				4CAAF97F2FC4F3A10066FDCD /* Sources */,
+				4CAAF9802FC4F3A10066FDCD /* Frameworks */,
+				4CAAF9812FC4F3A10066FDCD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4CAAF9872FC4F3A10066FDCD /* BeeFocusWatch Watch App */,
+			);
+			name = "BeeFocusWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "BeeFocusWatch Watch App";
+			productReference = 4CAAF9832FC4F3A10066FDCD /* BeeFocusWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4CAAF9912FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CAAF9B12FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch Watch AppTests" */;
+			buildPhases = (
+				4CAAF98E2FC4F3A20066FDCD /* Sources */,
+				4CAAF98F2FC4F3A20066FDCD /* Frameworks */,
+				4CAAF9902FC4F3A20066FDCD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CAAF9942FC4F3A20066FDCD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4CAAF9952FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */,
+			);
+			name = "BeeFocusWatch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "BeeFocusWatch Watch AppTests";
+			productReference = 4CAAF9922FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4CAAF99B2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CAAF9B42FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch Watch AppUITests" */;
+			buildPhases = (
+				4CAAF9982FC4F3A20066FDCD /* Sources */,
+				4CAAF9992FC4F3A20066FDCD /* Frameworks */,
+				4CAAF99A2FC4F3A20066FDCD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CAAF99E2FC4F3A20066FDCD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4CAAF99F2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */,
+			);
+			name = "BeeFocusWatch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "BeeFocusWatch Watch AppUITests";
+			productReference = 4CAAF99C2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		4CCA1DCC2DFF618A007F640D /* BeeFocus_ofc */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4CCA1DD82DFF618B007F640D /* Build configuration list for PBXNativeTarget "BeeFocus_ofc" */;
@@ -319,6 +598,28 @@
 					4CAAF9442FC383530066FDCD = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
+					4CAAF9602FC4F3A10066FDCD = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					4CAAF96C2FC4F3A10066FDCD = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 4CAAF9602FC4F3A10066FDCD;
+					};
+					4CAAF9762FC4F3A10066FDCD = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 4CAAF9602FC4F3A10066FDCD;
+					};
+					4CAAF9822FC4F3A10066FDCD = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					4CAAF9912FC4F3A20066FDCD = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 4CAAF9822FC4F3A10066FDCD;
+					};
+					4CAAF99B2FC4F3A20066FDCD = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 4CAAF9822FC4F3A10066FDCD;
+					};
 					4CCA1DCC2DFF618A007F640D = {
 						CreatedOnToolsVersion = 16.4;
 					};
@@ -346,6 +647,12 @@
 				4CCA1DCC2DFF618A007F640D /* BeeFocus_ofc */,
 				4C311F412FBA5B6100FC057E /* BeeFocusWidgetExtension */,
 				4CAAF9442FC383530066FDCD /* BeeFocusShieldExtension */,
+				4CAAF9602FC4F3A10066FDCD /* BeeFocusWatch */,
+				4CAAF96C2FC4F3A10066FDCD /* BeeFocusWatchTests */,
+				4CAAF9762FC4F3A10066FDCD /* BeeFocusWatchUITests */,
+				4CAAF9822FC4F3A10066FDCD /* BeeFocusWatch Watch App */,
+				4CAAF9912FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */,
+				4CAAF99B2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -359,6 +666,48 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		4CAAF9432FC383530066FDCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF95F2FC4F3A10066FDCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF96B2FC4F3A10066FDCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9752FC4F3A10066FDCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9812FC4F3A10066FDCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9902FC4F3A20066FDCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF99A2FC4F3A20066FDCD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -390,6 +739,48 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4CAAF95D2FC4F3A10066FDCD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9692FC4F3A10066FDCD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9732FC4F3A10066FDCD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF97F2FC4F3A10066FDCD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF98E2FC4F3A20066FDCD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CAAF9982FC4F3A20066FDCD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4CCA1DC92DFF618A007F640D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -409,6 +800,31 @@
 			isa = PBXTargetDependency;
 			target = 4CAAF9442FC383530066FDCD /* BeeFocusShieldExtension */;
 			targetProxy = 4CAAF94E2FC383530066FDCD /* PBXContainerItemProxy */;
+		};
+		4CAAF96F2FC4F3A10066FDCD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4CAAF9602FC4F3A10066FDCD /* BeeFocusWatch */;
+			targetProxy = 4CAAF96E2FC4F3A10066FDCD /* PBXContainerItemProxy */;
+		};
+		4CAAF9792FC4F3A10066FDCD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4CAAF9602FC4F3A10066FDCD /* BeeFocusWatch */;
+			targetProxy = 4CAAF9782FC4F3A10066FDCD /* PBXContainerItemProxy */;
+		};
+		4CAAF9862FC4F3A10066FDCD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4CAAF9822FC4F3A10066FDCD /* BeeFocusWatch Watch App */;
+			targetProxy = 4CAAF9852FC4F3A10066FDCD /* PBXContainerItemProxy */;
+		};
+		4CAAF9942FC4F3A20066FDCD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4CAAF9822FC4F3A10066FDCD /* BeeFocusWatch Watch App */;
+			targetProxy = 4CAAF9932FC4F3A20066FDCD /* PBXContainerItemProxy */;
+		};
+		4CAAF99E2FC4F3A20066FDCD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4CAAF9822FC4F3A10066FDCD /* BeeFocusWatch Watch App */;
+			targetProxy = 4CAAF99D2FC4F3A20066FDCD /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -542,6 +958,318 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4CAAF9A52FC4F3A20066FDCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BeeFocusWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.4;
+			};
+			name = Debug;
+		};
+		4CAAF9A62FC4F3A20066FDCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BeeFocusWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.4;
+			};
+			name = Release;
+		};
+		4CAAF9A92FC4F3A20066FDCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BeeFocusWatch/BeeFocusWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BeeFocusWatch;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4CAAF9AA2FC4F3A20066FDCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BeeFocusWatch/BeeFocusWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BeeFocusWatch;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4CAAF9AC2FC4F3A20066FDCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatchTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BeeFocusWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BeeFocusWatch";
+			};
+			name = Debug;
+		};
+		4CAAF9AD2FC4F3A20066FDCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatchTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BeeFocusWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BeeFocusWatch";
+			};
+			name = Release;
+		};
+		4CAAF9AF2FC4F3A20066FDCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatchUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BeeFocusWatch;
+			};
+			name = Debug;
+		};
+		4CAAF9B02FC4F3A20066FDCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatchUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BeeFocusWatch;
+			};
+			name = Release;
+		};
+		4CAAF9B22FC4F3A20066FDCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BeeFocusWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BeeFocusWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.4;
+			};
+			name = Debug;
+		};
+		4CAAF9B32FC4F3A20066FDCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BeeFocusWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BeeFocusWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.4;
+			};
+			name = Release;
+		};
+		4CAAF9B52FC4F3A20066FDCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "BeeFocusWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.4;
+			};
+			name = Debug;
+		};
+		4CAAF9B62FC4F3A20066FDCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc.BeeFocusWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "BeeFocusWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.4;
 			};
 			name = Release;
 		};
@@ -773,6 +1501,60 @@
 			buildConfigurations = (
 				4CAAF9532FC383530066FDCD /* Debug */,
 				4CAAF9542FC383530066FDCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CAAF9A42FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CAAF9A52FC4F3A20066FDCD /* Debug */,
+				4CAAF9A62FC4F3A20066FDCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CAAF9A82FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CAAF9A92FC4F3A20066FDCD /* Debug */,
+				4CAAF9AA2FC4F3A20066FDCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CAAF9AB2FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CAAF9AC2FC4F3A20066FDCD /* Debug */,
+				4CAAF9AD2FC4F3A20066FDCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CAAF9AE2FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatchUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CAAF9AF2FC4F3A20066FDCD /* Debug */,
+				4CAAF9B02FC4F3A20066FDCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CAAF9B12FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CAAF9B22FC4F3A20066FDCD /* Debug */,
+				4CAAF9B32FC4F3A20066FDCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CAAF9B42FC4F3A20066FDCD /* Build configuration list for PBXNativeTarget "BeeFocusWatch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CAAF9B52FC4F3A20066FDCD /* Debug */,
+				4CAAF9B62FC4F3A20066FDCD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

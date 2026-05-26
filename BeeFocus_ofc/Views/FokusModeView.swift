@@ -2,6 +2,30 @@ import SwiftUI
 import FamilyControls
 import ManagedSettings
 
+// MARK: - Fokus Profile Presets
+
+struct FokusProfilePreset: Identifiable {
+    let id: String
+    let name: String
+    let icon: String
+    let color: Color
+    let goalMinutes: Int
+    let domains: [String]
+}
+
+private let fokusPresets: [FokusProfilePreset] = [
+    FokusProfilePreset(id: "deepwork",  name: "Deep Work",  icon: "brain.head.profile", color: .indigo,
+                       goalMinutes: 240, domains: ["instagram.com","tiktok.com","reddit.com","twitter.com","facebook.com","youtube.com"]),
+    FokusProfilePreset(id: "study",     name: "Lernen",     icon: "book.fill",           color: .blue,
+                       goalMinutes: 120, domains: ["instagram.com","tiktok.com","reddit.com","twitter.com","youtube.com"]),
+    FokusProfilePreset(id: "sprint",    name: "Sprint",     icon: "bolt.fill",           color: .orange,
+                       goalMinutes: 30,  domains: []),
+    FokusProfilePreset(id: "creative",  name: "Kreativ",    icon: "paintbrush.fill",     color: .pink,
+                       goalMinutes: 90,  domains: ["reddit.com","twitter.com","instagram.com"]),
+]
+
+// MARK: - FokusModeView
+
 @available(iOS 16, *)
 struct FokusModeView: View {
     @StateObject private var manager = FokusModeManager.shared
@@ -12,9 +36,11 @@ struct FokusModeView: View {
     @State private var wavePhase1: CGFloat = 0
     @State private var wavePhase2: CGFloat = 0
     @State private var liveSeconds: Int = 0
+    @State private var showingGoalPicker = false
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
+    @AppStorage("activePresetID") private var activePresetID: String = ""
 
     private static let zitate: [String] = [
         "Tiefe Arbeit ist der Superkraft der Zukunft.",
@@ -101,12 +127,19 @@ struct FokusModeView: View {
                     .offset(y: appeared ? 0 : 10)
                     .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
 
-                Spacer(minLength: 20)
+                Spacer(minLength: 12)
+
+                streakGoalRow
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 16)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.20), value: appeared)
+
+                Spacer(minLength: 12)
 
                 statsButton
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.22), value: appeared)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.24), value: appeared)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 10)
 
@@ -115,6 +148,11 @@ struct FokusModeView: View {
                     .offset(y: appeared ? 0 : 30)
                     .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: appeared)
                     .padding(.bottom, 20)
+            }
+        }
+        .sheet(isPresented: $showingGoalPicker) {
+            GoalPickerSheet(themeC1: activeGlowColor, currentMinutes: manager.dailyGoalMinutes) { mins in
+                manager.setGoalMinutes(mins)
             }
         }
         .familyActivityPicker(isPresented: $showingPicker, selection: $manager.selection)
@@ -334,6 +372,9 @@ struct FokusModeView: View {
             // Website blocking section
             websiteSection
 
+            // Schnellprofile
+            profilesRow
+
             // Main action button
             if manager.isAuthorized {
                 Button {
@@ -532,6 +573,195 @@ struct FokusModeView: View {
         }
         let key = manager.blockedDomains.count == 1 ? "fokus.domains_count" : "fokus.domains_count_plural"
         return String(format: NSLocalizedString(key, comment: ""), manager.blockedDomains.count)
+    }
+
+    // MARK: - Streak & Goal Row
+
+    private var streakGoalRow: some View {
+        HStack(spacing: 0) {
+            // Streak
+            HStack(spacing: 8) {
+                Text("🔥")
+                    .font(.system(size: 26))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(manager.currentStreak)")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(isDark ? .white : .primary)
+                    Text(manager.currentStreak == 1 ? "Tag Streak" : "Tage Streak")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+
+            Rectangle().fill(isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.08))
+                .frame(width: 1, height: 44)
+
+            // Daily goal progress
+            Button { showingGoalPicker = true } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .stroke(activeGlowColor.opacity(0.2), lineWidth: 5)
+                            .frame(width: 44, height: 44)
+                        Circle()
+                            .trim(from: 0, to: manager.todayProgress)
+                            .stroke(activeGlowColor,
+                                    style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 44, height: 44)
+                            .animation(.easeOut(duration: 0.6), value: manager.todayProgress)
+                        if manager.todayProgress >= 1.0 {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(activeGlowColor)
+                        } else {
+                            Text("\(Int(manager.todayProgress * 100))%")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(activeGlowColor)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Tagesziel")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Text(goalDisplayLabel)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(isDark ? .white : .primary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(activeGlowColor.opacity(0.15), lineWidth: 1))
+        .padding(.horizontal, 20)
+    }
+
+    private var goalDisplayLabel: String {
+        let h = manager.dailyGoalMinutes / 60
+        let m = manager.dailyGoalMinutes % 60
+        if h > 0 && m > 0 { return "\(h)h \(m)min" }
+        if h > 0 { return "\(h)h" }
+        return "\(m)min"
+    }
+
+    // MARK: - Profiles Row
+
+    private var profilesRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Schnellprofile")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                .padding(.leading, 2)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(fokusPresets) { preset in
+                        let isActive = activePresetID == preset.id
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                if isActive {
+                                    activePresetID = ""
+                                } else {
+                                    activePresetID = preset.id
+                                    manager.setGoalMinutes(preset.goalMinutes)
+                                    for domain in preset.domains { manager.addDomain(domain) }
+                                }
+                            }
+                        } label: {
+                            VStack(spacing: 5) {
+                                Image(systemName: preset.icon)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(isActive ? .white : preset.color)
+                                Text(preset.name)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(isActive ? .white : (isDark ? .white.opacity(0.85) : .primary))
+                                Text(presetGoalLabel(preset))
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(isActive ? .white.opacity(0.75) : .secondary)
+                            }
+                            .frame(width: 78)
+                            .padding(.vertical, 11)
+                            .background(
+                                isActive
+                                    ? AnyShapeStyle(preset.color)
+                                    : AnyShapeStyle(preset.color.opacity(isDark ? 0.18 : 0.10)),
+                                in: RoundedRectangle(cornerRadius: 14)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(preset.color.opacity(isActive ? 0 : 0.3), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private func presetGoalLabel(_ preset: FokusProfilePreset) -> String {
+        let h = preset.goalMinutes / 60
+        let m = preset.goalMinutes % 60
+        if h > 0 && m > 0 { return "\(h)h \(m)min" }
+        if h > 0 { return "\(h)h" }
+        return "\(m)min"
+    }
+}
+
+// MARK: - Goal Picker Sheet
+
+struct GoalPickerSheet: View {
+    let themeC1: Color
+    let currentMinutes: Int
+    let onSelect: (Int) -> Void
+
+    @Environment(\.dismiss) var dismiss
+
+    private let options: [(String, Int)] = [
+        ("30 Minuten",   30),
+        ("45 Minuten",   45),
+        ("1 Stunde",     60),
+        ("1,5 Stunden",  90),
+        ("2 Stunden",   120),
+        ("3 Stunden",   180),
+        ("4 Stunden",   240),
+        ("6 Stunden",   360),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            List(options, id: \.1) { label, mins in
+                Button {
+                    onSelect(mins)
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(label).foregroundStyle(.primary)
+                        Spacer()
+                        if currentMinutes == mins {
+                            Image(systemName: "checkmark").foregroundStyle(themeC1)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Tages-Fokusziel")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

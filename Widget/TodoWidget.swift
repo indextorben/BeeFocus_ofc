@@ -11,6 +11,35 @@ struct WidgetSnapshot: Codable {
     let focusMinutesToday: Int
     let topTasks: [WidgetTask]
     let activeTheme: String
+    let monthTasks: [WidgetTask]
+    let activeMonthLabel: String
+
+    init(dueTodayCount: Int, overdueCount: Int, completedTodayCount: Int,
+         totalOpenCount: Int, focusMinutesToday: Int, topTasks: [WidgetTask],
+         activeTheme: String, monthTasks: [WidgetTask] = [], activeMonthLabel: String = "") {
+        self.dueTodayCount = dueTodayCount
+        self.overdueCount = overdueCount
+        self.completedTodayCount = completedTodayCount
+        self.totalOpenCount = totalOpenCount
+        self.focusMinutesToday = focusMinutesToday
+        self.topTasks = topTasks
+        self.activeTheme = activeTheme
+        self.monthTasks = monthTasks
+        self.activeMonthLabel = activeMonthLabel
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        dueTodayCount      = try c.decode(Int.self, forKey: .dueTodayCount)
+        overdueCount       = try c.decode(Int.self, forKey: .overdueCount)
+        completedTodayCount = try c.decode(Int.self, forKey: .completedTodayCount)
+        totalOpenCount     = try c.decode(Int.self, forKey: .totalOpenCount)
+        focusMinutesToday  = try c.decode(Int.self, forKey: .focusMinutesToday)
+        topTasks           = try c.decode([WidgetTask].self, forKey: .topTasks)
+        activeTheme        = try c.decode(String.self, forKey: .activeTheme)
+        monthTasks         = (try? c.decode([WidgetTask].self, forKey: .monthTasks)) ?? []
+        activeMonthLabel   = (try? c.decode(String.self, forKey: .activeMonthLabel)) ?? ""
+    }
 
     static let placeholder = WidgetSnapshot(
         dueTodayCount: 3, overdueCount: 1, completedTodayCount: 2,

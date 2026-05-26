@@ -11,6 +11,8 @@ struct WidgetSnapshot: Codable {
     let focusMinutesToday: Int
     let topTasks: [WidgetTask]
     let activeTheme: String
+    let monthTasks: [WidgetTask]
+    let activeMonthLabel: String
 }
 
 struct WidgetTask: Codable, Identifiable {
@@ -34,9 +36,27 @@ extension TodoStore {
             return due >= today && due < tomorrow
         }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
 
+        let filterMonthOnly = UserDefaults.standard.bool(forKey: "filterCurrentMonthOnly")
+        let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today
+        let monthEnd   = cal.date(byAdding: DateComponents(month: 1, second: -1), to: monthStart) ?? today
+
+        // Active month for Watch: switch to next month if ≤10 days until month end
+        let firstDayOfNextMonth = cal.date(byAdding: .month, value: 1, to: monthStart) ?? today
+        let daysUntilNextMonth = cal.dateComponents([.day], from: today, to: firstDayOfNextMonth).day ?? 31
+        let showNextMonth = daysUntilNextMonth <= 10
+        let activeMonthStart = showNextMonth ? firstDayOfNextMonth : monthStart
+        let activeMonthEnd = cal.date(byAdding: DateComponents(month: 1, second: -1), to: activeMonthStart) ?? today
+
+        let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "de_DE")
+        fmt.dateFormat = "MMMM yyyy"
+        let activeMonthLabel = fmt.string(from: activeMonthStart).capitalized
+
         let overdueCount = todos.filter { todo in
             guard !todo.isCompleted, let due = todo.dueDate else { return false }
-            return due < today
+            guard due < today else { return false }
+            if filterMonthOnly { return due >= monthStart && due <= monthEnd }
+            return true
         }.count
 
         let completedToday = todos.filter { todo in
@@ -51,6 +71,14 @@ extension TodoStore {
             WidgetTask(id: $0.id, title: $0.title, isHighPriority: $0.priority == .high)
         }
 
+        let monthTasks = todos.filter { todo in
+            guard !todo.isCompleted, let due = todo.dueDate else { return false }
+            return due >= activeMonthStart && due <= activeMonthEnd
+        }
+        .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        .prefix(10)
+        .map { WidgetTask(id: $0.id, title: $0.title, isHighPriority: $0.priority == .high) }
+
         let snapshot = WidgetSnapshot(
             dueTodayCount: todayTodos.count,
             overdueCount: overdueCount,
@@ -58,7 +86,9 @@ extension TodoStore {
             totalOpenCount: todos.filter { !$0.isCompleted }.count,
             focusMinutesToday: focusToday,
             topTasks: topTasks,
-            activeTheme: activeTheme
+            activeTheme: activeTheme,
+            monthTasks: Array(monthTasks),
+            activeMonthLabel: activeMonthLabel
         )
 
         if let defaults = UserDefaults(suiteName: beeFocusAppGroup),

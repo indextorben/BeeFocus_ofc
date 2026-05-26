@@ -41,6 +41,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
 
+        PhoneSessionManager.shared.todoStore = todoStore
+        todoStore.writeWidgetSnapshot()
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.todoStore.writeWidgetSnapshot()
+            PhoneSessionManager.shared.applyPendingWatchCompletions()
+        }
+
         CloudSettingsSync.shared.start()
 
         NotificationManager.shared.requestAuthorization { granted in

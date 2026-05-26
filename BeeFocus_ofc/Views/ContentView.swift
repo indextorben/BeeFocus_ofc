@@ -127,19 +127,16 @@ struct ContentView: View {
             CloudKitManager.shared.runDiagnosticsOnLaunch()
             CloudKitManager.shared.fetchTodos { cloudTodos in
                 if !cloudTodos.isEmpty {
-                    // Cloud ist Quelle der Wahrheit: mit Cloud mergen/ersetzen
                     todoStore.mergeFromCloud(cloudTodos)
                 } else {
-                    // Cloud ist leer: lokale Daten nicht überschreiben
-                    // Einmaliges Seeding: Nur wenn lokal Daten vorhanden sind und noch nicht geseedet wurde
                     if !todoStore.todos.isEmpty && !didSeedCloud {
                         CloudKitManager.shared.uploadTodosIfNeeded(from: todoStore)
                         didSeedCloud = true
                     } else {
-                        // Nichts tun: lokale Daten sichtbar lassen
                         print("ℹ️ Cloud leer. Lokale Daten bleiben erhalten. didSeedCloud=\(didSeedCloud)")
                     }
                 }
+                todoStore.writeWidgetSnapshot()
             }
             CloudKitManager.shared.fetchDailyStats { cloudDaily in
                 todoStore.applyDailyStatsFromCloud(cloudDaily)
@@ -256,6 +253,7 @@ struct ContentView: View {
             if newPhase == .active {
                 CloudKitManager.shared.fetchTodos { cloudTodos in
                     todoStore.mergeFromCloud(cloudTodos)
+                    todoStore.writeWidgetSnapshot()
                 }
                 CloudKitManager.shared.fetchDailyStats { cloudDaily in
                     todoStore.applyDailyStatsFromCloud(cloudDaily)

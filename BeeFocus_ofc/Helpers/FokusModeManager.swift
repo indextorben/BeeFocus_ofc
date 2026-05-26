@@ -28,6 +28,8 @@ class FokusModeManager: ObservableObject {
         if let stored = UserDefaults.standard.dictionary(forKey: "focusDailySeconds") as? [String: Int] {
             dailyFocusSeconds = stored
         }
+        let storedGoal = UserDefaults.standard.integer(forKey: "focusDailyGoalMinutes")
+        dailyGoalMinutes = storedGoal > 0 ? storedGoal : 120
         if isFocusModeActive,
            let ts = UserDefaults.standard.object(forKey: "focusStartTime") as? Double {
             focusStartTime = Date(timeIntervalSince1970: ts)
@@ -114,6 +116,67 @@ class FokusModeManager: ObservableObject {
     }
 
     var currentSessionStart: Date? { focusStartTime }
+
+    // MARK: - Goal & Streak
+
+    @Published var dailyGoalMinutes: Int = 120
+
+    func setGoalMinutes(_ minutes: Int) {
+        dailyGoalMinutes = minutes
+        UserDefaults.standard.set(minutes, forKey: "focusDailyGoalMinutes")
+        iCloud.set(minutes, forKey: "focusDailyGoalMinutes")
+        iCloud.synchronize()
+    }
+
+    var todayProgress: Double {
+        guard dailyGoalMinutes > 0 else { return 0 }
+        var total = todaySeconds
+        if isFocusModeActive, let start = focusStartTime {
+            total += Int(Date().timeIntervalSince(start))
+        }
+        return min(1.0, Double(total) / Double(dailyGoalMinutes * 60))
+    }
+
+    var currentStreak: Int {
+        let minSecs = 1800
+        let cal = Calendar.current
+        var day = cal.startOfDay(for: Date())
+        var todayTotal = todaySeconds
+        if isFocusModeActive, let start = focusStartTime {
+            todayTotal += Int(Date().timeIntervalSince(start))
+        }
+        if todayTotal < minSecs {
+            day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+        }
+        var streak = 0
+        for _ in 0..<365 {
+            if (dailyFocusSeconds[dateKey(for: day)] ?? 0) >= minSecs {
+                streak += 1
+                day = cal.date(byAdding: .day, value: -1, to: day) ?? day
+            } else { break }
+        }
+        return streak
+    }
+
+    var longestStreak: Int {
+        let minSecs = 1800
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        let cal = Calendar.current
+        let sorted = dailyFocusSeconds.keys.sorted().compactMap { k -> (Date, Int)? in
+            guard let d = fmt.date(from: k) else { return nil }
+            return (d, dailyFocusSeconds[k] ?? 0)
+        }
+        var best = 0, cur = 0
+        var prev: Date? = nil
+        for (date, secs) in sorted {
+            if secs >= minSecs {
+                if let p = prev, cal.dateComponents([.day], from: p, to: date).day == 1 { cur += 1 }
+                else { cur = 1 }
+                best = max(best, cur); prev = date
+            } else { cur = 0; prev = nil }
+        }
+        return best
+    }
 
     // MARK: - Authorization
 

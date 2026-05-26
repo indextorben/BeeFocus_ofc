@@ -47,8 +47,9 @@ struct FokusStatistikView: View {
     }
 
     private var goalProgress: Double {
-        guard dailyGoal > 0 else { return 0 }
-        return min(1.0, Double(todayTotal) / Double(dailyGoal * 60))
+        let goal = manager.dailyGoalMinutes > 0 ? manager.dailyGoalMinutes : dailyGoal
+        guard goal > 0 else { return 0 }
+        return min(1.0, Double(todayTotal) / Double(goal * 60))
     }
 
     private var lastWeekSeconds: Int {
@@ -71,9 +72,6 @@ struct FokusStatistikView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 18) {
                     topCards
-                    if dailyGoalEnabled || fokusStreakEnabled {
-                        bonusCards
-                    }
                     if wochenrueckblickEnabled {
                         wochenrueckblickCard
                     }
@@ -154,12 +152,8 @@ struct FokusStatistikView: View {
 
     private var bonusCards: some View {
         HStack(spacing: 14) {
-            if fokusStreakEnabled {
-                streakCard
-            }
-            if dailyGoalEnabled {
-                goalCard
-            }
+            streakCard
+            goalCard
         }
     }
 
@@ -225,7 +219,7 @@ struct FokusStatistikView: View {
             }
             .frame(width: 60, height: 60)
             .frame(maxWidth: .infinity)
-            Text("\(dailyGoal) min Ziel")
+            Text("\(manager.dailyGoalMinutes > 0 ? manager.dailyGoalMinutes : dailyGoal) min Ziel")
                 .font(.caption)
                 .foregroundStyle(Color.mint.opacity(0.9))
         }
