@@ -226,6 +226,9 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "envelope.fill", label: localizer.localizedString(forKey: "Feedback / Verbesserungen"), color: .teal) {
                             feedbackCard
                         }
+                        sectionGroup(icon: "person.fill", label: "Entwickler", color: .blue) {
+                            profilLinkCard
+                        }
 
                         versionCard
                             .padding(.top, 8)
@@ -733,6 +736,32 @@ struct EinstellungenView: View {
             iconButtonRow(icon: "envelope.fill", color: .blue, label: localizer.localizedString(forKey: "Verbesserungen")) {
                 sendFeedbackEmail()
             }
+        }
+    }
+
+    private var profilLinkCard: some View {
+        glassCard {
+            NavigationLink(destination: ProfilView()) {
+                HStack(spacing: 12) {
+                    iconBadge(icon: "person.fill", color: .blue)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Mein Profil")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.primary)
+                        Text("Instagram, E-Mail & mehr")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.quaternary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 

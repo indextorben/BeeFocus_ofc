@@ -18,6 +18,7 @@ struct TagesplanerView: View {
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
     @State private var now: Date = Date()
+    @State private var showingBausteinPicker = false
 
     init(initialDate: Date = Date()) {
         _selectedDate = State(initialValue: Calendar.current.startOfDay(for: initialDate))
@@ -77,6 +78,9 @@ struct TagesplanerView: View {
                     CalendarView().environmentObject(todoStore)
                 } label: {
                     Image(systemName: "calendar.badge.clock")
+                }
+                Button { showingBausteinPicker = true } label: {
+                    Image(systemName: "square.3.layers.3d.fill")
                 }
                 Menu {
                     Button {
@@ -149,6 +153,11 @@ struct TagesplanerView: View {
                 }
             )
             .environmentObject(todoStore)
+        }
+        .sheet(isPresented: $showingBausteinPicker) {
+            BausteinPickerSheet(datum: selectedDate) { baustein in
+                todoStore.addTodo(baustein.todoItem(fuer: selectedDate))
+            }
         }
         .sheet(isPresented: $showingShareSheet) {
             ActivityShareSheet(items: shareItems)

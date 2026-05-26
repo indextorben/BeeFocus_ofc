@@ -2,28 +2,6 @@ import SwiftUI
 import FamilyControls
 import ManagedSettings
 
-// MARK: - Fokus Profile Presets
-
-struct FokusProfilePreset: Identifiable {
-    let id: String
-    let name: String
-    let icon: String
-    let color: Color
-    let goalMinutes: Int
-    let domains: [String]
-}
-
-private let fokusPresets: [FokusProfilePreset] = [
-    FokusProfilePreset(id: "deepwork",  name: "Deep Work",  icon: "brain.head.profile", color: .indigo,
-                       goalMinutes: 240, domains: ["instagram.com","tiktok.com","reddit.com","twitter.com","facebook.com","youtube.com"]),
-    FokusProfilePreset(id: "study",     name: "Lernen",     icon: "book.fill",           color: .blue,
-                       goalMinutes: 120, domains: ["instagram.com","tiktok.com","reddit.com","twitter.com","youtube.com"]),
-    FokusProfilePreset(id: "sprint",    name: "Sprint",     icon: "bolt.fill",           color: .orange,
-                       goalMinutes: 30,  domains: []),
-    FokusProfilePreset(id: "creative",  name: "Kreativ",    icon: "paintbrush.fill",     color: .pink,
-                       goalMinutes: 90,  domains: ["reddit.com","twitter.com","instagram.com"]),
-]
-
 // MARK: - FokusModeView
 
 @available(iOS 16, *)
@@ -40,7 +18,6 @@ struct FokusModeView: View {
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
-    @AppStorage("activePresetID") private var activePresetID: String = ""
 
     private static let zitate: [String] = [
         "Tiefe Arbeit ist der Superkraft der Zukunft.",
@@ -126,13 +103,6 @@ struct FokusModeView: View {
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 10)
                     .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
-
-                Spacer(minLength: 12)
-
-                streakGoalRow
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 16)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.20), value: appeared)
 
                 Spacer(minLength: 12)
 
@@ -371,9 +341,6 @@ struct FokusModeView: View {
 
             // Website blocking section
             websiteSection
-
-            // Schnellprofile
-            profilesRow
 
             // Main action button
             if manager.isAuthorized {
@@ -650,70 +617,6 @@ struct FokusModeView: View {
         return "\(m)min"
     }
 
-    // MARK: - Profiles Row
-
-    private var profilesRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Schnellprofile")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
-                .padding(.leading, 2)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(fokusPresets) { preset in
-                        let isActive = activePresetID == preset.id
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                if isActive {
-                                    activePresetID = ""
-                                } else {
-                                    activePresetID = preset.id
-                                    manager.setGoalMinutes(preset.goalMinutes)
-                                    for domain in preset.domains { manager.addDomain(domain) }
-                                }
-                            }
-                        } label: {
-                            VStack(spacing: 5) {
-                                Image(systemName: preset.icon)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(isActive ? .white : preset.color)
-                                Text(preset.name)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(isActive ? .white : (isDark ? .white.opacity(0.85) : .primary))
-                                Text(presetGoalLabel(preset))
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(isActive ? .white.opacity(0.75) : .secondary)
-                            }
-                            .frame(width: 78)
-                            .padding(.vertical, 11)
-                            .background(
-                                isActive
-                                    ? AnyShapeStyle(preset.color)
-                                    : AnyShapeStyle(preset.color.opacity(isDark ? 0.18 : 0.10)),
-                                in: RoundedRectangle(cornerRadius: 14)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(preset.color.opacity(isActive ? 0 : 0.3), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-        }
-        .padding(.horizontal, 20)
-    }
-
-    private func presetGoalLabel(_ preset: FokusProfilePreset) -> String {
-        let h = preset.goalMinutes / 60
-        let m = preset.goalMinutes % 60
-        if h > 0 && m > 0 { return "\(h)h \(m)min" }
-        if h > 0 { return "\(h)h" }
-        return "\(m)min"
-    }
 }
 
 // MARK: - Goal Picker Sheet

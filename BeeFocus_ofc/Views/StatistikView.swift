@@ -225,6 +225,8 @@ struct StatistikView: View {
                   beschreibung: "Zeigt ein motivierendes Zitat während des Fokusmodus – täglich neu"),
         StoreItem(name: "Wochenrückblick",    icon: "chart.bar.doc.horizontal", kosten: 1200, farbe: Color(red: 0.4, green: 0.6, blue: 1.0), tab: .features,
                   beschreibung: "Vergleich dieser Woche mit der letzten – sieh deinen Fortschritt auf einen Blick"),
+        StoreItem(name: "Abzeichen-System",   icon: "medal.fill",               kosten: 2000, farbe: Color(red: 0.6, green: 0.3, blue: 0.9), tab: .features,
+                  beschreibung: "Schalte 21 Abzeichen frei & verdiene bis zu 5.675 Bonus-FP – für Fokus, Streaks, Aufgaben und mehr"),
     ]}
 
     // MARK: - Gefilterter Basis-Datensatz (respektiert "Nur diesen Monat")
@@ -329,15 +331,41 @@ struct StatistikView: View {
         return streak
     }
 
+    private func computeLongestStreak() -> Int {
+        let cal = Calendar.current
+        let sortedDays = todoStore.dailyStats.keys.sorted()
+        var best = 0, cur = 0
+        var prevDay: Date? = nil
+        for day in sortedDays {
+            if (todoStore.dailyStats[day] ?? 0) > 0 {
+                if let prev = prevDay,
+                   cal.dateComponents([.day], from: prev, to: day).day == 1 {
+                    cur += 1
+                } else {
+                    cur = 1
+                }
+                best = max(best, cur)
+                prevDay = day
+            } else {
+                cur = 0; prevDay = nil
+            }
+        }
+        return best
+    }
+
     // MARK: - Fokuspunkte System
 
     // Live-berechneter Wert — dient nur zum Ermitteln neuer Punkte
     private var fokuspunkteAktuellBerechnet: Int {
-        completedTasks * 10
-        + totalFocusMinutesAll * 2
-        + currentStreak * 50
-        + todoStore.todos.filter { $0.isFavorite }.count * 5
-        + todoStore.todos.filter { $0.isRecurring }.count * 3
+        var pts = completedTasks * 10
+            + totalFocusMinutesAll * 2
+            + currentStreak * 50
+            + todoStore.todos.filter { $0.isFavorite }.count * 5
+            + todoStore.todos.filter { $0.isRecurring }.count * 3
+        if #available(iOS 16, *) {
+            pts += FokusModeManager.shared.achievementBonusPunkte
+        }
+        return pts
     }
 
     // Gesamtpunkte steigen nie automatisch — nur Käufe reduzieren das Guthaben
@@ -443,6 +471,23 @@ struct StatistikView: View {
                             }
                         }
 
+                        // Abzeichen (nur wenn freigeschaltet)
+                        if freigeschalteteItems.contains("Abzeichen-System") {
+                            animatedSection(delay: 0.32) {
+                                sectionGroup(icon: "medal.fill", label: "Abzeichen", color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
+                                    glassCard {
+                                        Group {
+                                            if #available(iOS 16, *) {
+                                                NavigationLink(destination: FokusAchievementsView()) {
+                                                    iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: "Alle Abzeichen ansehen")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // Heatmap (nur wenn freigeschaltet)
                         if freigeschalteteItems.contains("Aktivitäts-Heatmap") {
                             animatedSection(delay: 0.33) {
@@ -490,6 +535,27 @@ struct StatistikView: View {
             withAnimation(.easeOut(duration: 0.5).delay(0.3)) { sectionsAppeared = true }
             if fokuspunkteAktuellBerechnet > fokuspunktePeak {
                 fokuspunktePeak = fokuspunkteAktuellBerechnet
+            }
+            if #available(iOS 16, *) {
+                let cal = Calendar.current
+                let longestStrk = computeLongestStreak()
+                let weekendFokus = todoStore.dailyFocusMinutes.contains { date, mins in
+                    mins > 0 && (cal.component(.weekday, from: date) == 1 || cal.component(.weekday, from: date) == 7)
+                }
+                let goalMet = todoStore.dailyFocusMinutes.values.filter { $0 >= dailyGoal }.count
+                let fokustage = todoStore.dailyFocusMinutes.values.filter { $0 > 0 }.count
+                let ctx = AchievementContext(
+                    totalSekunden: totalFocusMinutesAll * 60,
+                    maxTagesSekunden: (todoStore.dailyFocusMinutes.values.max() ?? 0) * 60,
+                    currentStreak: currentStreak,
+                    longestStreak: longestStrk,
+                    completedTasks: completedTasks,
+                    freigeschalteteCount: freigeschalteteItems.count,
+                    weekendFokus: weekendFokus,
+                    goalReachedCount: goalMet,
+                    totalFokustage: fokustage
+                )
+                FokusModeManager.shared.checkAchievements(context: ctx)
             }
             withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
                 wavePhase1 = .pi * 2
@@ -566,7 +632,37 @@ struct StatistikView: View {
                     }
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    Text("Aktuell \(storeItems.count) Themes verfügbar – neue kommen mit App-Updates.")
+                    // Erklärung Abzeichen-System
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Abzeichen-System", systemImage: "medal.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color(red: 0.6, green: 0.3, blue: 0.9))
+                        Text("Schalte das Abzeichen-System im Store für 2.000 FP frei. Für jedes verdiente Abzeichen erhältst du einmalig Bonus-Fokuspunkte – bis zu 5.675 FP insgesamt.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    VStack(spacing: 0) {
+                        fpInfoRow(icon: "timer",                  color: .cyan,
+                                  title: "Fokuszeit-Abzeichen",   points: "25–1200 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "flame.fill",             color: .orange,
+                                  title: "Streak-Abzeichen",      points: "75–1000 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "checkmark.circle.fill",  color: .green,
+                                  title: "Aufgaben-Abzeichen",    points: "25–500 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "star.fill",              color: .purple,
+                                  title: "Spezial-Abzeichen",     points: "50–300 FP")
+                        Divider().padding(.leading, 52)
+                        fpInfoRow(icon: "crown.fill",             color: Color(red: 1.0, green: 0.75, blue: 0.0),
+                                  title: "Alle 32 Abzeichen",     points: "bis +19.100 FP")
+                    }
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    Text("Aktuell \(storeItems.count) Items verfügbar – neue kommen mit App-Updates.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -603,6 +699,29 @@ struct StatistikView: View {
             Text(points)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    private func iconNavRow(icon: String, color: Color, label: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(
+                    LinearGradient(colors: [color, color.opacity(0.75)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+                .shadow(color: color.opacity(0.35), radius: 3, x: 0, y: 2)
+            Text(label)
+                .font(.system(size: 15))
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)

@@ -72,6 +72,8 @@ struct FokusStatistikView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 18) {
                     topCards
+                    bonusCards
+                    achievementsCard
                     if wochenrueckblickEnabled {
                         wochenrueckblickCard
                     }
@@ -226,6 +228,109 @@ struct FokusStatistikView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .themeGlass(cornerRadius: 18)
+    }
+
+    // MARK: - Achievements Card
+
+    private var achievementsCard: some View {
+        let total    = FokusAchievement.all.count
+        let unlocked = manager.unlockedAchievementIDs.count
+        let bonus    = manager.achievementBonusPunkte
+        let progress = total > 0 ? CGFloat(unlocked) / CGFloat(total) : 0
+        let recentUnlocked = FokusAchievement.all
+            .filter { manager.unlockedAchievementIDs.contains($0.id) }
+            .prefix(5)
+
+        return NavigationLink(destination: FokusAchievementsView()) {
+            VStack(alignment: .leading, spacing: 14) {
+                // Header
+                HStack {
+                    Image(systemName: "medal.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(themeC1)
+                    Text("Abzeichen")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(isDark ? .white.opacity(0.25) : Color.secondary.opacity(0.4))
+                }
+
+                HStack(spacing: 16) {
+                    // Progress Ring
+                    ZStack {
+                        Circle()
+                            .stroke(themeC1.opacity(0.15), lineWidth: 6)
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(
+                                LinearGradient(colors: [themeC1, themeC2],
+                                               startPoint: .leading, endPoint: .trailing),
+                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.5), value: progress)
+                        VStack(spacing: 1) {
+                            Text("\(unlocked)")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundStyle(isDark ? .white : .primary)
+                            Text("/\(total)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                        }
+                    }
+                    .frame(width: 56, height: 56)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(unlocked == 0
+                             ? "Noch keine Abzeichen"
+                             : unlocked == total
+                                ? "Alle Abzeichen freigeschaltet! 🎉"
+                                : "\(unlocked) von \(total) freigeschaltet")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(isDark ? .white : .primary)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(themeC1)
+                            Text(bonus > 0 ? "+\(bonus) FP Bonus" : "Abzeichen verdienen = FP erhalten")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(bonus > 0 ? themeC1 : (isDark ? .white.opacity(0.4) : .secondary))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(themeC1.opacity(0.1), in: Capsule())
+
+                        // Recent achievement icons
+                        if !recentUnlocked.isEmpty {
+                            HStack(spacing: 6) {
+                                ForEach(Array(recentUnlocked)) { a in
+                                    ZStack {
+                                        Circle()
+                                            .fill(a.farbe.opacity(0.18))
+                                            .frame(width: 26, height: 26)
+                                        Image(systemName: a.icon)
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundStyle(a.farbe)
+                                    }
+                                }
+                                if unlocked > 5 {
+                                    Text("+\(unlocked - 5)")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .themeGlass(cornerRadius: 18)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Wochenrückblick

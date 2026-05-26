@@ -6,6 +6,7 @@ struct WebsiteSettingsView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @State private var showingAddDomain = false
     @State private var newDomain = ""
+    @State private var expandedCategories: Set<UUID> = []
     @Environment(\.colorScheme) var colorScheme
 
     var isDark: Bool { colorScheme == .dark }
@@ -62,60 +63,129 @@ struct WebsiteSettingsView: View {
         let allAdded = category.domains.allSatisfy { manager.blockedDomains.contains($0) }
         let someAdded = category.domains.contains { manager.blockedDomains.contains($0) }
         let addedCount = category.domains.filter { manager.blockedDomains.contains($0) }.count
+        let isExpanded = expandedCategories.contains(category.id)
 
-        return HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(category.color.opacity(0.20))
-                    .frame(width: 46, height: 46)
-                Image(systemName: category.icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(category.color)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(category.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(isDark ? .white : .primary)
-                Text(allAdded
-                     ? "Alle \(category.domains.count) gesperrt"
-                     : someAdded
-                        ? "\(addedCount) von \(category.domains.count) gesperrt"
-                        : "\(category.domains.count) Domains")
-                    .font(.caption)
-                    .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
-            }
-
-            Spacer()
-
+        return VStack(spacing: 0) {
+            // Header row
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    if allAdded {
-                        category.domains.forEach { manager.removeDomain($0) }
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    if isExpanded {
+                        expandedCategories.remove(category.id)
                     } else {
-                        category.domains.forEach { manager.addDomain($0) }
+                        expandedCategories.insert(category.id)
                     }
                 }
             } label: {
-                Text(allAdded ? "Entfernen" : "Hinzufügen")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(allAdded ? Color.red.opacity(0.15) : category.color.opacity(0.18))
-                    .foregroundStyle(allAdded ? .red : category.color)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(
-                        allAdded ? Color.red.opacity(0.35) : category.color.opacity(0.35),
-                        lineWidth: 1
-                    ))
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(category.color.opacity(0.20))
+                            .frame(width: 46, height: 46)
+                        Image(systemName: category.icon)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(category.color)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(category.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(isDark ? .white : .primary)
+                        Text(allAdded
+                             ? "Alle \(category.domains.count) gesperrt"
+                             : someAdded
+                                ? "\(addedCount) von \(category.domains.count) gesperrt"
+                                : "\(category.domains.count) Domains")
+                            .font(.caption)
+                            .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(isDark ? .white.opacity(0.3) : Color.secondary.opacity(0.5))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if allAdded {
+                                category.domains.forEach { manager.removeDomain($0) }
+                            } else {
+                                category.domains.forEach { manager.addDomain($0) }
+                            }
+                        }
+                    } label: {
+                        Text(allAdded ? "Entfernen" : "Alle")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(allAdded ? Color.red.opacity(0.15) : category.color.opacity(0.18))
+                            .foregroundStyle(allAdded ? .red : category.color)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(
+                                allAdded ? Color.red.opacity(0.35) : category.color.opacity(0.35),
+                                lineWidth: 1
+                            ))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Expanded domain list
+            if isExpanded {
+                Divider()
+                    .background(category.color.opacity(0.2))
+                    .padding(.horizontal, 12)
+
+                VStack(spacing: 0) {
+                    ForEach(category.domains, id: \.self) { domain in
+                        let isBlocked = manager.blockedDomains.contains(domain)
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                if isBlocked {
+                                    manager.removeDomain(domain)
+                                } else {
+                                    manager.addDomain(domain)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: isBlocked ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(isBlocked ? category.color : (isDark ? .white.opacity(0.25) : Color.secondary.opacity(0.4)))
+                                    .frame(width: 20)
+                                Text(domain)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(isBlocked ? (isDark ? .white.opacity(0.9) : .primary) : (isDark ? .white.opacity(0.5) : Color.secondary))
+                                    .strikethrough(isBlocked, color: (isDark ? .white.opacity(0.3) : Color.secondary.opacity(0.4)))
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        if domain != category.domains.last {
+                            Divider()
+                                .background(category.color.opacity(0.08))
+                                .padding(.horizontal, 16)
+                        }
+                    }
+                }
+                .padding(.bottom, 4)
             }
         }
-        .padding(14)
         .themeGlass(cornerRadius: 16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(someAdded ? category.color.opacity(0.45) : Color.clear, lineWidth: 1.5)
         )
+        .clipped()
     }
 
     // MARK: - Manual Domains Section

@@ -12,6 +12,7 @@ class FokusModeManager: ObservableObject {
     @Published var selection = FamilyActivitySelection()
     @Published var blockedDomains: [String] = []
     @Published var dailyFocusSeconds: [String: Int] = [:]
+    @Published var unlockedAchievementIDs: Set<String> = []
 
     private let store = ManagedSettingsStore()
     private let iCloud = NSUbiquitousKeyValueStore.default
@@ -27,6 +28,9 @@ class FokusModeManager: ObservableObject {
         blockedDomains = UserDefaults.standard.stringArray(forKey: "focusModeBlockedDomains") ?? []
         if let stored = UserDefaults.standard.dictionary(forKey: "focusDailySeconds") as? [String: Int] {
             dailyFocusSeconds = stored
+        }
+        if let saved = UserDefaults.standard.stringArray(forKey: "unlockedAchievements") {
+            unlockedAchievementIDs = Set(saved)
         }
         let storedGoal = UserDefaults.standard.integer(forKey: "focusDailyGoalMinutes")
         dailyGoalMinutes = storedGoal > 0 ? storedGoal : 120
@@ -59,6 +63,15 @@ class FokusModeManager: ObservableObject {
                 if value > current { dailyFocusSeconds[key] = value; changed = true }
             }
             if changed { UserDefaults.standard.set(dailyFocusSeconds, forKey: "focusDailySeconds") }
+        }
+
+        // Freigeschaltete Achievements: Vereinigung beider Geräte
+        if let remote = iCloud.array(forKey: "unlockedAchievements") as? [String] {
+            let merged = unlockedAchievementIDs.union(Set(remote))
+            if merged != unlockedAchievementIDs {
+                unlockedAchievementIDs = merged
+                UserDefaults.standard.set(Array(merged), forKey: "unlockedAchievements")
+            }
         }
 
         // Gesperrte Domains: Vereinigung beider Geräte
@@ -275,6 +288,58 @@ class FokusModeManager: ObservableObject {
         UserDefaults.standard.set(dailyFocusSeconds, forKey: "focusDailySeconds")
         iCloud.set(dailyFocusSeconds, forKey: "focusDailySeconds")
         iCloud.synchronize()
+    }
+
+    // MARK: - Achievements
+
+    var maxTagesSekunden: Int {
+        dailyFocusSeconds.values.max() ?? 0
+    }
+
+    var totalFokustage: Int {
+        dailyFocusSeconds.values.filter { $0 > 0 }.count
+    }
+
+    var weekendFokus: Bool {
+        let cal = Calendar.current
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        return dailyFocusSeconds.keys.contains { key in
+            guard let date = fmt.date(from: key),
+                  (dailyFocusSeconds[key] ?? 0) > 0 else { return false }
+            let weekday = cal.component(.weekday, from: date)
+            return weekday == 1 || weekday == 7
+        }
+    }
+
+    func goalReachedCount(goalMinutes: Int) -> Int {
+        guard goalMinutes > 0 else { return 0 }
+        return dailyFocusSeconds.values.filter { $0 >= goalMinutes * 60 }.count
+    }
+
+    @discardableResult
+    func checkAchievements(context: AchievementContext) -> [FokusAchievement] {
+        var newlyUnlocked: [FokusAchievement] = []
+        for achievement in FokusAchievement.all {
+            guard !unlockedAchievementIDs.contains(achievement.id) else { continue }
+            if achievement.isUnlocked(context) {
+                unlockedAchievementIDs.insert(achievement.id)
+                newlyUnlocked.append(achievement)
+            }
+        }
+        if !newlyUnlocked.isEmpty {
+            let arr = Array(unlockedAchievementIDs)
+            UserDefaults.standard.set(arr, forKey: "unlockedAchievements")
+            iCloud.set(arr, forKey: "unlockedAchievements")
+            iCloud.synchronize()
+        }
+        return newlyUnlocked
+    }
+
+    var achievementBonusPunkte: Int {
+        FokusAchievement.all
+            .filter { unlockedAchievementIDs.contains($0.id) }
+            .reduce(0) { $0 + $1.bonusPunkte }
     }
 
     // MARK: - Helpers
