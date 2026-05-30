@@ -19,6 +19,13 @@ struct TagesplanerView: View {
     @State private var shareItems: [Any] = []
     @State private var now: Date = Date()
     @State private var showingBausteinPicker = false
+    @State private var showingKITagesplan = false
+    @State private var draggingID: UUID? = nil
+    @State private var dragDelta: CGFloat = 0
+    @State private var lastSnappedDelta: Int = 0
+    @State private var resizingID: UUID? = nil
+    @State private var resizeDelta: CGFloat = 0
+    @State private var lastSnappedResizeDelta: Int = 0
 
     init(initialDate: Date = Date()) {
         _selectedDate = State(initialValue: Calendar.current.startOfDay(for: initialDate))
@@ -46,6 +53,7 @@ struct TagesplanerView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 40)
                 }
+                .scrollDisabled(draggingID != nil || resizingID != nil)
                 .onAppear {
                     now = Date()
                     if isToday {
@@ -67,7 +75,7 @@ struct TagesplanerView: View {
                 }
             }
         }
-        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { _ in
             now = Date()
         }
         .navigationTitle(selectedDateString)
@@ -80,7 +88,7 @@ struct TagesplanerView: View {
                     Image(systemName: "calendar.badge.clock")
                 }
                 Button { showingBausteinPicker = true } label: {
-                    Image(systemName: "square.3.layers.3d.fill")
+                    Image(systemName: "square.stack.fill")
                 }
                 Menu {
                     Button {
@@ -162,6 +170,17 @@ struct TagesplanerView: View {
         .sheet(isPresented: $showingShareSheet) {
             ActivityShareSheet(items: shareItems)
                 .ignoresSafeArea()
+        }
+        .sheet(isPresented: $showingKITagesplan) {
+            if #available(iOS 26.0, *) {
+                KITagesplanSheet(
+                    todos: todoStore.todos,
+                    selectedDate: selectedDate,
+                    themeC1: themeC1,
+                    themeC2: themeC2
+                )
+                .environmentObject(todoStore)
+            }
         }
     }
 
@@ -306,13 +325,25 @@ struct TagesplanerView: View {
             }
             Spacer()
 
-            if !isToday {
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        selectedDate = cal.startOfDay(for: Date())
+            VStack(spacing: 6) {
+                if !isToday {
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedDate = cal.startOfDay(for: Date())
+                        }
+                    } label: {
+                        Text("Heute")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(themeC1)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(themeC1.opacity(0.12), in: Capsule())
                     }
+                    .buttonStyle(.plain)
+                }
+                Button {
+                    showingKITagesplan = true
                 } label: {
-                    Text("Heute")
+                    Label("KI", systemImage: "sparkles")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(themeC1)
                         .padding(.horizontal, 10).padding(.vertical, 5)
@@ -419,7 +450,65 @@ struct TagesplanerView: View {
                 if nowIdx == 0 { nowIndicatorRow() }
 
                 ForEach(Array(tasks.enumerated()), id: \.element.id) { idx, task in
-                    taskTreeRow(task: task, flipSide: idx % 2 == 0, isNowSection: nowInSectionEff)
+                    let isDragging = draggingID == task.id
+                    let deltaMins = isDragging ? Int((dragDelta / minsPerPt).rounded()) : 0
+                    let snappedDelta = Int((Double(deltaMins) / 15.0).rounded()) * 15
+                    let snappedPixels = CGFloat(snappedDelta) * minsPerPt
+                    let isResizing = resizingID == task.id
+                    let resizeSnapMins = isResizing ? Int((Double(Int((resizeDelta / minsPerPt).rounded())) / 15.0).rounded()) * 15 : 0
+                    let resizeExtraPt = CGFloat(resizeSnapMins) * minsPerPt
+                    taskTreeRow(task: task, flipSide: idx % 2 == 0, isNowSection: nowInSectionEff, isDragging: isDragging, isResizing: isResizing, resizeExtraPt: resizeExtraPt, resizeSnapMins: resizeSnapMins)
+                        .scaleEffect(isDragging ? 1.02 : 1.0, anchor: .center)
+                        .shadow(color: isDragging ? themeC1.opacity(0.3) : .clear, radius: 12, x: 0, y: 5)
+                        .offset(y: isDragging ? dragDelta : 0)
+                        .zIndex(isDragging ? 10 : (isResizing ? 9 : 0))
+                        .overlay(alignment: .topLeading) {
+                            if isDragging && snappedDelta != 0, let target = dragTargetDate(for: task) {
+                                let cal = Calendar.current
+                                let h = cal.component(.hour, from: target)
+                                let m = cal.component(.minute, from: target)
+                                HStack(spacing: 0) {
+                                    Text(String(format: "%02d:%02d", h, m))
+                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(themeC1)
+                                        .frame(width: 44, alignment: .trailing)
+                                        .padding(.trailing, 8)
+                                    ZStack {
+                                        Circle().fill(themeC1.opacity(0.25)).frame(width: 14, height: 14)
+                                        Circle().fill(themeC1).frame(width: 7, height: 7)
+                                    }
+                                    .frame(width: 20)
+                                    Rectangle()
+                                        .fill(LinearGradient(colors: [themeC1, themeC1.opacity(0)],
+                                                             startPoint: .leading, endPoint: .trailing))
+                                        .frame(height: 2)
+                                        .padding(.leading, 8)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .offset(y: snappedPixels)
+                                .animation(.spring(response: 0.15, dampingFraction: 0.8), value: snappedPixels)
+                                .allowsHitTesting(false)
+                            }
+                        }
+                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
+                        .animation(.spring(response: 0.2, dampingFraction: 0.85), value: isResizing)
+                        .overlay {
+                            TaskDragOverlay(
+                                minsPerPt: minsPerPt,
+                                draggingID: $draggingID,
+                                dragDelta: $dragDelta,
+                                lastSnappedDelta: $lastSnappedDelta,
+                                taskID: task.id
+                            ) { snappedMins in
+                                guard snappedMins != 0, let due = task.dueDate else { return }
+                                var updated = task
+                                updated.dueDate = due.addingTimeInterval(Double(snappedMins) * 60)
+                                if let end = task.endDate {
+                                    updated.endDate = end.addingTimeInterval(Double(snappedMins) * 60)
+                                }
+                                todoStore.updateTodo(updated)
+                            }
+                        }
 
                     if nowIdx == idx + 1 { nowIndicatorRow() }
 
@@ -508,7 +597,7 @@ struct TagesplanerView: View {
     }
 
     // Task row — time left (44pt), spine center (20pt), card right
-    private func taskTreeRow(task: TodoItem, flipSide: Bool, isNowSection: Bool = false) -> some View {
+    private func taskTreeRow(task: TodoItem, flipSide: Bool, isNowSection: Bool = false, isDragging: Bool = false, isResizing: Bool = false, resizeExtraPt: CGFloat = 0, resizeSnapMins: Int = 0) -> some View {
         let hasDuration = task.endDate.map { $0 > (task.dueDate ?? .distantPast) } == true
         let durationMins: CGFloat = hasDuration
             ? CGFloat(task.endDate!.timeIntervalSince(task.dueDate!) / 60)
@@ -522,10 +611,10 @@ struct TagesplanerView: View {
         return HStack(alignment: .top, spacing: 0) {
             // Time label
             Group {
-                if let due = task.dueDate {
+                if !isDragging, let due = task.dueDate {
                     Text(timeFmt.string(from: due))
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(task.isCompleted ? .secondary : (isActive ? themeC1 : themeC1))
+                        .foregroundStyle(task.isCompleted ? .secondary : themeC1)
                 } else {
                     Color.clear
                 }
@@ -566,14 +655,14 @@ struct TagesplanerView: View {
             .frame(width: 20)
 
             // Card
-            taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins, isActive: isActive)
+            taskTreeCard(task, hasDuration: hasDuration, durationMins: durationMins, isActive: isActive, isResizing: isResizing, resizeExtraPt: resizeExtraPt, resizeSnapMins: resizeSnapMins)
                 .padding(.leading, 10)
                 .padding(.bottom, 6)
                 .frame(maxWidth: .infinity)
         }
         .opacity(task.isCompleted ? 0.55 : 1.0)
         .overlay(alignment: .topLeading) {
-            if isActive, hasDuration, let due = task.dueDate, let end = task.endDate {
+            if isActive, hasDuration, let due = task.dueDate, let end = task.endDate, now > due, now < end {
                 let frac = min(max(CGFloat(now.timeIntervalSince(due) / end.timeIntervalSince(due)), 0), 1)
                 GeometryReader { geo in
                     let y = frac * geo.size.height
@@ -636,9 +725,10 @@ struct TagesplanerView: View {
     }
 
     // Task card — compact row or stretched duration block
-    private func taskTreeCard(_ todo: TodoItem, hasDuration: Bool, durationMins: CGFloat, isActive: Bool = false) -> some View {
-        let blockH: CGFloat = hasDuration ? max(durationMins * minsPerPt, 68) : 40
+    private func taskTreeCard(_ todo: TodoItem, hasDuration: Bool, durationMins: CGFloat, isActive: Bool = false, isResizing: Bool = false, resizeExtraPt: CGFloat = 0, resizeSnapMins: Int = 0) -> some View {
+        let blockH: CGFloat = hasDuration ? max(durationMins * minsPerPt + resizeExtraPt, 68) : 40
         let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+        let isUpcoming = isToday && !todo.isCompleted && (todo.dueDate.map { now < $0 } ?? false)
         let borderColor: Color = todo.isCompleted ? .green.opacity(0.35)
                                : isActive         ? themeC1.opacity(0.6)
                                :                    themeC1.opacity(0.28)
@@ -652,7 +742,8 @@ struct TagesplanerView: View {
                     HStack(alignment: .top, spacing: 6) {
                         Text(todo.title)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                            .foregroundStyle(isDark ? .white.opacity(0.95) : Color.primary)
+                            .shadow(color: isDark ? .black.opacity(0.55) : .white.opacity(0.80), radius: 3, x: 0, y: 1)
                             .strikethrough(todo.isCompleted, color: .secondary)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 4)
@@ -679,6 +770,31 @@ struct TagesplanerView: View {
                             Text("bis \(timeFmt.string(from: endDate))")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.secondary)
+                            if isActive {
+                                Text("·")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "timer")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(themeC1)
+                                Text(remainingTimeLabel(until: endDate))
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(themeC1)
+                                    .contentTransition(.numericText())
+                                    .animation(.easeInOut(duration: 0.3), value: remainingTimeLabel(until: endDate))
+                            } else if isUpcoming, let due = todo.dueDate {
+                                Text("·")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "clock")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                Text("startet in \(startingInLabel(from: due))")
+                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .contentTransition(.numericText())
+                                    .animation(.easeInOut(duration: 0.3), value: startingInLabel(from: due))
+                            }
                         }
                         Spacer()
                         Button { planningTodo = todo } label: {
@@ -692,11 +808,76 @@ struct TagesplanerView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 9)
                 .frame(maxWidth: .infinity, minHeight: blockH)
-                .background(bgColor, in: RoundedRectangle(cornerRadius: 11))
+                .background {
+                    RoundedRectangle(cornerRadius: 11).fill(bgColor)
+                    if !aktivesThema.isEmpty {
+                        TaskCardThemeDecoration(theme: aktivesThema, isDark: isDark, isActive: isActive)
+                            .clipShape(RoundedRectangle(cornerRadius: 11))
+                            .allowsHitTesting(false)
+                        RoundedRectangle(cornerRadius: 11)
+                            .fill(LinearGradient(
+                                colors: [
+                                    (isDark ? Color.black : Color.white).opacity(0.32),
+                                    (isDark ? Color.black : Color.white).opacity(0.14),
+                                    .clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: UnitPoint(x: 0.68, y: 0.5)
+                            ))
+                            .allowsHitTesting(false)
+                    }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: 11)
-                        .stroke(borderColor, lineWidth: isActive ? 1.8 : 1.5)
+                        .stroke(isResizing ? themeC1.opacity(0.7) : borderColor,
+                                lineWidth: isActive || isResizing ? 1.8 : 1.5)
                 )
+                // Resize handle at bottom
+                .overlay(alignment: .bottom) {
+                    if !todo.isCompleted {
+                        resizeHandleBar(isResizing: isResizing)
+                            .overlay {
+                                TaskResizeHandle(
+                                    minsPerPt: minsPerPt,
+                                    resizingID: $resizingID,
+                                    resizeDelta: $resizeDelta,
+                                    lastSnappedResizeDelta: $lastSnappedResizeDelta,
+                                    taskID: todo.id,
+                                    currentEndDate: todo.endDate,
+                                    currentStartDate: todo.dueDate
+                                ) { snappedMins in
+                                    guard snappedMins != 0, let end = todo.endDate,
+                                          let due = todo.dueDate else { return }
+                                    let newEnd = end.addingTimeInterval(Double(snappedMins) * 60)
+                                    guard newEnd >= due.addingTimeInterval(15 * 60) else { return }
+                                    var updated = todo
+                                    updated.endDate = newEnd
+                                    todoStore.updateTodo(updated)
+                                }
+                            }
+                    }
+                }
+                // End-time bubble shown while resizing
+                .overlay(alignment: .bottomTrailing) {
+                    if isResizing, let end = todo.endDate {
+                        let newEnd = end.addingTimeInterval(Double(resizeSnapMins) * 60)
+                        let fmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.down.to.line")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(fmt.string(from: newEnd))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(themeC1, in: Capsule())
+                        .padding(.trailing, 8)
+                        .padding(.bottom, 28)
+                        .transition(.scale(scale: 0.85).combined(with: .opacity))
+                        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: resizeSnapMins)
+                    }
+                }
 
             } else {
                 HStack(spacing: 8) {
@@ -712,8 +893,9 @@ struct TagesplanerView: View {
                     .buttonStyle(.plain)
 
                     Text(todo.title)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(isDark ? .white.opacity(0.88) : .primary)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(isDark ? .white.opacity(0.95) : Color.primary)
+                        .shadow(color: isDark ? .black.opacity(0.55) : .white.opacity(0.80), radius: 3, x: 0, y: 1)
                         .strikethrough(todo.isCompleted, color: .secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -721,6 +903,16 @@ struct TagesplanerView: View {
 
                     if isActive {
                         Circle().fill(themeC1).frame(width: 6, height: 6)
+                    } else if isUpcoming, let due = todo.dueDate {
+                        HStack(spacing: 3) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 9, weight: .semibold))
+                            Text("in \(startingInLabel(from: due))")
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        }
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.3), value: startingInLabel(from: due))
                     }
 
                     Button { planningTodo = todo } label: {
@@ -733,11 +925,73 @@ struct TagesplanerView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, minHeight: blockH)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).fill(bgColor))
+                .background {
+                    RoundedRectangle(cornerRadius: 10).fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 10).fill(bgColor)
+                    if !aktivesThema.isEmpty {
+                        TaskCardThemeDecoration(theme: aktivesThema, isDark: isDark, isActive: isActive)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .allowsHitTesting(false)
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(LinearGradient(
+                                colors: [
+                                    (isDark ? Color.black : Color.white).opacity(0.32),
+                                    (isDark ? Color.black : Color.white).opacity(0.14),
+                                    .clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: UnitPoint(x: 0.68, y: 0.5)
+                            ))
+                            .allowsHitTesting(false)
+                    }
+                }
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: isActive ? 1.5 : 1))
             }
         }
+    }
+
+    @ViewBuilder
+    private func resizeHandleBar(isResizing: Bool) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            ZStack {
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(height: 24)
+                Capsule()
+                    .fill(isResizing ? themeC1 : themeC1.opacity(0.40))
+                    .frame(width: isResizing ? 52 : 36, height: 4)
+                    .shadow(color: isResizing ? themeC1.opacity(0.5) : .clear, radius: 4, x: 0, y: 0)
+            }
+            .padding(.bottom, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle().inset(by: -4))
+    }
+
+    private func dragTargetDate(for todo: TodoItem) -> Date? {
+        guard draggingID == todo.id, let due = todo.dueDate else { return nil }
+        let deltaMins = Int((dragDelta / minsPerPt).rounded())
+        let snappedDelta = Int((Double(deltaMins) / 15.0).rounded()) * 15
+        return due.addingTimeInterval(Double(snappedDelta) * 60)
+    }
+
+    private func remainingTimeLabel(until endDate: Date) -> String {
+        let secs = max(0, endDate.timeIntervalSince(now))
+        let mins = Int(secs / 60)
+        if mins == 0 { return "< 1min" }
+        if mins < 60 { return "\(mins)min" }
+        let h = mins / 60; let m = mins % 60
+        return m == 0 ? "\(h)h" : "\(h)h \(m)min"
+    }
+
+    private func startingInLabel(from dueDate: Date) -> String {
+        let secs = max(0, dueDate.timeIntervalSince(now))
+        let mins = Int(secs / 60)
+        if mins < 15 { return "gleich" }
+        if mins < 60 { return "\(mins)min" }
+        let h = mins / 60; let m = mins % 60
+        return m == 0 ? "\(h)h" : "\(h)h \(m)min"
     }
 
     private func tasksForHours(_ hours: Range<Int>) -> [TodoItem] {
@@ -967,6 +1221,182 @@ struct TagesplanerView: View {
 
 }
 
+// MARK: - Task Drag Overlay (UIKit-backed for smooth long-press drag in ScrollView)
+
+private struct TaskDragOverlay: UIViewRepresentable {
+    let minsPerPt: CGFloat
+    @Binding var draggingID: UUID?
+    @Binding var dragDelta: CGFloat
+    @Binding var lastSnappedDelta: Int
+    let taskID: UUID
+    let onCommit: (_ snappedMins: Int) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView()
+        v.backgroundColor = .clear
+        let lp = UILongPressGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handle(_:))
+        )
+        lp.minimumPressDuration = 0.45
+        lp.allowableMovement = 10
+        lp.cancelsTouchesInView = false
+        v.addGestureRecognizer(lp)
+        return v
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.parent = self
+        // Disable recognizer on non-active cards while a drag is in progress
+        uiView.gestureRecognizers?.forEach {
+            $0.isEnabled = draggingID == nil || draggingID == taskID
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject {
+        var parent: TaskDragOverlay
+        private var startY: CGFloat = 0
+
+        init(_ parent: TaskDragOverlay) { self.parent = parent }
+
+        @objc func handle(_ gr: UILongPressGestureRecognizer) {
+            switch gr.state {
+            case .began:
+                guard parent.draggingID == nil else { return }
+                startY = gr.location(in: nil).y
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                parent.lastSnappedDelta = 0
+                parent.draggingID = parent.taskID
+
+            case .changed:
+                guard parent.draggingID == parent.taskID else { return }
+                let dy = gr.location(in: nil).y - startY
+                parent.dragDelta = dy
+                let snap = Self.snapMins(dy, minsPerPt: parent.minsPerPt)
+                if snap != parent.lastSnappedDelta {
+                    parent.lastSnappedDelta = snap
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+
+            case .ended, .cancelled, .failed:
+                guard parent.draggingID == parent.taskID else { return }
+                let dy = gr.location(in: nil).y - startY
+                let snap = Self.snapMins(dy, minsPerPt: parent.minsPerPt)
+                parent.onCommit(snap)
+                parent.lastSnappedDelta = 0
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    parent.draggingID = nil
+                    parent.dragDelta = 0
+                }
+
+            default: break
+            }
+        }
+
+        private static func snapMins(_ dy: CGFloat, minsPerPt: CGFloat) -> Int {
+            let mins = Int((dy / minsPerPt).rounded())
+            return Int((Double(mins) / 15.0).rounded()) * 15
+        }
+    }
+}
+
+// MARK: - Task Resize Handle (zieht nur das Ende / endDate einer Dauerkarte)
+
+private struct TaskResizeHandle: UIViewRepresentable {
+    let minsPerPt: CGFloat
+    @Binding var resizingID: UUID?
+    @Binding var resizeDelta: CGFloat
+    @Binding var lastSnappedResizeDelta: Int
+    let taskID: UUID
+    let currentEndDate: Date?
+    let currentStartDate: Date?
+    let onCommit: (_ snappedMins: Int) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView()
+        v.backgroundColor = .clear
+        let lp = UILongPressGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handle(_:))
+        )
+        lp.minimumPressDuration = 0.28
+        lp.allowableMovement = 12
+        lp.cancelsTouchesInView = false
+        v.addGestureRecognizer(lp)
+        return v
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.parent = self
+        uiView.gestureRecognizers?.forEach {
+            $0.isEnabled = resizingID == nil || resizingID == taskID
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject {
+        var parent: TaskResizeHandle
+        private var startY: CGFloat = 0
+
+        init(_ parent: TaskResizeHandle) { self.parent = parent }
+
+        @objc func handle(_ gr: UILongPressGestureRecognizer) {
+            switch gr.state {
+            case .began:
+                guard parent.resizingID == nil else { return }
+                startY = gr.location(in: nil).y
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                parent.lastSnappedResizeDelta = 0
+                parent.resizingID = parent.taskID
+
+            case .changed:
+                guard parent.resizingID == parent.taskID else { return }
+                let dy = gr.location(in: nil).y - startY
+                parent.resizeDelta = dy
+                let snap = Self.snapMins(dy, minsPerPt: parent.minsPerPt)
+                // Clamp: don't shrink below 15 min
+                let clampedSnap = clamp(snap, start: parent.currentStartDate, end: parent.currentEndDate)
+                if clampedSnap != parent.lastSnappedResizeDelta {
+                    parent.lastSnappedResizeDelta = clampedSnap
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+
+            case .ended, .cancelled, .failed:
+                guard parent.resizingID == parent.taskID else { return }
+                let dy = gr.location(in: nil).y - startY
+                let snap = Self.snapMins(dy, minsPerPt: parent.minsPerPt)
+                let clampedSnap = clamp(snap, start: parent.currentStartDate, end: parent.currentEndDate)
+                parent.onCommit(clampedSnap)
+                parent.lastSnappedResizeDelta = 0
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    parent.resizingID = nil
+                    parent.resizeDelta = 0
+                }
+
+            default: break
+            }
+        }
+
+        private static func snapMins(_ dy: CGFloat, minsPerPt: CGFloat) -> Int {
+            let mins = Int((dy / minsPerPt).rounded())
+            return Int((Double(mins) / 15.0).rounded()) * 15
+        }
+
+        private func clamp(_ snapMins: Int, start: Date?, end: Date?) -> Int {
+            guard let s = start, let e = end else { return snapMins }
+            let currentDur = e.timeIntervalSince(s) / 60
+            let newDur = currentDur + Double(snapMins)
+            if newDur < 15 {
+                return Int(15 - currentDur)
+            }
+            return snapMins
+        }
+    }
+}
+
 // MARK: - Activity Share Sheet
 
 struct ActivityShareSheet: UIViewControllerRepresentable {
@@ -1024,9 +1454,10 @@ struct QuickAddSheet: View {
 
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @StateObject private var bausteinStore = BausteinStore.shared
     @FocusState private var titleFocused: Bool
     @State private var title: String = ""
-    @State private var selectedSlotID: UUID? = nil   // nil = none
+    @State private var selectedSlotID: UUID? = nil
     @State private var showingCustom = false
     @State private var showingSlotEditor = false
     @State private var slots: [QuickSlot] = loadQuickSlots()
@@ -1036,10 +1467,15 @@ struct QuickAddSheet: View {
     @State private var customTimeEnd: Date = {
         Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date()
     }()
+    @State private var selectedBaustein: TagesplanBaustein? = nil
 
     var isDark: Bool { colorScheme == .dark }
 
     private var selectedSlot: QuickSlot? { slots.first { $0.id == selectedSlotID } }
+
+    private var vorschlaege: [TagesplanBaustein] {
+        bausteinStore.smartVorschlaege(datum: Date(), eingabe: title)
+    }
 
     private var dueDate: Date? {
         if showingCustom { return customTimeStart }
@@ -1070,9 +1506,26 @@ struct QuickAddSheet: View {
                                 .focused($titleFocused)
                                 .submitLabel(.done)
                                 .onSubmit { if !title.trimmingCharacters(in: .whitespaces).isEmpty { submit() } }
+                                .onChange(of: title) { _ in
+                                    if selectedBaustein != nil &&
+                                       title != selectedBaustein?.titel { selectedBaustein = nil }
+                                }
+                            if !title.isEmpty {
+                                Button { title = ""; selectedBaustein = nil } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                        .font(.system(size: 16))
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                         .padding(16)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+
+                        // Smart Vorschläge
+                        if !vorschlaege.isEmpty {
+                            smartVorschlaegeRow
+                        }
 
                         // Time slots
                         VStack(alignment: .leading, spacing: 10) {
@@ -1237,8 +1690,94 @@ struct QuickAddSheet: View {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         let endDate: Date? = showingCustom ? customTimeEnd : nil
+        if let b = selectedBaustein { bausteinStore.verwendungErhoehen(b) }
         onAdd(trimmed, dueDate, endDate)
         dismiss()
+    }
+
+    private func bausteinAnwenden(_ b: TagesplanBaustein) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            title = b.titel
+            selectedBaustein = b
+            showingCustom = false
+            selectedSlotID = nil
+            if b.hatStartZeit {
+                let cal = Calendar.current
+                customTimeStart = cal.date(bySettingHour: b.startStunde,
+                                           minute: b.startMinute, second: 0, of: Date()) ?? Date()
+                if b.hatEndZeit {
+                    customTimeEnd = cal.date(bySettingHour: b.endStunde,
+                                             minute: b.endMinute, second: 0, of: Date()) ?? Date()
+                    showingCustom = true
+                }
+            }
+        }
+        titleFocused = false
+    }
+
+    private var smartVorschlaegeRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(themeC1)
+                Text("Vorschläge")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
+            }
+            .padding(.horizontal, 2)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(vorschlaege) { b in
+                        let isSelected = selectedBaustein?.id == b.id
+                        Button { bausteinAnwenden(b) } label: {
+                            HStack(spacing: 7) {
+                                ZStack {
+                                    Circle()
+                                        .fill(b.farbe.color.opacity(isSelected ? 0.35 : 0.15))
+                                        .frame(width: 28, height: 28)
+                                    Image(systemName: b.symbol)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(b.farbe.color)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(b.titel)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                                        .lineLimit(1)
+                                    Text(b.zeitLabel)
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundStyle(b.farbe.color.opacity(0.85))
+                                        .lineLimit(1)
+                                }
+                                if isSelected {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(b.farbe.color)
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(
+                                isSelected
+                                    ? AnyShapeStyle(b.farbe.color.opacity(isDark ? 0.25 : 0.13))
+                                    : AnyShapeStyle(Color.primary.opacity(0.06)),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(isSelected ? b.farbe.color.opacity(0.5) : Color.clear, lineWidth: 1.2)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+            }
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 }
 

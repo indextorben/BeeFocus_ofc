@@ -29,6 +29,7 @@ struct StatistikView: View {
     @AppStorage("fokusStreakEnabled") private var fokusStreakEnabled: Bool = false
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
     @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
+    @State private var showWochenrueckblick = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -497,6 +498,22 @@ struct StatistikView: View {
                             }
                         }
 
+                        // Wochenrückblick (nur wenn freigeschaltet)
+                        if wochenrueckblickEnabled {
+                            animatedSection(delay: 0.34) {
+                                sectionGroup(icon: "chart.bar.doc.horizontal", label: String(localized: "review_title"), color: Color(red: 0.4, green: 0.6, blue: 1.0)) {
+                                    glassCard {
+                                        Button {
+                                            showWochenrueckblick = true
+                                        } label: {
+                                            iconNavRow(icon: "chart.bar.doc.horizontal", color: Color(red: 0.4, green: 0.6, blue: 1.0), label: String(localized: "review_open_btn"))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+
                         // Ringe
                         animatedSection(delay: 0.35) {
                             sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
@@ -528,6 +545,16 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showFPInfo) {
                 fokuspunkteInfoSheet
+            }
+            .sheet(isPresented: $showWochenrueckblick) {
+                let (c1, c2, _) = appThemaFarben(aktivesThema)
+                WochenrueckblickSheet(
+                    todoStore: todoStore,
+                    themeC1: aktivesThema.isEmpty ? Color(red: 0.4, green: 0.6, blue: 1.0) : c1,
+                    themeC2: aktivesThema.isEmpty ? Color(red: 0.55, green: 0.4, blue: 1.0) : c2
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
         }
         .onAppear {

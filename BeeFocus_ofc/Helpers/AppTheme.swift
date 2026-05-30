@@ -1058,3 +1058,774 @@ func appThemaFarben(_ name: String) -> (Color, Color, Color) {
     default:               return (.purple, .blue, Color(red: 0.4, green: 0.2, blue: 0.9))
     }
 }
+
+// MARK: - Active Card Pulse (animierter Glow-Rand für laufende Aufgaben)
+
+struct ActiveCardPulseModifier: ViewModifier {
+    let isActive: Bool
+    let color: Color
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: color.opacity(isActive ? (pulse ? 0.62 : 0.28) : 0),
+                    radius: isActive ? 18 : 0, x: 0, y: isActive ? 7 : 0)
+            .onAppear {
+                guard isActive else { return }
+                withAnimation(.easeInOut(duration: 1.9).repeatForever(autoreverses: true)) { pulse = true }
+            }
+    }
+}
+
+// MARK: - Task Card Theme Decoration
+
+struct TaskCardThemeDecoration: View {
+    let theme: String
+    let isDark: Bool
+    let isActive: Bool
+
+    @ViewBuilder
+    var body: some View {
+        if      theme == "Ozean"            { OzeanCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Wald"             { WaldCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Nacht"            { NachtCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Solar"            { SolarCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Kirschblüte"      { KirschCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Vulkan"           { VulkanCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Eis"             { EisCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Herbst"           { HerbstCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Lavendel"         { LavendelCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Sonnenuntergang"  { SunsetCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Galaxie"          { GalaxieCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Nordlicht"        { NordlichtCardDeco(isDark: isDark, isActive: isActive) }
+    }
+}
+
+// MARK: - Ozean
+
+private struct OzeanCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var sway  = false
+    @State private var pulse = false
+
+    private struct Weed { let x: CGFloat; let h: CGFloat; let spd: Double; let ang: Double; let dly: Double }
+    private let weeds: [Weed] = [
+        Weed(x: 0.02, h: 38, spd: 2.6, ang:  9.0, dly: 0.0),
+        Weed(x: 0.06, h: 26, spd: 3.2, ang: -8.0, dly: 0.4),
+        Weed(x: 0.10, h: 44, spd: 2.4, ang: 10.5, dly: 0.9),
+        Weed(x: 0.14, h: 20, spd: 3.7, ang: -7.0, dly: 1.4),
+        Weed(x: 0.18, h: 32, spd: 2.9, ang:  8.0, dly: 0.6),
+    ]
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 0.50 : 0.28) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0, green:0.55, blue:0.75).opacity(isDark ? 0.20 : 0.10), .clear],
+                    startPoint: .bottom, endPoint: UnitPoint(x: 0.5, y: 0.45)
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.cyan.opacity(0.14), .clear],
+                        center: .bottomLeading, startRadius: 0, endRadius: h * 0.7
+                    )
+                }
+                ForEach(weeds.indices, id: \.self) { i in
+                    let s = weeds[i]
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Color(red:0, green:0.72, blue:0.78).opacity(op),
+                                     Color.cyan.opacity(op * 0.5)],
+                            startPoint: .bottom, endPoint: .top
+                        ))
+                        .frame(width: 4.5, height: s.h)
+                        .rotationEffect(.degrees(sway ? s.ang : -s.ang), anchor: .bottom)
+                        .animation(.easeInOut(duration: s.spd).repeatForever(autoreverses: true).delay(s.dly), value: sway)
+                        .position(x: w * s.x + 6, y: h - s.h * 0.5 + 4)
+                }
+                ForEach(0..<3, id: \.self) { i in
+                    let sizes: [CGFloat] = [9, 6, 4]
+                    let xs: [CGFloat]    = [0.38, 0.54, 0.47]
+                    let ys: [CGFloat]    = [0.30, 0.46, 0.18]
+                    let spds: [Double]   = [2.6, 3.4, 2.0]
+                    let dlys: [Double]   = [0.8, 0.0, 1.3]
+                    Circle()
+                        .strokeBorder(Color.cyan.opacity(pulse ? op * 0.75 : op * 0.18), lineWidth: 1.2)
+                        .frame(width: sizes[i], height: sizes[i])
+                        .position(x: w * xs[i], y: h * ys[i])
+                        .animation(.easeInOut(duration: spds[i]).repeatForever(autoreverses: true).delay(dlys[i]), value: pulse)
+                }
+            }
+        }
+        .onAppear { sway = true; pulse = true }
+    }
+}
+
+// MARK: - Wald
+
+private struct WaldCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var sway  = false
+    @State private var light = false
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 0.46 : 0.25) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.05, green:0.45, blue:0.15).opacity(isDark ? 0.18 : 0.09), .clear],
+                    startPoint: .bottom, endPoint: UnitPoint(x: 0.5, y: 0.50)
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.green.opacity(0.12), .clear],
+                        center: .topTrailing, startRadius: 0, endRadius: h * 0.65
+                    )
+                }
+                let leafData: [(CGFloat, CGFloat, CGFloat, Double, Double, Double)] = [
+                    (0.90, 0.18, 16, 2.5,  7.0, 0.0),
+                    (0.82, 0.50, 11, 3.0, -6.0, 0.6),
+                    (0.93, 0.64,  9, 2.2,  5.5, 1.1),
+                    (0.86, 0.80,  7, 2.8, -4.5, 1.7),
+                ]
+                ForEach(leafData.indices, id: \.self) { i in
+                    let (x, y, sz, spd, ang, dly) = leafData[i]
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: sz))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.green.opacity(op), Color.mint.opacity(op * 0.65)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .rotationEffect(.degrees(sway ? ang : -ang * 0.7), anchor: .bottom)
+                        .animation(.easeInOut(duration: spd).repeatForever(autoreverses: true).delay(dly), value: sway)
+                        .position(x: w * x, y: h * y)
+                }
+                ForEach(0..<3, id: \.self) { i in
+                    let lxs: [CGFloat] = [0.60, 0.35, 0.75]
+                    let lys: [CGFloat] = [0.25, 0.55, 0.68]
+                    let lsz: [CGFloat] = [22,   16,   12  ]
+                    Circle()
+                        .fill(Color.yellow.opacity(light ? (isDark ? 0.12 : 0.07) : 0.02))
+                        .frame(width: lsz[i], height: lsz[i])
+                        .blur(radius: 5)
+                        .position(x: w * lxs[i], y: h * lys[i])
+                        .animation(.easeInOut(duration: 2.8 + Double(i) * 0.6).repeatForever(autoreverses: true).delay(Double(i) * 0.5), value: light)
+                }
+            }
+        }
+        .onAppear { sway = true; light = true }
+    }
+}
+
+// MARK: - Nacht
+
+private struct NachtCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var twinkle = false
+    @State private var moonGlow = false
+
+    private let stars: [(CGFloat, CGFloat, CGFloat, Double, Double, Bool)] = [
+        (0.88, 0.14,  8, 0.28, 0.0,  false),
+        (0.78, 0.33,  5, 0.18, 0.7,  true),
+        (0.94, 0.52,  6, 0.24, 1.3,  false),
+        (0.83, 0.70,  4, 0.16, 0.4,  true),
+        (0.96, 0.30,  5, 0.20, 1.8,  false),
+        (0.73, 0.55,  7, 0.22, 0.9,  true),
+    ]
+
+    var body: some View {
+        let boost: Double = isActive ? 1.5 : 1.0
+        let op = (isDark ? 1.0 : 0.60) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.08, green:0.03, blue:0.30).opacity(isDark ? 0.20 : 0.08), .clear],
+                    startPoint: .topTrailing, endPoint: .bottomLeading
+                )
+                Circle()
+                    .fill(Color(red:0.95, green:0.95, blue:0.80).opacity(moonGlow ? (isDark ? 0.26 : 0.14) : (isDark ? 0.14 : 0.07)))
+                    .frame(width: 18, height: 18)
+                    .blur(radius: isActive ? 6 : 3)
+                    .position(x: w * 0.88, y: h * 0.18)
+                    .animation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true), value: moonGlow)
+                Image(systemName: "moonphase.waxing.crescent")
+                    .font(.system(size: 14, weight: .ultraLight))
+                    .foregroundStyle(Color(red:0.95, green:0.95, blue:0.80).opacity(isDark ? 0.55 : 0.35))
+                    .position(x: w * 0.88, y: h * 0.18)
+                ForEach(stars.indices, id: \.self) { i in
+                    let (x, y, sz, minOp, dly, isSparkle) = stars[i]
+                    Image(systemName: isSparkle ? "sparkle" : "star.fill")
+                        .font(.system(size: sz, weight: .ultraLight))
+                        .foregroundStyle(Color.white.opacity(twinkle ? min(minOp * 4.2 * op, 1.0) : minOp * op))
+                        .animation(.easeInOut(duration: 1.8 + Double(i) * 0.4).repeatForever(autoreverses: true).delay(dly), value: twinkle)
+                        .position(x: w * x, y: h * y)
+                }
+            }
+        }
+        .onAppear { twinkle = true; moonGlow = true }
+    }
+}
+
+// MARK: - Solar
+
+private struct SolarCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var rotation: Double = 0
+    @State private var pulse = false
+    @State private var haze = false
+
+    var body: some View {
+        let boost: Double = isActive ? 1.6 : 1.0
+        let op = (isDark ? 0.40 : 0.20) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:1.0, green:0.80, blue:0.10).opacity(isDark ? 0.16 : 0.08), .clear],
+                    startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.55)
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.yellow.opacity(0.18), .clear],
+                        center: UnitPoint(x: 0.87, y: 0.0),
+                        startRadius: 0, endRadius: h * 0.6
+                    )
+                }
+                ForEach(0..<10, id: \.self) { i in
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Color.yellow.opacity(op * 0.80), Color(red:1,green:0.65,blue:0).opacity(op * 0.35)],
+                            startPoint: .top, endPoint: .bottom
+                        ))
+                        .frame(width: 2.5, height: 12 + CGFloat(i % 3) * 8)
+                        .rotationEffect(.degrees(rotation + Double(i) * 36))
+                        .position(x: w * 0.87, y: 20)
+                }
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [Color.yellow.opacity(pulse ? op * 1.0 : op * 0.45), .clear],
+                        center: .center, startRadius: 0, endRadius: 14
+                    ))
+                    .frame(width: 22, height: 22)
+                    .blur(radius: 4)
+                    .position(x: w * 0.87, y: 20)
+                    .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: pulse)
+                if isActive {
+                    ForEach(0..<3, id: \.self) { i in
+                        let hys: [CGFloat] = [h * 0.40, h * 0.60, h * 0.75]
+                        Circle()
+                            .fill(Color.yellow.opacity(haze ? (isDark ? 0.08 : 0.04) : 0.01))
+                            .frame(width: 28 + CGFloat(i) * 10, height: 8)
+                            .blur(radius: 5)
+                            .position(x: w * 0.5, y: hys[i])
+                            .animation(.easeInOut(duration: 3.5 + Double(i) * 0.5).repeatForever(autoreverses: true).delay(Double(i) * 0.4), value: haze)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            pulse = true
+            haze  = true
+            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) { rotation = 360 }
+        }
+    }
+}
+
+// MARK: - Kirschblüte
+
+private struct KirschCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var drift = false
+    @State private var bloom = false
+
+    private let petals: [(CGFloat, CGFloat, CGFloat, Double, Double, Double)] = [
+        (0.87, 0.16, 13, 3.0,  18.0, 0.0),
+        (0.76, 0.44, 10, 2.6, -14.0, 0.8),
+        (0.93, 0.60,  9, 3.4,  20.0, 1.5),
+        (0.80, 0.76, 11, 2.8, -16.0, 0.4),
+        (0.95, 0.36,  8, 3.2,  12.0, 1.1),
+    ]
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 0.55 : 0.32) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:1.0, green:0.72, blue:0.80).opacity(isDark ? 0.16 : 0.08), .clear],
+                    startPoint: .topTrailing, endPoint: .bottomLeading
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.pink.opacity(0.16), .clear],
+                        center: .topTrailing, startRadius: 0, endRadius: h * 0.70
+                    )
+                }
+                ForEach(petals.indices, id: \.self) { i in
+                    let (x, y, sz, spd, ang, dly) = petals[i]
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Color(red:1.0, green:0.82, blue:0.88).opacity(op),
+                                     Color.pink.opacity(op * 0.65)],
+                            startPoint: .top, endPoint: .bottom
+                        ))
+                        .frame(width: sz * 0.60, height: sz)
+                        .rotationEffect(.degrees(drift ? ang : -ang * 0.6))
+                        .animation(.easeInOut(duration: spd).repeatForever(autoreverses: true).delay(dly), value: drift)
+                        .position(x: w * x, y: h * y)
+                }
+                Circle()
+                    .fill(Color.pink.opacity(bloom ? (isDark ? 0.14 : 0.08) : 0.02))
+                    .frame(width: 32, height: 32)
+                    .blur(radius: 10)
+                    .position(x: w * 0.88, y: h * 0.22)
+                    .animation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: bloom)
+            }
+        }
+        .onAppear { drift = true; bloom = true }
+    }
+}
+
+// MARK: - Vulkan
+
+private struct VulkanCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var glow   = false
+    @State private var flicker = false
+
+    var body: some View {
+        let boost: Double = isActive ? 1.6 : 1.0
+        let op = (isDark ? 0.52 : 0.28) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.72, green:0.05, blue:0.0).opacity(isDark ? 0.24 : 0.12),
+                             Color.orange.opacity(isDark ? 0.12 : 0.06), .clear],
+                    startPoint: .bottom, endPoint: UnitPoint(x: 0.5, y: 0.45)
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.red.opacity(0.20), .clear],
+                        center: .bottom, startRadius: 0, endRadius: h * 0.55
+                    )
+                }
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [Color(red:1,green:0.45,blue:0).opacity(glow ? op * 0.90 : op * 0.28), .clear],
+                        center: .center, startRadius: 0, endRadius: 18
+                    ))
+                    .frame(width: 28, height: 28)
+                    .blur(radius: 6)
+                    .position(x: w * 0.86, y: h * 0.72)
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: glow)
+                let embers: [(CGFloat, CGFloat, CGFloat, Double, Double)] = [
+                    (0.80, 0.52, 10, 2.2, 0.0),
+                    (0.90, 0.38,  7, 1.8, 0.5),
+                    (0.76, 0.62,  8, 2.6, 0.9),
+                    (0.93, 0.58,  6, 1.4, 0.3),
+                ]
+                ForEach(embers.indices, id: \.self) { i in
+                    let (ex, ey, esz, espd, edl) = embers[i]
+                    Circle()
+                        .fill(Color(red:1, green:0.45 + CGFloat(i) * 0.08, blue:0)
+                            .opacity(glow ? op * 0.65 : op * 0.18))
+                        .frame(width: esz, height: esz)
+                        .blur(radius: 3)
+                        .position(x: w * ex, y: h * ey)
+                        .animation(.easeInOut(duration: espd).repeatForever(autoreverses: true).delay(edl), value: glow)
+                }
+                Image(systemName: "flame.fill")
+                    .font(.system(size: isActive ? 18 : 14))
+                    .foregroundStyle(LinearGradient(
+                        colors: [Color.orange.opacity(flicker ? op * 1.1 : op * 0.55),
+                                 Color.red.opacity(flicker ? op * 0.70 : op * 0.30)],
+                        startPoint: .bottom, endPoint: .top
+                    ))
+                    .scaleEffect(flicker ? 1.08 : 0.92)
+                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: flicker)
+                    .position(x: w * 0.86, y: h * 0.60)
+            }
+        }
+        .onAppear { glow = true; flicker = true }
+    }
+}
+
+// MARK: - Eis
+
+private struct EisCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var shimmer   = false
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 0.55 : 0.30) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.65, green:0.92, blue:1.0).opacity(isDark ? 0.16 : 0.09), .clear],
+                    startPoint: .topTrailing, endPoint: UnitPoint(x: 0.3, y: 0.6)
+                )
+                LinearGradient(
+                    colors: [Color.white.opacity(isDark ? 0.08 : 0.04), .clear],
+                    startPoint: .topLeading, endPoint: .center
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.cyan.opacity(0.14), .clear],
+                        center: .topTrailing, startRadius: 0, endRadius: h * 0.65
+                    )
+                }
+                Image(systemName: "snowflake")
+                    .font(.system(size: 20, weight: .ultraLight))
+                    .foregroundStyle(Color.cyan.opacity(shimmer ? op : op * 0.38))
+                    .rotationEffect(.degrees(rotation))
+                    .position(x: w * 0.89, y: 22)
+                    .animation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true), value: shimmer)
+                let miniFlakes: [(CGFloat, CGFloat, CGFloat)] = [
+                    (0.75, 0.48, 9), (0.83, 0.70, 7), (0.93, 0.38, 6),
+                ]
+                ForEach(miniFlakes.indices, id: \.self) { i in
+                    let (fx, fy, fsz) = miniFlakes[i]
+                    Image(systemName: "snowflake")
+                        .font(.system(size: fsz, weight: .ultraLight))
+                        .foregroundStyle(Color.white.opacity(shimmer ? op * 0.75 : op * 0.25))
+                        .position(x: w * fx, y: h * fy)
+                        .animation(.easeInOut(duration: 2.5 + Double(i) * 0.6).repeatForever(autoreverses: true).delay(Double(i) * 0.5), value: shimmer)
+                }
+                ForEach(0..<4, id: \.self) { i in
+                    let fxs: [CGFloat] = [0.20, 0.45, 0.62, 0.80]
+                    let fys: [CGFloat] = [h * 0.85, h * 0.90, h * 0.82, h * 0.88]
+                    Capsule()
+                        .fill(Color.white.opacity(shimmer ? (isDark ? 0.18 : 0.10) : 0.03))
+                        .frame(width: 28 + CGFloat(i) * 6, height: 2)
+                        .position(x: w * fxs[i], y: fys[i])
+                        .animation(.easeInOut(duration: 2.8 + Double(i) * 0.4).repeatForever(autoreverses: true).delay(Double(i) * 0.3), value: shimmer)
+                }
+            }
+        }
+        .onAppear {
+            shimmer = true
+            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) { rotation = 360 }
+        }
+    }
+}
+
+// MARK: - Herbst
+
+private struct HerbstCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var sway  = false
+    @State private var glow  = false
+
+    private let leafData: [(CGFloat, CGFloat, CGFloat, Double, Double, Double, Color)] = [
+        (0.88, 0.18, 17, 2.8,  9.0, 0.0, .orange),
+        (0.79, 0.50, 12, 2.5, -7.5, 0.5, Color(red:0.82, green:0.32, blue:0.04)),
+        (0.93, 0.62,  9, 3.0,  6.5, 1.0, Color(red:1.0,  green:0.52, blue:0.0)),
+        (0.84, 0.78,  7, 2.3, -5.5, 1.5, Color(red:0.90, green:0.65, blue:0.0)),
+    ]
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 0.52 : 0.28) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.82, green:0.38, blue:0.06).opacity(isDark ? 0.20 : 0.10), .clear],
+                    startPoint: .bottom, endPoint: UnitPoint(x: 0.5, y: 0.48)
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.orange.opacity(0.14), .clear],
+                        center: .bottomTrailing, startRadius: 0, endRadius: h * 0.65
+                    )
+                }
+                ForEach(leafData.indices, id: \.self) { i in
+                    let (x, y, sz, spd, ang, dly, clr) = leafData[i]
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: sz))
+                        .foregroundStyle(clr.opacity(op))
+                        .rotationEffect(.degrees(sway ? ang : -ang * 0.7))
+                        .animation(.easeInOut(duration: spd).repeatForever(autoreverses: true).delay(dly), value: sway)
+                        .position(x: w * x, y: h * y)
+                }
+                Circle()
+                    .fill(Color(red:1.0, green:0.60, blue:0.0).opacity(glow ? (isDark ? 0.18 : 0.10) : 0.02))
+                    .frame(width: 36, height: 36)
+                    .blur(radius: 12)
+                    .position(x: w * 0.3, y: h * 0.5)
+                    .animation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true), value: glow)
+            }
+        }
+        .onAppear { sway = true; glow = true }
+    }
+}
+
+// MARK: - Lavendel
+
+private struct LavendelCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var sparkle = false
+    @State private var mist    = false
+
+    private let dots: [(CGFloat, CGFloat, CGFloat, Double, Double)] = [
+        (0.82, 0.14, 12, 0.30, 0.0),
+        (0.92, 0.38,  9, 0.22, 0.6),
+        (0.75, 0.56, 11, 0.28, 1.2),
+        (0.88, 0.72,  8, 0.18, 0.3),
+        (0.96, 0.26,  7, 0.20, 1.6),
+        (0.70, 0.80, 10, 0.25, 0.9),
+    ]
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 1.0 : 0.65) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.55, green:0.20, blue:0.80).opacity(isDark ? 0.18 : 0.08), .clear],
+                    startPoint: .topTrailing, endPoint: .bottomLeading
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color.purple.opacity(0.16), .clear],
+                        center: .topTrailing, startRadius: 0, endRadius: h * 0.70
+                    )
+                }
+                Ellipse()
+                    .fill(Color(red:0.65, green:0.35, blue:0.90)
+                        .opacity(mist ? (isDark ? 0.12 : 0.06) : 0.02))
+                    .frame(width: w * 0.55, height: 30)
+                    .blur(radius: 12)
+                    .position(x: w * 0.4, y: h * 0.5)
+                    .animation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true), value: mist)
+                ForEach(dots.indices, id: \.self) { i in
+                    let (x, y, sz, minOp, dly) = dots[i]
+                    Image(systemName: i % 2 == 0 ? "sparkle" : "sparkles")
+                        .font(.system(size: sz))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(red:0.82, green:0.52, blue:1.0).opacity(sparkle ? min(minOp * 3.0 * op, 1.0) : minOp * op),
+                                         Color(red:0.60, green:0.30, blue:0.90).opacity(sparkle ? min(minOp * 2.0 * op, 0.8) : minOp * op * 0.6)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .scaleEffect(sparkle ? 1.08 : 0.94)
+                        .animation(.easeInOut(duration: 1.8 + Double(i) * 0.4).repeatForever(autoreverses: true).delay(dly), value: sparkle)
+                        .position(x: w * x, y: h * y)
+                }
+            }
+        }
+        .onAppear { sparkle = true; mist = true }
+    }
+}
+
+// MARK: - Sonnenuntergang
+
+private struct SunsetCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var pulse  = false
+    @State private var rays   = false
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        let boost: Double = isActive ? 1.55 : 1.0
+        let op = (isDark ? 0.46 : 0.24) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.95, green:0.38, blue:0.15).opacity(isDark ? 0.22 : 0.11), .clear],
+                    startPoint: .bottom, endPoint: UnitPoint(x: 0.5, y: 0.42)
+                )
+                LinearGradient(
+                    colors: [.clear, Color(red:0.95, green:0.30, blue:0.55).opacity(isDark ? 0.12 : 0.06)],
+                    startPoint: .bottomLeading, endPoint: .topTrailing
+                )
+                if isActive {
+                    RadialGradient(
+                        colors: [Color(red:1.0, green:0.50, blue:0.15).opacity(0.22), .clear],
+                        center: UnitPoint(x: 0.86, y: 0.22),
+                        startRadius: 0, endRadius: h * 0.60
+                    )
+                }
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [Color(red:1.0, green:0.60, blue:0.20).opacity(pulse ? op * 1.0 : op * 0.35), .clear],
+                        center: .center, startRadius: 0, endRadius: 18
+                    ))
+                    .frame(width: 26, height: 26)
+                    .blur(radius: 6)
+                    .position(x: w * 0.86, y: h * 0.20)
+                    .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: pulse)
+                ForEach(0..<6, id: \.self) { i in
+                    Capsule()
+                        .fill(Color(red:1.0, green:0.62, blue:0.22)
+                            .opacity(rays ? op * (0.55 - Double(i) * 0.06) : op * 0.15))
+                        .frame(width: 1.5, height: 10 + CGFloat(i) * 5)
+                        .rotationEffect(.degrees(rotation + Double(i) * 30))
+                        .position(x: w * 0.86, y: h * 0.20)
+                        .animation(.easeInOut(duration: 2.8).repeatForever(autoreverses: true).delay(Double(i) * 0.2), value: rays)
+                }
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Color(red:1.0, green:0.50, blue:0.20).opacity(isDark ? 0.22 : 0.11),
+                                 Color.pink.opacity(isDark ? 0.12 : 0.06), .clear],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: w * 0.60, height: 3)
+                    .blur(radius: 2)
+                    .position(x: w * 0.4, y: h * 0.38)
+            }
+        }
+        .onAppear {
+            pulse = true
+            rays  = true
+            withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) { rotation = 360 }
+        }
+    }
+}
+
+// MARK: - Galaxie
+
+private struct GalaxieCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var twinkle  = false
+    @State private var nebula: CGFloat = 0
+
+    private let stars: [(CGFloat, CGFloat, CGFloat, Double, Double, Bool)] = [
+        (0.87, 0.12,  9, 0.26, 0.0,  false),
+        (0.93, 0.36,  6, 0.18, 0.5,  true),
+        (0.78, 0.58, 11, 0.30, 1.1,  true),
+        (0.91, 0.70,  5, 0.15, 0.8,  false),
+        (0.96, 0.24,  7, 0.22, 1.9,  false),
+        (0.74, 0.44,  8, 0.20, 0.4,  true),
+    ]
+
+    var body: some View {
+        let boost: Double = isActive ? 1.50 : 1.0
+        let op = (isDark ? 1.0 : 0.62) * boost
+        GeometryReader { geo in
+            let w = geo.size.width; let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0.28, green:0.08, blue:0.72).opacity(isDark ? 0.18 : 0.08), .clear],
+                    startPoint: .topTrailing, endPoint: .bottomLeading
+                )
+                Ellipse()
+                    .fill(LinearGradient(
+                        colors: [Color(red:0.55, green:0.20, blue:0.90).opacity(isDark ? 0.16 : 0.08),
+                                 Color(red:0.30, green:0.10, blue:0.70).opacity(isDark ? 0.08 : 0.04),
+                                 .clear],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+                    .frame(width: w * 0.65, height: h * 0.55)
+                    .blur(radius: 14)
+                    .position(x: w * 0.75 + nebula, y: h * 0.45)
+                    .animation(.easeInOut(duration: 6.0).repeatForever(autoreverses: true), value: nebula)
+                ForEach(stars.indices, id: \.self) { i in
+                    let (x, y, sz, minOp, dly, isSparkle) = stars[i]
+                    Image(systemName: isSparkle ? "sparkle" : "star.fill")
+                        .font(.system(size: sz, weight: .ultraLight))
+                        .foregroundStyle(
+                            (isSparkle ? Color(red:0.80, green:0.60, blue:1.0) : Color.white)
+                                .opacity(twinkle ? min(minOp * 4.0 * op, 1.0) : minOp * op)
+                        )
+                        .animation(.easeInOut(duration: 1.5 + Double(i) * 0.45).repeatForever(autoreverses: true).delay(dly), value: twinkle)
+                        .position(x: w * x, y: h * y)
+                }
+            }
+        }
+        .onAppear {
+            twinkle = true
+            withAnimation(.easeInOut(duration: 6.0).repeatForever(autoreverses: true)) { nebula = 18 }
+        }
+    }
+}
+
+// MARK: - Nordlicht
+
+private struct NordlichtCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var sway: CGFloat = 0
+    @State private var glow: Double  = 0.50
+    @State private var wave: CGFloat = 0
+
+    var body: some View {
+        let glowBoost: Double = isActive ? 1.6 : 1.0
+        GeometryReader { geo in
+            let w = geo.size.width
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red:0, green:0.18, blue:0.22).opacity(isDark ? 0.18 : 0.08), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                Ellipse()
+                    .fill(LinearGradient(
+                        colors: [Color(red:0, green:0.95, blue:0.45).opacity((isDark ? 0.22 : 0.11) * glowBoost),
+                                 Color(red:0, green:0.70, blue:0.85).opacity((isDark ? 0.14 : 0.07) * glowBoost),
+                                 .clear],
+                        startPoint: .top, endPoint: .bottom
+                    ))
+                    .frame(width: w * 1.25, height: 40)
+                    .position(x: w * 0.5 + sway, y: 14)
+                    .blur(radius: 11)
+                    .opacity(glow)
+                Ellipse()
+                    .fill(LinearGradient(
+                        colors: [Color(red:0.20, green:0.75, blue:1.0).opacity((isDark ? 0.14 : 0.07) * glowBoost),
+                                 .clear],
+                        startPoint: .top, endPoint: .bottom
+                    ))
+                    .frame(width: w * 0.80, height: 24)
+                    .position(x: w * 0.5 - sway * 0.5 + wave, y: 30)
+                    .blur(radius: 8)
+                    .opacity(glow * 0.75)
+                if isActive {
+                    Ellipse()
+                        .fill(Color(red:0.55, green:0.20, blue:0.90)
+                            .opacity((isDark ? 0.10 : 0.05) * glowBoost))
+                        .frame(width: w * 0.50, height: 16)
+                        .position(x: w * 0.6 + wave * 0.7, y: 44)
+                        .blur(radius: 6)
+                        .opacity(glow * 0.65)
+                }
+                LinearGradient(
+                    colors: [.clear,
+                             Color(red:0, green:0.80, blue:0.55).opacity((isDark ? 0.10 : 0.05) * glowBoost)],
+                    startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35)
+                )
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 5.5).repeatForever(autoreverses: true))              { sway = 24 }
+            withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true).delay(0.5))   { glow = 1.0 }
+            withAnimation(.easeInOut(duration: 7.0).repeatForever(autoreverses: true).delay(1.0))   { wave = -16 }
+        }
+    }
+}

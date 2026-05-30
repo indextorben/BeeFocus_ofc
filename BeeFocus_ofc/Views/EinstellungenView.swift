@@ -22,6 +22,10 @@ struct EinstellungenView: View {
     @AppStorage("fokuspunktePeak") private var fokuspunktePeak: Int = 0
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
+    // Shared KI (nur für Statusanzeige in der Card)
+    @AppStorage("aiProvider")        private var aiProvider: String = "gemini"
+    @AppStorage("floatingAIEnabled") private var floatingAIEnabled: Bool = true
+
     @State private var showNotificationBanner = false
     @State private var notificationMessage = ""
     @State private var bannerColor: Color = .green
@@ -38,6 +42,8 @@ struct EinstellungenView: View {
     let languages = ["Deutsch", "Englisch"]
 
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
+
+
 
     // MARK: - Background Gradient
 
@@ -222,6 +228,9 @@ struct EinstellungenView: View {
                         }
                         sectionGroup(icon: "checkmark.circle.fill", label: localizer.localizedString(forKey: "Automatisches Löschen"), color: .mint) {
                             autoDeleteCard
+                        }
+                        sectionGroup(icon: "sparkles", label: String(localized: "ki_settings_title"), color: .purple) {
+                            kiCard
                         }
                         sectionGroup(icon: "envelope.fill", label: localizer.localizedString(forKey: "Feedback / Verbesserungen"), color: .teal) {
                             feedbackCard
@@ -762,6 +771,39 @@ struct EinstellungenView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - KI Card
+
+    private var kiCard: some View {
+        glassCard {
+            NavigationLink(destination: KIEinstellungenView()) {
+                HStack(spacing: 12) {
+                    iconBadge(icon: "sparkles", color: .purple)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "ki_settings_title"))
+                            .font(.system(size: 16))
+                            .foregroundStyle(darkModeEnabled ? .white : .primary)
+                        Text(providerSubtitle)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var providerSubtitle: String {
+        switch aiProvider {
+        case "openai": return "OpenAI"
+        case "groq":   return "Groq"
+        default:       return "Google Gemini"
         }
     }
 

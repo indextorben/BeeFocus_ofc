@@ -5,7 +5,6 @@
   Created by Torben Lehneke on 01.10.25.
   
 */
-
 "Einstellungen" = "Einstellungen";
 "Darkmode" = "Dunkelmodus";
 "Sprache" = "Sprache";
@@ -121,7 +120,7 @@
 /* Kontextmenü TodoCard */
 "Teilen" = "Teilen";
 "Bearbeiten" = "Bearbeiten";
-"Löschen" = "Löschen";
+
 
 "pomodoro_timer" = "Pomodoro Timer";
 "timer_mode" = "Timer-Modus";
@@ -263,7 +262,7 @@
 "cancel" = "Abbrechen";
 "add" = "Hinzufügen";
 "delete" = "Löschen";
-"settings" = "Einstellungen";
+
 "time" = "Zeit";
 "morning_summary_toggle" = "Morgendliche Zusammenfassung";
 
@@ -280,23 +279,23 @@
 "category_name_placeholder" = "Kategoriename";
 "enter_new_category_name" = "Gib den Namen der neuen Kategorie ein.";
 "category_missing" = "Kategorie fehlt";
-"category_missing_message" = "Bitte wählen Sie eine Kategorie aus, bevor Sie die Aufgabe speichern.";
+
 "priority" = "Priorität";
 "enable_due_date" = "Fälligkeitsdatum aktivieren";
 "date_time" = "Datum & Uhrzeit";
 "add_to_system_calendar" = "In Systemkalender eintragen";
 /* Removed duplicate images below */
-"select_from_gallery" = "Aus Galerie auswählen";
+
 "take_with_camera" = "Mit Kamera aufnehmen";
-"camera_access_required" = "Kamera-Zugriff benötigt";
+
 "camera_access_message" = "Bitte erlauben Sie den Kamerazugriff in den Einstellungen.";
 "delete_image" = "Bild löschen";
-"delete_image_message" = "Möchten Sie dieses Bild wirklich löschen?";
+
 "calendar_access_denied" = "Kalender-Zugriff verweigert";
 "calendar_access_message" = "Bitte erlauben Sie den Kalenderzugriff in den Einstellungen.";
 "subtasks" = "Unteraufgaben";
 /* Removed duplicate new_subtask_placeholder below */
-"new_subtask_placeholder" = "Neue Unteraufgabe";
+
 "alert_delete_task" = "Aufgabe löschen?";
 "alert_delete_task_message" = "Diese Aktion kann nicht rückgängig gemacht werden.";
 "alert_new_category" = "Neue Kategorie";
@@ -305,9 +304,9 @@
 "alert_rename_category_message" = "Bitte geben Sie einen neuen Namen für die Kategorie ein.";
 "alert_delete_category" = "Kategorie löschen?";
 "alert_delete_category_message" = "Alle Aufgaben in dieser Kategorie werden in die erste verfügbare Kategorie verschoben.";
-"cancel" = "Abbrechen";
-"delete" = "Löschen";
-"add" = "Hinzufügen";
+
+
+
 "category_name" = "Kategoriename";
 "new_name" = "Neuer Name";
 "import_success_count" = "Import erfolgreich! Anzahl Todos:";
@@ -352,7 +351,7 @@
 "tutorial_category_b1" = "Kategorie antippen";
 "tutorial_category_b2" = "Kategorie auswählen oder erstellen";
 
-"tutorial_priority_title" = "Priorität";
+
 "tutorial_priority_text" = "Lege fest, wie wichtig die Aufgabe ist.";
 "tutorial_priority_b1" = "Priorität auswählen";
 
@@ -365,7 +364,7 @@
 "tutorial_calendar_text" = "Synchronisiere Aufgaben mit dem Systemkalender.";
 "tutorial_calendar_b1" = "Schalter aktivieren";
 
-"tutorial_subtasks_title" = "Unteraufgaben";
+
 "tutorial_subtasks_text" = "Strukturiere große Aufgaben.";
 "tutorial_subtasks_b1" = "Unteraufgabe hinzufügen";
 "tutorial_subtasks_b2" = "Fortschritt verfolgen";
@@ -615,3 +614,142 @@
 "fokus.today_hours" = "Heute: %dh %dm";
 "fokus.today_hours_only" = "Heute: %dh";
 "fokus.today_minutes" = "Heute: %d min";
+"ki_title" = "KI-Tagesplan";
+"ki_runs_locally" = "Läuft lokal auf deinem Gerät";
+"ki_analyzing" = "Analyse läuft…";
+"ki_unavailable" = "Nicht verfügbar";
+"ki_not_available_message" = "Apple Intelligence ist auf diesem Gerät nicht verfügbar. Stelle sicher, dass Apple Intelligence in den Einstellungen aktiviert ist.";
+"ki_error_prefix" = "Fehler beim Generieren: ";
+"Abgeschlossene in Papierkorb" = "Abgeschlossene in Papierkorb";
+"Morgen-Übersicht aktualisiert" = "Morgen-Übersicht aktualisiert";
+"Morgen-Übersicht deaktiviert" = "Morgen-Übersicht deaktiviert";
+"Nach Zeitraum löschen" = "Nach Zeitraum löschen";
+"images" = "Bilder";
+"ki_settings_title" = "KI-Assistent";
+"ki_model_label" = "Modell";
+"ki_gemini_info" = "Füge deinen eigenen Gemini API Key ein. Kostenlos unter aistudio.google.com erhältlich.";
+"ki_api_key_label" = "Gemini API Key";
+"ki_api_key_placeholder" = "AIza...";
+"ki_key_valid" = "Gültig";
+"ki_key_invalid" = "Ungültig – Key prüfen";
+"ki_key_save" = "Speichern & Prüfen";
+"ki_key_delete" = "Löschen";
+"ki_key_saved_status" = "API Key gespeichert";
+"ki_retry" = "Erneut versuchen";
+"ki_runs_gemini" = "Gemini 2.0 Flash – dein Key";
+"ki_runs_openai" = "OpenAI – dein Key";
+"openai_key_info" = "Kostenlos testen auf platform.openai.com";
+"openai_error_invalid_key" = "Ungültiger API Key. Bitte prüfe deinen OpenAI Key.";
+"openai_error_no_credits" = "Dein OpenAI-Guthaben ist aufgebraucht. Bitte lade dein Konto auf platform.openai.com auf.";
+"openai_setup_desc" = "Füge deinen Key von platform.openai.com ein. Er wird sicher auf deinem Gerät gespeichert.";
+"ki_no_provider" = "Kein KI-Anbieter verfügbar. Füge in den Einstellungen einen Gemini API Key hinzu.";
+"ki_setup_hint" = "→ Einstellungen → KI-Assistent";
+"gemini_error_invalid_key" = "Ungültiger API Key. Bitte prüfe deinen Gemini Key.";
+"gemini_error_rate_limited" = "Zu viele Anfragen – bitte 1 Minute warten und erneut versuchen. (Kostenloses Kontingent: 15/Min.)";
+"gemini_error_quota_exhausted" = "Kein Gemini-Kontingent verfügbar. Bitte verknüpfe einen Billing-Account in der Google Cloud Console (kostenlos, keine Abbuchung): console.cloud.google.com → Billing.";
+"gemini_error_bad_response" = "Serverfehler";
+"gemini_error_no_content" = "Keine Antwort erhalten.";
+"ki_test_button" = "Testen";
+"ki_setup_title" = "Gemini API Key einrichten";
+"ki_setup_desc" = "Füge deinen kostenlosen Key von aistudio.google.com ein. Er wird sicher auf deinem Gerät gespeichert.";
+"ki_setup_save" = "Speichern & Starten";
+"ki_add_key_button" = "API Key eingeben";
+"gemini_guide_title" = "Gemini API Key – Anleitung";
+"gemini_guide_headline" = "Kostenlos loslegen";
+"gemini_guide_subline" = "In 4 Schritten zum eigenen API Key";
+"gemini_guide_short_btn" = "Anleitung";
+"gemini_step1_title" = "Google AI Studio öffnen";
+"gemini_step1_desc" = "Öffne aistudio.google.com/apikey in deinem Browser.";
+"gemini_step2_title" = "Mit Google anmelden";
+"gemini_step2_desc" = "Melde dich mit deinem Google-Konto an – kostenlos, kein Abo nötig.";
+"gemini_step3_title" = "API Key erstellen";
+"gemini_step3_desc" = "Tippe auf „API Key erstellen“ und wähle ein Projekt (oder erstelle ein neues).";
+"gemini_step4_title" = "Key hier einfügen";
+"gemini_step4_desc" = "Kopiere den generierten Key und füge ihn unten ein.";
+"gemini_free_title" = "Kostenlos nutzbar";
+"gemini_free_desc" = "Gemini 1.5 Flash ist kostenlos: 15 Anfragen/Minute, 1 Mio. Tokens/Tag – mehr als genug für BeeFocus.";
+"gemini_key_saved" = "Key gespeichert";
+"ki_gemini_info_short" = "Kostenloser API Key von Google";
+"gemini_paste_key_label" = "Key einfügen";
+
+// MARK: - Onboarding
+"onboarding_welcome_sub" = "Dein smarter Tagesplaner";
+"onboarding_language_title" = "Wähle deine Sprache";
+"onboarding_next" = "Weiter";
+"onboarding_skip" = "Überspringen";
+"onboarding_ki_title" = "KI-Assistent einrichten";
+"onboarding_ki_sub" = "Wähle einen kostenlosen Anbieter und füge deinen API-Key ein.";
+"onboarding_ki_free_badge" = "Kostenlos · kein Zahlungsmittel";
+"onboarding_ki_google_badge" = "Kostenlos · Google-Konto";
+"onboarding_ki_get_key" = "Key holen";
+"onboarding_groq_free" = "Groq ist kostenlos: 30 Anfragen/Min. – kein Zahlungsmittel nötig.";
+"onboarding_gemini_title" = "KI-Assistent einrichten";
+"onboarding_gemini_sub" = "Verbinde Gemini für smarte Tagesanalysen. Kostenlos, dein eigener Key.";
+"onboarding_gemini_free" = "Gemini 1.5 Flash: kostenlos bis 15 Anfragen/Min.";
+"onboarding_notif_title" = "Bleib auf dem Laufenden";
+"onboarding_notif_sub" = "Lass dich erinnern und starte produktiv in den Tag.";
+"onboarding_notif_f1" = "Morgen-Übersicht jeden Tag";
+"onboarding_notif_f2" = "Erinnerungen für Aufgaben";
+"onboarding_notif_f3" = "Fälligkeitshinweise";
+"onboarding_notif_allow" = "Benachrichtigungen erlauben";
+"onboarding_notif_granted" = "Benachrichtigungen aktiviert";
+"onboarding_notif_denied" = "Du kannst sie später in den Systemeinstellungen aktivieren.";
+"onboarding_ready_title" = "Alles bereit!";
+"onboarding_ready_sub" = "Gleich zeigen wir dir kurz die wichtigsten Funktionen.";
+"onboarding_start" = "App entdecken";
+
+"nfc_toast_focus_on" = "Fokusmode aktiviert";
+"nfc_toast_focus_off" = "Fokusmode deaktiviert";
+
+"groq_setup_desc" = "Kostenlosen API-Key auf console.groq.com erstellen. Kein Zahlungsmittel nötig.";
+"groq_error_invalid_key" = "Ungültiger Groq API Key. Bitte prüfe deinen Key auf console.groq.com.";
+"groq_error_rate_limited" = "Zu viele Anfragen – bitte kurz warten. (Groq Free: 30/Min.)";
+"ki_runs_groq" = "Groq – dein Key";
+"ki_apple_unavailable" = "Apple Intelligence ist auf diesem Gerät nicht verfügbar. Mindestens iPhone 15 Pro oder iPhone 16 erforderlich.";
+"ki_apple_requires_ios26" = "Apple Intelligence erfordert iOS 26 oder neuer.";
+
+"ki_chip_tagesplan" = "Tagesplan";
+"ki_baustein_prompt_prefix" = "Hilf mir dabei, meinen Tag rund um folgende Aktivität zu planen:";
+"ki_prompt_placeholder" = "Frag die KI etwas…";
+
+"ki_floating_button" = "KI-Button anzeigen";
+"ki_focus_coach" = "Focus Coach nach Pomodoro";
+"coach_session_done" = "Session geschafft!";
+"coach_minutes_worked" = "%d Minuten fokussiert gearbeitet";
+"coach_session_complete" = "Fokus-Session abgeschlossen";
+"coach_analyzing" = "KI analysiert deine Aufgaben…";
+"coach_next_task_label" = "Als nächstes empfohlen";
+"coach_got_it" = "Verstanden, loslegen!";
+"coach_no_suggestion" = "Keine Empfehlung verfügbar. Schau selbst, was als nächstes dran ist!";
+"coach_all_done_title" = "Alle Aufgaben erledigt!";
+"coach_all_done_reason" = "Großartig – du hast keine offenen Aufgaben mehr. Gönn dir eine Pause!";
+"ki_active_provider" = "Aktiver Anbieter";
+"ki_section_general" = "Allgemein";
+"quickadd_title" = "Schnell hinzufügen";
+"quickadd_headline" = "Was möchtest du erledigen?";
+"quickadd_sub" = "Beschreibe die Aufgabe in eigenen Worten – die KI erstellt sie automatisch.";
+"quickadd_placeholder" = "Z.B. „Zahnarzt morgen anrufen, wichtig"";
+"quickadd_examples_label" = "Beispiele";
+"quickadd_add" = "Aufgabe hinzufügen";
+"quickadd_retry" = "Neu versuchen";
+"quickadd_success" = "Aufgabe erstellt!";
+"quickadd_success_sub" = "Die Aufgabe wurde zu deiner Liste hinzugefügt.";
+"quickadd_error" = "Die KI konnte keine Aufgabe erkennen. Bitte nochmal versuchen.";
+
+"ki_save_as_tasks" = "Als Aufgaben speichern";
+"ki_extracting_tasks" = "Aufgaben werden erkannt…";
+"ki_tasks_title" = "Erkannte Aufgaben";
+"ki_add_all" = "Alle hinzufügen";
+
+// Wochenrückblick
+"review_title" = "Wochenrückblick";
+"review_open_btn" = "Wochenrückblick öffnen";
+"review_tasks_done" = "Aufgaben erledigt";
+"review_focus_time" = "Fokuszeit";
+"review_daily_tasks" = "Aufgaben pro Tag";
+"review_last_week" = "Letzte Woche";
+"review_this_week" = "Diese Woche";
+"review_generating" = "KI analysiert deine Woche…";
+"review_generate_btn" = "KI-Rückblick generieren";
+"review_ai_label" = "KI-Rückblick";
+"review_close" = "Fertig";

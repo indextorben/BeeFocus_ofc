@@ -108,27 +108,27 @@
 "Keine Aufgaben" = "No Tasks";
 
 /* Tage der Woche */
-"Mo" = "Mon";
-"Di" = "Tue";
-"Mi" = "Wed";
-"Do" = "Thu";
-"Fr" = "Fri";
-"Sa" = "Sat";
-"So" = "Sun";
+
+
+
+
+
+
+
 
 /* Aufgabenkarte */
 "Aufgaben am" = "Tasks on";
 "Keine Aufgaben. Chill mal 😴" = "No tasks. Chill 😴";
 
 /* TodoCard Priorität */
-"priority_low" = "Low";
-"priority_medium" = "Medium";
-"priority_high" = "High";
+
+
+
 
 /* Kontextmenü TodoCard */
 "Teilen" = "Share";
 "Bearbeiten" = "Edit";
-"Löschen" = "Delete";
+
 
 "pomodoro_timer" = "Pomodoro Timer";
 "timer_mode" = "Timer Mode";
@@ -140,11 +140,11 @@
 "focus" = "Focus";
 "focus_time" = "Focus Time";
 "breaks" = "Breaks";
-"short_break" = "Short Break";
-"long_break" = "Long Break";
+
+
 "cycles" = "Cycles";
 "sessions_until_long_break" = "Sessions Until Long Break";
-"done" = "Done";
+
 
 "tutorial_next" = "Next";
 "tutorial_start" = "Let's go 🚀";
@@ -225,7 +225,7 @@
 "subtasks_title" = "Subtasks";
 "done_button" = "Done";
 "images_title" = "Images";
-"done_button" = "Done";
+
 "camera_access_required" = "Camera Access Required";
 "camera_access_explanation" = "Please allow camera access in Settings";
 "camera_settings_button" = "Open Settings";
@@ -240,15 +240,15 @@
 "add_to_calendar_toggle" = "Add to Calendar";
 "images_section" = "Images";
 "subtasks_section" = "Subtasks";
-"new_subtask_placeholder" = "New Subtask";
+
 "add_category_button" = "Add Category";
 "select_from_gallery" = "Select from Gallery";
 "capture_with_camera" = "Capture with Camera";
 "cancel_button" = "Cancel";
 "save_button" = "Save";
 "delete_button" = "Delete";
-"camera_access_required" = "Camera Access Required";
-"camera_access_explanation" = "Please allow camera access in Settings";
+
+
 "settings_button" = "Settings";
 "delete_image_title" = "Delete Image";
 "delete_image_message" = "Do you really want to delete this image?";
@@ -266,7 +266,7 @@
 "cancel" = "Cancel";
 "add" = "Add";
 "delete" = "Delete";
-"settings" = "Settings";
+
 "time" = "time";
 "morning_summary_toggle" = "morning summary"; 
 
@@ -291,22 +291,22 @@
 "category_name_placeholder" = "Category Name";
 "enter_new_category_name" = "Enter the name of the new category.";
 "category_missing" = "Category Missing";
-"category_missing_message" = "Please select a category before saving the task.";
+
 "priority" = "Priority";
 "enable_due_date" = "Enable Due Date";
 "date_time" = "Date & Time";
 "add_to_system_calendar" = "Add to System Calendar";
 "images" = "Images";
-"select_from_gallery" = "Select from Gallery";
+
 "take_with_camera" = "Take with Camera";
-"camera_access_required" = "Camera Access Required";
+
 "camera_access_message" = "Please allow camera access in settings.";
 "delete_image" = "Delete Image";
-"delete_image_message" = "Do you really want to delete this image?";
+
 "calendar_access_denied" = "Calendar Access Denied";
 "calendar_access_message" = "Please allow calendar access in settings.";
 "subtasks" = "Subtasks";
-"new_subtask_placeholder" = "New Subtask";
+
 "alert_delete_task" = "Delete Task?";
 "alert_delete_task_message" = "This action cannot be undone.";
 "alert_new_category" = "New Category";
@@ -315,9 +315,9 @@
 "alert_rename_category_message" = "Please enter a new name for the category.";
 "alert_delete_category" = "Delete Category?";
 "alert_delete_category_message" = "All tasks in this category will be moved to the first available category.";
-"cancel" = "Cancel";
-"delete" = "Delete";
-"add" = "Add";
+
+
+
 "category_name" = "Category Name";
 "new_name" = "New Name";
 "import_success_count" = "Import successful! Number of todos:";
@@ -362,7 +362,7 @@
 "tutorial_category_b1" = "Tap category";
 "tutorial_category_b2" = "Select or create";
 
-"tutorial_priority_title" = "Priority";
+
 "tutorial_priority_text" = "Define importance.";
 "tutorial_priority_b1" = "Choose priority";
 
@@ -375,7 +375,7 @@
 "tutorial_calendar_text" = "Sync with system calendar.";
 "tutorial_calendar_b1" = "Enable toggle";
 
-"tutorial_subtasks_title" = "Subtasks";
+
 "tutorial_subtasks_text" = "Break down big tasks.";
 "tutorial_subtasks_b1" = "Add subtask";
 "tutorial_subtasks_b2" = "Track progress";
@@ -519,23 +519,23 @@
 "weekly_debug_line" = "Week: %@ • In week: %d • Next due: %@";
 
 /* WeeklyGoalsView (Goals) */
-"weekly_goals_title" = "Weekly Goals";
-"weekly_planned_label" = "Planned";
-"weekly_completed_label" = "Completed";
-"weekly_next_week_cta" = "View %d next week";
-"weekly_menu_this_week" = "This Week";
-"weekly_menu_next_week" = "Next Week";
-"weekly_menu_last_week" = "Last Week";
-"weekly_empty_title" = "No weekly goals yet";
-"weekly_empty_message" = "Set a due date within the selected week to show tasks here. Use the calendar menu above to pick the right week.";
-"weekly_empty_info" = "%d tasks have a due date but not in this week. Switch weeks using the calendar menu above.";
-"weekly_button_this_week" = "This Week";
-"weekly_button_next_week" = "Next Week";
-"weekly_jump_to_next_due" = "Jump to next due task";
-"weekly_overdue" = "Overdue";
-"weekly_today" = "Today";
-"weekly_done_swipe" = "Done";
-"weekly_debug_line" = "Week: %@ • In week: %d • Next due: %@";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* TrashView */
 "Keine gelöschten Aufgaben." = "No deleted tasks.";
@@ -589,8 +589,8 @@
 "reminder_custom_title_placeholder" = "Custom reminder title (optional)";
 "reminder_custom_body_placeholder" = "Custom reminder text (optional)";
 
-"calendar_jump_today" = "today";
-"calendar_jump_to_current_month" = "To the current month";
+
+
 "reminder_edit_hint" = "Hinweis: Sie können den Titel und den Text bearbeiten. Diese Notiz wird in der Erinnerung nicht angezeigt.";
 
 "discard_changes_title" = "Discard changes?";
@@ -600,10 +600,10 @@
 "delete_task" = "Delete Task";
 
 /* Discard changes dialog */
-"discard_changes_title" = "Discard changes?";
-"discard_changes" = "Discard changes";
-"keep_editing" = "Keep editing";
-"discard_changes_message" = "You have unsaved changes. Do you want to discard them?";
+
+
+
+
 
 "select_calendar" = "Select Calendar";
 "default_calendar" = "Default Calendar";
@@ -638,3 +638,320 @@
 "fokus.today_hours" = "Today: %dh %dm";
 "fokus.today_hours_only" = "Today: %dh";
 "fokus.today_minutes" = "Today: %d min";
+"ki_title" = "AI Day Plan";
+"ki_runs_locally" = "Runs locally on your device";
+"ki_analyzing" = "Analyzing…";
+"ki_unavailable" = "Not available";
+"ki_not_available_message" = "Apple Intelligence is not available on this device. Make sure Apple Intelligence is enabled in Settings.";
+"ki_error_prefix" = "Error generating: ";
+"Abgeschlossene nach Zeitraum löschen" = "Delete completed tasks by date range";
+"Abzeichen" = "Badges";
+"Abzeichen freigeschaltet" = "Badge unlocked";
+"Abzeichen freigeschaltet!" = "Badge unlocked!";
+"Abzeichen verdienen = FP erhalten" = "Earn badges = earn FP";
+"Abzeichen-System" = "Badge System";
+"Akt. Monat" = "Current month";
+"Aktivieren" = "Activate";
+"Aktuell" = "Current";
+"Alle Abzeichen freigeschaltet 🎉" = "All badges unlocked 🎉";
+"Alle Aufgaben, die aus dem Kalender importiert wurden, werden gelöscht. Sie werden beim nächsten Sync nicht erneut importiert, da ihre Kalender-IDs gespeichert bleiben." = "All tasks imported from the calendar will be deleted. They will not be re-imported on the next sync, as their calendar IDs are saved.";
+"Alle Kalender-Importe löschen" = "Delete all calendar imports";
+"Alle Todos, deren Erstellungsdatum in diesem Zeitraum liegt, werden endgültig gelöscht." = "All todos created within this period will be permanently deleted.";
+"Alle aus dem Kalender importierten Aufgaben werden gelöscht und beim nächsten Sync nicht wieder importiert." = "All tasks imported from the calendar will be deleted and not re-imported on the next sync.";
+"Alle erledigten Aufgaben werden in den Papierkorb verschoben und können dort wiederhergestellt werden." = "All completed tasks will be moved to the trash and can be restored there.";
+"Alle löschen" = "Delete all";
+"Alle nicht erledigten Aufgaben mit Fälligkeit vor mehr als 1 Monat werden gelöscht." = "All incomplete tasks due more than 1 month ago will be deleted.";
+"An" = "On";
+"Apple Intelligence" = "Apple Intelligence";
+"Aufgabe gelöscht – Rückgängig" = "Task deleted – Undo";
+"Aufgabe löschen" = "Delete task";
+"Aufgaben einplanen" = "Schedule tasks";
+"Aufgaben, die in Titel, Beschreibung, Fälligkeitsdatum, Kategorie und Priorität übereinstimmen, gelten als Duplikat. Von jedem Duplikat wird eine Kopie gelöscht, die erste bleibt erhalten." = "Tasks matching in title, description, due date, category and priority are considered duplicates. One copy of each duplicate will be deleted, the first will be kept.";
+"Aufgabenübersicht" = "Task overview";
+"Aus" = "Off";
+"Aus Kalender importieren" = "Import from calendar";
+"Ausnahmen" = "Exceptions";
+"Baustein bearbeiten" = "Edit block";
+"Baustein einfügen" = "Insert block";
+"Baustein löschen" = "Delete block";
+"Bausteine" = "Blocks";
+"BeeFocus" = "BeeFocus";
+"BeeFocus benötigt Lesezugriff auf den Kalender, um Einträge zu importieren." = "BeeFocus requires read access to the calendar to import entries.";
+"Benutzerdefiniert" = "Custom";
+"Bereinigen" = "Clean up";
+"Bester Tag" = "Best day";
+"Bis" = "To";
+"Bis (optional)" = "Until (optional)";
+"Datum" = "Date";
+"Dein Guthaben" = "Your balance";
+"Diese Funktion behebt Synchronisationsfehler, bei denen die gleiche Kategorie mehrfach in CloudKit existiert. Betroffen sind nur Kategoriedaten, keine Aufgaben werden gelöscht." = "This function fixes sync errors where the same category exists multiple times in CloudKit. Only category data is affected, no tasks will be deleted.";
+"Diese Ordner werden automatisch anhand der Fälligkeitsdaten befüllt." = "These folders are automatically filled based on due dates.";
+"Diese Woche" = "This week";
+"Domain eingeben" = "Enter domain";
+"Domain manuell hinzufügen" = "Add domain manually";
+"Doppelt angelegte Kategorien in der CloudKit-Datenbank werden zusammengeführt. Aufgaben werden der verbleibenden Kategorie zugewiesen." = "Duplicate categories in the CloudKit database will be merged. Tasks will be assigned to the remaining category.";
+"Duplikate Kategorien bereinigen" = "Clean up duplicate categories";
+"Duplikate entfernen" = "Remove duplicates";
+"Duplikate entstehen häufig durch mehrfachen Kalender-Import oder Synchronisationsfehler. Die Bereinigung ist dauerhaft und kann nicht rückgängig gemacht werden." = "Duplicates often arise from multiple calendar imports or sync errors. Cleanup is permanent and cannot be undone.";
+"Duplikate jetzt entfernen" = "Remove duplicates now";
+"Duplikate löschen" = "Delete duplicates";
+"Eigene" = "Custom";
+"Eigene Ordner" = "Custom folders";
+"Einplanen" = "Schedule";
+"Ende" = "End";
+"Entfernen" = "Remove";
+"Erledigte Aufgaben sind nicht betroffen. Aufgaben ohne Fälligkeitsdatum werden ebenfalls nicht gelöscht." = "Completed tasks are not affected. Tasks without a due date will also not be deleted.";
+"Erstelle Bausteine, die du immer wieder in deinen Tagesplan einfügen kannst." = "Create building blocks that you can insert into your daily plan again and again.";
+"Erstelle einen Ordner mit dem Ordner-Button oben rechts." = "Create a folder using the folder button in the top right.";
+"Erstelle wiederverwendbare Zeitblöcke für deinen Tagesplan." = "Create reusable time blocks for your daily plan.";
+"Erstellen" = "Create";
+"Erstellt mit BeeFocus" = "Created with BeeFocus";
+"Ersten Baustein erstellen" = "Create first block";
+"Fang heute an!" = "Start today!";
+"Fokus" = "Focus";
+"Fokus aktiv – Bearbeiten gesperrt" = "Focus active – editing locked";
+"Fokus-Store" = "Focus Store";
+"Fokuspunkte" = "Focus Points";
+"Fokuspunkte & Store" = "Focus Points & Store";
+"Fokuspunkte verdienen" = "Earn Focus Points";
+"Fokuspunkte werden für deine Produktivität gutgeschrieben und sinken niemals automatisch – nur Käufe im Fokus-Store reduzieren dein Guthaben." = "Focus Points are credited for your productivity and never decrease automatically – only purchases in the Focus Store reduce your balance.";
+"Gesamt Fokuszeit" = "Total focus time";
+"Gib einen Namen für den neuen Ordner ein." = "Enter a name for the new folder.";
+"Heute" = "Today";
+"Highlights" = "Highlights";
+"Hinweis" = "Note";
+"Hohe Priorität" = "High priority";
+"Identische Aufgaben (gleicher Titel, Beschreibung, Datum, Kategorie und Priorität) werden permanent gelöscht." = "Identical tasks (same title, description, date, category and priority) will be permanently deleted.";
+"Im Fokus-Store kannst du Farbthemen für die Statistik-Ansicht freischalten. Jedes Theme verändert den Hintergrund-Farbverlauf dieser Seite." = "In the Focus Store you can unlock color themes for the statistics view. Each theme changes the background gradient of this page.";
+"Importieren" = "Import";
+"In Ordner verschieben" = "Move to folder";
+"In Ordner ziehen" = "Move to folder";
+"In Papierkorb verschieben" = "Move to trash";
+"Instagram, E-Mail & mehr" = "Instagram, email & more";
+"Jetzt passend" = "Appropriate now";
+"KI" = "AI";
+"Kalender werden geladen…" = "Loading calendars…";
+"Kalender-Importe" = "Calendar imports";
+"Kalender-Importe löschen" = "Delete calendar imports";
+"Kalender-Zugriff erlauben" = "Allow calendar access";
+"Kein Fokus" = "No focus";
+"Kein Tagesziel gesetzt" = "No daily goal set";
+"Keine Aufgaben für heute – genieße den Tag! ☀️" = "No tasks for today – enjoy the day! ☀️";
+"Keine Bausteine gefunden" = "No blocks found";
+"Keine Duplikate gefunden." = "No duplicates found.";
+"Keine eigenen Ordner" = "No custom folders";
+"Letzte 30 Tage" = "Last 30 days";
+"Letzte 7 Tage" = "Last 7 days";
+"Letzte Woche" = "Last week";
+"Löschung abgeschlossen" = "Deletion complete";
+"Mein Profil" = "My profile";
+"Möchten Sie wirklich alle erledigten Aufgaben in den Papierkorb verschieben?" = "Do you really want to move all completed tasks to the trash?";
+"Neuer Baustein" = "New block";
+"Nicht erledigte Aufgaben, deren Fälligkeitsdatum mehr als 1 Monat in der Vergangenheit liegt, werden in den Papierkorb verschoben. Aufgaben der letzten 30 Tage bleiben erhalten." = "Incomplete tasks whose due date is more than 1 month in the past will be moved to the trash. Tasks from the last 30 days remain.";
+"Noch keine Bausteine" = "No blocks yet";
+"Noch keine Ordner vorhanden." = "No folders yet.";
+"Noch keine eigenen Ordner" = "No custom folders yet";
+"Noch keine eigenen Ordner vorhanden." = "No custom folders yet.";
+"OK" = "OK";
+"Ordner" = "Folders";
+"Ordner verwalten" = "Manage folders";
+"Rückgängig" = "Undo";
+"Schalte das Abzeichen-System im Store für 2.000 FP frei. Für jedes verdiente Abzeichen erhältst du einmalig Bonus-Fokuspunkte – bis zu 5.675 FP insgesamt." = "Unlock the badge system in the store for 2,000 FP. For each badge earned you receive a one-time bonus of Focus Points – up to 5,675 FP in total.";
+"Schließen" = "Close";
+"Schnellaufgabe" = "Quick task";
+"Sessions" = "Sessions";
+"Sichern" = "Save";
+"Spotify" = "Spotify";
+"Standard-Ordner" = "Default folders";
+"Startzeit festlegen" = "Set start time";
+"Streak" = "Streak";
+"Summary" = "Summary";
+"Super Lauf!" = "Great streak!";
+"Synchronisationszeitraum" = "Sync period";
+"TEST: +1000 Fokuspunkte" = "TEST: +1000 Focus Points";
+"TL" = "TL";
+"Tag" = "Day";
+"Tag Streak" = "Day streak";
+"Tag als PDF" = "Day as PDF";
+"Tage" = "Days";
+"Tage Streak" = "Days streak";
+"Tage, an denen du dein Tagesziel erreichst, zählen für die Serie." = "Days on which you reach your daily goal count towards the streak.";
+"Tages-Fokusziel" = "Daily focus goal";
+"Tagesplan" = "Daily plan";
+"Tagesziel" = "Daily goal";
+"Titel…" = "Title…";
+"Todos im Zeitraum löschen" = "Delete todos in period";
+"Tutorials" = "Tutorials";
+"Uhrzeit" = "Time";
+"Unaufhaltsam!" = "Unstoppable!";
+"Ursache & Hinweis" = "Cause & note";
+"Verdient" = "Earned";
+"Vergangene Todos löschen" = "Delete past todos";
+"Verlauf – 7 Tage" = "History – 7 days";
+"Verschieben" = "Move";
+"Versuche einen anderen Begriff." = "Try a different term.";
+"Verwalten" = "Manage";
+"Viel" = "High";
+"Von" = "From";
+"Vorschläge" = "Suggestions";
+"Wann sinnvoll?" = "When useful?";
+"Was passiert?" = "What happens?";
+"Website sperren" = "Block website";
+"Weiter so!" = "Keep it up!";
+"Wenig" = "Low";
+"Woche als PDF" = "Week as PDF";
+"Wochenplan" = "Weekly plan";
+"Wochenrückblick" = "Weekly review";
+"Wochenziele anzeigen" = "Show weekly goals";
+"Wähle Tage, an denen dieser Baustein als Vorschlag erscheint." = "Choose days on which this block appears as a suggestion.";
+"Zeitraum" = "Period";
+"Zeitraum bearbeiten" = "Edit period";
+"Zeitraum hinzufügen" = "Add period";
+"Zeiträume bearbeiten" = "Edit periods";
+"Ziele" = "Goals";
+"abgeschlossene Aufgaben gefunden" = "completed tasks found";
+"daily" = "daily";
+"in Minuten" = "in minutes";
+"läuft" = "running";
+"monthly" = "monthly";
+"timer" = "timer";
+"verdient" = "earned";
+"weekly" = "weekly";
+"www. und https:// werden automatisch entfernt." = "www. and https:// are removed automatically.";
+"Ø Fokus" = "Avg. focus";
+"Über den Entwickler" = "About the developer";
+"Überfällige Aufgaben löschen" = "Delete overdue tasks";
+"Überfällige jetzt löschen" = "Delete overdue now";
+"Überfällige löschen" = "Delete overdue";
+"reset" = "Reset";
+"reset_statistics_confirm_title" = "Reset statistics?";
+"reset_statistics_confirm_message" = "All statistics data (completed per day and focus minutes) will be irreversibly deleted.";
+"reset_statistics_done" = "Statistics reset";
+"ki_settings_title" = "AI Assistant";
+"ki_model_label" = "Model";
+"ki_gemini_info" = "Add your own Gemini API Key. Available for free at aistudio.google.com.";
+"ki_api_key_label" = "Gemini API Key";
+"ki_api_key_placeholder" = "AIza...";
+"ki_key_valid" = "Valid";
+"ki_key_invalid" = "Invalid – check your key";
+"ki_key_save" = "Save & Verify";
+"ki_key_delete" = "Delete";
+"ki_key_saved_status" = "API Key saved";
+"ki_retry" = "Try again";
+"ki_runs_gemini" = "Gemini 2.0 Flash – your key";
+"ki_runs_openai" = "OpenAI – your key";
+"openai_key_info" = "Try for free at platform.openai.com";
+"openai_error_invalid_key" = "Invalid API Key. Please check your OpenAI key.";
+"openai_error_no_credits" = "Your OpenAI credit is exhausted. Please top up your account at platform.openai.com.";
+"openai_setup_desc" = "Add your key from platform.openai.com. It is stored securely on your device.";
+"ki_no_provider" = "No AI provider available. Add a Gemini API Key in Settings.";
+"ki_setup_hint" = "→ Settings → AI Assistant";
+"gemini_error_invalid_key" = "Invalid API Key. Please check your Gemini key.";
+"gemini_error_rate_limited" = "Too many requests – please wait 1 minute and try again. (Free quota: 15/min.)";
+"gemini_error_quota_exhausted" = "No Gemini quota available. Please link a billing account in Google Cloud Console (free, no charges): console.cloud.google.com → Billing.";
+"gemini_error_bad_response" = "Server error";
+"gemini_error_no_content" = "No response received.";
+"ki_test_button" = "Test";
+"ki_setup_title" = "Set up Gemini API Key";
+"ki_setup_desc" = "Paste your free key from aistudio.google.com. It is stored securely on your device.";
+"ki_setup_save" = "Save & Start";
+"ki_add_key_button" = "Enter API Key";
+"gemini_guide_title" = "Gemini API Key – Guide";
+"gemini_guide_headline" = "Get started for free";
+"gemini_guide_subline" = "4 steps to your own API Key";
+"gemini_guide_short_btn" = "Guide";
+"gemini_step1_title" = "Open Google AI Studio";
+"gemini_step1_desc" = "Open aistudio.google.com/apikey in your browser.";
+"gemini_step2_title" = "Sign in with Google";
+"gemini_step2_desc" = "Sign in with your Google account – free, no subscription needed.";
+"gemini_step3_title" = "Create API Key";
+"gemini_step3_desc" = "Tap “Create API Key” and choose a project (or create a new one).";
+"gemini_step4_title" = "Paste key here";
+"gemini_step4_desc" = "Copy the generated key and paste it below.";
+"gemini_free_title" = "Free to use";
+"gemini_free_desc" = "Gemini 1.5 Flash is free: 15 requests/minute, 1M tokens/day – more than enough for BeeFocus.";
+"gemini_key_saved" = "Key saved";
+"ki_gemini_info_short" = "Free API Key from Google";
+"gemini_paste_key_label" = "Paste key";
+
+// MARK: - Onboarding
+"onboarding_welcome_sub" = "Your smart daily planner";
+"onboarding_language_title" = "Choose your language";
+"onboarding_next" = "Next";
+"onboarding_skip" = "Skip";
+"onboarding_ki_title" = "Set up AI Assistant";
+"onboarding_ki_sub" = "Choose a free provider and add your API key.";
+"onboarding_ki_free_badge" = "Free · no payment needed";
+"onboarding_ki_google_badge" = "Free · Google account";
+"onboarding_ki_get_key" = "Get key";
+"onboarding_groq_free" = "Groq is free: 30 requests/min – no payment method required.";
+"onboarding_gemini_title" = "Set up AI Assistant";
+"onboarding_gemini_sub" = "Connect Gemini for smart daily insights. Free, your own key.";
+"onboarding_gemini_free" = "Gemini 1.5 Flash: free up to 15 requests/min.";
+"onboarding_notif_title" = "Stay on top of things";
+"onboarding_notif_sub" = "Get reminded and start your day productively.";
+"onboarding_notif_f1" = "Morning overview every day";
+"onboarding_notif_f2" = "Reminders for tasks";
+"onboarding_notif_f3" = "Due date alerts";
+"onboarding_notif_allow" = "Allow notifications";
+"onboarding_notif_granted" = "Notifications enabled";
+"onboarding_notif_denied" = "You can enable them later in System Settings.";
+"onboarding_ready_title" = "You're all set!";
+"onboarding_ready_sub" = "Let us quickly show you the most important features.";
+"onboarding_start" = "Explore the app";
+
+"nfc_toast_focus_on" = "Focus mode activated";
+"nfc_toast_focus_off" = "Focus mode deactivated";
+
+"groq_setup_desc" = "Create a free API key at console.groq.com. No payment method required.";
+"groq_error_invalid_key" = "Invalid Groq API key. Please check your key at console.groq.com.";
+"groq_error_rate_limited" = "Too many requests – please wait a moment. (Groq Free: 30/min.)";
+"ki_runs_groq" = "Groq – your key";
+"ki_apple_unavailable" = "Apple Intelligence is not available on this device. Requires at least iPhone 15 Pro or iPhone 16.";
+"ki_apple_requires_ios26" = "Apple Intelligence requires iOS 26 or later.";
+
+"ki_chip_tagesplan" = "Daily Plan";
+"ki_baustein_prompt_prefix" = "Help me plan my day around the following activity:";
+"ki_prompt_placeholder" = "Ask the AI something…";
+
+"ki_floating_button" = "Show AI button";
+"ki_focus_coach" = "Focus Coach after Pomodoro";
+"coach_session_done" = "Session complete!";
+"coach_minutes_worked" = "%d minutes of focused work";
+"coach_session_complete" = "Focus session finished";
+"coach_analyzing" = "AI is analyzing your tasks…";
+"coach_next_task_label" = "Recommended next";
+"coach_got_it" = "Got it, let's go!";
+"coach_no_suggestion" = "No suggestion available. Take a look yourself at what's next!";
+"coach_all_done_title" = "All tasks done!";
+"coach_all_done_reason" = "Amazing – you have no open tasks left. Take a well-deserved break!";
+"ki_active_provider" = "Active provider";
+"ki_section_general" = "General";
+"quickadd_title" = "Quick Add";
+"quickadd_headline" = "What do you want to do?";
+"quickadd_sub" = "Describe the task in your own words – the AI creates it automatically.";
+"quickadd_placeholder" = "E.g. "Call dentist tomorrow, important"";
+"quickadd_examples_label" = "Examples";
+"quickadd_add" = "Add task";
+"quickadd_retry" = "Try again";
+"quickadd_success" = "Task created!";
+"quickadd_success_sub" = "The task has been added to your list.";
+"quickadd_error" = "The AI couldn't detect a task. Please try again.";
+
+"ki_save_as_tasks" = "Save as tasks";
+"ki_extracting_tasks" = "Detecting tasks…";
+"ki_tasks_title" = "Detected tasks";
+"ki_add_all" = "Add all";
+
+// Weekly Review
+"review_title" = "Weekly Review";
+"review_open_btn" = "Open Weekly Review";
+"review_tasks_done" = "Tasks completed";
+"review_focus_time" = "Focus time";
+"review_daily_tasks" = "Tasks per day";
+"review_last_week" = "Last week";
+"review_this_week" = "This week";
+"review_generating" = "AI is analyzing your week…";
+"review_generate_btn" = "Generate AI Review";
+"review_ai_label" = "AI Review";
+"review_close" = "Done";

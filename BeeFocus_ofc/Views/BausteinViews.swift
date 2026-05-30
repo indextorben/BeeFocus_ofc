@@ -11,16 +11,27 @@ struct BausteinPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingVerwaltung = false
+    @State private var suche: String = ""
+    @FocusState private var sucheFocused: Bool
 
     private var isDark: Bool { colorScheme == .dark }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
-    private var vorschlaege: [TagesplanBaustein] {
-        store.bausteine.filter { $0.passtzuWochentag(datum) }
+    // Smart-scored top picks (max 4) für die Chips-Leiste oben
+    private var topPicks: [TagesplanBaustein] {
+        store.smartVorschlaege(datum: datum, eingabe: "").prefix(4).map { $0 }
     }
-    private var alleAnderen: [TagesplanBaustein] {
-        store.bausteine.filter { !$0.passtzuWochentag(datum) }
+
+    // Suchergebnis oder vollständige Score-sortierte Liste
+    private var gefilterteBausteine: [TagesplanBaustein] {
+        if suche.trimmingCharacters(in: .whitespaces).isEmpty {
+            return store.bausteine.sorted {
+                ($0.verwendungen, $0.passtzuWochentag(datum) ? 1 : 0) >
+                ($1.verwendungen, $1.passtzuWochentag(datum) ? 1 : 0)
+            }
+        }
+        return store.smartVorschlaege(datum: datum, eingabe: suche)
     }
 
     var body: some View {
@@ -43,9 +54,7 @@ struct BausteinPickerSheet: View {
                     Button("Schließen") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingVerwaltung = true
-                    } label: {
+                    Button { showingVerwaltung = true } label: {
                         Label("Verwalten", systemImage: "slider.horizontal.3")
                     }
                 }
@@ -58,30 +67,130 @@ struct BausteinPickerSheet: View {
         .presentationDragIndicator(.visible)
     }
 
+    // MARK: - Hauptliste
+
     private var liste: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                if !vorschlaege.isEmpty {
-                    pickerSection(titel: "Heute vorgeschlagen", bausteine: vorschlaege)
+            VStack(spacing: 16) {
+
+                // Suchfeld
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(sucheFocused || !suche.isEmpty ? themeC1 : .secondary)
+                    TextField("Suchen…", text: $suche)
+                        .font(.system(size: 15))
+                        .focused($sucheFocused)
+                        .submitLabel(.search)
+                    if !suche.isEmpty {
+                        Button { withAnimation { suche = "" } } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.system(size: 15))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                if !alleAnderen.isEmpty {
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .animation(.spring(response: 0.25, dampingFraction: 0.8), value: sucheFocused)
+
+                // Smart-Chips (nur ohne Suche)
+                if suche.isEmpty && !topPicks.isEmpty {
+                    smartChipsRow
+                }
+
+                // Trennlinie + Sektionsheader
+                let bausteine = gefilterteBausteine
+                if bausteine.isEmpty {
+                    keineErgebnisse
+                } else {
                     pickerSection(
-                        titel: vorschlaege.isEmpty ? "Alle Bausteine" : "Weitere",
-                        bausteine: alleAnderen
+                        titel: suche.isEmpty ? "Alle Bausteine" : "Ergebnisse",
+                        symbol: suche.isEmpty ? nil : "magnifyingglass",
+                        bausteine: bausteine
                     )
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: suche)
         }
     }
 
-    private func pickerSection(titel: String, bausteine: [TagesplanBaustein]) -> some View {
+    // MARK: - Smart-Chips oben
+
+    private var smartChipsRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(titel.uppercased())
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
-                .padding(.horizontal, 4)
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(themeC1)
+                Text("Jetzt passend")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
+            }
+            .padding(.horizontal, 2)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(topPicks) { b in
+                        Button {
+                            einfuegen(b)
+                        } label: {
+                            HStack(spacing: 7) {
+                                ZStack {
+                                    Circle()
+                                        .fill(b.farbe.color.opacity(0.18))
+                                        .frame(width: 30, height: 30)
+                                    Image(systemName: b.symbol)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(b.farbe.color)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(b.titel)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                                        .lineLimit(1)
+                                    Text(b.zeitLabel)
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundStyle(b.farbe.color.opacity(0.85))
+                                        .lineLimit(1)
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(b.farbe.color.opacity(isDark ? 0.16 : 0.09),
+                                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(b.farbe.color.opacity(0.28), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    // MARK: - Sektion + Zeile
+
+    private func pickerSection(titel: String, symbol: String?, bausteine: [TagesplanBaustein]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 5) {
+                if let sym = symbol {
+                    Image(systemName: sym)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+                }
+                Text(titel.uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
+            }
+            .padding(.horizontal, 4)
 
             VStack(spacing: 8) {
                 ForEach(bausteine) { b in
@@ -93,16 +202,15 @@ struct BausteinPickerSheet: View {
 
     private func pickerRow(_ b: TagesplanBaustein) -> some View {
         Button {
-            onEinfuegen(b)
-            dismiss()
+            einfuegen(b)
         } label: {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(b.farbe.color.opacity(0.2))
-                        .frame(width: 42, height: 42)
+                        .fill(b.farbe.color.opacity(0.18))
+                        .frame(width: 44, height: 44)
                     Image(systemName: b.symbol)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 19, weight: .semibold))
                         .foregroundStyle(b.farbe.color)
                 }
 
@@ -117,13 +225,22 @@ struct BausteinPickerSheet: View {
                                 .foregroundStyle(.orange)
                         }
                     }
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: "clock")
                             .font(.system(size: 10))
                         Text(b.zeitLabel)
                             .font(.system(size: 12))
+                        if b.verwendungen > 0 {
+                            Text("·")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary.opacity(0.5))
+                            Image(systemName: "arrow.trianglehead.counterclockwise")
+                                .font(.system(size: 9))
+                            Text("\(b.verwendungen)×")
+                                .font(.system(size: 10))
+                        }
                     }
-                    .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
+                    .foregroundStyle(isDark ? .white.opacity(0.42) : .secondary)
                 }
 
                 Spacer()
@@ -148,9 +265,33 @@ struct BausteinPickerSheet: View {
             .padding(12)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(b.farbe.color.opacity(0.25), lineWidth: 1))
+                .stroke(b.farbe.color.opacity(0.22), lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Helpers
+
+    private func einfuegen(_ b: TagesplanBaustein) {
+        store.verwendungErhoehen(b)
+        onEinfuegen(b)
+        dismiss()
+    }
+
+    private var keineErgebnisse: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 32))
+                .foregroundStyle(themeC1.opacity(0.35))
+            Text("Keine Bausteine gefunden")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isDark ? .white.opacity(0.7) : .primary)
+            Text("Versuche einen anderen Begriff.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
     }
 
     private var emptyState: some View {

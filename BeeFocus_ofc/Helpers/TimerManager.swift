@@ -71,6 +71,7 @@ final class TimerManager: ObservableObject {
     
     deinit {
         stopTimer()
+        NotificationManager.shared.cancelAllTimerNotifications()
         endBackgroundTask()
         NotificationCenter.default.removeObserver(self)
     }
@@ -163,7 +164,7 @@ final class TimerManager: ObservableObject {
         stopTimer()
         isRunning = false
         saveState()
-        NotificationManager.shared.cancelTimerNotification()
+        NotificationManager.shared.cancelAllTimerNotifications()
 
         Task {
             await activity?.end(using: liveState())
@@ -257,7 +258,7 @@ final class TimerManager: ObservableObject {
     private func stopInternal() {
         stopTimer()
         isRunning = false
-        NotificationManager.shared.cancelTimerNotification()
+        NotificationManager.shared.cancelAllTimerNotifications()
         endBackgroundTask()
     }
 
@@ -329,6 +330,8 @@ final class TimerManager: ObservableObject {
         }
 
         isRunning = false
+        // Cancel any notifications left over from before the app was killed/closed
+        NotificationManager.shared.cancelAllTimerNotifications()
     }
 
     // MARK: - Daily Session Reset
