@@ -468,7 +468,7 @@
 "Nach Zeitraum löschen" = "Completed by period delete";
 "Abgeschlossene in Papierkorb" = "Completed by period delete";
 
-// English-key aliases for the same phrases
+/* English-key aliases for the same phrases */
 "confirm_delete_todo_message" = "Do you really want to delete this task?";
 "sort_by" = "Sort by";
 "restore_default" = "Restore default";
@@ -611,7 +611,7 @@
 "calendar_settings_header" = "Calendar";
 "calendar_settings_info" = "When creating or editing tasks, you can select a calendar when adding them to the system calendar.";
 
-// MARK: - FokusModeView
+/* MARK: - FokusModeView */
 "Fokusmodus" = "Focus Mode";
 "Fokusmodus aktiv" = "Focus mode active";
 "Aktiv" = "Active";
@@ -874,7 +874,7 @@
 "ki_gemini_info_short" = "Free API Key from Google";
 "gemini_paste_key_label" = "Paste key";
 
-// MARK: - Onboarding
+/* MARK: - Onboarding */
 "onboarding_welcome_sub" = "Your smart daily planner";
 "onboarding_language_title" = "Choose your language";
 "onboarding_next" = "Next";
@@ -943,7 +943,7 @@
 "ki_tasks_title" = "Detected tasks";
 "ki_add_all" = "Add all";
 
-// Weekly Review
+/* Weekly Review */
 "review_title" = "Weekly Review";
 "review_open_btn" = "Open Weekly Review";
 "review_tasks_done" = "Tasks completed";

@@ -456,7 +456,7 @@
 "Was möchten Sie tun?" = "Was möchten Sie tun?";
 "Timer" = "Timer";
 
-// Alias-Keys (englische Schlüssel mit deutschen Werten)
+/* Alias-Keys (englische Schlüssel mit deutschen Werten) */
 "confirm_delete_todo_message" = "Möchten Sie diese Aufgabe wirklich löschen?";
 "sort_by" = "Sortieren nach";
 "restore_default" = "Standard wiederherstellen";
@@ -587,7 +587,7 @@
 "calendar_settings_header" = "Kalender";
 "calendar_settings_info" = "Wählen Sie beim Erstellen oder Bearbeiten von Aufgaben einen Kalender aus, wenn Sie diese zum System-Kalender hinzufügen möchten.";
 
-// MARK: - FokusModeView
+/* MARK: - FokusModeView */
 "Fokusmodus" = "Fokusmodus";
 "Fokusmodus aktiv" = "Fokusmodus aktiv";
 "Aktiv" = "Aktiv";
@@ -672,7 +672,7 @@
 "ki_gemini_info_short" = "Kostenloser API Key von Google";
 "gemini_paste_key_label" = "Key einfügen";
 
-// MARK: - Onboarding
+/* MARK: - Onboarding */
 "onboarding_welcome_sub" = "Dein smarter Tagesplaner";
 "onboarding_language_title" = "Wähle deine Sprache";
 "onboarding_next" = "Weiter";
@@ -741,7 +741,7 @@
 "ki_tasks_title" = "Erkannte Aufgaben";
 "ki_add_all" = "Alle hinzufügen";
 
-// Wochenrückblick
+/* Wochenrückblick */
 "review_title" = "Wochenrückblick";
 "review_open_btn" = "Wochenrückblick öffnen";
 "review_tasks_done" = "Aufgaben erledigt";
