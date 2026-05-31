@@ -9,6 +9,7 @@ struct KIEinstellungenView: View {
     @AppStorage("aiProvider")            private var aiProvider: String = "gemini"
     @AppStorage("floatingAIEnabled")     private var floatingAIEnabled: Bool = true
     @AppStorage("focusCoachEnabled")     private var focusCoachEnabled: Bool = true
+    @AppStorage("aiAutoSpeak")           private var aiAutoSpeak: Bool = false
 
     // Gemini
     @State private var geminiKey: String = KeychainHelper.load(for: GeminiService.keychainKey) ?? ""
@@ -58,6 +59,10 @@ struct KIEinstellungenView: View {
                         toggleRow(icon: "brain.head.profile", color: .indigo,
                                   label: String(localized: "ki_focus_coach"),
                                   isOn: $focusCoachEnabled)
+                        divider()
+                        toggleRow(icon: "speaker.wave.2.fill", color: .teal,
+                                  label: String(localized: "ki_auto_speak"),
+                                  isOn: $aiAutoSpeak)
                         divider()
                         providerPicker
                     }

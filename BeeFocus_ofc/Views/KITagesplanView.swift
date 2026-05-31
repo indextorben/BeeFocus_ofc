@@ -50,6 +50,7 @@ struct KITagesplanSheet: View {
     @ObservedObject private var bausteinStore = BausteinStore.shared
     @ObservedObject private var speech = SpeechManager.shared
     @AppStorage("selectedLanguage") private var selectedLanguage = "Deutsch"
+    @AppStorage("aiAutoSpeak")      private var aiAutoSpeak: Bool = false
 
     private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
     private var isDark: Bool { colorScheme == .dark }
@@ -185,6 +186,10 @@ struct KITagesplanSheet: View {
                     }
                 }
             }
+        }
+        .onChange(of: isLoading) { loading in
+            guard !loading, !generatedText.isEmpty, aiAutoSpeak else { return }
+            speech.speak(generatedText, languageCode: speechLang)
         }
         .sheet(isPresented: $showGuide) {
             NavigationStack {
