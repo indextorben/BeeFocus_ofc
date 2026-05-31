@@ -15,6 +15,10 @@ struct QuickAddSheet: View {
     @AppStorage("openaiSelectedModel") private var openaiModel: String = OpenAIService.models[0]
     @AppStorage("groqSelectedModel")   private var groqModel:   String = GroqService.models[0]
     @AppStorage("darkModeEnabled")     private var darkModeEnabled = false
+    @AppStorage("selectedLanguage")    private var selectedLanguage = "Deutsch"
+
+    @ObservedObject private var speech = SpeechManager.shared
+    private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
 
     @State private var userInput: String = ""
     @State private var isProcessing = false
@@ -94,13 +98,38 @@ struct QuickAddSheet: View {
 
             // Text input
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .bottom, spacing: 10) {
+                    // Mic button
+                    Button {
+                        if speech.isRecording {
+                            speech.stopRecording()
+                            if !speech.liveText.isEmpty {
+                                userInput = speech.liveText
+                                Task { await parse() }
+                            }
+                        } else {
+                            speech.requestPermissions()
+                            speech.startRecording(languageCode: speechLang)
+                            inputFocused = false
+                        }
+                    } label: {
+                        Image(systemName: speech.isRecording ? "waveform" : "mic.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(speech.isRecording ? .white : themeC1)
+                            .frame(width: 38, height: 38)
+                            .background(speech.isRecording ? Color.red : themeC1.opacity(0.12), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
                     TextField(String(localized: "quickadd_placeholder"), text: $userInput, axis: .vertical)
                         .font(.system(size: 16))
                         .lineLimit(1...5)
                         .focused($inputFocused)
                         .submitLabel(.done)
                         .onSubmit { if !userInput.trimmingCharacters(in: .whitespaces).isEmpty { Task { await parse() } } }
+                        .onChange(of: speech.liveText) { live in
+                            if speech.isRecording { userInput = live }
+                        }
 
                     if isProcessing {
                         ProgressView()

@@ -48,7 +48,10 @@ struct KITagesplanSheet: View {
     // Prompt input
     @State private var userPrompt: String = ""
     @ObservedObject private var bausteinStore = BausteinStore.shared
+    @ObservedObject private var speech = SpeechManager.shared
+    @AppStorage("selectedLanguage") private var selectedLanguage = "Deutsch"
 
+    private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
     private var isDark: Bool { colorScheme == .dark }
     private var cal: Calendar { Calendar.current }
     private var hasKey: Bool {
@@ -387,11 +390,28 @@ struct KITagesplanSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             // AI response text
             VStack(alignment: .leading, spacing: 0) {
-                Text(generatedText)
-                    .font(.body)
-                    .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
-                    .multilineTextAlignment(.leading)
-                    .animation(.easeIn(duration: 0.1), value: generatedText)
+                HStack(alignment: .top, spacing: 8) {
+                    Text(generatedText)
+                        .font(.body)
+                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                        .multilineTextAlignment(.leading)
+                        .animation(.easeIn(duration: 0.1), value: generatedText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if !isLoading && !generatedText.isEmpty {
+                        Button {
+                            if speech.isSpeaking { speech.stopSpeaking() }
+                            else { speech.speak(generatedText, languageCode: speechLang) }
+                        } label: {
+                            Image(systemName: speech.isSpeaking ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(speech.isSpeaking ? .red : themeC1)
+                                .frame(width: 30, height: 30)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
 
                 if isLoading {
                     HStack(spacing: 4) {
@@ -617,13 +637,36 @@ struct KITagesplanSheet: View {
             }
 
             // Text input row
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                // Mic button
+                Button {
+                    if speech.isRecording {
+                        speech.stopRecording()
+                        if !speech.liveText.isEmpty { userPrompt = speech.liveText }
+                    } else {
+                        speech.requestPermissions()
+                        speech.startRecording(languageCode: speechLang)
+                    }
+                } label: {
+                    Image(systemName: speech.isRecording ? "waveform" : "mic")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(speech.isRecording ? .red : .secondary)
+                        .frame(width: 38, height: 38)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay(
+                            Circle().stroke(speech.isRecording ? Color.red.opacity(0.4) : Color.clear, lineWidth: 1.5)
+                        )
+                }
+
                 TextField(String(localized: "ki_prompt_placeholder"), text: $userPrompt, axis: .vertical)
                     .lineLimit(1...4)
                     .font(.subheadline)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .onChange(of: speech.liveText) { live in
+                        if speech.isRecording { userPrompt = live }
+                    }
 
                 Button {
                     Task { await generate() }

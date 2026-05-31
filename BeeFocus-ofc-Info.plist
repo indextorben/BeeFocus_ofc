@@ -45,5 +45,9 @@
 	</array>
 	<key>CloudKitContainerIdentifier</key>
 	<string>iCloud.com.TorbenLehneke.BeeFocus</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BeeFocus nutzt das Mikrofon, damit du per Sprache mit der KI sprechen kannst.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>BeeFocus nutzt Spracherkennung, damit du Aufgaben und Fragen per Sprache eingeben kannst.</string>
 </dict>
 </plist>
