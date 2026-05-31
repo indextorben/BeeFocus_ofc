@@ -30,6 +30,8 @@ struct StatistikView: View {
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
     @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
     @State private var showWochenrueckblick = false
+    @State private var showHabitTracker = false
+    @State private var showJournal = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -514,6 +516,45 @@ struct StatistikView: View {
                             }
                         }
 
+                        // Habit Tracker
+                        animatedSection(delay: 0.36) {
+                            sectionGroup(icon: "calendar.badge.checkmark", label: "Gewohnheiten", color: Color(red: 0.3, green: 0.82, blue: 0.5)) {
+                                glassCard {
+                                    Button { showHabitTracker = true } label: {
+                                        HStack(spacing: 14) {
+                                            let progress = HabitStore.shared.todayProgress()
+                                            iconNavRow(
+                                                icon: "calendar.badge.checkmark",
+                                                color: Color(red: 0.3, green: 0.82, blue: 0.5),
+                                                label: progress.total > 0
+                                                    ? "Heute \(progress.done)/\(progress.total) erledigt"
+                                                    : "Gewohnheiten aufbauen"
+                                            )
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Fokus-Journal
+                        animatedSection(delay: 0.38) {
+                            sectionGroup(icon: "book.closed.fill", label: "Fokus-Journal", color: Color(red: 0.65, green: 0.35, blue: 1.0)) {
+                                glassCard {
+                                    Button { showJournal = true } label: {
+                                        iconNavRow(
+                                            icon: "book.closed.fill",
+                                            color: Color(red: 0.65, green: 0.35, blue: 1.0),
+                                            label: JournalStore.shared.hasTodayEntry()
+                                                ? "Heutiger Eintrag vorhanden ✓"
+                                                : "Tagesrückblick schreiben"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
                         // Ringe
                         animatedSection(delay: 0.35) {
                             sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
@@ -545,6 +586,12 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showFPInfo) {
                 fokuspunkteInfoSheet
+            }
+            .sheet(isPresented: $showHabitTracker) {
+                HabitTrackerView()
+            }
+            .sheet(isPresented: $showJournal) {
+                FokusJournalView()
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
