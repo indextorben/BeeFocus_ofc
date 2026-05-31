@@ -914,13 +914,15 @@ struct KITagesplanSheet: View {
     private func buildPrompt() -> String {
         let trimmed = userPrompt.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty {
-            // User typed a custom prompt — add minimal task context
             let dayTodos = todos.filter {
                 guard let due = $0.dueDate else { return false }
                 return cal.isDate(due, inSameDayAs: selectedDate)
             }.filter { !$0.isCompleted }
-            let taskHint = dayTodos.isEmpty ? "" : "\n\nMeine heutigen Aufgaben: " + dayTodos.prefix(5).map { $0.title }.joined(separator: ", ") + "."
-            return trimmed + taskHint
+            let taskHint = dayTodos.isEmpty ? "" : "\n\nMeine Aufgaben heute: " + dayTodos.prefix(5).map { $0.title }.joined(separator: ", ") + "."
+            return """
+            Antworte in 1–3 Sätzen, direkt und ohne Floskeln. Kein Markdown.
+            \(trimmed)\(taskHint)
+            """
         }
 
         let isEnglish = Locale.current.language.languageCode?.identifier == "en"
@@ -965,13 +967,10 @@ struct KITagesplanSheet: View {
 
         let ctx = cal.isDateInToday(selectedDate) ? "Heute" : "Am \(dateString)"
         return """
-        Du bist ein freundlicher Produktivitätsassistent. Antworte auf Deutsch, kurz und motivierend.
+        Du bist ein knapper Produktivitätsassistent. Antworte auf Deutsch in maximal 3 Sätzen, direkt und ohne Floskeln. Kein Markdown.
 
-        \(ctx) (\(dateString)) hat der Nutzer:
+        \(ctx) (\(dateString)):
         \(lines)
-
-        Schreibe 3 kurze Absätze: motivierende Einleitung, wichtigste Aufgabe, ein konkreter Tipp.
-        Kein Markdown, keine Aufzählungszeichen.
         """
     }
 
@@ -994,13 +993,10 @@ struct KITagesplanSheet: View {
 
         let ctx = cal.isDateInToday(selectedDate) ? "Today" : "On \(dateString)"
         return """
-        You are a friendly productivity assistant. Respond in English, briefly and motivationally.
+        You are a concise productivity assistant. Respond in English in max 3 sentences, direct and without filler phrases. No markdown.
 
-        \(ctx) (\(dateString)) the user has:
+        \(ctx) (\(dateString)):
         \(lines)
-
-        Write 3 short paragraphs: motivating intro, most important task, one concrete tip.
-        No markdown, no bullet points.
         """
     }
 }
