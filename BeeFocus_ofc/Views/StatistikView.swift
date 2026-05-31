@@ -32,6 +32,8 @@ struct StatistikView: View {
     @State private var showWochenrueckblick = false
     @State private var showHabitTracker = false
     @State private var showJournal = false
+    @State private var showEisenhower = false
+    @State private var showChallenges = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -555,6 +557,30 @@ struct StatistikView: View {
                             }
                         }
 
+                        // Fokus-Challenges
+                        animatedSection(delay: 0.40) {
+                            sectionGroup(icon: "trophy.fill", label: "Fokus-Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
+                                glassCard {
+                                    Button { showChallenges = true } label: {
+                                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Tägliche & wöchentliche Challenges")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Eisenhower-Matrix
+                        animatedSection(delay: 0.42) {
+                            sectionGroup(icon: "square.grid.2x2.fill", label: "Eisenhower-Matrix", color: Color(red: 1.0, green: 0.45, blue: 0.3)) {
+                                glassCard {
+                                    Button { showEisenhower = true } label: {
+                                        iconNavRow(icon: "square.grid.2x2.fill", color: Color(red: 1.0, green: 0.45, blue: 0.3), label: "Aufgaben nach Priorität einordnen")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
                         // Ringe
                         animatedSection(delay: 0.35) {
                             sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
@@ -592,6 +618,12 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showJournal) {
                 FokusJournalView()
+            }
+            .sheet(isPresented: $showChallenges) {
+                FokusChallengesView().environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showEisenhower) {
+                EisenhowerView().environmentObject(todoStore)
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)

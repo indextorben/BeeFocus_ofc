@@ -15,6 +15,7 @@ struct TimerView: View {
     @State private var showingNotificationAlert = false
     @State private var showingSettings = false
     @State private var showingSkipConfirmation = false
+    @State private var showingBreathing = false
     @State private var appeared = false
     @State private var wavePhase1: CGFloat = 0
     @State private var wavePhase2: CGFloat = 0
@@ -141,6 +142,9 @@ struct TimerView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)) { _ in
             if timerManager.isRunning { timerManager.pause() }
+        }
+        .sheet(isPresented: $showingBreathing) {
+            BreathingView()
         }
         .sheet(isPresented: $showingSettings) {
             PomodoroSettingsView(
@@ -285,6 +289,21 @@ struct TimerView: View {
                 .background(Color(red: 0.11, green: 0.73, blue: 0.33),
                             in: Capsule())
                 .shadow(color: Color(red: 0.11, green: 0.73, blue: 0.33).opacity(0.4), radius: 8, x: 0, y: 3)
+            }
+            .buttonStyle(.plain)
+
+            // Breathing button
+            Button { showingBreathing = true } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "lungs.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Atmen")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundStyle(.white.opacity(0.85))
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
             }
             .buttonStyle(.plain)
 
