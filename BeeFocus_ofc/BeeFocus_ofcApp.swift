@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import StoreKit
 
 @main
 struct BeeFocus_ofcApp: App {
@@ -181,11 +182,19 @@ struct RootView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("focusCoachEnabled")     private var focusCoachEnabled: Bool = true
 
+    // Review
+    @Environment(\.requestReview) private var requestReview
+    @AppStorage("appLaunchCount")        private var launchCount: Int = 0
+    @AppStorage("reviewRequestedAt")     private var reviewRequestedAt: Int = 0
+
     @State private var showFocusCoach = false
     @State private var coachMinutesWorked = 0
 
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+
+    // Milestones an denen die Bewertungsanfrage erscheint
+    private let reviewMilestones = [5, 15, 40, 80]
 
     var body: some View {
         ContentView()
@@ -214,6 +223,20 @@ struct RootView: View {
                     showFocusCoach = true
                 }
             }
+            .onAppear {
+                launchCount += 1
+                maybeRequestReview()
+            }
+    }
+
+    private func maybeRequestReview() {
+        guard reviewMilestones.contains(launchCount) else { return }
+        // Nicht zweimal beim selben Milestone (z.B. nach Neustart)
+        guard reviewRequestedAt != launchCount else { return }
+        reviewRequestedAt = launchCount
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            requestReview()
+        }
     }
 
     private var hasAIKey: Bool {
