@@ -783,57 +783,94 @@ struct EinstellungenView: View {
     // MARK: - KI Card
 
     private var proCard: some View {
-        Button { showPaywall = true } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
-                                            Color(red: 0.3, green: 0.6, blue: 1.0)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .frame(width: 38, height: 38)
-                    Image(systemName: sub.isPro ? "crown.fill" : "crown")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
+        VStack(spacing: 0) {
+            Button { if !sub.isPro { showPaywall = true } } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
+                                                Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .frame(width: 38, height: 38)
+                        Image(systemName: sub.isPro ? "crown.fill" : "crown")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(sub.isPro ? "BeeFocus Pro ✓" : "BeeFocus Pro")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(darkModeEnabled ? .white : .primary)
-                    Text(sub.isPro ? "Aktiv – danke für deine Unterstützung!" : "Alle Features freischalten")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(sub.isPro ? "BeeFocus Pro ✓" : "BeeFocus Pro")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(darkModeEnabled ? .white : .primary)
+                        if sub.isPro {
+                            if let exp = sub.expirationDate {
+                                Text("Aktiv bis \(exp.formatted(.dateTime.day().month().year()))")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Aktiv – danke für deine Unterstützung!")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            Text("Alle Features freischalten")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
 
-                Spacer()
+                    Spacer()
 
-                if !sub.isPro {
-                    Text("Jetzt")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(
-                            LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
-                                                    Color(red: 0.3, green: 0.6, blue: 1.0)],
-                                           startPoint: .leading, endPoint: .trailing),
-                            in: Capsule()
-                        )
+                    if !sub.isPro {
+                        Text("Jetzt")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(
+                                LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
+                                                        Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                               startPoint: .leading, endPoint: .trailing),
+                                in: Capsule()
+                            )
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.5),
-                                                Color(red: 0.3, green: 0.6, blue: 1.0).opacity(0.3)],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing),
-                        lineWidth: 1.5
-                    )
-            )
+            .buttonStyle(.plain)
+
+            // Abo verwalten (nur wenn Pro aktiv und kein Lifetime)
+            if sub.isPro && sub.expirationDate != nil {
+                Divider().padding(.horizontal, 16)
+                Button {
+                    sub.manageSubscriptions()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 13))
+                        Text("Abo verwalten / kündigen")
+                            .font(.system(size: 14))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.5),
+                                            Color(red: 0.3, green: 0.6, blue: 1.0).opacity(0.3)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 1.5
+                )
+        )
     }
 
     private var kiCard: some View {

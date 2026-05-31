@@ -1,5 +1,6 @@
 import StoreKit
 import SwiftUI
+import UIKit
 
 @MainActor
 final class SubscriptionManager: ObservableObject {
@@ -16,8 +17,10 @@ final class SubscriptionManager: ObservableObject {
     @Published var products: [Product] = []
     @Published var isLoading: Bool = false
     @Published var purchaseError: String? = nil
+    @Published var expirationDate: Date? = nil
 
     private var listenerTask: Task<Void, Never>?
+    private var foregroundTask: Task<Void, Never>?
 
     init() {
         listenerTask = Task { await listenForTransactions() }
@@ -25,9 +28,19 @@ final class SubscriptionManager: ObservableObject {
             await loadProducts()
             await refreshEntitlements()
         }
+        // Refresh wenn App wieder aktiv wird
+        foregroundTask = Task {
+            for await _ in NotificationCenter.default
+                .notifications(named: UIApplication.willEnterForegroundNotification) {
+                await refreshEntitlements()
+            }
+        }
     }
 
-    deinit { listenerTask?.cancel() }
+    deinit {
+        listenerTask?.cancel()
+        foregroundTask?.cancel()
+    }
 
     // MARK: - Load Products
 
@@ -88,12 +101,17 @@ final class SubscriptionManager: ObservableObject {
 
     func refreshEntitlements() async {
         var active = false
+        var expiry: Date? = nil
         for await result in Transaction.currentEntitlements {
-            if (try? checkVerified(result)) != nil {
+            if let transaction = try? checkVerified(result) {
                 active = true
+                if let exp = transaction.expirationDate {
+                    expiry = exp
+                }
             }
         }
         isPro = active
+        expirationDate = expiry
     }
 
     private func listenForTransactions() async {
@@ -117,6 +135,12 @@ final class SubscriptionManager: ObservableObject {
     var monthly:  Product? { products.first { $0.id == Self.monthlyID  } }
     var yearly:   Product? { products.first { $0.id == Self.yearlyID   } }
     var lifetime: Product? { products.first { $0.id == Self.lifetimeID } }
+
+    func manageSubscriptions() {
+        if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
+        }
+    }
 
     func yearlySavingsPercent() -> Int? {
         guard let m = monthly, let y = yearly else { return nil }
