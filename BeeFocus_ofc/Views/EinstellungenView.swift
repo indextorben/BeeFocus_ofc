@@ -41,6 +41,7 @@ struct EinstellungenView: View {
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var sub = SubscriptionManager.shared
     @State private var showPaywall = false
+    @State private var showAmbientSounds = false
     let languages = ["Deutsch", "Englisch"]
 
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
@@ -237,6 +238,9 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "sparkles", label: String(localized: "ki_settings_title"), color: .purple) {
                             kiCard
                         }
+                        sectionGroup(icon: "headphones", label: "Ambient Sounds", color: Color(red: 0.4, green: 0.6, blue: 1.0)) {
+                            ambientSoundsCard
+                        }
                         sectionGroup(icon: "envelope.fill", label: localizer.localizedString(forKey: "Feedback / Verbesserungen"), color: .teal) {
                             feedbackCard
                         }
@@ -285,6 +289,7 @@ struct EinstellungenView: View {
                 }
             }
             .sheet(isPresented: $showPaywall) { ProPaywallView() }
+            .sheet(isPresented: $showAmbientSounds) { AmbientSoundView() }
             .sheet(isPresented: $showingCategoryEdit) {
                 CategoryEditView().environmentObject(todoStore)
             }
@@ -751,6 +756,68 @@ struct EinstellungenView: View {
             iconButtonRow(icon: "envelope.fill", color: .blue, label: localizer.localizedString(forKey: "Verbesserungen")) {
                 sendFeedbackEmail()
             }
+        }
+    }
+
+    // MARK: - Ambient Sounds Card
+
+    private var ambientSoundsCard: some View {
+        let manager = AmbientSoundManager.shared
+        return glassCard {
+            Button {
+                if sub.isPro { showAmbientSounds = true } else { showPaywall = true }
+            } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [Color(red: 0.4, green: 0.6, blue: 1.0),
+                                         Color(red: 0.55, green: 0.35, blue: 1.0)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: "headphones")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text("Ambient Sounds")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.primary)
+                            if !sub.isPro {
+                                Text("Pro")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Color(red: 0.55, green: 0.35, blue: 1.0), in: Capsule())
+                            }
+                        }
+                        Text(manager.isPlaying ? manager.currentSound.label : "Weißes Rauschen · Binaural Beats · mehr")
+                            .font(.system(size: 12))
+                            .foregroundStyle(manager.isPlaying
+                                             ? manager.currentSound.color
+                                             : Color.secondary)
+                            .animation(.easeInOut(duration: 0.2), value: manager.isPlaying)
+                    }
+
+                    Spacer()
+
+                    if manager.isPlaying {
+                        Image(systemName: "waveform")
+                            .font(.system(size: 16))
+                            .foregroundStyle(manager.currentSound.color)
+                            .symbolEffect(.variableColor.iterative.dimInactiveLayers)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.secondary.opacity(0.5))
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
         }
     }
 

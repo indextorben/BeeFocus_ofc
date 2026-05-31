@@ -12,6 +12,10 @@ final class SubscriptionManager: ObservableObject {
     static let lifetimeID = "com.TorbenLehneke.BeeFocus.pro.lifetime"
     static let allIDs     = [monthlyID, yearlyID, lifetimeID]
 
+    // iCloud KV keys
+    private static let kvIsProKey     = "beefocus_isPro"
+    private static let kvExpiryKey    = "beefocus_expirationDate"
+
     // MARK: - Published
     @Published var isPro: Bool = false
     @Published var products: [Product] = []
@@ -21,25 +25,46 @@ final class SubscriptionManager: ObservableObject {
 
     private var listenerTask: Task<Void, Never>?
     private var foregroundTask: Task<Void, Never>?
+    private var iCloudTask: Task<Void, Never>?
+    private let kvStore = NSUbiquitousKeyValueStore.default
 
     init() {
+        // Sofort iCloud-Cache lesen für schnelle UI
+        isPro = kvStore.bool(forKey: Self.kvIsProKey)
+        if let ts = kvStore.object(forKey: Self.kvExpiryKey) as? Double {
+            expirationDate = Date(timeIntervalSince1970: ts)
+        }
+
         listenerTask = Task { await listenForTransactions() }
+
+        // iCloud KV Änderungen beobachten (anderes Gerät hat gekauft)
+        iCloudTask = Task {
+            for await _ in NotificationCenter.default
+                .notifications(named: NSUbiquitousKeyValueStore.didChangeExternallyNotification) {
+                await self.refreshEntitlements()
+            }
+        }
+
+        // Vordergrund → StoreKit-Verifikation
+        foregroundTask = Task {
+            for await _ in NotificationCenter.default
+                .notifications(named: UIApplication.willEnterForegroundNotification) {
+                await self.refreshEntitlements()
+            }
+        }
+
         Task {
             await loadProducts()
             await refreshEntitlements()
         }
-        // Refresh wenn App wieder aktiv wird
-        foregroundTask = Task {
-            for await _ in NotificationCenter.default
-                .notifications(named: UIApplication.willEnterForegroundNotification) {
-                await refreshEntitlements()
-            }
-        }
+
+        kvStore.synchronize()
     }
 
     deinit {
         listenerTask?.cancel()
         foregroundTask?.cancel()
+        iCloudTask?.cancel()
     }
 
     // MARK: - Load Products
@@ -49,7 +74,6 @@ final class SubscriptionManager: ObservableObject {
         defer { isLoading = false }
         do {
             let fetched = try await Product.products(for: Self.allIDs)
-            // monthly → yearly → lifetime
             products = fetched.sorted {
                 let order = [Self.monthlyID, Self.yearlyID, Self.lifetimeID]
                 return (order.firstIndex(of: $0.id) ?? 99) < (order.firstIndex(of: $1.id) ?? 99)
@@ -72,9 +96,7 @@ final class SubscriptionManager: ObservableObject {
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
                 await refreshEntitlements()
-            case .userCancelled:
-                break
-            case .pending:
+            case .userCancelled, .pending:
                 break
             @unknown default:
                 break
@@ -97,21 +119,33 @@ final class SubscriptionManager: ObservableObject {
         }
     }
 
-    // MARK: - Entitlements
+    // MARK: - Entitlements (StoreKit 2 + iCloud Sync)
 
     func refreshEntitlements() async {
         var active = false
         var expiry: Date? = nil
+
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 active = true
                 if let exp = transaction.expirationDate {
-                    expiry = exp
+                    // Immer das späteste Ablaufdatum (falls mehrere Käufe)
+                    expiry = expiry.map { max($0, exp) } ?? exp
                 }
             }
         }
+
         isPro = active
         expirationDate = expiry
+
+        // iCloud KV aktualisieren → andere Geräte merken es sofort
+        kvStore.set(active, forKey: Self.kvIsProKey)
+        if let exp = expiry {
+            kvStore.set(exp.timeIntervalSince1970, forKey: Self.kvExpiryKey)
+        } else {
+            kvStore.removeObject(forKey: Self.kvExpiryKey)
+        }
+        kvStore.synchronize()
     }
 
     private func listenForTransactions() async {
