@@ -4,10 +4,6 @@ import SwiftUI
 import ActivityKit
 import UIKit
 
-extension Notification.Name {
-    static let focusSessionCompleted = Notification.Name("FocusSessionCompleted")
-}
-
 // MARK: - Persisted State
 struct TimerState: Codable {
     var endDate: Date?

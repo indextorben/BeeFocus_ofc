@@ -187,6 +187,8 @@ struct RootView: View {
     @AppStorage("appLaunchCount")        private var launchCount: Int = 0
     @AppStorage("reviewRequestedAt")     private var reviewRequestedAt: Int = 0
 
+    @ObservedObject private var sub = SubscriptionManager.shared
+    @State private var showPaywall = false
     @State private var showFocusCoach = false
     @State private var coachMinutesWorked = 0
 
@@ -215,13 +217,19 @@ struct RootView: View {
                 .presentationDragIndicator(.visible)
             }
             .onReceive(NotificationCenter.default.publisher(for: .focusSessionCompleted)) { note in
-                guard focusCoachEnabled else { return }
+                guard focusCoachEnabled, sub.isPro else { return }
                 guard hasAIKey else { return }
                 let minutes = note.userInfo?["minutes"] as? Int ?? 0
                 coachMinutesWorked = minutes
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     showFocusCoach = true
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                ProPaywallView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showPaywall)) { _ in
+                showPaywall = true
             }
             .onAppear {
                 launchCount += 1

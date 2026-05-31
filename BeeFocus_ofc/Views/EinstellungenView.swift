@@ -39,6 +39,8 @@ struct EinstellungenView: View {
     @State private var wavePhase2: CGFloat = 0
 
     @ObservedObject private var localizer = LocalizationManager.shared
+    @ObservedObject private var sub = SubscriptionManager.shared
+    @State private var showPaywall = false
     let languages = ["Deutsch", "Englisch"]
 
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
@@ -193,6 +195,9 @@ struct EinstellungenView: View {
                         headerHero
                             .padding(.bottom, 8)
 
+                        proCard
+                            .padding(.bottom, 4)
+
                         sectionGroup(icon: "paintbrush.fill", label: localizer.localizedString(forKey: "Displaymodus"), color: .indigo) {
                             darstellungCard
                         }
@@ -279,6 +284,7 @@ struct EinstellungenView: View {
                         )
                 }
             }
+            .sheet(isPresented: $showPaywall) { ProPaywallView() }
             .sheet(isPresented: $showingCategoryEdit) {
                 CategoryEditView().environmentObject(todoStore)
             }
@@ -775,6 +781,60 @@ struct EinstellungenView: View {
     }
 
     // MARK: - KI Card
+
+    private var proCard: some View {
+        Button { showPaywall = true } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
+                                            Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .frame(width: 38, height: 38)
+                    Image(systemName: sub.isPro ? "crown.fill" : "crown")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(sub.isPro ? "BeeFocus Pro ✓" : "BeeFocus Pro")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(darkModeEnabled ? .white : .primary)
+                    Text(sub.isPro ? "Aktiv – danke für deine Unterstützung!" : "Alle Features freischalten")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if !sub.isPro {
+                    Text("Jetzt")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(
+                            LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
+                                                    Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                           startPoint: .leading, endPoint: .trailing),
+                            in: Capsule()
+                        )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.5),
+                                                Color(red: 0.3, green: 0.6, blue: 1.0).opacity(0.3)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 1.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
 
     private var kiCard: some View {
         glassCard {

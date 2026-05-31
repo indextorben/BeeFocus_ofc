@@ -4,6 +4,8 @@ import UserNotifications
 
 extension Notification.Name {
     static let openTodayDueFromNotification = Notification.Name("OpenTodayDueFromNotification")
+    static let focusSessionCompleted        = Notification.Name("FocusSessionCompleted")
+    static let showPaywall                  = Notification.Name("ShowPaywall")
 }
 
 class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
