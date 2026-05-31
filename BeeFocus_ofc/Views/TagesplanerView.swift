@@ -110,7 +110,7 @@ struct TagesplanerView: View {
             }
         }
         .sheet(isPresented: $showingQuickAdd) {
-            QuickAddSheet(themeC1: themeC1, themeC2: themeC2) { title, date, endDateRaw in
+            TagesplanQuickAddSheet(themeC1: themeC1, themeC2: themeC2) { title, date, endDateRaw in
                 let dueDate: Date?
                 let endDate: Date?
                 if let d = date {
@@ -1449,5 +1449,1151 @@ private func saveQuickSlots(_ slots: [QuickSlot]) {
     NavigationStack {
         TagesplanerView()
             .environmentObject(TodoStore())
+    }
+}
+// MARK: - Quick Add Sheet
+
+struct TagesplanQuickAddSheet: View {
+    let themeC1: Color
+    let themeC2: Color
+    let onAdd: (String, Date?, Date?) -> Void
+    let onAufgabenUebersicht: () -> Void
+
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @StateObject private var bausteinStore = BausteinStore.shared
+    @FocusState private var titleFocused: Bool
+    @State private var title: String = ""
+    @State private var selectedSlotID: UUID? = nil
+    @State private var showingCustom = false
+    @State private var showingSlotEditor = false
+    @State private var slots: [QuickSlot] = loadQuickSlots()
+    @State private var customTimeStart: Date = {
+        Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
+    @State private var customTimeEnd: Date = {
+        Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
+    @State private var selectedBaustein: TagesplanBaustein? = nil
+
+    var isDark: Bool { colorScheme == .dark }
+
+    private var selectedSlot: QuickSlot? { slots.first { $0.id == selectedSlotID } }
+
+    private var vorschlaege: [TagesplanBaustein] {
+        bausteinStore.smartVorschlaege(datum: Date(), eingabe: title)
+    }
+
+    private var dueDate: Date? {
+        if showingCustom { return customTimeStart }
+        guard let s = selectedSlot else { return nil }
+        return Calendar.current.date(bySettingHour: s.hour, minute: s.minute, second: 0, of: Date())
+    }
+
+    private var timeLabel: String {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        if showingCustom { return "\(f.string(from: customTimeStart)) – \(f.string(from: customTimeEnd))" }
+        guard let s = selectedSlot else { return "" }
+        return String(format: "%02d:%02d", s.hour, s.minute)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                (isDark ? Color(red: 0.08, green: 0.08, blue: 0.14) : Color(red: 0.96, green: 0.95, blue: 1.0))
+                    .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        // Title input
+                        HStack(spacing: 12) {
+                            Image(systemName: "pencil.line").font(.system(size: 18)).foregroundStyle(themeC1)
+                            TextField("Aufgabe eingeben…", text: $title)
+                                .font(.system(size: 18, weight: .medium))
+                                .focused($titleFocused)
+                                .submitLabel(.done)
+                                .onSubmit { if !title.trimmingCharacters(in: .whitespaces).isEmpty { submit() } }
+                                .onChange(of: title) { _ in
+                                    if selectedBaustein != nil &&
+                                       title != selectedBaustein?.titel { selectedBaustein = nil }
+                                }
+                            if !title.isEmpty {
+                                Button { title = ""; selectedBaustein = nil } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                        .font(.system(size: 16))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(16)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+
+                        // Smart Vorschläge
+                        if !vorschlaege.isEmpty {
+                            smartVorschlaegeRow
+                        }
+
+                        // Time slots
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Zeitraum")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                                Spacer()
+                                if selectedSlotID != nil || showingCustom {
+                                    Text(timeLabel)
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(themeC1)
+                                        .padding(.horizontal, 8).padding(.vertical, 3)
+                                        .background(themeC1.opacity(0.12), in: Capsule())
+                                }
+                                Button {
+                                    showingSlotEditor = true
+                                } label: {
+                                    Image(systemName: "slider.horizontal.3")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(themeC1.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.leading, 4)
+                            }
+                            .padding(.horizontal, 2)
+
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                ForEach(slots) { slot in
+                                    slotButton(slot: slot)
+                                }
+                                customSlotButton
+                            }
+
+                            if showingCustom {
+                                HStack(spacing: 0) {
+                                    VStack(spacing: 6) {
+                                        Text("Von").font(.caption.weight(.semibold))
+                                            .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                                        DatePicker("", selection: $customTimeStart, displayedComponents: .hourAndMinute)
+                                            .datePickerStyle(.compact).labelsHidden().tint(themeC1)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(themeC1.opacity(0.6)).padding(.top, 18)
+                                    VStack(spacing: 6) {
+                                        Text("Bis").font(.caption.weight(.semibold))
+                                            .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                                        DatePicker("", selection: $customTimeEnd, displayedComponents: .hourAndMinute)
+                                            .datePickerStyle(.compact).labelsHidden().tint(themeC1)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                                .padding(12)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
+                        }
+
+                        VStack(spacing: 10) {
+                            Button { submit() } label: {
+                                Text("Hinzufügen").font(.headline)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                                    .background(
+                                        title.trimmingCharacters(in: .whitespaces).isEmpty
+                                            ? AnyShapeStyle(Color.secondary.opacity(0.3))
+                                            : AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                                           startPoint: .leading, endPoint: .trailing))
+                                    )
+                                    .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
+                            .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                            Button { onAufgabenUebersicht() } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "list.bullet").font(.system(size: 13))
+                                    Text("Aufgabenübersicht").font(.subheadline)
+                                }
+                                .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(20)
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingCustom)
+            }
+            .navigationTitle("Schnellaufgabe")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .onAppear { titleFocused = true }
+        .sheet(isPresented: $showingSlotEditor) {
+            SlotEditorSheet(themeC1: themeC1, themeC2: themeC2, slots: $slots)
+                .onDisappear { saveQuickSlots(slots) }
+        }
+    }
+
+    private func slotButton(slot: QuickSlot) -> some View {
+        let isSelected = selectedSlotID == slot.id && !showingCustom
+        return Button {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                if isSelected { selectedSlotID = nil } else { selectedSlotID = slot.id; showingCustom = false }
+            }
+        } label: {
+            VStack(spacing: 5) {
+                Image(systemName: slot.icon).font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isSelected ? .white : themeC1)
+                Text(slot.name).font(.system(size: 11, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.7)
+                    .foregroundStyle(isSelected ? .white : (isDark ? .white.opacity(0.8) : .primary))
+                Text(String(format: "%02d:%02d", slot.hour, slot.minute))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 10)
+            .background(
+                isSelected
+                    ? AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    : AnyShapeStyle(Color.primary.opacity(0.07)),
+                in: RoundedRectangle(cornerRadius: 12)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var customSlotButton: some View {
+        let isSelected = showingCustom
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        return Button {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                if isSelected { showingCustom = false } else { showingCustom = true; selectedSlotID = nil }
+            }
+        } label: {
+            VStack(spacing: 5) {
+                Image(systemName: "clock.badge.plus").font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isSelected ? .white : themeC1)
+                Text("Eigene").font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                    .foregroundStyle(isSelected ? .white : (isDark ? .white.opacity(0.8) : .primary))
+                Text(isSelected ? "\(f.string(from: customTimeStart))–\(f.string(from: customTimeEnd))" : "– : –")
+                    .font(.system(size: 9, design: .monospaced)).minimumScaleFactor(0.7).lineLimit(1)
+                    .foregroundStyle(isSelected ? .white.opacity(0.9) : .secondary)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 10)
+            .background(
+                isSelected
+                    ? AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    : AnyShapeStyle(Color.primary.opacity(0.07)),
+                in: RoundedRectangle(cornerRadius: 12)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func submit() {
+        let trimmed = title.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let endDate: Date? = showingCustom ? customTimeEnd : nil
+        if let b = selectedBaustein { bausteinStore.verwendungErhoehen(b) }
+        onAdd(trimmed, dueDate, endDate)
+        dismiss()
+    }
+
+    private func bausteinAnwenden(_ b: TagesplanBaustein) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            title = b.titel
+            selectedBaustein = b
+            showingCustom = false
+            selectedSlotID = nil
+            if b.hatStartZeit {
+                let cal = Calendar.current
+                customTimeStart = cal.date(bySettingHour: b.startStunde,
+                                           minute: b.startMinute, second: 0, of: Date()) ?? Date()
+                if b.hatEndZeit {
+                    customTimeEnd = cal.date(bySettingHour: b.endStunde,
+                                             minute: b.endMinute, second: 0, of: Date()) ?? Date()
+                    showingCustom = true
+                }
+            }
+        }
+        titleFocused = false
+    }
+
+    private var smartVorschlaegeRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(themeC1)
+                Text("Vorschläge")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
+            }
+            .padding(.horizontal, 2)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(vorschlaege) { b in
+                        let isSelected = selectedBaustein?.id == b.id
+                        Button { bausteinAnwenden(b) } label: {
+                            HStack(spacing: 7) {
+                                ZStack {
+                                    Circle()
+                                        .fill(b.farbe.color.opacity(isSelected ? 0.35 : 0.15))
+                                        .frame(width: 28, height: 28)
+                                    Image(systemName: b.symbol)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(b.farbe.color)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(b.titel)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                                        .lineLimit(1)
+                                    Text(b.zeitLabel)
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundStyle(b.farbe.color.opacity(0.85))
+                                        .lineLimit(1)
+                                }
+                                if isSelected {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(b.farbe.color)
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(
+                                isSelected
+                                    ? AnyShapeStyle(b.farbe.color.opacity(isDark ? 0.25 : 0.13))
+                                    : AnyShapeStyle(Color.primary.opacity(0.06)),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(isSelected ? b.farbe.color.opacity(0.5) : Color.clear, lineWidth: 1.2)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+            }
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
+// MARK: - Slot Editor Sheet
+
+struct SlotEditorSheet: View {
+    let themeC1: Color
+    let themeC2: Color
+    @Binding var slots: [QuickSlot]
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @State private var editingSlot: QuickSlot? = nil
+
+    var isDark: Bool { colorScheme == .dark }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach($slots) { $slot in
+                    Button { editingSlot = slot } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: slot.icon)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(themeC1)
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(slot.name).font(.body.weight(.medium))
+                                Text(String(format: "%02d:%02d Uhr", slot.hour, slot.minute))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12)).foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .onDelete { slots.remove(atOffsets: $0) }
+                .onMove { slots.move(fromOffsets: $0, toOffset: $1) }
+
+                Button {
+                    let newSlot = QuickSlot(name: "Neu", icon: "clock", hour: 9)
+                    slots.append(newSlot)
+                    editingSlot = newSlot
+                } label: {
+                    Label("Zeitraum hinzufügen", systemImage: "plus.circle.fill")
+                        .foregroundStyle(themeC1)
+                }
+            }
+            .navigationTitle("Zeiträume bearbeiten")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fertig") { saveQuickSlots(slots); dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    EditButton()
+                }
+            }
+        }
+        .sheet(item: $editingSlot) { slot in
+            SingleSlotEditor(themeC1: themeC1, themeC2: themeC2, slot: slot) { updated in
+                if let i = slots.firstIndex(where: { $0.id == updated.id }) {
+                    slots[i] = updated
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Single Slot Editor
+
+private let slotIcons: [String] = [
+    "sun.and.horizon.fill", "sun.max", "sun.max.fill", "sun.haze.fill",
+    "cloud.sun.fill", "cloud.fill", "moon.fill", "moon.stars.fill",
+    "star.fill", "clock", "clock.badge.plus", "clock.badge.checkmark",
+    "alarm.fill", "bed.double.fill", "cup.and.saucer.fill", "fork.knife",
+    "figure.walk", "figure.run", "dumbbell.fill", "brain.head.profile",
+    "book.fill", "laptopcomputer", "house.fill", "car.fill",
+]
+
+struct SingleSlotEditor: View {
+    let themeC1: Color
+    let themeC2: Color
+    let slot: QuickSlot
+    let onSave: (QuickSlot) -> Void
+
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @State private var name: String
+    @State private var icon: String
+    @State private var timeDate: Date
+
+    var isDark: Bool { colorScheme == .dark }
+
+    init(themeC1: Color, themeC2: Color, slot: QuickSlot, onSave: @escaping (QuickSlot) -> Void) {
+        self.themeC1 = themeC1; self.themeC2 = themeC2; self.slot = slot; self.onSave = onSave
+        _name = State(initialValue: slot.name)
+        _icon = State(initialValue: slot.icon)
+        let cal = Calendar.current
+        _timeDate = State(initialValue:
+            cal.date(bySettingHour: slot.hour, minute: slot.minute, second: 0, of: Date()) ?? Date())
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Name") {
+                    HStack(spacing: 12) {
+                        Image(systemName: icon).foregroundStyle(themeC1).frame(width: 24)
+                        TextField("Name", text: $name)
+                    }
+                }
+
+                Section("Uhrzeit") {
+                    DatePicker("Zeit", selection: $timeDate, displayedComponents: .hourAndMinute)
+                        .tint(themeC1)
+                }
+
+                Section("Symbol") {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
+                        ForEach(slotIcons, id: \.self) { sym in
+                            Button {
+                                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) { icon = sym }
+                            } label: {
+                                Image(systemName: sym)
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(icon == sym ? .white : themeC1)
+                                    .frame(width: 42, height: 42)
+                                    .background(
+                                        icon == sym
+                                            ? AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+                                            : AnyShapeStyle(themeC1.opacity(0.1)),
+                                        in: RoundedRectangle(cornerRadius: 10)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+            }
+            .navigationTitle("Zeitraum bearbeiten")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Sichern") {
+                        let cal = Calendar.current
+                        let h = cal.component(.hour, from: timeDate)
+                        let m = cal.component(.minute, from: timeDate)
+                        var updated = slot
+                        updated.name = name.trimmingCharacters(in: .whitespaces).isEmpty ? slot.name : name
+                        updated.icon = icon
+                        updated.hour = h
+                        updated.minute = m
+                        onSave(updated)
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
+
+// MARK: - Einplanen Sheet
+
+// MARK: - Aufgaben Übersicht Sheet
+
+struct AufgabenUebersichtSheet: View {
+    @EnvironmentObject var todoStore: TodoStore
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
+
+    let themeC1: Color
+    let themeC2: Color
+    let onSelect: (TodoItem) -> Void
+
+    @State private var collapsedGroups: Set<String> = []
+    @State private var searchText: String = ""
+
+    var isDark: Bool { colorScheme == .dark }
+
+    private let groups: [(id: String, title: String, icon: String, color: Color, kind: GroupKind)] = [
+        ("today",   "Heute",         "sun.max.fill",               .orange, .today),
+        ("overdue", "Überfällig",    "exclamationmark.triangle.fill", .red,  .overdue),
+        ("week",    "Diese Woche",   "calendar.badge.clock",       .blue,   .thisWeek),
+        ("later",   "Später",        "arrow.right.circle.fill",    .secondary, .later),
+        ("nodate",  "Ohne Datum",    "tray.fill",                  .secondary, .noDate),
+    ]
+
+    enum GroupKind { case today, overdue, thisWeek, later, noDate }
+
+    private var baseTodos: [TodoItem] {
+        let all = todoStore.todos.filter { !$0.isCompleted }
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty { return all }
+        let q = searchText.lowercased()
+        return all.filter { $0.title.lowercased().contains(q) }
+    }
+
+    private func todos(for kind: GroupKind) -> [TodoItem] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let weekEnd = cal.date(byAdding: .day, value: 7, to: today) ?? today
+        return baseTodos.filter { todo in
+            switch kind {
+            case .today:   return todo.dueDate.map { cal.isDateInToday($0) } == true
+            case .overdue: return todo.dueDate.map { $0 < today } == true
+            case .thisWeek:
+                guard let d = todo.dueDate else { return false }
+                return d > today && d <= weekEnd && !cal.isDateInToday(d)
+            case .later:   return todo.dueDate.map { $0 > weekEnd } == true
+            case .noDate:  return todo.dueDate == nil
+            }
+        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                ThemeBackgroundView()
+
+                VStack(spacing: 0) {
+                    // Search
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        TextField("Aufgabe suchen…", text: $searchText)
+                            .font(.system(size: 16))
+                    }
+                    .padding(12)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 10) {
+                            ForEach(groups, id: \.id) { group in
+                                let items = todos(for: group.kind)
+                                if !items.isEmpty {
+                                    groupSection(group: group, items: items)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 32)
+                    }
+                }
+            }
+            .navigationTitle("Aufgaben einplanen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Schließen") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func groupSection(group: (id: String, title: String, icon: String, color: Color, kind: GroupKind), items: [TodoItem]) -> some View {
+        let collapsed = collapsedGroups.contains(group.id)
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    if collapsed { collapsedGroups.remove(group.id) }
+                    else { collapsedGroups.insert(group.id) }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 2).fill(group.color).frame(width: 3, height: 24)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8).fill(group.color.opacity(0.15)).frame(width: 30, height: 30)
+                        Image(systemName: group.icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(group.color)
+                    }
+                    Text(group.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isDark ? .white : .primary)
+                    Spacer()
+                    Text("\(items.count)").font(.caption.weight(.bold)).foregroundStyle(group.color)
+                        .padding(.horizontal, 8).padding(.vertical, 3).background(group.color.opacity(0.12), in: Capsule())
+                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(collapsed ? 0 : 90))
+                }
+                .padding(.horizontal, 14).padding(.vertical, 11)
+            }
+            .buttonStyle(.plain)
+
+            if !collapsed {
+                Divider().opacity(0.15).padding(.horizontal, 14)
+                VStack(spacing: 0) {
+                    ForEach(items) { todo in
+                        Button {
+                            onSelect(todo)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "clock.badge.plus")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(group.color)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(todo.title).font(.subheadline.weight(.medium))
+                                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary).lineLimit(1)
+                                    if let due = todo.dueDate {
+                                        Text(due, style: .date).font(.caption2).foregroundStyle(group.color.opacity(0.7))
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(.tertiary)
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        if todo.id != items.last?.id { Divider().opacity(0.1).padding(.leading, 46) }
+                    }
+                }
+            }
+        }
+        .themeGlass(cornerRadius: 16)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: collapsed)
+    }
+}
+
+// MARK: - Einplanen Sheet
+
+struct EinplanenSheet: View {
+    let todo: TodoItem
+    let onSave: (TodoItem) -> Void
+    var onDelete: (() -> Void)? = nil
+
+    @Environment(\.dismiss) var dismiss
+    @State private var showDeleteConfirm = false
+    @Environment(\.colorScheme) var colorScheme
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @State private var editedTitle: String
+    @State private var selectedDate: Date
+    @State private var selectedEndDate: Date
+    @State private var appeared = false
+
+    var isDark: Bool { colorScheme == .dark }
+    private var themeC1: Color { appThemaFarben(aktivesThema).0 }
+    private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+
+    init(todo: TodoItem, onSave: @escaping (TodoItem) -> Void, onDelete: (() -> Void)? = nil) {
+        self.todo = todo
+        self.onSave = onSave
+        self.onDelete = onDelete
+        _editedTitle = State(initialValue: todo.title)
+        let cal = Calendar.current
+        let base = todo.dueDate ?? Date()
+        let dateBase = cal.startOfDay(for: base)
+        let h = cal.component(.hour, from: base)
+        let m = cal.component(.minute, from: base)
+        let start = cal.date(bySettingHour: max(h, 0), minute: m, second: 0, of: dateBase) ?? base
+        _selectedDate = State(initialValue: start)
+        if let existingEnd = todo.endDate {
+            let eh = cal.component(.hour, from: existingEnd)
+            let em = cal.component(.minute, from: existingEnd)
+            _selectedEndDate = State(initialValue:
+                cal.date(bySettingHour: eh, minute: em, second: 0, of: dateBase) ?? start.addingTimeInterval(3600))
+        } else {
+            _selectedEndDate = State(initialValue: start.addingTimeInterval(3600))
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                ThemeBackgroundView()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+
+                        // Task title — editable
+                        HStack(spacing: 12) {
+                            Image(systemName: "pencil.line")
+                                .font(.system(size: 20))
+                                .foregroundStyle(themeC1)
+                            TextField("Aufgabenname", text: $editedTitle)
+                                .font(.headline)
+                                .foregroundStyle(isDark ? .white : .primary)
+                                .submitLabel(.done)
+                        }
+                        .padding(14)
+                        .themeGlass(cornerRadius: 14)
+
+                        // Datum
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Datum", systemImage: "calendar")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
+                            DatePicker("", selection: $selectedDate, displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                                .labelsHidden()
+                                .tint(themeC1)
+                        }
+                        .padding(16)
+                        .themeGlass(cornerRadius: 16)
+
+                        // Von / Bis — frei wählbar
+                        VStack(alignment: .leading, spacing: 14) {
+                            Label("Uhrzeit", systemImage: "clock")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
+
+                            HStack(spacing: 0) {
+                                // Von
+                                VStack(spacing: 6) {
+                                    Text("Von")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                                    DatePicker("", selection: $selectedDate,
+                                               displayedComponents: .hourAndMinute)
+                                        .datePickerStyle(.compact)
+                                        .labelsHidden()
+                                        .tint(themeC1)
+                                        .onChange(of: selectedDate) { newStart in
+                                            if selectedEndDate <= newStart {
+                                                selectedEndDate = newStart.addingTimeInterval(3600)
+                                            }
+                                        }
+                                }
+                                .frame(maxWidth: .infinity)
+
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(themeC1.opacity(0.5))
+                                    .padding(.horizontal, 8)
+
+                                // Bis
+                                VStack(spacing: 6) {
+                                    Text("Bis")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+                                    DatePicker("", selection: $selectedEndDate,
+                                               in: selectedDate...,
+                                               displayedComponents: .hourAndMinute)
+                                        .datePickerStyle(.compact)
+                                        .labelsHidden()
+                                        .tint(themeC1)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+
+                            // Dauer-Badge
+                            let mins = Int(selectedEndDate.timeIntervalSince(selectedDate) / 60)
+                            let durLabel: String = {
+                                guard mins > 0 else { return " " }
+                                if mins >= 60 {
+                                    return mins % 60 == 0 ? "\(mins/60)h" : "\(mins/60)h \(mins%60)min"
+                                }
+                                return "\(mins)min"
+                            }()
+                            HStack {
+                                Spacer()
+                                Text(durLabel)
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(themeC1)
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(mins > 0 ? themeC1.opacity(0.12) : Color.clear,
+                                                in: Capsule())
+                                    .animation(nil, value: durLabel)
+                                Spacer()
+                            }
+                        }
+                        .padding(16)
+                        .themeGlass(cornerRadius: 16)
+
+                        // Save button
+                        Button {
+                            var updated = todo
+                            let trimmed = editedTitle.trimmingCharacters(in: .whitespaces)
+                            updated.title = trimmed.isEmpty ? todo.title : trimmed
+                            updated.dueDate = selectedDate
+                            updated.endDate = selectedEndDate > selectedDate ? selectedEndDate : nil
+                            onSave(updated)
+                            dismiss()
+                        } label: {
+                            Text("Einplanen")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(LinearGradient(colors: [themeC1, themeC2],
+                                                           startPoint: .leading, endPoint: .trailing))
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+
+                        if onDelete != nil {
+                            Button(role: .destructive) {
+                                showDeleteConfirm = true
+                            } label: {
+                                Label("Aufgabe löschen", systemImage: "trash")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(Color.red.opacity(isDark ? 0.18 : 0.10),
+                                                in: RoundedRectangle(cornerRadius: 14))
+                                    .foregroundStyle(Color.red)
+                                    .overlay(RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.red.opacity(0.25), lineWidth: 1))
+                            }
+                            .confirmationDialog("Aufgabe löschen?",
+                                               isPresented: $showDeleteConfirm,
+                                               titleVisibility: .visible) {
+                                Button("Löschen", role: .destructive) {
+                                    onDelete?()
+                                    dismiss()
+                                }
+                                Button("Abbrechen", role: .cancel) {}
+                            } message: {
+                                Text("\"\(todo.title)\" wird unwiderruflich gelöscht.")
+                            }
+                        }
+                    }
+                    .padding(20)
+                }
+                .transaction { $0.animation = appeared ? $0.animation : nil }
+                .onAppear { appeared = true }
+            }
+            .navigationTitle("Einplanen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+    }
+}
+
+// MARK: - Export Views (for PDF rendering)
+
+private struct ExportSectionView: View {
+    let label: String
+    let icon: String
+    let color: Color
+    let tasks: [TodoItem]
+    let themeC1: Color
+
+    private let timeFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.primary)
+                Rectangle().fill(color.opacity(0.2)).frame(height: 1)
+            }
+            .padding(.bottom, 8)
+
+            if tasks.isEmpty {
+                Text("Keine Aufgaben")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+                    .padding(.bottom, 8)
+            } else {
+                ForEach(tasks) { task in
+                    HStack(alignment: .top, spacing: 10) {
+                        // Time column
+                        VStack(alignment: .trailing, spacing: 2) {
+                            if let due = task.dueDate {
+                                Text(timeFmt.string(from: due))
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(themeC1)
+                            }
+                            if let end = task.endDate {
+                                Text(timeFmt.string(from: end))
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(width: 40, alignment: .trailing)
+
+                        // Bullet
+                        Circle()
+                            .fill(themeC1.opacity(task.isCompleted ? 0.3 : 0.8))
+                            .frame(width: 7, height: 7)
+                            .padding(.top, 3)
+
+                        // Title + duration
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(task.title)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                                .strikethrough(task.isCompleted)
+                            if let due = task.dueDate, let end = task.endDate, end > due {
+                                let mins = Int(end.timeIntervalSince(due) / 60)
+                                let dur = mins >= 60
+                                    ? (mins % 60 == 0 ? "\(mins/60)h" : "\(mins/60)h \(mins%60)min")
+                                    : "\(mins)min"
+                                Text(dur)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 5)
+
+                    if task.id != tasks.last?.id {
+                        Divider().opacity(0.2).padding(.leading, 50)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.2), lineWidth: 1))
+    }
+}
+
+struct TagesplanExportView: View {
+    let date: Date
+    let todos: [TodoItem]
+    let themeC1: Color
+    let themeC2: Color
+
+    private var cal: Calendar { Calendar.current }
+
+    private func tasks(for hours: Range<Int>) -> [TodoItem] {
+        todos.filter { t in
+            guard let due = t.dueDate else { return false }
+            guard cal.isDate(due, inSameDayAs: date) else { return false }
+            return hours.contains(cal.component(.hour, from: due))
+        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    private var dateString: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEEE, d. MMMM yyyy"
+        return f.string(from: date)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Tagesplan")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(themeC1)
+                    Text(dateString)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .padding(.bottom, 4)
+
+            Divider()
+
+            ExportSectionView(label: "Morgen",  icon: "sun.and.horizon.fill", color: .orange,
+                              tasks: tasks(for: 6..<12), themeC1: themeC1)
+            ExportSectionView(label: "Mittag",  icon: "sun.max.fill",         color: themeC1,
+                              tasks: tasks(for: 12..<18), themeC1: themeC1)
+            ExportSectionView(label: "Abend",   icon: "moon.stars.fill",      color: .indigo,
+                              tasks: tasks(for: 18..<24), themeC1: themeC1)
+
+            Spacer(minLength: 12)
+
+            // Footer
+            HStack {
+                Spacer()
+                Text("Erstellt mit BeeFocus")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .background(Color.white)
+    }
+}
+
+struct TagesplanWocheExportView: View {
+    let days: [Date]
+    let todos: [TodoItem]
+    let themeC1: Color
+    let themeC2: Color
+    let kw: Int
+
+    private var cal: Calendar { Calendar.current }
+
+    private func tasks(for day: Date) -> [TodoItem] {
+        todos.filter { t in
+            guard let due = t.dueDate else { return false }
+            return cal.isDate(due, inSameDayAs: day)
+        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    private let dayFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEE d. MMM"
+        return f
+    }()
+
+    private let timeFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Wochenplan")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(themeC1)
+                    Text("KW \(kw)")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .padding(.bottom, 4)
+
+            Divider()
+
+            ForEach(days, id: \.self) { day in
+                let dayTasks = tasks(for: day)
+                let isToday = cal.isDateInToday(day)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    // Day header
+                    HStack(spacing: 8) {
+                        Text(dayFmt.string(from: day).capitalized)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(isToday ? themeC1 : .primary)
+                        if isToday {
+                            Text("Heute")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(themeC1, in: Capsule())
+                        }
+                        Rectangle().fill(Color.gray.opacity(0.2)).frame(height: 1)
+                    }
+
+                    if dayTasks.isEmpty {
+                        Text("Keine Aufgaben")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 4)
+                    } else {
+                        ForEach(dayTasks) { task in
+                            HStack(alignment: .top, spacing: 8) {
+                                if let due = task.dueDate {
+                                    Text(timeFmt.string(from: due))
+                                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(themeC1)
+                                        .frame(width: 36, alignment: .trailing)
+                                } else {
+                                    Spacer().frame(width: 36)
+                                }
+                                Circle()
+                                    .fill(themeC1.opacity(0.7))
+                                    .frame(width: 6, height: 6)
+                                    .padding(.top, 3)
+                                Text(task.title)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Spacer()
+                                if let due = task.dueDate, let end = task.endDate, end > due {
+                                    let mins = Int(end.timeIntervalSince(due) / 60)
+                                    let dur = mins >= 60 ? "\(mins/60)h" : "\(mins)min"
+                                    Text(dur).font(.system(size: 9)).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            Spacer(minLength: 12)
+
+            HStack {
+                Spacer()
+                Text("Erstellt mit BeeFocus")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .background(Color.white)
     }
 }
