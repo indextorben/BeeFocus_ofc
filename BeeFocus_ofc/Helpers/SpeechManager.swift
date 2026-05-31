@@ -19,6 +19,9 @@ final class SpeechManager: NSObject, ObservableObject {
     private let audioEngine = AVAudioEngine()
     private let synthesizer = AVSpeechSynthesizer()
 
+    // Streaming TTS buffer
+    private var streamBuffer = ""
+
     override init() {
         super.init()
         synthesizer.delegate = self
@@ -30,9 +33,7 @@ final class SpeechManager: NSObject, ObservableObject {
     func requestPermissions() {
         AVAudioApplication.requestRecordPermission { _ in }
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            Task { @MainActor in
-                self?.sttAuthorized = status == .authorized
-            }
+            Task { @MainActor in self?.sttAuthorized = status == .authorized }
         }
     }
 
@@ -44,8 +45,7 @@ final class SpeechManager: NSObject, ObservableObject {
         recognitionTask = nil
         liveText = ""
 
-        let locale = Locale(identifier: languageCode)
-        speechRecognizer = SFSpeechRecognizer(locale: locale)
+        speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: languageCode))
         guard speechRecognizer?.isAvailable == true else { return }
 
         do {
@@ -60,21 +60,16 @@ final class SpeechManager: NSObject, ObservableObject {
 
         recognitionTask = speechRecognizer?.recognitionTask(with: req) { [weak self] result, error in
             Task { @MainActor [weak self] in
-                if let result {
-                    self?.liveText = result.bestTranscription.formattedString
-                }
-                if error != nil || result?.isFinal == true {
-                    self?.stopRecording()
-                }
+                if let result { self?.liveText = result.bestTranscription.formattedString }
+                if error != nil || result?.isFinal == true { self?.stopRecording() }
             }
         }
 
         let inputNode = audioEngine.inputNode
-        let format = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buf, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 1024,
+                             format: inputNode.outputFormat(forBus: 0)) { [weak self] buf, _ in
             self?.recognitionRequest?.append(buf)
         }
-
         audioEngine.prepare()
         do { try audioEngine.start() } catch { return }
         isRecording = true
@@ -92,21 +87,68 @@ final class SpeechManager: NSObject, ObservableObject {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    // MARK: - TTS
+    // MARK: - TTS: Streaming (satzweise während Stream)
+
+    func resetStream() {
+        streamBuffer = ""
+        synthesizer.stopSpeaking(at: .immediate)
+        isSpeaking = false
+    }
+
+    func appendToStream(_ newText: String, languageCode: String) {
+        streamBuffer += newText
+        flushSentences(languageCode: languageCode)
+    }
+
+    func finishStream(languageCode: String) {
+        let trimmed = streamBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { enqueue(trimmed, languageCode: languageCode) }
+        streamBuffer = ""
+    }
+
+    private func flushSentences(languageCode: String) {
+        let terminators: [Character] = [".", "!", "?", "\n"]
+        var cutIndex = streamBuffer.startIndex
+
+        for idx in streamBuffer.indices {
+            if terminators.contains(streamBuffer[idx]) {
+                cutIndex = streamBuffer.index(after: idx)
+            }
+        }
+
+        guard cutIndex > streamBuffer.startIndex else { return }
+        let sentence = String(streamBuffer[..<cutIndex])
+        streamBuffer = String(streamBuffer[cutIndex...])
+        enqueue(sentence, languageCode: languageCode)
+    }
+
+    private func enqueue(_ text: String, languageCode: String) {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+
+        if !synthesizer.isSpeaking {
+            activatePlaybackSession()
+        }
+
+        let utterance = AVSpeechUtterance(string: clean)
+        utterance.voice = bestMaleVoice(languageCode: languageCode)
+        utterance.rate = 0.54
+        utterance.pitchMultiplier = 1.0
+        utterance.preUtteranceDelay = 0
+        utterance.postUtteranceDelay = 0.04
+        synthesizer.speak(utterance)
+        isSpeaking = true
+    }
+
+    // MARK: - TTS: Einmalig (manueller Speaker-Button)
 
     func speak(_ text: String, languageCode: String = "de-DE") {
-        if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
-
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: .duckOthers)
-            try session.setActive(true)
-        } catch {}
-
+        synthesizer.stopSpeaking(at: .immediate)
+        activatePlaybackSession()
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: languageCode)
-        utterance.rate = 0.50
-        utterance.pitchMultiplier = 1.05
+        utterance.voice = bestMaleVoice(languageCode: languageCode)
+        utterance.rate = 0.54
+        utterance.pitchMultiplier = 1.0
         synthesizer.speak(utterance)
         isSpeaking = true
     }
@@ -114,16 +156,35 @@ final class SpeechManager: NSObject, ObservableObject {
     func stopSpeaking() {
         synthesizer.stopSpeaking(at: .immediate)
         isSpeaking = false
+        streamBuffer = ""
+    }
+
+    // MARK: - Helpers
+
+    private func activatePlaybackSession() {
+        try? AVAudioSession.sharedInstance()
+            .setCategory(.playback, mode: .default, options: .duckOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+    }
+
+    private func bestMaleVoice(languageCode: String) -> AVSpeechSynthesisVoice? {
+        let prefix = String(languageCode.prefix(2))
+        let voices = AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix(prefix) && $0.gender == .male }
+            .sorted { $0.quality.rawValue > $1.quality.rawValue }
+        return voices.first ?? AVSpeechSynthesisVoice(language: languageCode)
     }
 }
 
 // MARK: - AVSpeechSynthesizerDelegate
 
 extension SpeechManager: AVSpeechSynthesizerDelegate {
-    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        Task { @MainActor in isSpeaking = false }
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
+                                       didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in isSpeaking = synthesizer.isSpeaking }
     }
-    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
+                                       didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in isSpeaking = false }
     }
 }

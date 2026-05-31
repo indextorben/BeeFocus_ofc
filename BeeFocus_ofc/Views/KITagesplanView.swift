@@ -53,6 +53,7 @@ struct KITagesplanSheet: View {
     @AppStorage("aiAutoSpeak")      private var aiAutoSpeak: Bool = false
 
     private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
+    @State private var lastSpokenLength = 0
     private var isDark: Bool { colorScheme == .dark }
     private var cal: Calendar { Calendar.current }
     private var hasKey: Bool {
@@ -187,9 +188,17 @@ struct KITagesplanSheet: View {
                 }
             }
         }
+        .onChange(of: generatedText) { text in
+            guard aiAutoSpeak, isLoading else { return }
+            let newPart = String(text.dropFirst(lastSpokenLength))
+            guard !newPart.isEmpty else { return }
+            speech.appendToStream(newPart, languageCode: speechLang)
+            lastSpokenLength = text.count
+        }
         .onChange(of: isLoading) { loading in
-            guard !loading, !generatedText.isEmpty, aiAutoSpeak else { return }
-            speech.speak(generatedText, languageCode: speechLang)
+            guard !loading, aiAutoSpeak else { return }
+            speech.finishStream(languageCode: speechLang)
+            lastSpokenLength = 0
         }
         .sheet(isPresented: $showGuide) {
             NavigationStack {
@@ -727,6 +736,8 @@ struct KITagesplanSheet: View {
         showSetup = false
         suggestedTasks = []
         addedTaskIDs = []
+        if aiAutoSpeak { speech.resetStream() }
+        lastSpokenLength = 0
 
         let prompt = buildPrompt()
 
