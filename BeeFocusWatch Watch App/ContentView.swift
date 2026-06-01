@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Theme accent color
 
-private func accentColor(for theme: String) -> Color {
+private func themeAccent(for theme: String) -> Color {
     switch theme {
     case "Ozean", "Eis":        return .cyan
     case "Wald", "Nordlicht":   return .green
@@ -38,7 +38,7 @@ struct ContentView: View {
     @StateObject private var session = WatchSessionManager.shared
     @State private var tab = 0
 
-    var accent: Color { accentColor(for: session.snapshot.activeTheme) }
+    var accent: Color { themeAccent(for: session.snapshot.activeTheme) }
 
     var body: some View {
         TabView(selection: $tab) {
