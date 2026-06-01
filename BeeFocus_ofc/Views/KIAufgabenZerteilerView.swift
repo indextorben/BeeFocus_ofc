@@ -20,7 +20,7 @@ struct KIAufgabenZerteilerView: View {
     @State private var keyInput = ""
     @State private var keyVisible = false
     @State private var subtasks: [SubtaskItem] = []
-    @State private var addedIDs: Set<UUID> = []
+    @State private var taskAdded = false
     @FocusState private var titleFocused: Bool
 
     private var isDark: Bool { colorScheme == .dark }
@@ -135,7 +135,7 @@ struct KIAufgabenZerteilerView: View {
 
             Button {
                 guard !aufgabenTitel.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                subtasks = []; generatedText = ""
+                subtasks = []; generatedText = ""; taskAdded = false
                 Task { await generate() }
             } label: {
                 HStack(spacing: 8) {
@@ -181,71 +181,72 @@ struct KIAufgabenZerteilerView: View {
                 }
                 Spacer()
                 Button {
-                    let toAdd = subtasks.filter { $0.isSelected && !addedIDs.contains($0.id) }
-                    toAdd.forEach { s in
-                        var todo = TodoItem(title: s.title)
-                        todoStore.addTodo(todo)
-                        addedIDs.insert(s.id)
-                    }
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    addAsOneTask()
                 } label: {
-                    Label("Alle hinzufügen", systemImage: "checkmark.circle.fill")
+                    Label(taskAdded ? "Hinzugefügt" : "Als Aufgabe speichern",
+                          systemImage: taskAdded ? "checkmark.circle.fill" : "plus.circle.fill")
                         .font(.caption.weight(.semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(accent, in: Capsule())
+                        .background(taskAdded ? Color.green : accent, in: Capsule())
                 }
                 .buttonStyle(.plain)
-                .disabled(subtasks.filter { $0.isSelected && !addedIDs.contains($0.id) }.isEmpty)
+                .disabled(taskAdded)
+                .animation(.spring(response: 0.3), value: taskAdded)
             }
 
-            ForEach($subtasks) { $task in
-                subtaskRow($task)
+            Divider().opacity(0.3)
+
+            // Vorschau: Hauptaufgabe
+            VStack(alignment: .leading, spacing: 4) {
+                Label(aufgabenTitel, systemImage: "checkmark.square")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isDark ? .white : .primary)
+                if !kontext.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text(kontext)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+
+            // Teilaufgaben-Liste
+            ForEach(subtasks) { task in
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(task.title)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
+                        if !task.dauer.isEmpty {
+                            Text("⏱ \(task.dauer)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 4)
             }
         }
         .padding(16)
         .themeGlass(cornerRadius: 16)
     }
 
-    private func subtaskRow(_ task: Binding<SubtaskItem>) -> some View {
-        let isAdded = addedIDs.contains(task.wrappedValue.id)
-        return HStack(spacing: 12) {
-            Button {
-                if !isAdded { task.wrappedValue.isSelected.toggle() }
-            } label: {
-                Image(systemName: isAdded ? "checkmark.circle.fill" : (task.wrappedValue.isSelected ? "circle.fill" : "circle"))
-                    .font(.system(size: 20))
-                    .foregroundStyle(isAdded ? .green : (task.wrappedValue.isSelected ? accent : .secondary))
-            }
-            .buttonStyle(.plain)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(task.wrappedValue.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(isDark ? .white.opacity(isAdded ? 0.4 : 0.9) : .primary)
-                    .strikethrough(isAdded)
-                if !task.wrappedValue.dauer.isEmpty {
-                    Text("⏱ \(task.wrappedValue.dauer)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            if !isAdded {
-                Button {
-                    var todo = TodoItem(title: task.wrappedValue.title)
-                    todoStore.addTodo(todo)
-                    addedIDs.insert(task.wrappedValue.id)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 18))
-                        .foregroundStyle(accent)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.vertical, 6)
-        .opacity(isAdded ? 0.6 : 1)
+    private func addAsOneTask() {
+        let subTaskList = subtasks.map { SubTask(title: $0.title) }
+        let todo = TodoItem(
+            title: aufgabenTitel.trimmingCharacters(in: .whitespaces),
+            description: kontext.trimmingCharacters(in: .whitespaces),
+            subTasks: subTaskList
+        )
+        todoStore.addTodo(todo)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation { taskAdded = true }
     }
 
     private func errorCard(_ msg: String) -> some View {
