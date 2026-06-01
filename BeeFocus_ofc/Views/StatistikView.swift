@@ -37,15 +37,11 @@ struct StatistikView: View {
     @State private var showMotivation = false
     @State private var showWasser = false
     @State private var showBrainDump = false
-    @State private var showStimmung = false
     @State private var showSchlaf = false
     @State private var showNotizen = false
     @State private var showDankbarkeit = false
-    @State private var showSport = false
     @State private var showZeiterfassung = false
     @State private var showCountdown = false
-    @State private var showFinanz = false
-    @State private var showLernziel = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -445,11 +441,8 @@ struct StatistikView: View {
     @ViewBuilder private var allSections: some View {
         AnyView(sectionsTop)
         AnyView(sectionsMiddle)
-        AnyView(sectionsBottom)
-        AnyView(sectionsExtra)
+        AnyView(sectionsTools)
         AnyView(sectionsKI)
-        AnyView(sectionsLifestyle)
-        AnyView(sectionsNeu)
     }
 
     @ViewBuilder private var sectionsTop: some View {
@@ -535,7 +528,8 @@ struct StatistikView: View {
         }
     }
 
-    @ViewBuilder private var sectionsBottom: some View {
+    // MARK: Tools & Tracking (Challenges → Countdown)
+    @ViewBuilder private var sectionsTools: some View {
         animatedSection(delay: 0.40) {
             sectionGroup(icon: "trophy.fill", label: "Fokus-Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
                 glassCard {
@@ -546,7 +540,7 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.44) {
+        animatedSection(delay: 0.42) {
             sectionGroup(icon: "chart.line.uptrend.xyaxis", label: "Produktivitäts-Score", color: Color(red: 0.2, green: 0.85, blue: 0.5)) {
                 glassCard {
                     Button { showScore = true } label: {
@@ -556,7 +550,7 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.46) {
+        animatedSection(delay: 0.44) {
             sectionGroup(icon: "quote.bubble.fill", label: "Tages-Motivation", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
                 glassCard {
                     Button { showMotivation = true } label: {
@@ -566,7 +560,7 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.48) {
+        animatedSection(delay: 0.46) {
             sectionGroup(icon: "drop.fill", label: "Wassertracker", color: Color(red: 0.15, green: 0.75, blue: 0.95)) {
                 glassCard {
                     Button { showWasser = true } label: {
@@ -576,30 +570,7 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.52) {
-            sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
-                glassCard {
-                    Button { showBrainDump = true } label: {
-                        iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var sectionsExtra: some View {
-        animatedSection(delay: 0.54) {
-            sectionGroup(icon: "face.smiling.fill", label: "Stimmungs-Tracker", color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
-                glassCard {
-                    Button { showStimmung = true } label: {
-                        iconNavRow(icon: "face.smiling.fill", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: "Tägliche Stimmung & Wohlbefinden")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.56) {
+        animatedSection(delay: 0.48) {
             sectionGroup(icon: "moon.zzz.fill", label: "Schlaf-Tracker", color: Color(red: 0.4, green: 0.3, blue: 0.9)) {
                 glassCard {
                     Button { showSchlaf = true } label: {
@@ -609,7 +580,17 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.58) {
+        animatedSection(delay: 0.50) {
+            sectionGroup(icon: "heart.text.square.fill", label: "Dankbarkeits-Tagebuch", color: Color(red: 1.0, green: 0.65, blue: 0.3)) {
+                glassCard {
+                    Button { showDankbarkeit = true } label: {
+                        iconNavRow(icon: "heart.text.square.fill", color: Color(red: 1.0, green: 0.65, blue: 0.3), label: "Tägliche Dankbarkeit & positive Gedanken")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.52) {
             sectionGroup(icon: "note.text", label: "Schnell-Notizen", color: Color(red: 1.0, green: 0.75, blue: 0.2)) {
                 glassCard {
                     Button { showNotizen = true } label: {
@@ -619,6 +600,40 @@ struct StatistikView: View {
                 }
             }
         }
+        animatedSection(delay: 0.54) {
+            sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
+                glassCard {
+                    Button { showBrainDump = true } label: {
+                        iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.56) {
+            sectionGroup(icon: "timer.circle.fill", label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) {
+                glassCard {
+                    Button { showZeiterfassung = true } label: {
+                        iconNavRow(icon: "timer.circle.fill", color: Color(red: 0.3, green: 0.5, blue: 1.0), label: "Zeit pro Projekt tracken & analysieren")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.58) {
+            sectionGroup(icon: "hourglass", label: "Countdown-Events", color: Color(red: 0.35, green: 0.25, blue: 0.95)) {
+                glassCard {
+                    Button { showCountdown = true } label: {
+                        iconNavRow(icon: "hourglass", color: Color(red: 0.35, green: 0.25, blue: 0.95), label: "Wichtige Ereignisse & Tage im Blick")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: KI-Features
+    @ViewBuilder private var sectionsKI: some View {
         animatedSection(delay: 0.60) {
             sectionGroup(icon: "brain.head.profile", label: "KI-Aufgaben-Analyse", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
                 glassCard {
@@ -641,9 +656,6 @@ struct StatistikView: View {
                 }
             }
         }
-    }
-
-    @ViewBuilder private var sectionsKI: some View {
         animatedSection(delay: 0.64) {
             sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: "KI-Wochenbericht", color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
                 glassCard {
@@ -674,72 +686,6 @@ struct StatistikView: View {
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 1.0, green: 0.55, blue: 0.1))
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var sectionsLifestyle: some View {
-        animatedSection(delay: 0.70) {
-            sectionGroup(icon: "heart.text.square.fill", label: "Dankbarkeits-Tagebuch", color: Color(red: 1.0, green: 0.65, blue: 0.3)) {
-                glassCard {
-                    Button { showDankbarkeit = true } label: {
-                        iconNavRow(icon: "heart.text.square.fill", color: Color(red: 1.0, green: 0.65, blue: 0.3), label: "Tägliche Dankbarkeit & positive Gedanken")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.72) {
-            sectionGroup(icon: "figure.run.circle.fill", label: "Sport-Tracker", color: Color(red: 0.15, green: 0.7, blue: 0.45)) {
-                glassCard {
-                    Button { showSport = true } label: {
-                        iconNavRow(icon: "figure.run.circle.fill", color: Color(red: 0.15, green: 0.7, blue: 0.45), label: "Aktivitäten, Workouts & Kalorien")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.74) {
-            sectionGroup(icon: "timer.circle.fill", label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) {
-                glassCard {
-                    Button { showZeiterfassung = true } label: {
-                        iconNavRow(icon: "timer.circle.fill", color: Color(red: 0.3, green: 0.5, blue: 1.0), label: "Zeit pro Projekt tracken & analysieren")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var sectionsNeu: some View {
-        animatedSection(delay: 0.76) {
-            sectionGroup(icon: "hourglass", label: "Countdown-Events", color: Color(red: 0.35, green: 0.25, blue: 0.95)) {
-                glassCard {
-                    Button { showCountdown = true } label: {
-                        iconNavRow(icon: "hourglass", color: Color(red: 0.35, green: 0.25, blue: 0.95), label: "Wichtige Ereignisse & Tage im Blick")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.78) {
-            sectionGroup(icon: "eurosign.circle.fill", label: "Finanz-Tracker", color: Color(red: 0.15, green: 0.6, blue: 0.35)) {
-                glassCard {
-                    Button { showFinanz = true } label: {
-                        iconNavRow(icon: "eurosign.circle.fill", color: Color(red: 0.15, green: 0.6, blue: 0.35), label: "Einnahmen & Ausgaben verfolgen")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.80) {
-            sectionGroup(icon: "books.vertical.fill", label: "Lernziele", color: Color(red: 0.5, green: 0.25, blue: 0.95)) {
-                glassCard {
-                    Button { showLernziel = true } label: {
-                        iconNavRow(icon: "books.vertical.fill", color: Color(red: 0.5, green: 0.25, blue: 0.95), label: "Wissen aufbauen & Fortschritt tracken")
-                    }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -819,9 +765,6 @@ struct StatistikView: View {
             .sheet(isPresented: $showBrainDump) {
                 BrainDumpView().environmentObject(todoStore)
             }
-            .sheet(isPresented: $showStimmung) {
-                StimmungsTrackerView()
-            }
             .sheet(isPresented: $showSchlaf) {
                 SchlafTrackerView()
             }
@@ -851,20 +794,11 @@ struct StatistikView: View {
             .sheet(isPresented: $showDankbarkeit) {
                 DankbarkeitView()
             }
-            .sheet(isPresented: $showSport) {
-                SportTrackerView()
-            }
             .sheet(isPresented: $showZeiterfassung) {
                 ZeiterfassungView()
             }
             .sheet(isPresented: $showCountdown) {
                 CountdownView()
-            }
-            .sheet(isPresented: $showFinanz) {
-                FinanzTrackerView()
-            }
-            .sheet(isPresented: $showLernziel) {
-                LernzielView()
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
