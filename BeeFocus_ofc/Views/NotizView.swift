@@ -475,6 +475,8 @@ struct NotizEditorView: View {
     @State private var showOrdnerPicker = false
     @State private var showDeleteAlert  = false
     @State private var neuesCheckItem   = ""
+    @State private var showFind         = false
+    @State private var checkSuche       = ""
 
     private var kannSpeichern: Bool {
         !notiz.titel.isEmpty || !notiz.inhalt.isEmpty || !notiz.checkItems.isEmpty
@@ -583,6 +585,7 @@ struct NotizEditorView: View {
             .scrollContentBackground(.hidden)
             .padding(.horizontal, 16)
             .focused($fokusInhalt)
+            .findNavigator(isPresented: $showFind)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -633,9 +636,36 @@ struct NotizEditorView: View {
     private var checklisteContent: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
+                // Search bar (only visible when showFind)
+                if showFind {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 13)).foregroundStyle(.white.opacity(0.4))
+                        TextField("In Checkliste suchen…", text: $checkSuche)
+                            .font(.system(size: 15)).foregroundStyle(.white)
+                        if !checkSuche.isEmpty {
+                            Button { checkSuche = "" } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.white.opacity(0.3))
+                            }.buttonStyle(.plain)
+                        }
+                        let matchCount = notiz.checkItems.filter { $0.text.localizedCaseInsensitiveContains(checkSuche) }.count
+                        if !checkSuche.isEmpty {
+                            Text("\(matchCount) Treffer")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(matchCount > 0 ? notiz.farbe : .red.opacity(0.7))
+                        }
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 16).padding(.top, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // Open items
-                let open   = notiz.checkItems.filter { !$0.isChecked }
-                let done   = notiz.checkItems.filter {  $0.isChecked }
+                let filteredOpen = notiz.checkItems.filter { !$0.isChecked && (checkSuche.isEmpty || $0.text.localizedCaseInsensitiveContains(checkSuche)) }
+                let filteredDone = notiz.checkItems.filter {  $0.isChecked && (checkSuche.isEmpty || $0.text.localizedCaseInsensitiveContains(checkSuche)) }
+                let open   = checkSuche.isEmpty ? notiz.checkItems.filter { !$0.isChecked } : filteredOpen
+                let done   = checkSuche.isEmpty ? notiz.checkItems.filter {  $0.isChecked } : filteredDone
 
                 ForEach(open) { item in checkRow(item) }
 
@@ -806,6 +836,17 @@ struct NotizEditorView: View {
         ToolbarItem(placement: .cancellationAction) {
             Button("Abbrechen") { dismiss() }
                 .foregroundStyle(.white.opacity(0.55))
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                fokusInhalt = false
+                fokusTitel  = false
+                withAnimation { showFind.toggle(); if notiz.typ == .checkliste { checkSuche = "" } }
+            } label: {
+                Image(systemName: showFind ? "magnifyingglass.circle.fill" : "magnifyingglass")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(showFind ? notiz.farbe : .white.opacity(0.55))
+            }
         }
         ToolbarItem(placement: .confirmationAction) {
             Button("Fertig") {
