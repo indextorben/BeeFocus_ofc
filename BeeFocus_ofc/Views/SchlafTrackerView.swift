@@ -1,22 +1,23 @@
 import SwiftUI
+import HealthKit
 
 struct SchlafTrackerView: View {
-    @StateObject private var store = SchlafStore.shared
     @Environment(\.dismiss) private var dismiss
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("schlafZielStunden") private var zielStunden: Double = 8.0
 
-    @State private var schlafenszeit: Date = defaultSchlafenszeit()
-    @State private var aufwachzeit: Date  = defaultAufwachzeit()
-    @State private var qualitaet: Int = 3
+    @State private var authorized = false
+    @State private var loading = true
+    @State private var heutigeStunden: Double = 0
+    @State private var schnitt7Tage: Double = 0
+    @State private var wocheDaten: [(date: Date, stunden: Double)] = []
     @State private var showZielPicker = false
 
+    private let hkStore = HKHealthStore()
+    private let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
+
     private var accent: Color { aktivesThema.isEmpty ? Color(red: 0.3, green: 0.6, blue: 1.0) : appThemaFarben(aktivesThema).0 }
-    private var dauer: Double { max(0, aufwachzeit.timeIntervalSince(schlafenszeit) / 3600) }
-    private var progress: Double { min(dauer / store.zielStunden, 1.0) }
-    private var dauerText: String {
-        let h = Int(dauer); let m = Int((dauer - Double(h)) * 60)
-        return m == 0 ? "\(h)h" : "\(h)h \(m)min"
-    }
+    private var progress: Double { zielStunden > 0 ? min(heutigeStunden / zielStunden, 1.0) : 0 }
 
     var body: some View {
         ZStack {
@@ -29,11 +30,14 @@ struct SchlafTrackerView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     headerSection
-                    ringCard
-                    timePickers
-                    qualitaetCard
-                    saveButton
-                    if !store.eintraege.isEmpty { historySection }
+                    if loading {
+                        loadingCard
+                    } else if !authorized {
+                        permissionCard
+                    } else {
+                        ringCard
+                        if !wocheDaten.isEmpty { historySection }
+                    }
                     Spacer().frame(height: 32)
                 }
                 .padding(.horizontal, 20)
@@ -55,14 +59,10 @@ struct SchlafTrackerView: View {
                 Spacer()
             }
         }
-        .onAppear {
-            if let e = store.heutigerEintrag {
-                schlafenszeit = e.schlafenszeit
-                aufwachzeit   = e.aufwachzeit
-                qualitaet     = e.qualitaet
-            }
-        }
+        .onAppear { requestAndLoad() }
     }
+
+    // MARK: - Header
 
     private var headerSection: some View {
         HStack {
@@ -70,13 +70,65 @@ struct SchlafTrackerView: View {
                 Text("Schlaf-Tracker")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
-                Text("Erholung ist Produktivität")
+                Text("Daten aus Apple Health")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.45))
             }
             Spacer()
+            Image(systemName: "heart.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(Color(red: 1.0, green: 0.25, blue: 0.4))
         }
     }
+
+    // MARK: - Loading / Permission
+
+    private var loadingCard: some View {
+        HStack(spacing: 12) {
+            ProgressView().tint(accent)
+            Text("Schlafdaten werden geladen…")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var permissionCard: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "heart.text.square")
+                .font(.system(size: 44))
+                .foregroundStyle(accent)
+            Text("Zugriff auf Apple Health")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white)
+            Text("BeeFocus benötigt Zugriff auf deine Schlafdaten in Apple Health.")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.6))
+                .multilineTextAlignment(.center)
+            Button {
+                requestAndLoad()
+            } label: {
+                Label("Zugriff erlauben", systemImage: "heart.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(colors: [Color(red: 0.3, green: 0.2, blue: 0.8), accent],
+                                       startPoint: .leading, endPoint: .trailing),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(24)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.08), lineWidth: 1))
+    }
+
+    // MARK: - Ring Card
 
     private var ringCard: some View {
         VStack(spacing: 12) {
@@ -93,23 +145,23 @@ struct SchlafTrackerView: View {
                     )
                     .frame(width: 150, height: 150)
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeOut(duration: 0.6), value: dauer)
+                    .animation(.easeOut(duration: 0.6), value: progress)
 
                 VStack(spacing: 4) {
                     Text("🌙")
                         .font(.system(size: 28))
-                    Text(dauer > 0 ? dauerText : "--")
+                    Text(heutigeStunden > 0 ? formatH(heutigeStunden) : "--")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("von \(formatH(store.zielStunden))")
+                    Text("von \(formatH(zielStunden))")
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.45))
                 }
             }
 
             HStack(spacing: 16) {
-                statChip("Ø 7 Tage", value: formatH(store.schnittStunden7Tage), color: accent)
-                statChip("Ziel", value: formatH(store.zielStunden), color: Color(red: 0.5, green: 0.3, blue: 1.0))
+                statChip("Ø 7 Tage", value: schnitt7Tage > 0 ? formatH(schnitt7Tage) : "--", color: accent)
+                statChip("Ziel", value: formatH(zielStunden), color: Color(red: 0.5, green: 0.3, blue: 1.0))
             }
 
             Button { showZielPicker = true } label: {
@@ -118,6 +170,15 @@ struct SchlafTrackerView: View {
                     .foregroundStyle(.white.opacity(0.4))
             }
             .buttonStyle(.plain)
+
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.3))
+                Text("Daten kommen direkt aus Apple Health")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.3))
+            }
         }
         .padding(20)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 20))
@@ -125,82 +186,7 @@ struct SchlafTrackerView: View {
         .sheet(isPresented: $showZielPicker) { zielPickerSheet }
     }
 
-    private var timePickers: some View {
-        VStack(spacing: 12) {
-            timeRow(icon: "moon.fill", label: "Eingeschlafen um", color: Color(red: 0.5, green: 0.3, blue: 1.0), selection: $schlafenszeit)
-            Divider().opacity(0.15)
-            timeRow(icon: "sun.horizon.fill", label: "Aufgewacht um", color: .orange, selection: $aufwachzeit)
-        }
-        .padding(16)
-        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
-    }
-
-    private func timeRow(icon: String, label: String, color: Color, selection: Binding<Date>) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(color)
-                .frame(width: 28)
-            Text(label)
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.7))
-            Spacer()
-            DatePicker("", selection: selection, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .colorScheme(.dark)
-                .accentColor(color)
-        }
-    }
-
-    private var qualitaetCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Schlafqualität")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.5))
-            HStack(spacing: 8) {
-                ForEach(1...5, id: \.self) { s in
-                    Button {
-                        withAnimation(.spring(response: 0.3)) { qualitaet = s }
-                    } label: {
-                        Image(systemName: s <= qualitaet ? "moon.stars.fill" : "moon")
-                            .font(.system(size: 26))
-                            .foregroundStyle(s <= qualitaet ? Color(red: 0.5, green: 0.3, blue: 1.0) : .white.opacity(0.2))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .padding(16)
-        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
-    }
-
-    private var saveButton: some View {
-        Button {
-            var e = SchlafEintrag(datum: Date(), schlafenszeit: schlafenszeit, aufwachzeit: aufwachzeit, qualitaet: qualitaet)
-            // If wakeup is before bedtime (slept past midnight), add 1 day to wakeup
-            if aufwachzeit < schlafenszeit {
-                aufwachzeit = aufwachzeit.addingTimeInterval(86400)
-                e = SchlafEintrag(datum: Date(), schlafenszeit: schlafenszeit, aufwachzeit: aufwachzeit, qualitaet: qualitaet)
-            }
-            store.add(e)
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        } label: {
-            Label("Schlaf speichern", systemImage: "bed.double.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    LinearGradient(colors: [Color(red: 0.3, green: 0.2, blue: 0.8), accent],
-                                   startPoint: .leading, endPoint: .trailing),
-                    in: RoundedRectangle(cornerRadius: 14)
-                )
-        }
-        .buttonStyle(.plain)
-    }
+    // MARK: - History
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -208,21 +194,20 @@ struct SchlafTrackerView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 
-            let days = store.last7Days()
-            let maxH = max(days.compactMap(\.stunden).max() ?? 8, store.zielStunden)
+            let maxH = max(wocheDaten.map(\.stunden).max() ?? zielStunden, zielStunden)
 
             HStack(alignment: .bottom, spacing: 6) {
-                ForEach(Array(days.enumerated()), id: \.offset) { _, pair in
+                ForEach(Array(wocheDaten.enumerated()), id: \.offset) { _, pair in
                     VStack(spacing: 6) {
-                        if let h = pair.stunden {
-                            Text(String(format: "%.1f", h))
+                        if pair.stunden > 0 {
+                            Text(String(format: "%.1f", pair.stunden))
                                 .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundStyle(h >= store.zielStunden ? accent : .white.opacity(0.5))
+                                .foregroundStyle(pair.stunden >= zielStunden ? accent : .white.opacity(0.5))
                             RoundedRectangle(cornerRadius: 5)
-                                .fill(h >= store.zielStunden
+                                .fill(pair.stunden >= zielStunden
                                       ? LinearGradient(colors: [accent, Color(red: 0.5, green: 0.3, blue: 1.0)], startPoint: .bottom, endPoint: .top)
                                       : LinearGradient(colors: [.white.opacity(0.2), .white.opacity(0.12)], startPoint: .bottom, endPoint: .top))
-                                .frame(height: CGFloat(h / maxH) * 70 + 8)
+                                .frame(height: CGFloat(pair.stunden / maxH) * 70 + 8)
                         } else {
                             Text("·")
                                 .font(.system(size: 9))
@@ -243,14 +228,16 @@ struct SchlafTrackerView: View {
         }
     }
 
+    // MARK: - Ziel Picker
+
     private var zielPickerSheet: some View {
         NavigationStack {
             ZStack {
                 Color(red: 0.08, green: 0.08, blue: 0.16).ignoresSafeArea()
-                VStack(spacing: 16) {
+                VStack(spacing: 10) {
                     ForEach([5.0, 6.0, 7.0, 7.5, 8.0, 8.5, 9.0], id: \.self) { h in
                         Button {
-                            store.zielStunden = h
+                            zielStunden = h
                             showZielPicker = false
                         } label: {
                             HStack {
@@ -258,13 +245,12 @@ struct SchlafTrackerView: View {
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(.white)
                                 Spacer()
-                                if store.zielStunden == h {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(accent)
+                                if zielStunden == h {
+                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(accent)
                                 }
                             }
                             .padding(.horizontal, 20).padding(.vertical, 14)
-                            .background(store.zielStunden == h ? accent.opacity(0.15) : Color.white.opacity(0.05),
+                            .background(zielStunden == h ? accent.opacity(0.15) : Color.white.opacity(0.05),
                                         in: RoundedRectangle(cornerRadius: 14))
                         }
                         .buttonStyle(.plain)
@@ -285,14 +271,12 @@ struct SchlafTrackerView: View {
         }
     }
 
+    // MARK: - Helpers
+
     private func statChip(_ label: String, value: String, color: Color) -> some View {
         VStack(spacing: 3) {
-            Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.4))
+            Text(value).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundStyle(color)
+            Text(label).font(.system(size: 11)).foregroundStyle(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -300,25 +284,78 @@ struct SchlafTrackerView: View {
     }
 
     private func dayLabel(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
-        f.dateFormat = "EE"
+        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "EE"
         return String(f.string(from: date).prefix(2))
     }
 
     private func formatH(_ h: Double) -> String {
-        let hi = Int(h)
-        let m  = Int((h - Double(hi)) * 60)
+        let hi = Int(h); let m = Int((h - Double(hi)) * 60)
         return m == 0 ? "\(hi)h" : "\(hi)h \(m)m"
     }
-}
 
-private func defaultSchlafenszeit() -> Date {
-    let cal = Calendar.current
-    return cal.date(bySettingHour: 23, minute: 0, second: 0, of: Date()) ?? Date()
-}
+    // MARK: - HealthKit
 
-private func defaultAufwachzeit() -> Date {
-    let cal = Calendar.current
-    return cal.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date()
+    private func requestAndLoad() {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            loading = false; return
+        }
+        hkStore.requestAuthorization(toShare: [], read: [sleepType]) { granted, _ in
+            DispatchQueue.main.async {
+                authorized = granted
+                if granted { loadSleepData() } else { loading = false }
+            }
+        }
+    }
+
+    private func loadSleepData() {
+        let cal = Calendar.current
+        let now = Date()
+        let sevenDaysAgo = cal.date(byAdding: .day, value: -7, to: cal.startOfDay(for: now))!
+
+        let predicate = HKQuery.predicateForSamples(withStart: sevenDaysAgo, end: now)
+        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate,
+                                  limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
+            guard let samples = samples as? [HKCategorySample] else {
+                DispatchQueue.main.async { loading = false }
+                return
+            }
+
+            // Aggregate sleep seconds per calendar day
+            var byDay: [Date: Double] = [:]
+            for sample in samples {
+                guard isAsleep(sample.value) else { continue }
+                let day = cal.startOfDay(for: sample.endDate)
+                let secs = sample.endDate.timeIntervalSince(sample.startDate)
+                byDay[day, default: 0] += secs
+            }
+
+            // Build last 7 days array
+            var result: [(date: Date, stunden: Double)] = []
+            for i in (0..<7).reversed() {
+                let day = cal.startOfDay(for: cal.date(byAdding: .day, value: -i, to: now)!)
+                result.append((date: day, stunden: (byDay[day] ?? 0) / 3600))
+            }
+
+            let todayStart = cal.startOfDay(for: now)
+            let todayH = (byDay[todayStart] ?? 0) / 3600
+            let validDays = result.filter { $0.stunden > 0 }
+            let avg = validDays.isEmpty ? 0 : validDays.map(\.stunden).reduce(0, +) / Double(validDays.count)
+
+            DispatchQueue.main.async {
+                wocheDaten = result
+                heutigeStunden = todayH
+                schnitt7Tage = avg
+                loading = false
+            }
+        }
+        hkStore.execute(query)
+    }
+
+    private func isAsleep(_ value: Int) -> Bool {
+        guard let v = HKCategoryValueSleepAnalysis(rawValue: value) else { return false }
+        switch v {
+        case .asleepUnspecified, .asleepCore, .asleepDeep, .asleepREM: return true
+        default: return false
+        }
+    }
 }

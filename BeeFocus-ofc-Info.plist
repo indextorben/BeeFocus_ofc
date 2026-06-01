@@ -46,6 +46,8 @@
 	</array>
 	<key>CloudKitContainerIdentifier</key>
 	<string>iCloud.com.TorbenLehneke.BeeFocus</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>BeeFocus liest deine Schlafdaten aus Apple Health, um deinen Schlaf zu analysieren.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BeeFocus nutzt das Mikrofon, damit du per Sprache mit der KI sprechen kannst.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
