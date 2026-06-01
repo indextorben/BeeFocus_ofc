@@ -11,11 +11,16 @@ final class WasserStore: ObservableObject {
     static let shared = WasserStore()
 
     @Published var entries: [WasserEintrag] = []
-    @AppStorage("wasserTagesziel") var tagesziel: Int = 2000
+    @Published var tagesziel: Int = 2000 {
+        didSet { UserDefaults.standard.set(tagesziel, forKey: "wasserTagesziel") }
+    }
 
     private let key = "wasser_eintraege_v1"
 
-    private init() { load() }
+    private init() {
+        tagesziel = UserDefaults.standard.object(forKey: "wasserTagesziel") as? Int ?? 2000
+        load()
+    }
 
     var todayEntries: [WasserEintrag] {
         let cal = Calendar.current

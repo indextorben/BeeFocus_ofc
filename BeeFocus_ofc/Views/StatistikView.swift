@@ -615,15 +615,7 @@ struct StatistikView: View {
                             sectionGroup(icon: "drop.fill", label: "Wassertracker", color: Color(red: 0.15, green: 0.75, blue: 0.95)) {
                                 glassCard {
                                     Button { showWasser = true } label: {
-                                        HStack {
-                                            iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
-                                            Spacer()
-                                            let total = WasserStore.shared.todayTotal
-                                            let goal = WasserStore.shared.tagesziel
-                                            Text("\(total)/\(goal) ml")
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundStyle(Color(red: 0.15, green: 0.75, blue: 0.95).opacity(0.8))
-                                        }
+                                        iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -635,16 +627,7 @@ struct StatistikView: View {
                             sectionGroup(icon: "target", label: "Langzeit-Ziele", color: Color(red: 0.6, green: 0.3, blue: 1.0)) {
                                 glassCard {
                                     Button { showZiele = true } label: {
-                                        HStack {
-                                            iconNavRow(icon: "target", color: Color(red: 0.6, green: 0.3, blue: 1.0), label: "Große Ziele & Meilensteine")
-                                            Spacer()
-                                            let count = LangzeitZieleStore.shared.aktiveZiele.count
-                                            if count > 0 {
-                                                Text("\(count) aktiv")
-                                                    .font(.system(size: 12, weight: .semibold))
-                                                    .foregroundStyle(Color(red: 0.6, green: 0.3, blue: 1.0).opacity(0.8))
-                                            }
-                                        }
+                                        iconNavRow(icon: "target", color: Color(red: 0.6, green: 0.3, blue: 1.0), label: "Große Ziele & Meilensteine")
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -656,16 +639,7 @@ struct StatistikView: View {
                             sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
                                 glassCard {
                                     Button { showBrainDump = true } label: {
-                                        HStack {
-                                            iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
-                                            Spacer()
-                                            let count = BrainDumpStore.shared.eintraege.count
-                                            if count > 0 {
-                                                Text("\(count) Einträge")
-                                                    .font(.system(size: 12, weight: .semibold))
-                                                    .foregroundStyle(Color(red: 1.0, green: 0.65, blue: 0.2).opacity(0.8))
-                                            }
-                                        }
+                                        iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
                                     }
                                     .buttonStyle(.plain)
                                 }
