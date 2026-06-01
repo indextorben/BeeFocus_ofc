@@ -326,7 +326,7 @@ struct FokusTodoEditorView: View {
                         VStack(spacing: 6) {
                             Text("Bis")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(hasEndTime ? .secondary : .secondary.opacity(0.35))
+                                .foregroundStyle(Color.secondary.opacity(hasEndTime ? 1.0 : 0.35))
                             if hasEndTime {
                                 DatePicker("", selection: $endDate, in: dueDate..., displayedComponents: .hourAndMinute)
                                     .datePickerStyle(.compact)
@@ -335,7 +335,7 @@ struct FokusTodoEditorView: View {
                             } else {
                                 Text("–")
                                     .font(.system(size: 17, weight: .medium))
-                                    .foregroundStyle(.secondary.opacity(0.3))
+                                    .foregroundStyle(Color.secondary.opacity(0.3))
                                     .frame(height: 34)
                             }
                         }
