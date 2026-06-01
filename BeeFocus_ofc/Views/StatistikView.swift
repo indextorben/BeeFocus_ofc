@@ -30,6 +30,7 @@ struct StatistikView: View {
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
     @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
     @State private var showWochenrueckblick = false
+    @State private var showChallenges = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -493,9 +494,18 @@ struct StatistikView: View {
                 glassCard { ringsCard }
             }
         }
+        animatedSection(delay: 0.38) {
+            sectionGroup(icon: "trophy.fill", label: "Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
+                glassCard {
+                    Button { showChallenges = true } label: {
+                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Fokus-Challenges ansehen")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
-    // MARK: Tools & Tracking (Challenges → Countdown)
     // MARK: KI-Features
     @ViewBuilder private var sectionsKI: some View {
         animatedSection(delay: 0.60) {
@@ -607,6 +617,9 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showFPInfo) {
                 fokuspunkteInfoSheet
+            }
+            .sheet(isPresented: $showChallenges) {
+                FokusChallengesView().environmentObject(todoStore)
             }
             .sheet(isPresented: $showKIAnalyse) {
                 KIAufgabenAnalyseView(todos: todoStore.todos)
