@@ -181,7 +181,7 @@ struct CalendarView: View {
                     .environmentObject(todoStore)
             }
             .sheet(isPresented: $showingAddTodo) {
-                AddTodoView(prefilledDate: selectedDate)
+                FokusTodoEditorView(prefilledDate: selectedDate)
                     .environmentObject(todoStore)
             }
             .onAppear {
@@ -1023,7 +1023,7 @@ struct TodoDetailView: View {
             }
         }
         .sheet(isPresented: $isEditing) {
-            EditTodoView(todo: currentTodo)
+            FokusTodoEditorView(todo: currentTodo)
                 .environmentObject(todoStore)
         }
     }

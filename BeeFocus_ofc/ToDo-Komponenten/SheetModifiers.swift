@@ -18,16 +18,12 @@ struct SheetModifiers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $showingAddTodo) {
-                NavigationView {
-                    AddTodoView()
-                        .environmentObject(todoStore)
-                }
+                FokusTodoEditorView()
+                    .environmentObject(todoStore)
             }
             .sheet(item: $editingTodo) { todo in
-                NavigationView {
-                    EditTodoView(todo: todo)
-                        .environmentObject(todoStore)
-                }
+                FokusTodoEditorView(todo: todo)
+                    .environmentObject(todoStore)
             }
     }
 }

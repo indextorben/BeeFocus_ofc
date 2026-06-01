@@ -166,7 +166,7 @@ struct WeeklyGoalsView: View {
             }
         }
         .onChange(of: startOfWeek) { _, _ in syncWeekSegmentWithStart() }
-        .sheet(item: $editingTodo) { item in EditTodoView(todo: item) }
+        .sheet(item: $editingTodo) { item in FokusTodoEditorView(todo: item).environmentObject(todoStore) }
     }
 
     // MARK: - Background

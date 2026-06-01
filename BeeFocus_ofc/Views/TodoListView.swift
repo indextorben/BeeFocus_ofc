@@ -206,14 +206,13 @@ struct TodoListView: View {
                 .navigationBarTitleDisplayMode(.large)
                 .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(localizer.localizedString(forKey: "search_tasks")))
                 .sheet(isPresented: $showingAddTodo) {
-                    // Replace `AddTodoView` with the actual add-task view used in your project if the name differs
-                    AddTodoView()
+                    FokusTodoEditorView().environmentObject(todoStore)
                 }
                 .sheet(isPresented: $showingSettings) {
                     EinstellungenView()
                 }
                 .sheet(item: $editingTodo) { item in
-                    EditTodoView(todo: item)
+                    FokusTodoEditorView(todo: item).environmentObject(todoStore)
                 }
                 .sheet(item: $mailShare.exportData) { data in
                     ShareActivityView(activityItems: [data.image])

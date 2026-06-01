@@ -183,7 +183,7 @@ struct TagesplanerView: View {
             .environmentObject(todoStore)
         }
         .sheet(isPresented: $showingAddTodo) {
-            AddTodoView().environmentObject(todoStore)
+            FokusTodoEditorView().environmentObject(todoStore)
         }
         .sheet(item: $itemSheet) { sheet in
             switch sheet {
@@ -201,7 +201,7 @@ struct TagesplanerView: View {
                 )
                 .environmentObject(todoStore)
             case .editing(let todo):
-                EditTodoView(todo: todo)
+                FokusTodoEditorView(todo: todo)
                     .environmentObject(todoStore)
             }
         }
@@ -2525,7 +2525,8 @@ struct EinplanenSheet: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
-                        EditTodoView(todo: todo)
+                        FokusTodoEditorView(todo: todo)
+                            .environmentObject(todoStore)
                     } label: {
                         Label("Bearbeiten", systemImage: "slider.horizontal.3")
                     }
