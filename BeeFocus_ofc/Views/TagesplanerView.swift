@@ -1,5 +1,31 @@
 import SwiftUI
 
+// MARK: - Render Slot (single task or parallel group)
+
+private enum RenderSlot: Identifiable {
+    case single(TodoItem)
+    case parallel([TodoItem])
+
+    var id: String {
+        switch self {
+        case .single(let t):       return t.id.uuidString
+        case .parallel(let ts):    return ts.map { $0.id.uuidString }.joined(separator: "|")
+        }
+    }
+    var startDate: Date {
+        switch self {
+        case .single(let t):    return t.dueDate ?? .distantFuture
+        case .parallel(let ts): return ts.compactMap(\.dueDate).min() ?? .distantFuture
+        }
+    }
+    var endDate: Date {
+        switch self {
+        case .single(let t):    return t.endDate ?? t.dueDate ?? .distantPast
+        case .parallel(let ts): return ts.compactMap { $0.endDate ?? $0.dueDate }.max() ?? .distantPast
+        }
+    }
+}
+
 // MARK: - TagesplanerView
 
 struct TagesplanerView: View {
@@ -443,89 +469,105 @@ struct TagesplanerView: View {
                 let mins = CGFloat(max(sectionEnd.timeIntervalSince(effectiveStart) / 60, 0))
                 if mins > 5 { freeTimeRow(minutes: mins, color: color, showHint: spanningIn == nil) }
             } else {
-                // Gap before first task
-                let preGap = CGFloat(max((tasks[0].dueDate ?? sectionEnd).timeIntervalSince(effectiveStart) / 60, 0))
+                let slots = overlapSlots(tasks)
+
+                // Now-indicator position relative to slots
+                let nowSlotIdx: Int = {
+                    guard nowInSectionEff else { return -1 }
+                    for (i, slot) in slots.enumerated() {
+                        if now < slot.startDate { return i }
+                        if now < slot.endDate   { return -2 }
+                    }
+                    return slots.count
+                }()
+
+                // Gap before first slot
+                let preGap = CGFloat(max((slots.first?.startDate ?? sectionEnd).timeIntervalSince(effectiveStart) / 60, 0))
                 if preGap > 5 { freeTimeRow(minutes: preGap, color: color, showHint: false) }
 
-                if nowIdx == 0 { nowIndicatorRow() }
+                if nowSlotIdx == 0 { nowIndicatorRow() }
 
-                ForEach(Array(tasks.enumerated()), id: \.element.id) { idx, task in
-                    let isDragging = draggingID == task.id
-                    let deltaMins = isDragging ? Int((dragDelta / minsPerPt).rounded()) : 0
-                    let snappedDelta = Int((Double(deltaMins) / 15.0).rounded()) * 15
-                    let snappedPixels = CGFloat(snappedDelta) * minsPerPt
-                    let isResizing = resizingID == task.id
-                    let resizeSnapMins = isResizing ? Int((Double(Int((resizeDelta / minsPerPt).rounded())) / 15.0).rounded()) * 15 : 0
-                    let resizeExtraPt = CGFloat(resizeSnapMins) * minsPerPt
-                    taskTreeRow(task: task, flipSide: idx % 2 == 0, isNowSection: nowInSectionEff, isDragging: isDragging, isResizing: isResizing, resizeExtraPt: resizeExtraPt, resizeSnapMins: resizeSnapMins)
-                        .scaleEffect(isDragging ? 1.02 : 1.0, anchor: .center)
-                        .shadow(color: isDragging ? themeC1.opacity(0.3) : .clear, radius: 12, x: 0, y: 5)
-                        .offset(y: isDragging ? dragDelta : 0)
-                        .zIndex(isDragging ? 10 : (isResizing ? 9 : 0))
-                        .overlay(alignment: .topLeading) {
-                            if isDragging && snappedDelta != 0, let target = dragTargetDate(for: task) {
-                                let cal = Calendar.current
-                                let h = cal.component(.hour, from: target)
-                                let m = cal.component(.minute, from: target)
-                                HStack(spacing: 0) {
-                                    Text(String(format: "%02d:%02d", h, m))
-                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                        .foregroundStyle(themeC1)
-                                        .frame(width: 44, alignment: .trailing)
-                                        .padding(.trailing, 8)
-                                    ZStack {
-                                        Circle().fill(themeC1.opacity(0.25)).frame(width: 14, height: 14)
-                                        Circle().fill(themeC1).frame(width: 7, height: 7)
+                ForEach(Array(slots.enumerated()), id: \.element.id) { si, slot in
+                    switch slot {
+                    case .single(let task):
+                        let isDragging = draggingID == task.id
+                        let deltaMins = isDragging ? Int((dragDelta / minsPerPt).rounded()) : 0
+                        let snappedDelta = Int((Double(deltaMins) / 15.0).rounded()) * 15
+                        let snappedPixels = CGFloat(snappedDelta) * minsPerPt
+                        let isResizing = resizingID == task.id
+                        let resizeSnapMins = isResizing ? Int((Double(Int((resizeDelta / minsPerPt).rounded())) / 15.0).rounded()) * 15 : 0
+                        let resizeExtraPt = CGFloat(resizeSnapMins) * minsPerPt
+                        taskTreeRow(task: task, flipSide: si % 2 == 0, isNowSection: nowInSectionEff, isDragging: isDragging, isResizing: isResizing, resizeExtraPt: resizeExtraPt, resizeSnapMins: resizeSnapMins)
+                            .scaleEffect(isDragging ? 1.02 : 1.0, anchor: .center)
+                            .shadow(color: isDragging ? themeC1.opacity(0.3) : .clear, radius: 12, x: 0, y: 5)
+                            .offset(y: isDragging ? dragDelta : 0)
+                            .zIndex(isDragging ? 10 : (isResizing ? 9 : 0))
+                            .overlay(alignment: .topLeading) {
+                                if isDragging && snappedDelta != 0, let target = dragTargetDate(for: task) {
+                                    let cal = Calendar.current
+                                    let h = cal.component(.hour, from: target)
+                                    let m = cal.component(.minute, from: target)
+                                    HStack(spacing: 0) {
+                                        Text(String(format: "%02d:%02d", h, m))
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(themeC1)
+                                            .frame(width: 44, alignment: .trailing)
+                                            .padding(.trailing, 8)
+                                        ZStack {
+                                            Circle().fill(themeC1.opacity(0.25)).frame(width: 14, height: 14)
+                                            Circle().fill(themeC1).frame(width: 7, height: 7)
+                                        }
+                                        .frame(width: 20)
+                                        Rectangle()
+                                            .fill(LinearGradient(colors: [themeC1, themeC1.opacity(0)],
+                                                                 startPoint: .leading, endPoint: .trailing))
+                                            .frame(height: 2)
+                                            .padding(.leading, 8)
                                     }
-                                    .frame(width: 20)
-                                    Rectangle()
-                                        .fill(LinearGradient(colors: [themeC1, themeC1.opacity(0)],
-                                                             startPoint: .leading, endPoint: .trailing))
-                                        .frame(height: 2)
-                                        .padding(.leading, 8)
+                                    .frame(maxWidth: .infinity)
+                                    .offset(y: snappedPixels)
+                                    .animation(.spring(response: 0.15, dampingFraction: 0.8), value: snappedPixels)
+                                    .allowsHitTesting(false)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .offset(y: snappedPixels)
-                                .animation(.spring(response: 0.15, dampingFraction: 0.8), value: snappedPixels)
-                                .allowsHitTesting(false)
                             }
-                        }
-                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
-                        .animation(.spring(response: 0.2, dampingFraction: 0.85), value: isResizing)
-                        .overlay {
-                            TaskDragOverlay(
-                                minsPerPt: minsPerPt,
-                                draggingID: $draggingID,
-                                dragDelta: $dragDelta,
-                                lastSnappedDelta: $lastSnappedDelta,
-                                taskID: task.id
-                            ) { snappedMins in
-                                guard snappedMins != 0, let due = task.dueDate else { return }
-                                var updated = task
-                                updated.dueDate = due.addingTimeInterval(Double(snappedMins) * 60)
-                                if let end = task.endDate {
-                                    updated.endDate = end.addingTimeInterval(Double(snappedMins) * 60)
+                            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
+                            .animation(.spring(response: 0.2, dampingFraction: 0.85), value: isResizing)
+                            .overlay {
+                                TaskDragOverlay(
+                                    minsPerPt: minsPerPt,
+                                    draggingID: $draggingID,
+                                    dragDelta: $dragDelta,
+                                    lastSnappedDelta: $lastSnappedDelta,
+                                    taskID: task.id
+                                ) { snappedMins in
+                                    guard snappedMins != 0, let due = task.dueDate else { return }
+                                    var updated = task
+                                    updated.dueDate = due.addingTimeInterval(Double(snappedMins) * 60)
+                                    if let end = task.endDate {
+                                        updated.endDate = end.addingTimeInterval(Double(snappedMins) * 60)
+                                    }
+                                    todoStore.updateTodo(updated)
                                 }
-                                todoStore.updateTodo(updated)
                             }
-                        }
 
-                    if nowIdx == idx + 1 { nowIndicatorRow() }
+                    case .parallel(let parallelTasks):
+                        parallelTasksRow(tasks: parallelTasks)
+                    }
 
-                    if idx + 1 < tasks.count {
-                        let gapStart = task.endDate ?? task.dueDate ?? sectionEnd
-                        let gapEnd   = tasks[idx + 1].dueDate ?? sectionEnd
-                        let gapMins  = CGFloat(max(gapEnd.timeIntervalSince(gapStart) / 60, 0))
+                    if nowSlotIdx == si + 1 { nowIndicatorRow() }
+
+                    // Gap to next slot
+                    if si + 1 < slots.count {
+                        let gapMins = CGFloat(max(slots[si + 1].startDate.timeIntervalSince(slot.endDate) / 60, 0))
                         if gapMins > 5 { freeTimeRow(minutes: gapMins, color: color, showHint: false) }
                     }
                 }
 
-                if nowIdx == tasks.count { nowIndicatorRow() }
+                if nowSlotIdx == slots.count { nowIndicatorRow() }
 
-                // Gap after last task
-                if let lastTask = tasks.last {
-                    let lastEnd  = lastTask.endDate ?? lastTask.dueDate ?? sectionEnd
-                    let postGap  = CGFloat(max(sectionEnd.timeIntervalSince(lastEnd) / 60, 0))
+                // Gap after last slot
+                if let last = slots.last {
+                    let postGap = CGFloat(max(sectionEnd.timeIntervalSince(last.endDate) / 60, 0))
                     if postGap > 5 { freeTimeRow(minutes: postGap, color: color, showHint: false) }
                 }
             }
@@ -1156,6 +1198,145 @@ struct TagesplanerView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
+    }
+
+    // MARK: - Parallel task helpers
+
+    private func overlapSlots(_ tasks: [TodoItem]) -> [RenderSlot] {
+        var result: [RenderSlot] = []
+        var i = 0
+        while i < tasks.count {
+            let t = tasks[i]
+            let tEnd = t.endDate ?? t.dueDate ?? Date.distantPast
+            if i + 1 < tasks.count,
+               let nextStart = tasks[i + 1].dueDate,
+               nextStart < tEnd {
+                // Collect all tasks that overlap with t
+                var group = [t]
+                var groupEnd = tEnd
+                var j = i + 1
+                while j < tasks.count,
+                      let jStart = tasks[j].dueDate,
+                      jStart < groupEnd {
+                    group.append(tasks[j])
+                    let jEnd = tasks[j].endDate ?? tasks[j].dueDate ?? Date.distantPast
+                    if jEnd > groupEnd { groupEnd = jEnd }
+                    j += 1
+                }
+                result.append(.parallel(group))
+                i = j
+            } else {
+                result.append(.single(t))
+                i += 1
+            }
+        }
+        return result
+    }
+
+    @ViewBuilder
+    private func parallelTasksRow(tasks: [TodoItem]) -> some View {
+        let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
+        let startDate = tasks.compactMap(\.dueDate).min() ?? Date()
+        let endDate   = tasks.compactMap { $0.endDate ?? $0.dueDate }.max() ?? startDate
+        let durationMins = CGFloat(max(endDate.timeIntervalSince(startDate) / 60, 45))
+        let rowH = max(durationMins * minsPerPt, 68)
+
+        HStack(alignment: .top, spacing: 0) {
+            // Time column: start time
+            Text(timeFmt.string(from: startDate))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(themeC1)
+                .frame(width: 44, alignment: .trailing)
+                .padding(.trailing, 8)
+                .padding(.top, 10)
+
+            // Spine
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle().fill(themeC1.opacity(0.2)).frame(width: 16, height: 16)
+                    Circle().fill(themeC1).frame(width: 8, height: 8)
+                }
+                .padding(.top, 8)
+                Rectangle()
+                    .fill(isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08))
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(width: 20)
+
+            // Side-by-side cards
+            HStack(alignment: .top, spacing: 6) {
+                ForEach(tasks) { task in
+                    parallelCard(task: task, rowHeight: rowH, timeFmt: timeFmt)
+                }
+            }
+            .padding(.leading, 10)
+            .padding(.bottom, 6)
+        }
+    }
+
+    private func parallelCard(task: TodoItem, rowHeight: CGFloat, timeFmt: DateFormatter) -> some View {
+        let isActive = isToday && !task.isCompleted
+            && (task.dueDate.map { now >= $0 } ?? false)
+            && (task.endDate.map  { now < $0  } ?? false)
+        let borderColor: Color = task.isCompleted ? .green.opacity(0.35)
+                               : isActive         ? themeC1.opacity(0.6)
+                               :                    themeC1.opacity(0.28)
+        let bgColor: Color = task.isCompleted ? .green.opacity(isDark ? 0.08 : 0.05)
+                           : isActive         ? themeC1.opacity(isDark ? 0.18 : 0.10)
+                           :                   themeC1.opacity(isDark ? 0.12 : 0.07)
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top, spacing: 4) {
+                Text(task.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(isDark ? .white.opacity(0.95) : Color.primary)
+                    .strikethrough(task.isCompleted, color: .secondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 2)
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        todoStore.toggleTodo(task)
+                    }
+                } label: {
+                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 15))
+                        .foregroundStyle(task.isCompleted ? Color.green : themeC1.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 3) {
+                if let due = task.dueDate {
+                    Text(timeFmt.string(from: due))
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                if let end = task.endDate {
+                    Text("–")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                    Text(timeFmt.string(from: end))
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Button { planningTodo = task } label: {
+                Image(systemName: "pencil.circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(themeC1.opacity(0.4))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .topLeading)
+        .background {
+            RoundedRectangle(cornerRadius: 10).fill(bgColor)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: isActive ? 1.8 : 1.2))
+        .opacity(task.isCompleted ? 0.55 : 1.0)
     }
 
     // MARK: - PDF Export

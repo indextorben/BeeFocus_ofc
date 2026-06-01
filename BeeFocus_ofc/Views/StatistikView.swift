@@ -877,6 +877,44 @@ struct StatistikView: View {
         aktivesThema.isEmpty ? (.purple, .blue, Color(red: 1, green: 0.6, blue: 0.2)) : themaFarben(fuer: aktivesThema)
     }
 
+    // Theme decoration layers split out to keep backgroundGradient ZStack under the 10-child ViewBuilder limit
+    @ViewBuilder private var themeDecorationLayer: some View {
+        if aktivesThema == "Wald" {
+            WaldDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Eis" {
+            EisDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Nordlicht" {
+            NordlichtDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Galaxie" {
+            GalaxieDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Vulkan" {
+            VulkanDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Herbst" {
+            HerbstDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Nacht" {
+            NachtDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Solar" {
+            SolarDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Kirschblüte" {
+            KirschblueteDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Lavendel" {
+            LavendelDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        } else if aktivesThema == "Sonnenuntergang" {
+            SonnenuntergangDecorationLayer()
+                .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
+        }
+    }
+
     private var backgroundGradient: some View {
         let (c1, c2, c3) = aktiveThemaFarben
         return ZStack {
@@ -913,8 +951,6 @@ struct StatistikView: View {
                     .position(x: geo.size.width * 0.5, y: geo.size.height * 0.82)
                     .blur(radius: 14)
             }
-
-            // Animated wave decoration
             GeometryReader { geo in
                 WaveShape(phase: wavePhase2, amplitude: 20, frequency: 1.4)
                     .fill(c2.opacity(isDark ? 0.10 : 0.07))
@@ -929,62 +965,7 @@ struct StatistikView: View {
             }
             .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
             .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-
-            if aktivesThema == "Wald" {
-                WaldDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Eis" {
-                EisDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Nordlicht" {
-                NordlichtDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Galaxie" {
-                GalaxieDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Vulkan" {
-                VulkanDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Herbst" {
-                HerbstDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Nacht" {
-                NachtDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Solar" {
-                SolarDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Kirschblüte" {
-                KirschblueteDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Lavendel" {
-                LavendelDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
-            if aktivesThema == "Sonnenuntergang" {
-                SonnenuntergangDecorationLayer()
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.8), value: aktivesThema)
-            }
+            themeDecorationLayer
         }
         .animation(.easeInOut(duration: 0.6), value: aktivesThema)
         .ignoresSafeArea()
