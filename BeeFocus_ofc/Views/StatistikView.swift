@@ -442,6 +442,18 @@ struct StatistikView: View {
 
     // MARK: - Section Groups (aufgeteilt um SwiftUI-ViewBuilder-Stack-Overflow zu vermeiden)
 
+    // Single flat @ViewBuilder — alle Sections auf einer Ebene, kein Ketten-Aufruf.
+    // Verhindert den TupleView-Typ-Overflow der vorher 5 Ebenen tief war.
+    @ViewBuilder private var allSections: some View {
+        sectionsTop
+        sectionsMiddle
+        sectionsBottom
+        sectionsExtra
+        sectionsKI
+        sectionsLifestyle
+        sectionsNeu
+    }
+
     @ViewBuilder private var sectionsTop: some View {
         animatedSection(delay: 0.05) { fokuspunkteCard }
         animatedSection(delay: 0.10) {
@@ -596,7 +608,6 @@ struct StatistikView: View {
                 }
             }
         }
-        sectionsExtra
     }
 
     @ViewBuilder private var sectionsExtra: some View {
@@ -652,7 +663,6 @@ struct StatistikView: View {
                 }
             }
         }
-        sectionsKI
     }
 
     @ViewBuilder private var sectionsKI: some View {
@@ -689,7 +699,6 @@ struct StatistikView: View {
                 }
             }
         }
-        sectionsLifestyle
     }
 
     @ViewBuilder private var sectionsLifestyle: some View {
@@ -723,7 +732,6 @@ struct StatistikView: View {
                 }
             }
         }
-        sectionsNeu
     }
 
     @ViewBuilder private var sectionsNeu: some View {
@@ -785,9 +793,7 @@ struct StatistikView: View {
                             .opacity(sectionsAppeared ? 1 : 0)
                             .offset(y: sectionsAppeared ? 0 : 12)
                             .animation(.easeOut(duration: 0.4).delay(0.1), value: sectionsAppeared)
-                        sectionsTop
-                        sectionsMiddle
-                        sectionsBottom
+                        allSections
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
