@@ -599,7 +599,7 @@ struct TodoListView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
-        .background(.ultraThinMaterial)
+        .background(Color.clear)
     }
 
     private func toolChip(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
