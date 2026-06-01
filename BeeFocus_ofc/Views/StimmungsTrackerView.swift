@@ -105,11 +105,12 @@ struct StimmungsTrackerView: View {
                             : Color.white.opacity(0.03),
                             in: RoundedRectangle(cornerRadius: 14)
                         )
-                        .overlay(
-                            gewaehlte == s
-                            ? RoundedRectangle(cornerRadius: 14).stroke(stimmungsColor(s).opacity(0.5), lineWidth: 1.5)
-                            : nil
-                        )
+                        .overlay {
+                            if gewaehlte == s {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(stimmungsColor(s).opacity(0.5), lineWidth: 1.5)
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 3)
@@ -144,10 +145,10 @@ struct StimmungsTrackerView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
-                    gespeichert
-                    ? Color(red: 0.2, green: 0.75, blue: 0.4)
-                    : LinearGradient(colors: [accent, accent.opacity(0.7)], startPoint: .leading, endPoint: .trailing),
-                    in: RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(gespeichert
+                              ? AnyShapeStyle(Color(red: 0.2, green: 0.75, blue: 0.4))
+                              : AnyShapeStyle(LinearGradient(colors: [accent, accent.opacity(0.7)], startPoint: .leading, endPoint: .trailing)))
                 )
             }
             .buttonStyle(.plain)
