@@ -45,6 +45,9 @@ struct StatistikView: View {
     @State private var showDankbarkeit = false
     @State private var showSport = false
     @State private var showZeiterfassung = false
+    @State private var showCountdown = false
+    @State private var showFinanz = false
+    @State private var showLernziel = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -720,6 +723,40 @@ struct StatistikView: View {
                 }
             }
         }
+        sectionsNeu
+    }
+
+    @ViewBuilder private var sectionsNeu: some View {
+        animatedSection(delay: 0.76) {
+            sectionGroup(icon: "hourglass", label: "Countdown-Events", color: Color(red: 0.35, green: 0.25, blue: 0.95)) {
+                glassCard {
+                    Button { showCountdown = true } label: {
+                        iconNavRow(icon: "hourglass", color: Color(red: 0.35, green: 0.25, blue: 0.95), label: "Wichtige Ereignisse & Tage im Blick")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.78) {
+            sectionGroup(icon: "eurosign.circle.fill", label: "Finanz-Tracker", color: Color(red: 0.15, green: 0.6, blue: 0.35)) {
+                glassCard {
+                    Button { showFinanz = true } label: {
+                        iconNavRow(icon: "eurosign.circle.fill", color: Color(red: 0.15, green: 0.6, blue: 0.35), label: "Einnahmen & Ausgaben verfolgen")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.80) {
+            sectionGroup(icon: "books.vertical.fill", label: "Lernziele", color: Color(red: 0.5, green: 0.25, blue: 0.95)) {
+                glassCard {
+                    Button { showLernziel = true } label: {
+                        iconNavRow(icon: "books.vertical.fill", color: Color(red: 0.5, green: 0.25, blue: 0.95), label: "Wissen aufbauen & Fortschritt tracken")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private func kiProBadge(color: Color) -> some View {
@@ -841,6 +878,15 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showZeiterfassung) {
                 ZeiterfassungView()
+            }
+            .sheet(isPresented: $showCountdown) {
+                CountdownView()
+            }
+            .sheet(isPresented: $showFinanz) {
+                FinanzTrackerView()
+            }
+            .sheet(isPresented: $showLernziel) {
+                LernzielView()
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
