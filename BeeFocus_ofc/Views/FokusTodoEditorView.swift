@@ -267,8 +267,9 @@ struct FokusTodoEditorView: View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel("Datum & Zeit", icon: "calendar.badge.clock")
             VStack(spacing: 0) {
-                Toggle(isOn: $hasDueDate) {
-                    Label("Fälligkeitsdatum", systemImage: "calendar")
+                // Datum-Toggle
+                Toggle(isOn: $hasDueDate.animation(.spring(response: 0.35))) {
+                    Label("Datum festlegen", systemImage: "calendar")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }
@@ -277,45 +278,73 @@ struct FokusTodoEditorView: View {
 
                 if hasDueDate {
                     Divider().opacity(0.15).padding(.horizontal, 14)
+
+                    // Kalender
                     DatePicker("", selection: $dueDate, displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .tint(themeC1)
                         .padding(.horizontal, 8).padding(.vertical, 4)
-                    Divider().opacity(0.15).padding(.horizontal, 14)
-                    HStack {
-                        Label("Uhrzeit", systemImage: "clock")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        DatePicker("", selection: $dueDate, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .tint(themeC1)
-                    }
-                    .padding(.horizontal, 14).padding(.vertical, 10)
 
                     Divider().opacity(0.15).padding(.horizontal, 14)
-                    Toggle(isOn: $hasEndTime) {
-                        Label("Endzeit (Zeitblock)", systemImage: "timer")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-                    .tint(themeC1)
-                    .padding(.horizontal, 14).padding(.vertical, 11)
-                    .onChange(of: dueDate) { if hasEndTime && endDate <= dueDate { endDate = dueDate.addingTimeInterval(3600) } }
 
-                    if hasEndTime {
-                        Divider().opacity(0.15).padding(.horizontal, 14)
-                        HStack {
-                            Label("Ende", systemImage: "arrow.right")
-                                .font(.system(size: 14, weight: .medium))
+                    // Von / Bis nebeneinander
+                    HStack(spacing: 0) {
+                        // Von
+                        VStack(spacing: 6) {
+                            Text("Von")
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.secondary)
-                            Spacer()
-                            DatePicker("", selection: $endDate, in: dueDate..., displayedComponents: .hourAndMinute)
+                            DatePicker("", selection: $dueDate, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(.compact)
                                 .labelsHidden()
                                 .tint(themeC1)
+                                .onChange(of: dueDate) {
+                                    if hasEndTime && endDate <= dueDate {
+                                        endDate = dueDate.addingTimeInterval(3600)
+                                    }
+                                }
                         }
-                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
 
+                        // Pfeil / Toggle
+                        Button {
+                            withAnimation(.spring(response: 0.35)) { hasEndTime.toggle() }
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: hasEndTime ? "arrow.right" : "arrow.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(hasEndTime ? themeC1 : themeC1.opacity(0.35))
+                                Text(hasEndTime ? "Bis" : "kein Ende")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(hasEndTime ? themeC1 : .secondary)
+                            }
+                            .padding(.horizontal, 10)
+                        }
+                        .buttonStyle(.plain)
+
+                        // Bis
+                        VStack(spacing: 6) {
+                            Text("Bis")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(hasEndTime ? .secondary : .secondary.opacity(0.35))
+                            if hasEndTime {
+                                DatePicker("", selection: $endDate, in: dueDate..., displayedComponents: .hourAndMinute)
+                                    .datePickerStyle(.compact)
+                                    .labelsHidden()
+                                    .tint(themeC1)
+                            } else {
+                                Text("–")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundStyle(.secondary.opacity(0.3))
+                                    .frame(height: 34)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+
+                    // Dauer-Badge
+                    if hasEndTime {
                         let mins = Int(endDate.timeIntervalSince(dueDate) / 60)
                         if mins > 0 {
                             HStack {
@@ -323,14 +352,14 @@ struct FokusTodoEditorView: View {
                                 let label = mins >= 60
                                     ? (mins % 60 == 0 ? "\(mins/60)h" : "\(mins/60)h \(mins%60)min")
                                     : "\(mins)min"
-                                Text("Dauer: \(label)")
+                                Label(label, systemImage: "timer")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(themeC1)
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .padding(.horizontal, 12).padding(.vertical, 5)
                                     .background(themeC1.opacity(0.12), in: Capsule())
                                 Spacer()
                             }
-                            .padding(.bottom, 10)
+                            .padding(.bottom, 12)
                         }
                     }
                 }
