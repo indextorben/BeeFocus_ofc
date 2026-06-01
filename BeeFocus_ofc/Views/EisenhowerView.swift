@@ -283,7 +283,7 @@ struct QuadrantPickerSheet: View {
                 Color(red: 0.08, green: 0.08, blue: 0.14).ignoresSafeArea()
 
                 VStack(spacing: 16) {
-                    Text("„\(todo.title)"")
+                    Text("\u{201E}\(todo.title)\u{201D}")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
