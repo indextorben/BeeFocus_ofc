@@ -629,7 +629,7 @@ struct TodoListView: View {
             VStack(spacing: 0) {
                 highlightCard
                 categoryBar
-                toolsStrip
+                AnyView(toolsStrip)
                 contentView
             }
             
