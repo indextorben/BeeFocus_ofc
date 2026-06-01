@@ -36,6 +36,9 @@ struct StatistikView: View {
     @State private var showChallenges = false
     @State private var showScore = false
     @State private var showMotivation = false
+    @State private var showWasser = false
+    @State private var showZiele = false
+    @State private var showBrainDump = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -607,6 +610,68 @@ struct StatistikView: View {
                             }
                         }
 
+                        // Wassertracker
+                        animatedSection(delay: 0.48) {
+                            sectionGroup(icon: "drop.fill", label: "Wassertracker", color: Color(red: 0.15, green: 0.75, blue: 0.95)) {
+                                glassCard {
+                                    Button { showWasser = true } label: {
+                                        HStack {
+                                            iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
+                                            Spacer()
+                                            let total = WasserStore.shared.todayTotal
+                                            let goal = WasserStore.shared.tagesziel
+                                            Text("\(total)/\(goal) ml")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundStyle(Color(red: 0.15, green: 0.75, blue: 0.95).opacity(0.8))
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Langzeit-Ziele
+                        animatedSection(delay: 0.50) {
+                            sectionGroup(icon: "target", label: "Langzeit-Ziele", color: Color(red: 0.6, green: 0.3, blue: 1.0)) {
+                                glassCard {
+                                    Button { showZiele = true } label: {
+                                        HStack {
+                                            iconNavRow(icon: "target", color: Color(red: 0.6, green: 0.3, blue: 1.0), label: "Große Ziele & Meilensteine")
+                                            Spacer()
+                                            let count = LangzeitZieleStore.shared.aktiveZiele.count
+                                            if count > 0 {
+                                                Text("\(count) aktiv")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .foregroundStyle(Color(red: 0.6, green: 0.3, blue: 1.0).opacity(0.8))
+                                            }
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Brain Dump
+                        animatedSection(delay: 0.52) {
+                            sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
+                                glassCard {
+                                    Button { showBrainDump = true } label: {
+                                        HStack {
+                                            iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
+                                            Spacer()
+                                            let count = BrainDumpStore.shared.eintraege.count
+                                            if count > 0 {
+                                                Text("\(count) Einträge")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .foregroundStyle(Color(red: 1.0, green: 0.65, blue: 0.2).opacity(0.8))
+                                            }
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
                         // Ringe
                         animatedSection(delay: 0.35) {
                             sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
@@ -656,6 +721,15 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showMotivation) {
                 TagesMotivationView()
+            }
+            .sheet(isPresented: $showWasser) {
+                NavigationStack { WasserTrackerView() }
+            }
+            .sheet(isPresented: $showZiele) {
+                LangzeitZieleView()
+            }
+            .sheet(isPresented: $showBrainDump) {
+                BrainDumpView().environmentObject(todoStore)
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
