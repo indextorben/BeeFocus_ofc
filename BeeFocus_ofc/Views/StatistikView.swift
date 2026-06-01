@@ -445,13 +445,13 @@ struct StatistikView: View {
     // Single flat @ViewBuilder — alle Sections auf einer Ebene, kein Ketten-Aufruf.
     // Verhindert den TupleView-Typ-Overflow der vorher 5 Ebenen tief war.
     @ViewBuilder private var allSections: some View {
-        sectionsTop
-        sectionsMiddle
-        sectionsBottom
-        sectionsExtra
-        sectionsKI
-        sectionsLifestyle
-        sectionsNeu
+        AnyView(sectionsTop)
+        AnyView(sectionsMiddle)
+        AnyView(sectionsBottom)
+        AnyView(sectionsExtra)
+        AnyView(sectionsKI)
+        AnyView(sectionsLifestyle)
+        AnyView(sectionsNeu)
     }
 
     @ViewBuilder private var sectionsTop: some View {
