@@ -42,6 +42,9 @@ struct StatistikView: View {
     @State private var showStimmung = false
     @State private var showSchlaf = false
     @State private var showNotizen = false
+    @State private var showDankbarkeit = false
+    @State private var showSport = false
+    @State private var showZeiterfassung = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -683,6 +686,40 @@ struct StatistikView: View {
                 }
             }
         }
+        sectionsLifestyle
+    }
+
+    @ViewBuilder private var sectionsLifestyle: some View {
+        animatedSection(delay: 0.70) {
+            sectionGroup(icon: "heart.text.square.fill", label: "Dankbarkeits-Tagebuch", color: Color(red: 1.0, green: 0.65, blue: 0.3)) {
+                glassCard {
+                    Button { showDankbarkeit = true } label: {
+                        iconNavRow(icon: "heart.text.square.fill", color: Color(red: 1.0, green: 0.65, blue: 0.3), label: "Tägliche Dankbarkeit & positive Gedanken")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.72) {
+            sectionGroup(icon: "figure.run.circle.fill", label: "Sport-Tracker", color: Color(red: 0.15, green: 0.7, blue: 0.45)) {
+                glassCard {
+                    Button { showSport = true } label: {
+                        iconNavRow(icon: "figure.run.circle.fill", color: Color(red: 0.15, green: 0.7, blue: 0.45), label: "Aktivitäten, Workouts & Kalorien")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.74) {
+            sectionGroup(icon: "timer.circle.fill", label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) {
+                glassCard {
+                    Button { showZeiterfassung = true } label: {
+                        iconNavRow(icon: "timer.circle.fill", color: Color(red: 0.3, green: 0.5, blue: 1.0), label: "Zeit pro Projekt tracken & analysieren")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private func kiProBadge(color: Color) -> some View {
@@ -795,6 +832,15 @@ struct StatistikView: View {
             .sheet(isPresented: $showKIStrategie) {
                 KIFokusStrategieView(todos: todoStore.todos)
                     .environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showDankbarkeit) {
+                DankbarkeitView()
+            }
+            .sheet(isPresented: $showSport) {
+                SportTrackerView()
+            }
+            .sheet(isPresented: $showZeiterfassung) {
+                ZeiterfassungView()
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
