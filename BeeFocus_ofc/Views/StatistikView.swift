@@ -32,12 +32,10 @@ struct StatistikView: View {
     @State private var showWochenrueckblick = false
     @State private var showHabitTracker = false
     @State private var showJournal = false
-    @State private var showEisenhower = false
     @State private var showChallenges = false
     @State private var showScore = false
     @State private var showMotivation = false
     @State private var showWasser = false
-    @State private var showZiele = false
     @State private var showBrainDump = false
     @State private var showStimmung = false
     @State private var showSchlaf = false
@@ -548,16 +546,6 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.42) {
-            sectionGroup(icon: "square.grid.2x2.fill", label: "Eisenhower-Matrix", color: Color(red: 1.0, green: 0.45, blue: 0.3)) {
-                glassCard {
-                    Button { showEisenhower = true } label: {
-                        iconNavRow(icon: "square.grid.2x2.fill", color: Color(red: 1.0, green: 0.45, blue: 0.3), label: "Aufgaben nach Priorität einordnen")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
         animatedSection(delay: 0.44) {
             sectionGroup(icon: "chart.line.uptrend.xyaxis", label: "Produktivitäts-Score", color: Color(red: 0.2, green: 0.85, blue: 0.5)) {
                 glassCard {
@@ -583,16 +571,6 @@ struct StatistikView: View {
                 glassCard {
                     Button { showWasser = true } label: {
                         iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.50) {
-            sectionGroup(icon: "target", label: "Langzeit-Ziele", color: Color(red: 0.6, green: 0.3, blue: 1.0)) {
-                glassCard {
-                    Button { showZiele = true } label: {
-                        iconNavRow(icon: "target", color: Color(red: 0.6, green: 0.3, blue: 1.0), label: "Große Ziele & Meilensteine")
                     }
                     .buttonStyle(.plain)
                 }
@@ -829,9 +807,6 @@ struct StatistikView: View {
             .sheet(isPresented: $showChallenges) {
                 FokusChallengesView().environmentObject(todoStore)
             }
-            .sheet(isPresented: $showEisenhower) {
-                EisenhowerView().environmentObject(todoStore)
-            }
             .sheet(isPresented: $showScore) {
                 ProduktivitaetsScoreView().environmentObject(todoStore)
             }
@@ -840,9 +815,6 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showWasser) {
                 NavigationStack { WasserTrackerView() }
-            }
-            .sheet(isPresented: $showZiele) {
-                LangzeitZieleView()
             }
             .sheet(isPresented: $showBrainDump) {
                 BrainDumpView().environmentObject(todoStore)
