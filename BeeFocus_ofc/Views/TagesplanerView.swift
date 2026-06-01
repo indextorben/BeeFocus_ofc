@@ -2526,7 +2526,6 @@ struct EinplanenSheet: View {
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
                         FokusTodoEditorView(todo: todo)
-                            .environmentObject(todoStore)
                     } label: {
                         Label("Bearbeiten", systemImage: "slider.horizontal.3")
                     }
