@@ -2314,6 +2314,13 @@ struct EinplanenSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    NavigationLink {
+                        EditTodoView(todo: todo)
+                    } label: {
+                        Label("Bearbeiten", systemImage: "slider.horizontal.3")
+                    }
+                }
             }
         }
         .presentationDetents([.large])
