@@ -426,6 +426,164 @@ struct StatistikView: View {
         }
     }
 
+    // MARK: - Section Groups (aufgeteilt um SwiftUI-ViewBuilder-Stack-Overflow zu vermeiden)
+
+    @ViewBuilder private var sectionsTop: some View {
+        animatedSection(delay: 0.05) { fokuspunkteCard }
+        animatedSection(delay: 0.10) {
+            sectionGroup(icon: "storefront.fill", label: "Fokus-Store", color: Color(red: 1, green: 0.55, blue: 0.0)) { storeCard }
+        }
+        animatedSection(delay: 0.15) {
+            sectionGroup(icon: "chart.bar.fill", label: localizer.localizedString(forKey: "overview_title"), color: .purple) { overviewCard }
+        }
+        animatedSection(delay: 0.20) {
+            sectionGroup(icon: "sun.max.fill", label: localizer.localizedString(forKey: "today_activity_title"), color: .orange) {
+                glassCard { todayCard }
+            }
+        }
+        animatedSection(delay: 0.25) {
+            sectionGroup(icon: "tag.fill", label: localizer.localizedString(forKey: "category_distribution_title"), color: .blue) {
+                glassCard { categoryCard }
+            }
+        }
+        animatedSection(delay: 0.30) {
+            sectionGroup(icon: "timer", label: "Fokuszeit", color: .cyan) { glassCard { focusCard } }
+        }
+        if freigeschalteteItems.contains("Abzeichen-System") {
+            animatedSection(delay: 0.32) {
+                sectionGroup(icon: "medal.fill", label: "Abzeichen", color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
+                    glassCard {
+                        if #available(iOS 16, *) {
+                            NavigationLink(destination: FokusAchievementsView()) {
+                                iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: "Alle Abzeichen ansehen")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var sectionsMiddle: some View {
+        if freigeschalteteItems.contains("Aktivitäts-Heatmap") {
+            animatedSection(delay: 0.33) {
+                sectionGroup(icon: "calendar.badge.checkmark", label: "Aktivitäts-Heatmap", color: .green) {
+                    glassCard { heatmapView }
+                }
+            }
+        }
+        if wochenrueckblickEnabled {
+            animatedSection(delay: 0.34) {
+                sectionGroup(icon: "chart.bar.doc.horizontal", label: String(localized: "review_title"), color: Color(red: 0.4, green: 0.6, blue: 1.0)) {
+                    glassCard {
+                        Button { showWochenrueckblick = true } label: {
+                            iconNavRow(icon: "chart.bar.doc.horizontal", color: Color(red: 0.4, green: 0.6, blue: 1.0), label: String(localized: "review_open_btn"))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        animatedSection(delay: 0.35) {
+            sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
+                glassCard { ringsCard }
+            }
+        }
+        animatedSection(delay: 0.36) {
+            sectionGroup(icon: "calendar.badge.checkmark", label: "Gewohnheiten", color: Color(red: 0.3, green: 0.82, blue: 0.5)) {
+                glassCard {
+                    Button { showHabitTracker = true } label: {
+                        iconNavRow(icon: "calendar.badge.checkmark", color: Color(red: 0.3, green: 0.82, blue: 0.5), label: "Gewohnheiten aufbauen & tracken")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.38) {
+            sectionGroup(icon: "book.closed.fill", label: "Fokus-Journal", color: Color(red: 0.65, green: 0.35, blue: 1.0)) {
+                glassCard {
+                    Button { showJournal = true } label: {
+                        iconNavRow(icon: "book.closed.fill", color: Color(red: 0.65, green: 0.35, blue: 1.0), label: "Tagesrückblick schreiben")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var sectionsBottom: some View {
+        animatedSection(delay: 0.40) {
+            sectionGroup(icon: "trophy.fill", label: "Fokus-Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
+                glassCard {
+                    Button { showChallenges = true } label: {
+                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Tägliche & wöchentliche Challenges")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.42) {
+            sectionGroup(icon: "square.grid.2x2.fill", label: "Eisenhower-Matrix", color: Color(red: 1.0, green: 0.45, blue: 0.3)) {
+                glassCard {
+                    Button { showEisenhower = true } label: {
+                        iconNavRow(icon: "square.grid.2x2.fill", color: Color(red: 1.0, green: 0.45, blue: 0.3), label: "Aufgaben nach Priorität einordnen")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.44) {
+            sectionGroup(icon: "chart.line.uptrend.xyaxis", label: "Produktivitäts-Score", color: Color(red: 0.2, green: 0.85, blue: 0.5)) {
+                glassCard {
+                    Button { showScore = true } label: {
+                        iconNavRow(icon: "chart.line.uptrend.xyaxis", color: Color(red: 0.2, green: 0.85, blue: 0.5), label: "Tagesleistung & Wochenübersicht")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.46) {
+            sectionGroup(icon: "quote.bubble.fill", label: "Tages-Motivation", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
+                glassCard {
+                    Button { showMotivation = true } label: {
+                        iconNavRow(icon: "quote.bubble.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Heutiges Motivations-Zitat")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.48) {
+            sectionGroup(icon: "drop.fill", label: "Wassertracker", color: Color(red: 0.15, green: 0.75, blue: 0.95)) {
+                glassCard {
+                    Button { showWasser = true } label: {
+                        iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.50) {
+            sectionGroup(icon: "target", label: "Langzeit-Ziele", color: Color(red: 0.6, green: 0.3, blue: 1.0)) {
+                glassCard {
+                    Button { showZiele = true } label: {
+                        iconNavRow(icon: "target", color: Color(red: 0.6, green: 0.3, blue: 1.0), label: "Große Ziele & Meilensteine")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.52) {
+            sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
+                glassCard {
+                    Button { showBrainDump = true } label: {
+                        iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -436,222 +594,13 @@ struct StatistikView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         headerHero.padding(.bottom, 4)
-
-                        // Motivations-Banner
                         motivationBanner
                             .opacity(sectionsAppeared ? 1 : 0)
                             .offset(y: sectionsAppeared ? 0 : 12)
                             .animation(.easeOut(duration: 0.4).delay(0.1), value: sectionsAppeared)
-
-                        // Fokuspunkte
-                        animatedSection(delay: 0.05) { fokuspunkteCard }
-
-                        // Store
-                        animatedSection(delay: 0.10) {
-                            sectionGroup(icon: "storefront.fill", label: "Fokus-Store", color: Color(red: 1, green: 0.55, blue: 0.0)) {
-                                storeCard
-                            }
-                        }
-
-                        // Übersicht
-                        animatedSection(delay: 0.15) {
-                            sectionGroup(icon: "chart.bar.fill", label: localizer.localizedString(forKey: "overview_title"), color: .purple) {
-                                overviewCard
-                            }
-                        }
-
-                        // Heutige Aktivität
-                        animatedSection(delay: 0.20) {
-                            sectionGroup(icon: "sun.max.fill", label: localizer.localizedString(forKey: "today_activity_title"), color: .orange) {
-                                glassCard { todayCard }
-                            }
-                        }
-
-                        // Kategorien
-                        animatedSection(delay: 0.25) {
-                            sectionGroup(icon: "tag.fill", label: localizer.localizedString(forKey: "category_distribution_title"), color: .blue) {
-                                glassCard { categoryCard }
-                            }
-                        }
-
-                        // Fokuszeit
-                        animatedSection(delay: 0.30) {
-                            sectionGroup(icon: "timer", label: "Fokuszeit", color: .cyan) {
-                                glassCard { focusCard }
-                            }
-                        }
-
-                        // Abzeichen (nur wenn freigeschaltet)
-                        if freigeschalteteItems.contains("Abzeichen-System") {
-                            animatedSection(delay: 0.32) {
-                                sectionGroup(icon: "medal.fill", label: "Abzeichen", color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
-                                    glassCard {
-                                        Group {
-                                            if #available(iOS 16, *) {
-                                                NavigationLink(destination: FokusAchievementsView()) {
-                                                    iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: "Alle Abzeichen ansehen")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Heatmap (nur wenn freigeschaltet)
-                        if freigeschalteteItems.contains("Aktivitäts-Heatmap") {
-                            animatedSection(delay: 0.33) {
-                                sectionGroup(icon: "calendar.badge.checkmark", label: "Aktivitäts-Heatmap", color: .green) {
-                                    glassCard { heatmapView }
-                                }
-                            }
-                        }
-
-                        // Wochenrückblick (nur wenn freigeschaltet)
-                        if wochenrueckblickEnabled {
-                            animatedSection(delay: 0.34) {
-                                sectionGroup(icon: "chart.bar.doc.horizontal", label: String(localized: "review_title"), color: Color(red: 0.4, green: 0.6, blue: 1.0)) {
-                                    glassCard {
-                                        Button {
-                                            showWochenrueckblick = true
-                                        } label: {
-                                            iconNavRow(icon: "chart.bar.doc.horizontal", color: Color(red: 0.4, green: 0.6, blue: 1.0), label: String(localized: "review_open_btn"))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                        }
-
-                        // Habit Tracker
-                        animatedSection(delay: 0.36) {
-                            sectionGroup(icon: "calendar.badge.checkmark", label: "Gewohnheiten", color: Color(red: 0.3, green: 0.82, blue: 0.5)) {
-                                glassCard {
-                                    Button { showHabitTracker = true } label: {
-                                        HStack(spacing: 14) {
-                                            let progress = HabitStore.shared.todayProgress()
-                                            iconNavRow(
-                                                icon: "calendar.badge.checkmark",
-                                                color: Color(red: 0.3, green: 0.82, blue: 0.5),
-                                                label: progress.total > 0
-                                                    ? "Heute \(progress.done)/\(progress.total) erledigt"
-                                                    : "Gewohnheiten aufbauen"
-                                            )
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Fokus-Journal
-                        animatedSection(delay: 0.38) {
-                            sectionGroup(icon: "book.closed.fill", label: "Fokus-Journal", color: Color(red: 0.65, green: 0.35, blue: 1.0)) {
-                                glassCard {
-                                    Button { showJournal = true } label: {
-                                        iconNavRow(
-                                            icon: "book.closed.fill",
-                                            color: Color(red: 0.65, green: 0.35, blue: 1.0),
-                                            label: JournalStore.shared.hasTodayEntry()
-                                                ? "Heutiger Eintrag vorhanden ✓"
-                                                : "Tagesrückblick schreiben"
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Fokus-Challenges
-                        animatedSection(delay: 0.40) {
-                            sectionGroup(icon: "trophy.fill", label: "Fokus-Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
-                                glassCard {
-                                    Button { showChallenges = true } label: {
-                                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Tägliche & wöchentliche Challenges")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Eisenhower-Matrix
-                        animatedSection(delay: 0.42) {
-                            sectionGroup(icon: "square.grid.2x2.fill", label: "Eisenhower-Matrix", color: Color(red: 1.0, green: 0.45, blue: 0.3)) {
-                                glassCard {
-                                    Button { showEisenhower = true } label: {
-                                        iconNavRow(icon: "square.grid.2x2.fill", color: Color(red: 1.0, green: 0.45, blue: 0.3), label: "Aufgaben nach Priorität einordnen")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Produktivitäts-Score
-                        animatedSection(delay: 0.44) {
-                            sectionGroup(icon: "chart.line.uptrend.xyaxis", label: "Produktivitäts-Score", color: Color(red: 0.2, green: 0.85, blue: 0.5)) {
-                                glassCard {
-                                    Button { showScore = true } label: {
-                                        iconNavRow(icon: "chart.line.uptrend.xyaxis", color: Color(red: 0.2, green: 0.85, blue: 0.5), label: "Tagesleistung & Wochenübersicht")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Tages-Motivation
-                        animatedSection(delay: 0.46) {
-                            sectionGroup(icon: "quote.bubble.fill", label: "Tages-Motivation", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
-                                glassCard {
-                                    Button { showMotivation = true } label: {
-                                        iconNavRow(icon: "quote.bubble.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Heutiges Motivations-Zitat")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Wassertracker
-                        animatedSection(delay: 0.48) {
-                            sectionGroup(icon: "drop.fill", label: "Wassertracker", color: Color(red: 0.15, green: 0.75, blue: 0.95)) {
-                                glassCard {
-                                    Button { showWasser = true } label: {
-                                        iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Langzeit-Ziele
-                        animatedSection(delay: 0.50) {
-                            sectionGroup(icon: "target", label: "Langzeit-Ziele", color: Color(red: 0.6, green: 0.3, blue: 1.0)) {
-                                glassCard {
-                                    Button { showZiele = true } label: {
-                                        iconNavRow(icon: "target", color: Color(red: 0.6, green: 0.3, blue: 1.0), label: "Große Ziele & Meilensteine")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Brain Dump
-                        animatedSection(delay: 0.52) {
-                            sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
-                                glassCard {
-                                    Button { showBrainDump = true } label: {
-                                        iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-
-                        // Ringe
-                        animatedSection(delay: 0.35) {
-                            sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
-                                glassCard { ringsCard }
-                            }
-                        }
+                        sectionsTop
+                        sectionsMiddle
+                        sectionsBottom
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
