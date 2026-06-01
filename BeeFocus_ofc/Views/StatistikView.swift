@@ -39,7 +39,6 @@ struct StatistikView: View {
     @State private var showBrainDump = false
     @State private var showSchlaf = false
     @State private var showNotizen = false
-    @State private var showDankbarkeit = false
     @State private var showZeiterfassung = false
     @State private var showCountdown = false
     @State private var showKIAnalyse = false
@@ -580,16 +579,6 @@ struct StatistikView: View {
                 }
             }
         }
-        animatedSection(delay: 0.50) {
-            sectionGroup(icon: "heart.text.square.fill", label: "Dankbarkeits-Tagebuch", color: Color(red: 1.0, green: 0.65, blue: 0.3)) {
-                glassCard {
-                    Button { showDankbarkeit = true } label: {
-                        iconNavRow(icon: "heart.text.square.fill", color: Color(red: 1.0, green: 0.65, blue: 0.3), label: "Tägliche Dankbarkeit & positive Gedanken")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
         animatedSection(delay: 0.52) {
             sectionGroup(icon: "note.text", label: "Schnell-Notizen", color: Color(red: 1.0, green: 0.75, blue: 0.2)) {
                 glassCard {
@@ -791,9 +780,7 @@ struct StatistikView: View {
                 KIFokusStrategieView(todos: todoStore.todos)
                     .environmentObject(todoStore)
             }
-            .sheet(isPresented: $showDankbarkeit) {
-                DankbarkeitView()
-            }
+
             .sheet(isPresented: $showZeiterfassung) {
                 ZeiterfassungView()
             }

@@ -85,7 +85,6 @@ struct TodoListView: View {
     // Tool-Sheets
     @State private var showToolWasser = false
     @State private var showToolSchlaf = false
-    @State private var showToolDankbarkeit = false
     @State private var showToolNotizen = false
     @State private var showToolBrainDump = false
     @State private var showToolZeiterfassung = false
@@ -231,7 +230,7 @@ struct TodoListView: View {
                 }
                 .sheet(isPresented: $showToolWasser)        { NavigationStack { WasserTrackerView() } }
                 .sheet(isPresented: $showToolSchlaf)        { SchlafTrackerView() }
-                .sheet(isPresented: $showToolDankbarkeit)   { DankbarkeitView() }
+
                 .sheet(isPresented: $showToolNotizen)       { NotizView() }
                 .sheet(isPresented: $showToolBrainDump)     { BrainDumpView().environmentObject(todoStore) }
                 .sheet(isPresented: $showToolZeiterfassung) { ZeiterfassungView() }
@@ -574,7 +573,7 @@ struct TodoListView: View {
             HStack(spacing: 10) {
                 toolChip(icon: "drop.fill",              label: "Wasser",     color: Color(red: 0.15, green: 0.75, blue: 0.95)) { showToolWasser      = true }
                 toolChip(icon: "moon.zzz.fill",          label: "Schlaf",     color: Color(red: 0.4,  green: 0.3,  blue: 0.9))  { showToolSchlaf      = true }
-                toolChip(icon: "heart.text.square.fill", label: "Dankbarkeit",color: Color(red: 1.0,  green: 0.65, blue: 0.3))  { showToolDankbarkeit = true }
+
                 toolChip(icon: "note.text",              label: "Notizen",    color: Color(red: 1.0,  green: 0.75, blue: 0.2))  { showToolNotizen     = true }
                 toolChip(icon: "brain",                  label: "Brain Dump", color: Color(red: 1.0,  green: 0.55, blue: 0.15)) { showToolBrainDump   = true }
                 toolChip(icon: "timer.circle.fill",      label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) { showToolZeiterfassung = true }
