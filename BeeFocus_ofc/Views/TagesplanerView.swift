@@ -26,6 +26,17 @@ private enum RenderSlot: Identifiable {
     }
 }
 
+private enum TagesplanItemSheet: Identifiable {
+    case planning(TodoItem)
+    case editing(TodoItem)
+    var id: String {
+        switch self {
+        case .planning(let t): return "plan_\(t.id.uuidString)"
+        case .editing(let t):  return "edit_\(t.id.uuidString)"
+        }
+    }
+}
+
 // MARK: - TagesplanerView
 
 struct TagesplanerView: View {
@@ -36,8 +47,7 @@ struct TagesplanerView: View {
     @AppStorage("collapsedSectionsString") private var collapsedSectionsString: String = ""
 
     @State private var selectedDate: Date
-    @State private var planningTodo: TodoItem? = nil
-    @State private var editingTodo: TodoItem? = nil
+    @State private var itemSheet: TagesplanItemSheet? = nil
     @State private var showingAddTodo = false
     @State private var showingQuickAdd = false
     @State private var showingAufgabenUebersicht = false
@@ -168,30 +178,32 @@ struct TagesplanerView: View {
         }
         .sheet(isPresented: $showingAufgabenUebersicht) {
             AufgabenUebersichtSheet(themeC1: themeC1, themeC2: themeC2) { todo in
-                planningTodo = todo
+                itemSheet = .planning(todo)
             }
             .environmentObject(todoStore)
         }
         .sheet(isPresented: $showingAddTodo) {
             AddTodoView().environmentObject(todoStore)
         }
-        .sheet(item: $planningTodo) { todo in
-            EinplanenSheet(
-                todo: todo,
-                onSave: { updated in
-                    todoStore.updateTodo(updated)
-                    planningTodo = nil
-                },
-                onDelete: {
-                    todoStore.deleteTodo(todo)
-                    planningTodo = nil
-                }
-            )
-            .environmentObject(todoStore)
-        }
-        .sheet(item: $editingTodo) { todo in
-            EditTodoView(todo: todo)
+        .sheet(item: $itemSheet) { sheet in
+            switch sheet {
+            case .planning(let todo):
+                EinplanenSheet(
+                    todo: todo,
+                    onSave: { updated in
+                        todoStore.updateTodo(updated)
+                        itemSheet = nil
+                    },
+                    onDelete: {
+                        todoStore.deleteTodo(todo)
+                        itemSheet = nil
+                    }
+                )
                 .environmentObject(todoStore)
+            case .editing(let todo):
+                EditTodoView(todo: todo)
+                    .environmentObject(todoStore)
+            }
         }
         .sheet(isPresented: $showingBausteinPicker) {
             BausteinPickerSheet(datum: selectedDate) { baustein in
@@ -844,7 +856,7 @@ struct TagesplanerView: View {
                             }
                         }
                         Spacer()
-                        Button { editingTodo = todo } label: {
+                        Button { itemSheet = .editing(todo) } label: {
                             Image(systemName: "pencil.circle")
                                 .font(.system(size: 15))
                                 .foregroundStyle(themeC1.opacity(0.35))
@@ -962,7 +974,7 @@ struct TagesplanerView: View {
                         .animation(.easeInOut(duration: 0.3), value: startingInLabel(from: due))
                     }
 
-                    Button { editingTodo = todo } label: {
+                    Button { itemSheet = .editing(todo) } label: {
                         Image(systemName: "pencil.circle")
                             .font(.system(size: 15))
                             .foregroundStyle(themeC1.opacity(0.35))
@@ -1189,7 +1201,7 @@ struct TagesplanerView: View {
             Spacer()
 
             HStack(spacing: 8) {
-                Button { planningTodo = todo } label: {
+                Button { itemSheet = .planning(todo) } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.badge.plus")
                             .font(.system(size: 11, weight: .semibold))
@@ -1202,7 +1214,7 @@ struct TagesplanerView: View {
                 }
                 .buttonStyle(.plain)
 
-                Button { editingTodo = todo } label: {
+                Button { itemSheet = .editing(todo) } label: {
                     Image(systemName: "pencil.circle")
                         .font(.system(size: 20))
                         .foregroundStyle(themeC1.opacity(0.45))
@@ -1336,7 +1348,7 @@ struct TagesplanerView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Button { editingTodo = task } label: {
+            Button { itemSheet = .editing(task) } label: {
                 Image(systemName: "pencil.circle")
                     .font(.system(size: 13))
                     .foregroundStyle(themeC1.opacity(0.4))
