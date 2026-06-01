@@ -31,6 +31,7 @@ struct StatistikView: View {
     @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
     @State private var showWochenrueckblick = false
     @State private var showChallenges = false
+    @State private var showKIGesamtbericht = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -431,6 +432,7 @@ struct StatistikView: View {
         AnyView(sectionsTop)
         AnyView(sectionsMiddle)
         AnyView(sectionsKI)
+        AnyView(sectionsGesamtbericht)
     }
 
     @ViewBuilder private var sectionsTop: some View {
@@ -565,6 +567,30 @@ struct StatistikView: View {
         }
     }
 
+    // MARK: - KI-Gesamtbericht
+
+    @ViewBuilder private var sectionsGesamtbericht: some View {
+        animatedSection(delay: 0.75) {
+            sectionGroup(icon: "doc.text.magnifyingglass", label: "KI-Gesamtbericht", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+                glassCard {
+                    Button { showKIGesamtbericht = true } label: {
+                        iconNavRow(icon: "doc.text.magnifyingglass", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "Alle App-Daten analysiert & exportierbar")
+                    }
+                    .buttonStyle(.plain)
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
+                        Text("Als PDF, PNG oder JPEG exportieren")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
+                    }
+                    .padding(.horizontal, 14).padding(.bottom, 10)
+                }
+            }
+        }
+    }
+
     private func kiProBadge(color: Color) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "sparkles")
@@ -639,6 +665,11 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showKIStrategie) {
                 KIFokusStrategieView(todos: todoStore.todos)
+                    .environmentObject(todoStore)
+            }
+
+            .sheet(isPresented: $showKIGesamtbericht) {
+                KIGesamtberichtView()
                     .environmentObject(todoStore)
             }
 
