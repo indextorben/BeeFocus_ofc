@@ -82,6 +82,15 @@ struct TodoListView: View {
     @State private var wavePhase1: CGFloat = 0
     @State private var wavePhase2: CGFloat = 0
 
+    // Tool-Sheets
+    @State private var showToolWasser = false
+    @State private var showToolSchlaf = false
+    @State private var showToolDankbarkeit = false
+    @State private var showToolNotizen = false
+    @State private var showToolBrainDump = false
+    @State private var showToolZeiterfassung = false
+    @State private var showToolCountdown = false
+
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var timerManager = TimerManager.shared
     @StateObject private var mailShare = MailShareService()
@@ -220,6 +229,13 @@ struct TodoListView: View {
                 } message: {
                     Text(mailUnavailableMessage)
                 }
+                .sheet(isPresented: $showToolWasser)        { NavigationStack { WasserTrackerView() } }
+                .sheet(isPresented: $showToolSchlaf)        { SchlafTrackerView() }
+                .sheet(isPresented: $showToolDankbarkeit)   { DankbarkeitView() }
+                .sheet(isPresented: $showToolNotizen)       { NotizView() }
+                .sheet(isPresented: $showToolBrainDump)     { BrainDumpView().environmentObject(todoStore) }
+                .sheet(isPresented: $showToolZeiterfassung) { ZeiterfassungView() }
+                .sheet(isPresented: $showToolCountdown)     { CountdownView() }
                 .onChange(of: showDeleteSnackbar) { newValue in
                     // Cancel any existing timer
                     snackbarDismissTask?.cancel()
@@ -552,12 +568,52 @@ struct TodoListView: View {
         }
     }
 
+    // MARK: - Tools Strip
+    private var toolsStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                toolChip(icon: "drop.fill",              label: "Wasser",     color: Color(red: 0.15, green: 0.75, blue: 0.95)) { showToolWasser      = true }
+                toolChip(icon: "moon.zzz.fill",          label: "Schlaf",     color: Color(red: 0.4,  green: 0.3,  blue: 0.9))  { showToolSchlaf      = true }
+                toolChip(icon: "heart.text.square.fill", label: "Dankbarkeit",color: Color(red: 1.0,  green: 0.65, blue: 0.3))  { showToolDankbarkeit = true }
+                toolChip(icon: "note.text",              label: "Notizen",    color: Color(red: 1.0,  green: 0.75, blue: 0.2))  { showToolNotizen     = true }
+                toolChip(icon: "brain",                  label: "Brain Dump", color: Color(red: 1.0,  green: 0.55, blue: 0.15)) { showToolBrainDump   = true }
+                toolChip(icon: "timer.circle.fill",      label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) { showToolZeiterfassung = true }
+                toolChip(icon: "hourglass",              label: "Countdown",  color: Color(red: 0.5,  green: 0.3,  blue: 1.0))  { showToolCountdown   = true }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .background(.ultraThinMaterial)
+    }
+
+    private func toolChip(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.18))
+                        .frame(width: 42, height: 42)
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(color)
+                }
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.75))
+                    .lineLimit(1)
+            }
+            .frame(width: 62)
+        }
+        .buttonStyle(.plain)
+    }
+
     private var mainContentView: some View {
         ZStack {
             themeBackground
             VStack(spacing: 0) {
                 highlightCard
                 categoryBar
+                toolsStrip
                 contentView
             }
             
