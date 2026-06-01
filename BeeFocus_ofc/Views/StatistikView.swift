@@ -34,6 +34,8 @@ struct StatistikView: View {
     @State private var showJournal = false
     @State private var showEisenhower = false
     @State private var showChallenges = false
+    @State private var showScore = false
+    @State private var showMotivation = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -581,6 +583,30 @@ struct StatistikView: View {
                             }
                         }
 
+                        // Produktivitäts-Score
+                        animatedSection(delay: 0.44) {
+                            sectionGroup(icon: "chart.line.uptrend.xyaxis", label: "Produktivitäts-Score", color: Color(red: 0.2, green: 0.85, blue: 0.5)) {
+                                glassCard {
+                                    Button { showScore = true } label: {
+                                        iconNavRow(icon: "chart.line.uptrend.xyaxis", color: Color(red: 0.2, green: 0.85, blue: 0.5), label: "Tagesleistung & Wochenübersicht")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Tages-Motivation
+                        animatedSection(delay: 0.46) {
+                            sectionGroup(icon: "quote.bubble.fill", label: "Tages-Motivation", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
+                                glassCard {
+                                    Button { showMotivation = true } label: {
+                                        iconNavRow(icon: "quote.bubble.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Heutiges Motivations-Zitat")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
                         // Ringe
                         animatedSection(delay: 0.35) {
                             sectionGroup(icon: "circle.dashed", label: localizer.localizedString(forKey: "progress_overview_title"), color: .indigo) {
@@ -624,6 +650,12 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showEisenhower) {
                 EisenhowerView().environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showScore) {
+                ProduktivitaetsScoreView().environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showMotivation) {
+                TagesMotivationView()
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)

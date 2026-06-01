@@ -69,6 +69,8 @@ struct TodoListView: View {
     //Fileimporter
     @State private var showingActionSheet = false
     @State private var showingFileImporter = false
+    @State private var showingTemplates = false
+    @AppStorage("todayHighlightID") private var highlightIDStr: String = ""
     @State private var showingDeleteCompletedByDateSheet = false
     
     @State private var showingConfirmTrashCompleted = false
@@ -209,6 +211,9 @@ struct TodoListView: View {
                 .sheet(isPresented: $showingCalendarImport) {
                     CalendarImportSheet(importer: calendarImporter)
                         .environmentObject(todoStore)
+                }
+                .sheet(isPresented: $showingTemplates) {
+                    TaskTemplatesView().environmentObject(todoStore)
                 }
                 .alert(localizer.localizedString(forKey: "E-Mail nicht verfügbar"), isPresented: $showMailUnavailableAlert) {
                     Button(localizer.localizedString(forKey: "OK"), role: .cancel) { }
@@ -496,10 +501,62 @@ struct TodoListView: View {
     }
     
     // MARK: - Main View
+    private var highlightTodo: TodoItem? {
+        guard !highlightIDStr.isEmpty, let uid = UUID(uuidString: highlightIDStr) else { return nil }
+        return todoStore.todos.first { $0.id == uid && !$0.isCompleted }
+    }
+
+    private var highlightCard: some View {
+        Group {
+            if let todo = highlightTodo {
+                HStack(spacing: 12) {
+                    Text("⭐️")
+                        .font(.system(size: 22))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Heutiges Highlight")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.45))
+                        Text(todo.title)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Button {
+                        todoStore.toggleCompletion(of: todo)
+                        highlightIDStr = ""
+                    } label: {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.2))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Color(red: 0.55, green: 0.4, blue: 0.0).opacity(0.35),
+                                 Color(red: 0.4, green: 0.25, blue: 0.0).opacity(0.25)],
+                        startPoint: .leading, endPoint: .trailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.35), lineWidth: 1.5)
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
     private var mainContentView: some View {
         ZStack {
             themeBackground
             VStack(spacing: 0) {
+                highlightCard
                 categoryBar
                 contentView
             }
@@ -933,6 +990,12 @@ struct TodoListView: View {
                         }
                         Divider()
                     }
+                    Button {
+                        showingTemplates = true
+                    } label: {
+                        Label("Aufgaben-Vorlagen", systemImage: "rectangle.stack.fill")
+                    }
+                    Divider()
                     Button {
                         showingDeleteCompletedByDateSheet = true
                     } label: {
@@ -1657,6 +1720,23 @@ struct TodoListView: View {
                         }
                     }
                 }
+                .contextMenu {
+                    if !todo.isCompleted {
+                        Button {
+                            highlightIDStr = todo.id.uuidString
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        } label: {
+                            Label("Als Highlight setzen", systemImage: "star.fill")
+                        }
+                    }
+                    if highlightIDStr == todo.id.uuidString {
+                        Button {
+                            highlightIDStr = ""
+                        } label: {
+                            Label("Highlight entfernen", systemImage: "star.slash")
+                        }
+                    }
+                }
                 .opacity(todo.isCompleted ? 0.55 : 1.0)
                 .strikethrough(todo.isCompleted, color: .gray)
                 .transition(.asymmetric(
@@ -1894,6 +1974,23 @@ struct TodoListView: View {
                         } onShare: {
                             if !isSelecting {
                                 TodoShare.share(todo: todo)
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        if !todo.isCompleted {
+                            Button {
+                                highlightIDStr = todo.id.uuidString
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            } label: {
+                                Label("Als Highlight setzen", systemImage: "star.fill")
+                            }
+                        }
+                        if highlightIDStr == todo.id.uuidString {
+                            Button {
+                                highlightIDStr = ""
+                            } label: {
+                                Label("Highlight entfernen", systemImage: "star.slash")
                             }
                         }
                     }
