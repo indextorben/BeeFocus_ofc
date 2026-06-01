@@ -44,6 +44,9 @@ struct StatistikView: View {
     @State private var showNotizen = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
+    @State private var showKIWochenbericht = false
+    @State private var showKIZerteiler = false
+    @State private var showKIStrategie = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -628,15 +631,7 @@ struct StatistikView: View {
                         iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "KI analysiert deine Aufgaben & Prioritäten")
                     }
                     .buttonStyle(.plain)
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
-                        Text("Pro KI-Feature")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
-                    }
-                    .padding(.horizontal, 14).padding(.bottom, 10)
+                    kiProBadge(color: Color(red: 0.55, green: 0.35, blue: 1.0))
                 }
             }
         }
@@ -647,18 +642,59 @@ struct StatistikView: View {
                         iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Persönliche KI-Reflexion deines Tages")
                     }
                     .buttonStyle(.plain)
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.8))
-                        Text("Pro KI-Feature")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.8))
-                    }
-                    .padding(.horizontal, 14).padding(.bottom, 10)
+                    kiProBadge(color: Color(red: 1.0, green: 0.5, blue: 0.8))
                 }
             }
         }
+        sectionsKI
+    }
+
+    @ViewBuilder private var sectionsKI: some View {
+        animatedSection(delay: 0.64) {
+            sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: "KI-Wochenbericht", color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
+                glassCard {
+                    Button { showKIWochenbericht = true } label: {
+                        iconNavRow(icon: "chart.bar.doc.horizontal.fill", color: Color(red: 0.2, green: 0.75, blue: 1.0), label: "KI analysiert deine gesamte Woche")
+                    }
+                    .buttonStyle(.plain)
+                    kiProBadge(color: Color(red: 0.2, green: 0.75, blue: 1.0))
+                }
+            }
+        }
+        animatedSection(delay: 0.66) {
+            sectionGroup(icon: "scissors", label: "KI-Aufgaben-Zerteiler", color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
+                glassCard {
+                    Button { showKIZerteiler = true } label: {
+                        iconNavRow(icon: "scissors", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: "Komplexe Aufgaben in Schritte zerlegen")
+                    }
+                    .buttonStyle(.plain)
+                    kiProBadge(color: Color(red: 0.3, green: 0.85, blue: 0.5))
+                }
+            }
+        }
+        animatedSection(delay: 0.68) {
+            sectionGroup(icon: "flame.fill", label: "KI-Fokus-Strategie", color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
+                glassCard {
+                    Button { showKIStrategie = true } label: {
+                        iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: "Personalisierter KI-Produktivitätsplan")
+                    }
+                    .buttonStyle(.plain)
+                    kiProBadge(color: Color(red: 1.0, green: 0.55, blue: 0.1))
+                }
+            }
+        }
+    }
+
+    private func kiProBadge(color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(color)
+            Text("Pro KI-Feature")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 14).padding(.bottom, 10)
     }
 
     // MARK: - Body
@@ -746,6 +782,18 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showKIReflexion) {
                 KITagesreflexionView(todos: todoStore.todos)
+                    .environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showKIWochenbericht) {
+                KIWochenberichtView(todos: todoStore.todos)
+                    .environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showKIZerteiler) {
+                KIAufgabenZerteilerView()
+                    .environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showKIStrategie) {
+                KIFokusStrategieView(todos: todoStore.todos)
                     .environmentObject(todoStore)
             }
             .sheet(isPresented: $showWochenrueckblick) {
