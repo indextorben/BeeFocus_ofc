@@ -32,15 +32,6 @@ struct StatistikView: View {
     @State private var showWochenrueckblick = false
     @State private var showHabitTracker = false
     @State private var showJournal = false
-    @State private var showChallenges = false
-    @State private var showScore = false
-    @State private var showMotivation = false
-    @State private var showWasser = false
-    @State private var showBrainDump = false
-    @State private var showSchlaf = false
-    @State private var showNotizen = false
-    @State private var showZeiterfassung = false
-    @State private var showCountdown = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -440,7 +431,6 @@ struct StatistikView: View {
     @ViewBuilder private var allSections: some View {
         AnyView(sectionsTop)
         AnyView(sectionsMiddle)
-        AnyView(sectionsTools)
         AnyView(sectionsKI)
     }
 
@@ -528,99 +518,6 @@ struct StatistikView: View {
     }
 
     // MARK: Tools & Tracking (Challenges → Countdown)
-    @ViewBuilder private var sectionsTools: some View {
-        animatedSection(delay: 0.40) {
-            sectionGroup(icon: "trophy.fill", label: "Fokus-Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
-                glassCard {
-                    Button { showChallenges = true } label: {
-                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Tägliche & wöchentliche Challenges")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.42) {
-            sectionGroup(icon: "chart.line.uptrend.xyaxis", label: "Produktivitäts-Score", color: Color(red: 0.2, green: 0.85, blue: 0.5)) {
-                glassCard {
-                    Button { showScore = true } label: {
-                        iconNavRow(icon: "chart.line.uptrend.xyaxis", color: Color(red: 0.2, green: 0.85, blue: 0.5), label: "Tagesleistung & Wochenübersicht")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.44) {
-            sectionGroup(icon: "quote.bubble.fill", label: "Tages-Motivation", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
-                glassCard {
-                    Button { showMotivation = true } label: {
-                        iconNavRow(icon: "quote.bubble.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Heutiges Motivations-Zitat")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.46) {
-            sectionGroup(icon: "drop.fill", label: "Wassertracker", color: Color(red: 0.15, green: 0.75, blue: 0.95)) {
-                glassCard {
-                    Button { showWasser = true } label: {
-                        iconNavRow(icon: "drop.fill", color: Color(red: 0.15, green: 0.75, blue: 0.95), label: "Tägliche Wasseraufnahme")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.48) {
-            sectionGroup(icon: "moon.zzz.fill", label: "Schlaf-Tracker", color: Color(red: 0.4, green: 0.3, blue: 0.9)) {
-                glassCard {
-                    Button { showSchlaf = true } label: {
-                        iconNavRow(icon: "moon.zzz.fill", color: Color(red: 0.4, green: 0.3, blue: 0.9), label: "Schlafdauer & Schlafqualität")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.52) {
-            sectionGroup(icon: "note.text", label: "Schnell-Notizen", color: Color(red: 1.0, green: 0.75, blue: 0.2)) {
-                glassCard {
-                    Button { showNotizen = true } label: {
-                        iconNavRow(icon: "note.text", color: Color(red: 1.0, green: 0.75, blue: 0.2), label: "Notizen & Ideen festhalten")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.54) {
-            sectionGroup(icon: "brain", label: "Brain Dump", color: Color(red: 1.0, green: 0.65, blue: 0.2)) {
-                glassCard {
-                    Button { showBrainDump = true } label: {
-                        iconNavRow(icon: "brain", color: Color(red: 1.0, green: 0.65, blue: 0.2), label: "Gedanken & Ideen erfassen")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.56) {
-            sectionGroup(icon: "timer.circle.fill", label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) {
-                glassCard {
-                    Button { showZeiterfassung = true } label: {
-                        iconNavRow(icon: "timer.circle.fill", color: Color(red: 0.3, green: 0.5, blue: 1.0), label: "Zeit pro Projekt tracken & analysieren")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.58) {
-            sectionGroup(icon: "hourglass", label: "Countdown-Events", color: Color(red: 0.35, green: 0.25, blue: 0.95)) {
-                glassCard {
-                    Button { showCountdown = true } label: {
-                        iconNavRow(icon: "hourglass", color: Color(red: 0.35, green: 0.25, blue: 0.95), label: "Wichtige Ereignisse & Tage im Blick")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
     // MARK: KI-Features
     @ViewBuilder private var sectionsKI: some View {
         animatedSection(delay: 0.60) {
@@ -739,27 +636,6 @@ struct StatistikView: View {
             .sheet(isPresented: $showJournal) {
                 FokusJournalView()
             }
-            .sheet(isPresented: $showChallenges) {
-                FokusChallengesView().environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showScore) {
-                ProduktivitaetsScoreView().environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showMotivation) {
-                TagesMotivationView()
-            }
-            .sheet(isPresented: $showWasser) {
-                NavigationStack { WasserTrackerView() }
-            }
-            .sheet(isPresented: $showBrainDump) {
-                BrainDumpView().environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showSchlaf) {
-                SchlafTrackerView()
-            }
-            .sheet(isPresented: $showNotizen) {
-                NotizView()
-            }
             .sheet(isPresented: $showKIAnalyse) {
                 KIAufgabenAnalyseView(todos: todoStore.todos)
                     .environmentObject(todoStore)
@@ -781,12 +657,6 @@ struct StatistikView: View {
                     .environmentObject(todoStore)
             }
 
-            .sheet(isPresented: $showZeiterfassung) {
-                ZeiterfassungView()
-            }
-            .sheet(isPresented: $showCountdown) {
-                CountdownView()
-            }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
                 WochenrueckblickSheet(

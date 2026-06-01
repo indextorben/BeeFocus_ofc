@@ -89,6 +89,9 @@ struct TodoListView: View {
     @State private var showToolBrainDump = false
     @State private var showToolZeiterfassung = false
     @State private var showToolCountdown = false
+    @State private var showToolChallenges = false
+    @State private var showToolScore = false
+    @State private var showToolMotivation = false
 
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var timerManager = TimerManager.shared
@@ -230,11 +233,13 @@ struct TodoListView: View {
                 }
                 .sheet(isPresented: $showToolWasser)        { NavigationStack { WasserTrackerView() } }
                 .sheet(isPresented: $showToolSchlaf)        { SchlafTrackerView() }
-
                 .sheet(isPresented: $showToolNotizen)       { NotizView() }
                 .sheet(isPresented: $showToolBrainDump)     { BrainDumpView().environmentObject(todoStore) }
                 .sheet(isPresented: $showToolZeiterfassung) { ZeiterfassungView() }
                 .sheet(isPresented: $showToolCountdown)     { CountdownView() }
+                .sheet(isPresented: $showToolChallenges)    { FokusChallengesView().environmentObject(todoStore) }
+                .sheet(isPresented: $showToolScore)         { ProduktivitaetsScoreView().environmentObject(todoStore) }
+                .sheet(isPresented: $showToolMotivation)    { TagesMotivationView() }
                 .onChange(of: showDeleteSnackbar) { newValue in
                     // Cancel any existing timer
                     snackbarDismissTask?.cancel()
@@ -571,6 +576,9 @@ struct TodoListView: View {
     private var toolsStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
+                toolChip(icon: "trophy.fill",             label: "Challenges", color: Color(red: 1.0,  green: 0.7,  blue: 0.2))  { showToolChallenges  = true }
+                toolChip(icon: "chart.line.uptrend.xyaxis", label: "Score",   color: Color(red: 0.2,  green: 0.85, blue: 0.5))  { showToolScore       = true }
+                toolChip(icon: "quote.bubble.fill",      label: "Motivation", color: Color(red: 1.0,  green: 0.5,  blue: 0.8))  { showToolMotivation  = true }
                 toolChip(icon: "drop.fill",              label: "Wasser",     color: Color(red: 0.15, green: 0.75, blue: 0.95)) { showToolWasser      = true }
                 toolChip(icon: "moon.zzz.fill",          label: "Schlaf",     color: Color(red: 0.4,  green: 0.3,  blue: 0.9))  { showToolSchlaf      = true }
 
