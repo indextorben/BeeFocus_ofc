@@ -30,8 +30,6 @@ struct StatistikView: View {
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
     @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
     @State private var showWochenrueckblick = false
-    @State private var showHabitTracker = false
-    @State private var showJournal = false
     @State private var showKIAnalyse = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
@@ -495,26 +493,6 @@ struct StatistikView: View {
                 glassCard { ringsCard }
             }
         }
-        animatedSection(delay: 0.36) {
-            sectionGroup(icon: "calendar.badge.checkmark", label: "Gewohnheiten", color: Color(red: 0.3, green: 0.82, blue: 0.5)) {
-                glassCard {
-                    Button { showHabitTracker = true } label: {
-                        iconNavRow(icon: "calendar.badge.checkmark", color: Color(red: 0.3, green: 0.82, blue: 0.5), label: "Gewohnheiten aufbauen & tracken")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        animatedSection(delay: 0.38) {
-            sectionGroup(icon: "book.closed.fill", label: "Fokus-Journal", color: Color(red: 0.65, green: 0.35, blue: 1.0)) {
-                glassCard {
-                    Button { showJournal = true } label: {
-                        iconNavRow(icon: "book.closed.fill", color: Color(red: 0.65, green: 0.35, blue: 1.0), label: "Tagesrückblick schreiben")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
     }
 
     // MARK: Tools & Tracking (Challenges → Countdown)
@@ -629,12 +607,6 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showFPInfo) {
                 fokuspunkteInfoSheet
-            }
-            .sheet(isPresented: $showHabitTracker) {
-                HabitTrackerView()
-            }
-            .sheet(isPresented: $showJournal) {
-                FokusJournalView()
             }
             .sheet(isPresented: $showKIAnalyse) {
                 KIAufgabenAnalyseView(todos: todoStore.todos)

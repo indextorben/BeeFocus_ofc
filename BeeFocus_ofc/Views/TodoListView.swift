@@ -92,6 +92,8 @@ struct TodoListView: View {
     @State private var showToolChallenges = false
     @State private var showToolScore = false
     @State private var showToolMotivation = false
+    @State private var showToolGewohnheiten = false
+    @State private var showToolJournal = false
 
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var timerManager = TimerManager.shared
@@ -240,6 +242,8 @@ struct TodoListView: View {
                 .sheet(isPresented: $showToolChallenges)    { FokusChallengesView().environmentObject(todoStore) }
                 .sheet(isPresented: $showToolScore)         { ProduktivitaetsScoreView().environmentObject(todoStore) }
                 .sheet(isPresented: $showToolMotivation)    { TagesMotivationView() }
+                .sheet(isPresented: $showToolGewohnheiten)  { HabitTrackerView() }
+                .sheet(isPresented: $showToolJournal)       { FokusJournalView() }
                 .onChange(of: showDeleteSnackbar) { newValue in
                     // Cancel any existing timer
                     snackbarDismissTask?.cancel()
@@ -576,6 +580,8 @@ struct TodoListView: View {
     private var toolsStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
+                toolChip(icon: "calendar.badge.checkmark",label: "Gewohnheiten",color: Color(red: 0.3, green: 0.82, blue: 0.5)) { showToolGewohnheiten = true }
+                toolChip(icon: "book.closed.fill",        label: "Journal",    color: Color(red: 0.65, green: 0.35, blue: 1.0))  { showToolJournal     = true }
                 toolChip(icon: "trophy.fill",             label: "Challenges", color: Color(red: 1.0,  green: 0.7,  blue: 0.2))  { showToolChallenges  = true }
                 toolChip(icon: "chart.line.uptrend.xyaxis", label: "Score",   color: Color(red: 0.2,  green: 0.85, blue: 0.5))  { showToolScore       = true }
                 toolChip(icon: "quote.bubble.fill",      label: "Motivation", color: Color(red: 1.0,  green: 0.5,  blue: 0.8))  { showToolMotivation  = true }
