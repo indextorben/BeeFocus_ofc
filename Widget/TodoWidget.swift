@@ -30,16 +30,18 @@ struct WidgetSnapshot: Codable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        dueTodayCount      = try c.decode(Int.self, forKey: .dueTodayCount)
-        overdueCount       = try c.decode(Int.self, forKey: .overdueCount)
+        dueTodayCount       = try c.decode(Int.self, forKey: .dueTodayCount)
+        overdueCount        = try c.decode(Int.self, forKey: .overdueCount)
         completedTodayCount = try c.decode(Int.self, forKey: .completedTodayCount)
-        totalOpenCount     = try c.decode(Int.self, forKey: .totalOpenCount)
-        focusMinutesToday  = try c.decode(Int.self, forKey: .focusMinutesToday)
-        topTasks           = try c.decode([WidgetTask].self, forKey: .topTasks)
-        activeTheme        = try c.decode(String.self, forKey: .activeTheme)
-        monthTasks         = (try? c.decode([WidgetTask].self, forKey: .monthTasks)) ?? []
-        activeMonthLabel   = (try? c.decode(String.self, forKey: .activeMonthLabel)) ?? ""
+        totalOpenCount      = try c.decode(Int.self, forKey: .totalOpenCount)
+        focusMinutesToday   = try c.decode(Int.self, forKey: .focusMinutesToday)
+        topTasks            = try c.decode([WidgetTask].self, forKey: .topTasks)
+        activeTheme         = try c.decode(String.self, forKey: .activeTheme)
+        monthTasks          = (try? c.decode([WidgetTask].self, forKey: .monthTasks)) ?? []
+        activeMonthLabel    = (try? c.decode(String.self, forKey: .activeMonthLabel)) ?? ""
     }
+
+    // Ignore new Watch-only fields (todayBausteine) gracefully via custom decoder above
 
     static let placeholder = WidgetSnapshot(
         dueTodayCount: 3, overdueCount: 1, completedTodayCount: 2,
@@ -57,6 +59,38 @@ struct WidgetTask: Codable, Identifiable {
     let id: UUID
     let title: String
     let isHighPriority: Bool
+    // Extra fields — decoded optionally for forward compatibility
+    var dueDate: Date?          = nil
+    var endDate: Date?          = nil
+    var priorityRaw: String     = "medium"
+    var categoryName: String?   = nil
+    var categoryColorHex: String? = nil
+    var taskDescription: String = ""
+    var subTasksTotal: Int      = 0
+    var subTasksCompleted: Int  = 0
+    var isFavorite: Bool        = false
+    var isOverdue: Bool         = false
+
+    init(id: UUID, title: String, isHighPriority: Bool) {
+        self.id = id; self.title = title; self.isHighPriority = isHighPriority
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id               = try c.decode(UUID.self, forKey: .id)
+        title            = try c.decode(String.self, forKey: .title)
+        isHighPriority   = try c.decode(Bool.self, forKey: .isHighPriority)
+        dueDate          = try? c.decode(Date.self, forKey: .dueDate)
+        endDate          = try? c.decode(Date.self, forKey: .endDate)
+        priorityRaw      = (try? c.decode(String.self, forKey: .priorityRaw)) ?? "medium"
+        categoryName     = try? c.decode(String.self, forKey: .categoryName)
+        categoryColorHex = try? c.decode(String.self, forKey: .categoryColorHex)
+        taskDescription  = (try? c.decode(String.self, forKey: .taskDescription)) ?? ""
+        subTasksTotal    = (try? c.decode(Int.self, forKey: .subTasksTotal)) ?? 0
+        subTasksCompleted = (try? c.decode(Int.self, forKey: .subTasksCompleted)) ?? 0
+        isFavorite       = (try? c.decode(Bool.self, forKey: .isFavorite)) ?? false
+        isOverdue        = (try? c.decode(Bool.self, forKey: .isOverdue)) ?? false
+    }
 }
 
 // MARK: - Provider
