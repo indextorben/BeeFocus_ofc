@@ -472,14 +472,26 @@ struct NotizEditorView: View {
     @StateObject private var store = NotizStore.shared
     @FocusState private var fokusInhalt: Bool
     @FocusState private var fokusTitel: Bool
-    @State private var showOrdnerPicker = false
-    @State private var showDeleteAlert  = false
-    @State private var neuesCheckItem   = ""
-    @State private var showFind         = false
-    @State private var checkSuche       = ""
+    @State private var showOrdnerPicker    = false
+    @State private var showDeleteAlert     = false
+    @State private var showVerwerfen       = false
+    @State private var neuesCheckItem      = ""
+    @State private var showFind            = false
+    @State private var checkSuche          = ""
+    @State private var original: Notiz?    = nil
 
     private var kannSpeichern: Bool {
         !notiz.titel.isEmpty || !notiz.inhalt.isEmpty || !notiz.checkItems.isEmpty
+    }
+
+    private var hatAenderungen: Bool {
+        guard let orig = original else { return false }
+        return notiz.titel != orig.titel ||
+               notiz.inhalt != orig.inhalt ||
+               notiz.checkItems != orig.checkItems ||
+               notiz.farbName != orig.farbName ||
+               notiz.ordner != orig.ordner ||
+               notiz.typ != orig.typ
     }
 
     var body: some View {
@@ -512,8 +524,16 @@ struct NotizEditorView: View {
             } message: {
                 Text("Diese Aktion kann nicht rückgängig gemacht werden.")
             }
+            .confirmationDialog("Änderungen verwerfen?", isPresented: $showVerwerfen, titleVisibility: .visible) {
+                Button("Verwerfen", role: .destructive) { dismiss() }
+                Button("Speichern") { store.save(notiz); dismiss() }
+                Button("Weiter bearbeiten", role: .cancel) {}
+            } message: {
+                Text("Du hast ungespeicherte Änderungen.")
+            }
         }
         .onAppear {
+            original = notiz
             if notiz.typ == .text && notiz.inhalt.isEmpty && notiz.titel.isEmpty {
                 fokusTitel = true
             }
@@ -834,8 +854,14 @@ struct NotizEditorView: View {
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Abbrechen") { dismiss() }
-                .foregroundStyle(.white.opacity(0.55))
+            Button("Abbrechen") {
+                if hatAenderungen && kannSpeichern {
+                    showVerwerfen = true
+                } else {
+                    dismiss()
+                }
+            }
+            .foregroundStyle(.white.opacity(0.55))
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
