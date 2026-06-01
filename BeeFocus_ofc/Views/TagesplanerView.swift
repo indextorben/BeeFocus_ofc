@@ -566,6 +566,20 @@ struct TagesplanerView: View {
                                     todoStore.updateTodo(updated)
                                 }
                             }
+                            // Pencil button sits ABOVE the drag overlay so taps aren't blocked
+                            .overlay(alignment: .bottomTrailing) {
+                                if !isDragging {
+                                    Button { itemSheet = .editing(task) } label: {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .font(.system(size: 22))
+                                            .foregroundStyle(themeC1.opacity(0.55))
+                                            .shadow(color: .black.opacity(0.18), radius: 3, x: 0, y: 1)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.trailing, 74)
+                                    .padding(.bottom, 6)
+                                }
+                            }
 
                     case .parallel(let parallelTasks):
                         parallelTasksRow(tasks: parallelTasks)
@@ -856,12 +870,6 @@ struct TagesplanerView: View {
                             }
                         }
                         Spacer()
-                        Button { itemSheet = .editing(todo) } label: {
-                            Image(systemName: "pencil.circle")
-                                .font(.system(size: 15))
-                                .foregroundStyle(themeC1.opacity(0.35))
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 10)
@@ -974,12 +982,6 @@ struct TagesplanerView: View {
                         .animation(.easeInOut(duration: 0.3), value: startingInLabel(from: due))
                     }
 
-                    Button { itemSheet = .editing(todo) } label: {
-                        Image(systemName: "pencil.circle")
-                            .font(.system(size: 15))
-                            .foregroundStyle(themeC1.opacity(0.35))
-                    }
-                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
