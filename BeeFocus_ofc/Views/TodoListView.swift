@@ -523,7 +523,7 @@ struct TodoListView: View {
                     }
                     Spacer()
                     Button {
-                        todoStore.toggleCompletion(of: todo)
+                        todoStore.complete(todo: todo)
                         highlightIDStr = ""
                     } label: {
                         Image(systemName: "checkmark.circle")
