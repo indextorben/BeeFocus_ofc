@@ -94,6 +94,11 @@ struct TodoListView: View {
     @State private var showToolGewohnheiten = false
     @State private var showToolJournal = false
 
+    // Tools-Strip Reihenfolge
+    @AppStorage("toolsStripOrder") private var toolsOrderRaw: String = ""
+    @State private var toolOrder: [String] = []
+    @State private var draggedToolId: String? = nil
+
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var timerManager = TimerManager.shared
     @StateObject private var mailShare = MailShareService()
@@ -575,42 +580,97 @@ struct TodoListView: View {
     }
 
     // MARK: - Tools Strip
+
+    private let allToolDefs: [ToolDef] = [
+        ToolDef(id: "gewohnheiten",  icon: "calendar.badge.checkmark",  label: "Gewohnheiten",  r: 0.3,  g: 0.82, b: 0.5),
+        ToolDef(id: "journal",       icon: "book.closed.fill",           label: "Journal",       r: 0.65, g: 0.35, b: 1.0),
+        ToolDef(id: "score",         icon: "chart.line.uptrend.xyaxis",  label: "Score",         r: 0.2,  g: 0.85, b: 0.5),
+        ToolDef(id: "motivation",    icon: "quote.bubble.fill",          label: "Motivation",    r: 1.0,  g: 0.5,  b: 0.8),
+        ToolDef(id: "wasser",        icon: "drop.fill",                  label: "Wasser",        r: 0.15, g: 0.75, b: 0.95),
+        ToolDef(id: "schlaf",        icon: "moon.zzz.fill",              label: "Schlaf",        r: 0.4,  g: 0.3,  b: 0.9),
+        ToolDef(id: "notizen",       icon: "note.text",                  label: "Notizen",       r: 1.0,  g: 0.75, b: 0.2),
+        ToolDef(id: "braindump",     icon: "brain",                      label: "Brain Dump",    r: 1.0,  g: 0.55, b: 0.15),
+        ToolDef(id: "zeiterfassung", icon: "timer.circle.fill",          label: "Zeiterfassung", r: 0.3,  g: 0.5,  b: 1.0),
+        ToolDef(id: "countdown",     icon: "hourglass",                  label: "Countdown",     r: 0.5,  g: 0.3,  b: 1.0),
+    ]
+
+    private var orderedTools: [ToolDef] {
+        let ids = toolOrder.isEmpty ? allToolDefs.map(\.id) : toolOrder
+        var result = ids.compactMap { id in allToolDefs.first { $0.id == id } }
+        // Neue Tools ans Ende, falls noch nicht in der gespeicherten Reihenfolge
+        for def in allToolDefs where !result.contains(where: { $0.id == def.id }) {
+            result.append(def)
+        }
+        return result
+    }
+
+    private func saveToolOrder() {
+        toolsOrderRaw = toolOrder.joined(separator: ",")
+    }
+
+    private func loadToolOrder() {
+        if toolsOrderRaw.isEmpty {
+            toolOrder = allToolDefs.map(\.id)
+        } else {
+            toolOrder = toolsOrderRaw.components(separatedBy: ",").filter { !$0.isEmpty }
+        }
+    }
+
+    private func actionForTool(_ id: String) {
+        switch id {
+        case "gewohnheiten":  showToolGewohnheiten  = true
+        case "journal":       showToolJournal        = true
+        case "score":         showToolScore          = true
+        case "motivation":    showToolMotivation     = true
+        case "wasser":        showToolWasser         = true
+        case "schlaf":        showToolSchlaf         = true
+        case "notizen":       showToolNotizen        = true
+        case "braindump":     showToolBrainDump      = true
+        case "zeiterfassung": showToolZeiterfassung  = true
+        case "countdown":     showToolCountdown      = true
+        default: break
+        }
+    }
+
     private var toolsStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                Group {
-                    toolChip(icon: "calendar.badge.checkmark", label: "Gewohnheiten",  color: Color(red: 0.3,  green: 0.82, blue: 0.5))  { showToolGewohnheiten  = true }
-                    toolChip(icon: "book.closed.fill",         label: "Journal",       color: Color(red: 0.65, green: 0.35, blue: 1.0))  { showToolJournal       = true }
-toolChip(icon: "chart.line.uptrend.xyaxis",label: "Score",         color: Color(red: 0.2,  green: 0.85, blue: 0.5))  { showToolScore         = true }
-                    toolChip(icon: "quote.bubble.fill",        label: "Motivation",    color: Color(red: 1.0,  green: 0.5,  blue: 0.8))  { showToolMotivation    = true }
-                    toolChip(icon: "drop.fill",                label: "Wasser",        color: Color(red: 0.15, green: 0.75, blue: 0.95)) { showToolWasser        = true }
-                }
-                Group {
-                    toolChip(icon: "moon.zzz.fill",            label: "Schlaf",        color: Color(red: 0.4,  green: 0.3,  blue: 0.9))  { showToolSchlaf        = true }
-                    toolChip(icon: "note.text",                label: "Notizen",       color: Color(red: 1.0,  green: 0.75, blue: 0.2))  { showToolNotizen       = true }
-                    toolChip(icon: "brain",                    label: "Brain Dump",    color: Color(red: 1.0,  green: 0.55, blue: 0.15)) { showToolBrainDump     = true }
-                    toolChip(icon: "timer.circle.fill",        label: "Zeiterfassung", color: Color(red: 0.3,  green: 0.5,  blue: 1.0))  { showToolZeiterfassung = true }
-                    toolChip(icon: "hourglass",                label: "Countdown",     color: Color(red: 0.5,  green: 0.3,  blue: 1.0))  { showToolCountdown     = true }
+                ForEach(orderedTools, id: \.id) { tool in
+                    toolChip(tool: tool)
+                        .opacity(draggedToolId == tool.id ? 0.4 : 1.0)
+                        .scaleEffect(draggedToolId == tool.id ? 0.9 : 1.0)
+                        .animation(.spring(response: 0.3), value: draggedToolId)
+                        .onDrag {
+                            draggedToolId = tool.id
+                            return NSItemProvider(object: tool.id as NSString)
+                        }
+                        .onDrop(of: [.text], delegate: ToolDropDelegate(
+                            toolId:      tool.id,
+                            toolOrder:   $toolOrder,
+                            draggedId:   $draggedToolId,
+                            onSave:      saveToolOrder
+                        ))
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
         .background(Color.clear)
+        .onAppear { loadToolOrder() }
     }
 
-    private func toolChip(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func toolChip(tool: ToolDef) -> some View {
+        Button { actionForTool(tool.id) } label: {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
-                        .fill(color.opacity(0.18))
+                        .fill(tool.color.opacity(0.18))
                         .frame(width: 42, height: 42)
-                    Image(systemName: icon)
+                    Image(systemName: tool.icon)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(color)
+                        .foregroundStyle(tool.color)
                 }
-                Text(label)
+                Text(tool.label)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.primary.opacity(0.75))
                     .lineLimit(1)
@@ -2467,6 +2527,43 @@ struct CategoryButton: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Tool Strip Models
+
+struct ToolDef: Identifiable {
+    let id: String
+    let icon: String
+    let label: String
+    let r: Double, g: Double, b: Double
+    var color: Color { Color(red: r, green: g, blue: b) }
+}
+
+struct ToolDropDelegate: DropDelegate {
+    let toolId:    String
+    @Binding var toolOrder: [String]
+    @Binding var draggedId: String?
+    let onSave: () -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let dragged = draggedId, dragged != toolId else { return }
+        guard let from = toolOrder.firstIndex(of: dragged),
+              let to   = toolOrder.firstIndex(of: toolId) else { return }
+        withAnimation(.spring(response: 0.3)) {
+            toolOrder.move(fromOffsets: IndexSet(integer: from),
+                           toOffset: to > from ? to + 1 : to)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedId = nil
+        onSave()
+        return true
     }
 }
 
