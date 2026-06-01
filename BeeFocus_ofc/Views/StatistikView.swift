@@ -39,6 +39,9 @@ struct StatistikView: View {
     @State private var showWasser = false
     @State private var showZiele = false
     @State private var showBrainDump = false
+    @State private var showStimmung = false
+    @State private var showSchlaf = false
+    @State private var showNotizen = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -582,6 +585,40 @@ struct StatistikView: View {
                 }
             }
         }
+        sectionsExtra
+    }
+
+    @ViewBuilder private var sectionsExtra: some View {
+        animatedSection(delay: 0.54) {
+            sectionGroup(icon: "face.smiling.fill", label: "Stimmungs-Tracker", color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
+                glassCard {
+                    Button { showStimmung = true } label: {
+                        iconNavRow(icon: "face.smiling.fill", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: "Tägliche Stimmung & Wohlbefinden")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.56) {
+            sectionGroup(icon: "moon.zzz.fill", label: "Schlaf-Tracker", color: Color(red: 0.4, green: 0.3, blue: 0.9)) {
+                glassCard {
+                    Button { showSchlaf = true } label: {
+                        iconNavRow(icon: "moon.zzz.fill", color: Color(red: 0.4, green: 0.3, blue: 0.9), label: "Schlafdauer & Schlafqualität")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        animatedSection(delay: 0.58) {
+            sectionGroup(icon: "note.text", label: "Schnell-Notizen", color: Color(red: 1.0, green: 0.75, blue: 0.2)) {
+                glassCard {
+                    Button { showNotizen = true } label: {
+                        iconNavRow(icon: "note.text", color: Color(red: 1.0, green: 0.75, blue: 0.2), label: "Notizen & Ideen festhalten")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: - Body
@@ -653,6 +690,15 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showBrainDump) {
                 BrainDumpView().environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showStimmung) {
+                StimmungsTrackerView()
+            }
+            .sheet(isPresented: $showSchlaf) {
+                SchlafTrackerView()
+            }
+            .sheet(isPresented: $showNotizen) {
+                NotizView()
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
