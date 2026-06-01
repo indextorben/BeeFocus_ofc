@@ -580,18 +580,21 @@ struct TodoListView: View {
     private var toolsStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                toolChip(icon: "calendar.badge.checkmark",label: "Gewohnheiten",color: Color(red: 0.3, green: 0.82, blue: 0.5)) { showToolGewohnheiten = true }
-                toolChip(icon: "book.closed.fill",        label: "Journal",    color: Color(red: 0.65, green: 0.35, blue: 1.0))  { showToolJournal     = true }
-                toolChip(icon: "trophy.fill",             label: "Challenges", color: Color(red: 1.0,  green: 0.7,  blue: 0.2))  { showToolChallenges  = true }
-                toolChip(icon: "chart.line.uptrend.xyaxis", label: "Score",   color: Color(red: 0.2,  green: 0.85, blue: 0.5))  { showToolScore       = true }
-                toolChip(icon: "quote.bubble.fill",      label: "Motivation", color: Color(red: 1.0,  green: 0.5,  blue: 0.8))  { showToolMotivation  = true }
-                toolChip(icon: "drop.fill",              label: "Wasser",     color: Color(red: 0.15, green: 0.75, blue: 0.95)) { showToolWasser      = true }
-                toolChip(icon: "moon.zzz.fill",          label: "Schlaf",     color: Color(red: 0.4,  green: 0.3,  blue: 0.9))  { showToolSchlaf      = true }
-
-                toolChip(icon: "note.text",              label: "Notizen",    color: Color(red: 1.0,  green: 0.75, blue: 0.2))  { showToolNotizen     = true }
-                toolChip(icon: "brain",                  label: "Brain Dump", color: Color(red: 1.0,  green: 0.55, blue: 0.15)) { showToolBrainDump   = true }
-                toolChip(icon: "timer.circle.fill",      label: "Zeiterfassung", color: Color(red: 0.3, green: 0.5, blue: 1.0)) { showToolZeiterfassung = true }
-                toolChip(icon: "hourglass",              label: "Countdown",  color: Color(red: 0.5,  green: 0.3,  blue: 1.0))  { showToolCountdown   = true }
+                Group {
+                    toolChip(icon: "calendar.badge.checkmark", label: "Gewohnheiten",  color: Color(red: 0.3,  green: 0.82, blue: 0.5))  { showToolGewohnheiten  = true }
+                    toolChip(icon: "book.closed.fill",         label: "Journal",       color: Color(red: 0.65, green: 0.35, blue: 1.0))  { showToolJournal       = true }
+                    toolChip(icon: "trophy.fill",              label: "Challenges",    color: Color(red: 1.0,  green: 0.7,  blue: 0.2))  { showToolChallenges    = true }
+                    toolChip(icon: "chart.line.uptrend.xyaxis",label: "Score",         color: Color(red: 0.2,  green: 0.85, blue: 0.5))  { showToolScore         = true }
+                    toolChip(icon: "quote.bubble.fill",        label: "Motivation",    color: Color(red: 1.0,  green: 0.5,  blue: 0.8))  { showToolMotivation    = true }
+                    toolChip(icon: "drop.fill",                label: "Wasser",        color: Color(red: 0.15, green: 0.75, blue: 0.95)) { showToolWasser        = true }
+                }
+                Group {
+                    toolChip(icon: "moon.zzz.fill",            label: "Schlaf",        color: Color(red: 0.4,  green: 0.3,  blue: 0.9))  { showToolSchlaf        = true }
+                    toolChip(icon: "note.text",                label: "Notizen",       color: Color(red: 1.0,  green: 0.75, blue: 0.2))  { showToolNotizen       = true }
+                    toolChip(icon: "brain",                    label: "Brain Dump",    color: Color(red: 1.0,  green: 0.55, blue: 0.15)) { showToolBrainDump     = true }
+                    toolChip(icon: "timer.circle.fill",        label: "Zeiterfassung", color: Color(red: 0.3,  green: 0.5,  blue: 1.0))  { showToolZeiterfassung = true }
+                    toolChip(icon: "hourglass",                label: "Countdown",     color: Color(red: 0.5,  green: 0.3,  blue: 1.0))  { showToolCountdown     = true }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
