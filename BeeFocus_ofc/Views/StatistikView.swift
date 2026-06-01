@@ -42,6 +42,8 @@ struct StatistikView: View {
     @State private var showStimmung = false
     @State private var showSchlaf = false
     @State private var showNotizen = false
+    @State private var showKIAnalyse = false
+    @State private var showKIReflexion = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -619,6 +621,44 @@ struct StatistikView: View {
                 }
             }
         }
+        animatedSection(delay: 0.60) {
+            sectionGroup(icon: "brain.head.profile", label: "KI-Aufgaben-Analyse", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+                glassCard {
+                    Button { showKIAnalyse = true } label: {
+                        iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "KI analysiert deine Aufgaben & Prioritäten")
+                    }
+                    .buttonStyle(.plain)
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
+                        Text("Pro KI-Feature")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
+                    }
+                    .padding(.horizontal, 14).padding(.bottom, 10)
+                }
+            }
+        }
+        animatedSection(delay: 0.62) {
+            sectionGroup(icon: "moon.stars.fill", label: "KI-Tagesreflexion", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
+                glassCard {
+                    Button { showKIReflexion = true } label: {
+                        iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Persönliche KI-Reflexion deines Tages")
+                    }
+                    .buttonStyle(.plain)
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.8))
+                        Text("Pro KI-Feature")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.8))
+                    }
+                    .padding(.horizontal, 14).padding(.bottom, 10)
+                }
+            }
+        }
     }
 
     // MARK: - Body
@@ -699,6 +739,14 @@ struct StatistikView: View {
             }
             .sheet(isPresented: $showNotizen) {
                 NotizView()
+            }
+            .sheet(isPresented: $showKIAnalyse) {
+                KIAufgabenAnalyseView(todos: todoStore.todos)
+                    .environmentObject(todoStore)
+            }
+            .sheet(isPresented: $showKIReflexion) {
+                KITagesreflexionView(todos: todoStore.todos)
+                    .environmentObject(todoStore)
             }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
