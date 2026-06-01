@@ -147,10 +147,10 @@ struct KIAufgabenZerteilerView: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity).padding(.vertical, 13)
                 .background(
-                    aufgabenTitel.trimmingCharacters(in: .whitespaces).isEmpty
-                    ? Color.secondary.opacity(0.3)
-                    : LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing),
-                    in: RoundedRectangle(cornerRadius: 13)
+                    RoundedRectangle(cornerRadius: 13)
+                        .fill(aufgabenTitel.trimmingCharacters(in: .whitespaces).isEmpty
+                              ? AnyShapeStyle(Color.secondary.opacity(0.3))
+                              : AnyShapeStyle(LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing)))
                 )
             }
             .buttonStyle(.plain)
