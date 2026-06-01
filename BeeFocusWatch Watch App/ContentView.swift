@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Theme accent color
+// MARK: - Theme accent
 
 private func themeAccent(for theme: String) -> Color {
     switch theme {
@@ -17,37 +17,85 @@ private func themeAccent(for theme: String) -> Color {
     }
 }
 
-// MARK: - Time formatter (shared)
+// MARK: - Formatters
 
 private let timeFmt: DateFormatter = {
-    let f = DateFormatter()
-    f.dateFormat = "HH:mm"
-    return f
+    let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+}()
+private let dateFmt: DateFormatter = {
+    let f = DateFormatter(); f.locale = Locale(identifier: "de"); f.dateFormat = "d. MMM"; return f
 }()
 
-private let dateFmt: DateFormatter = {
-    let f = DateFormatter()
-    f.locale = Locale(identifier: "de")
-    f.dateFormat = "d. MMM"
-    return f
-}()
+// MARK: - Tab
+
+enum WatchTab: String, CaseIterable {
+    case heute     = "Heute"
+    case tagesplan = "Tagesplan"
+    case monat     = "Monat"
+
+    var icon: String {
+        switch self {
+        case .heute:     return "sun.max.fill"
+        case .tagesplan: return "rectangle.stack.fill"
+        case .monat:     return "calendar"
+        }
+    }
+}
 
 // MARK: - Root
 
 struct ContentView: View {
     @StateObject private var session = WatchSessionManager.shared
-    @State private var tab = 0
+    @State private var activeTab: WatchTab = .heute
 
     var accent: Color { themeAccent(for: session.snapshot.activeTheme) }
 
     var body: some View {
-        TabView(selection: $tab) {
-            TodayView(session: session, accent: accent).tag(0)
-            TagesplanView(session: session, accent: accent).tag(1)
-            MonatView(session: session, accent: accent).tag(2)
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Tab bar
+                tabBar
+
+                // Content
+                Group {
+                    switch activeTab {
+                    case .heute:
+                        TodayView(session: session, accent: accent)
+                    case .tagesplan:
+                        TagesplanView(session: session, accent: accent)
+                    case .monat:
+                        MonatView(session: session, accent: accent)
+                    }
+                }
+            }
         }
-        .tabViewStyle(.page)
         .onAppear { session.loadSnapshot() }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(WatchTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { activeTab = tab }
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 14, weight: activeTab == tab ? .semibold : .regular))
+                            .foregroundStyle(activeTab == tab ? accent : .secondary)
+                        Text(tab.rawValue)
+                            .font(.system(size: 9, weight: activeTab == tab ? .semibold : .regular))
+                            .foregroundStyle(activeTab == tab ? accent : .secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(activeTab == tab ? accent.opacity(0.15) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 4)
     }
 }
 
@@ -62,14 +110,12 @@ struct TodayView: View {
 
     var body: some View {
         List {
-            // Header
             Section {
                 statsRow
             }
             .listRowBackground(Color.clear)
             .listRowInsets(.init())
 
-            // Tasks
             if snap.topTasks.isEmpty {
                 Section {
                     Label("Alles erledigt!", systemImage: "checkmark.seal.fill")
@@ -78,7 +124,7 @@ struct TodayView: View {
                 }
                 .listRowBackground(Color.clear)
             } else {
-                Section(header: Text("HEUTE").font(.system(size: 10, weight: .semibold)).foregroundStyle(accent)) {
+                Section {
                     ForEach(snap.topTasks) { task in
                         TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
                             session.completeTask(id: task.id)
@@ -88,25 +134,24 @@ struct TodayView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("BeeFocus")
     }
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            statPill(n: snap.dueTodayCount,      label: "Heute",    color: accent)
-            Divider().frame(height: 24).padding(.horizontal, 6)
-            statPill(n: snap.completedTodayCount, label: "Erledigt", color: .green)
+            statCell(n: snap.dueTodayCount,       label: "Heute",     color: accent)
+            Divider().frame(height: 22).padding(.horizontal, 4)
+            statCell(n: snap.completedTodayCount, label: "Erledigt",  color: .green)
             if snap.overdueCount > 0 {
-                Divider().frame(height: 24).padding(.horizontal, 6)
-                statPill(n: snap.overdueCount, label: "Überfällig", color: .orange)
+                Divider().frame(height: 22).padding(.horizontal, 4)
+                statCell(n: snap.overdueCount,    label: "Überfällig", color: .orange)
             }
         }
         .padding(.vertical, 4)
     }
 
-    private func statPill(n: Int, label: String, color: Color) -> some View {
+    private func statCell(n: Int, label: String, color: Color) -> some View {
         VStack(spacing: 1) {
-            Text("\(n)").font(.system(size: 20, weight: .bold)).foregroundStyle(color)
+            Text("\(n)").font(.system(size: 18, weight: .bold)).foregroundStyle(color)
             Text(label).font(.system(size: 9)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -122,7 +167,6 @@ struct TaskRow: View {
     let onComplete: () -> Void
 
     var isDone: Bool { doneIDs.contains(task.id) }
-
     var rowAccent: Color {
         if task.isOverdue { return .orange }
         if let hex = task.categoryColorHex { return Color(hexString: hex) }
@@ -136,7 +180,6 @@ struct TaskRow: View {
             onComplete()
         } label: {
             HStack(alignment: .top, spacing: 10) {
-                // Checkbox
                 ZStack {
                     Circle()
                         .strokeBorder(isDone ? Color.green : rowAccent, lineWidth: 2)
@@ -150,47 +193,35 @@ struct TaskRow: View {
                 .padding(.top, 1)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    // Title
                     Text(task.title)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(isDone ? .secondary : .primary)
                         .strikethrough(isDone)
                         .lineLimit(2)
 
-                    // Time
                     if let due = task.dueDate {
                         HStack(spacing: 4) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 9))
+                            Image(systemName: "clock").font(.system(size: 9))
                                 .foregroundStyle(task.isOverdue ? .orange : .secondary)
-                            Text(timeString(due: due, end: task.endDate))
+                            Text(timeStr(due: due, end: task.endDate))
                                 .font(.system(size: 11))
                                 .foregroundStyle(task.isOverdue ? .orange : .secondary)
                         }
                     }
 
-                    // Category + Subtasks
                     HStack(spacing: 8) {
                         if let cat = task.categoryName {
                             HStack(spacing: 4) {
-                                Circle()
-                                    .fill(task.categoryColor)
-                                    .frame(width: 6, height: 6)
-                                Text(cat)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(task.categoryColor)
-                                    .lineLimit(1)
+                                Circle().fill(task.categoryColor).frame(width: 6, height: 6)
+                                Text(cat).font(.system(size: 11)).foregroundStyle(task.categoryColor).lineLimit(1)
                             }
                         }
                         if task.subTasksTotal > 0 {
                             Text("\(task.subTasksCompleted)/\(task.subTasksTotal)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
                         if task.isFavorite {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.yellow)
+                            Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(.yellow)
                         }
                     }
                 }
@@ -206,7 +237,7 @@ struct TaskRow: View {
         )
     }
 
-    private func timeString(due: Date, end: Date?) -> String {
+    private func timeStr(due: Date, end: Date?) -> String {
         guard let end else { return timeFmt.string(from: due) }
         return "\(timeFmt.string(from: due)) – \(timeFmt.string(from: end))"
     }
@@ -223,12 +254,11 @@ struct TagesplanView: View {
             if session.snapshot.todayBausteine.isEmpty {
                 Section {
                     Label("Keine Bausteine für heute", systemImage: "rectangle.stack")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 .listRowBackground(Color.clear)
             } else {
-                Section(header: Text("TAGESPLAN").font(.system(size: 10, weight: .semibold)).foregroundStyle(accent)) {
+                Section {
                     ForEach(session.snapshot.todayBausteine) { b in
                         BausteinRow(baustein: b)
                     }
@@ -236,7 +266,6 @@ struct TagesplanView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Tagesplan")
     }
 }
 
@@ -245,7 +274,6 @@ struct BausteinRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Icon circle
             ZStack {
                 Circle()
                     .fill(baustein.farbe.opacity(0.2))
@@ -256,14 +284,19 @@ struct BausteinRow: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(baustein.titel)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(2)
-
+                HStack(spacing: 4) {
+                    if baustein.isHighPriority {
+                        Image(systemName: "exclamationmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.orange)
+                    }
+                    Text(baustein.titel)
+                        .font(.system(size: 14, weight: .semibold))
+                        .lineLimit(2)
+                }
                 Text(baustein.zeitLabel)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-
                 if !baustein.beschreibung.isEmpty {
                     Text(baustein.beschreibung)
                         .font(.system(size: 11))
@@ -297,8 +330,7 @@ struct MonatView: View {
             ) {
                 if session.snapshot.monthTasks.isEmpty {
                     Label("Alles erledigt!", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                        .font(.footnote)
+                        .foregroundStyle(.green).font(.footnote)
                         .listRowBackground(Color.clear)
                 } else {
                     ForEach(session.snapshot.monthTasks) { task in
@@ -310,7 +342,6 @@ struct MonatView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Monat")
     }
 }
 
@@ -352,8 +383,7 @@ struct MonatTaskRow: View {
                         }
                         if task.subTasksTotal > 0 {
                             Text("\(task.subTasksCompleted)/\(task.subTasksTotal)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
                     }
                 }
