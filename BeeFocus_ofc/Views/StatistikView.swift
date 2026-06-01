@@ -157,6 +157,9 @@ struct StatistikView: View {
         case "Sonnenuntergang":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
         case "Galaxie":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
         case "Nordlicht":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
+        case "Aurora":         return (Color(red: 0.0, green: 0.9, blue: 0.8), Color(red: 0.5, green: 0.0, blue: 1.0), Color(red: 0.9, green: 0.0, blue: 1.0))
+        case "Obsidian":       return (Color(red: 0.85, green: 0.65, blue: 0.1), Color(red: 0.6, green: 0.42, blue: 0.04), Color(red: 1.0, green: 0.85, blue: 0.3))
+        case "Nebula":         return (Color(red: 1.0, green: 0.15, blue: 0.6), Color(red: 0.45, green: 0.0, blue: 0.85), Color(red: 0.1, green: 0.55, blue: 1.0))
         default:               return (.purple, .blue, Color(red: 0.4, green: 0.2, blue: 0.9))
         }
     }
@@ -206,7 +209,10 @@ struct StatistikView: View {
         StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink,                              beschreibung: "Zarte Blüten, japanisches Frühjahr"),
         StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6), beschreibung: "Magisches Aurora-Spektakel"),
         StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red,                               beschreibung: "Brennende Intensität, pure Kraft"),
-        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000, farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endloses Universum, kosmische Tiefe"),
+        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000,  farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endloses Universum, kosmische Tiefe"),
+        StoreItem(name: "Aurora",          icon: "aqi.high",                 kosten: 10000, farbe: Color(red: 0.0, green: 0.9, blue: 0.8), beschreibung: "Elektrischer Auroraschimmer · Exklusiv"),
+        StoreItem(name: "Obsidian",        icon: "crown.fill",               kosten: 15000, farbe: Color(red: 0.85, green: 0.65, blue: 0.1), beschreibung: "Edler Obsidian, reines Gold · Prestige"),
+        StoreItem(name: "Nebula",          icon: "rays",                     kosten: 20000, farbe: Color(red: 1.0, green: 0.2, blue: 0.65), beschreibung: "Kosmischer Nebel, unendliche Tiefe · Legendär"),
 
         // Timer-Modi
         StoreItem(name: "Tiefenfokus",    icon: "brain.head.profile",        kosten: 800,  farbe: .indigo, tab: .timer,

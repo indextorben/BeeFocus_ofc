@@ -983,6 +983,9 @@ struct ThemeBackgroundView: View {
             if aktivesThema == "Kirschblüte"    { KirschblueteDecorationLayer().transition(.opacity) }
             if aktivesThema == "Lavendel"       { LavendelDecorationLayer().transition(.opacity) }
             if aktivesThema == "Sonnenuntergang"{ SonnenuntergangDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Aurora"         { AuroraDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Obsidian"       { ObsidianDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Nebula"         { NebulaDecorationLayer().transition(.opacity) }
         }
         .animation(.easeInOut(duration: 0.8), value: aktivesThema)
         .ignoresSafeArea()
@@ -1055,6 +1058,9 @@ func appThemaFarben(_ name: String) -> (Color, Color, Color) {
     case "Sonnenuntergang":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
     case "Galaxie":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
     case "Nordlicht":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
+    case "Aurora":         return (Color(red: 0.0, green: 0.9, blue: 0.8), Color(red: 0.5, green: 0.0, blue: 1.0), Color(red: 0.9, green: 0.0, blue: 1.0))
+    case "Obsidian":       return (Color(red: 0.85, green: 0.65, blue: 0.1), Color(red: 0.6, green: 0.42, blue: 0.04), Color(red: 1.0, green: 0.85, blue: 0.3))
+    case "Nebula":         return (Color(red: 1.0, green: 0.15, blue: 0.6), Color(red: 0.45, green: 0.0, blue: 0.85), Color(red: 0.1, green: 0.55, blue: 1.0))
     default:               return (.purple, .blue, Color(red: 0.4, green: 0.2, blue: 0.9))
     }
 }
@@ -1098,6 +1104,9 @@ struct TaskCardThemeDecoration: View {
         else if theme == "Sonnenuntergang"  { SunsetCardDeco(isDark: isDark, isActive: isActive) }
         else if theme == "Galaxie"          { GalaxieCardDeco(isDark: isDark, isActive: isActive) }
         else if theme == "Nordlicht"        { NordlichtCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Aurora"           { AuroraCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Obsidian"         { ObsidianCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Nebula"           { NebulaCardDeco(isDark: isDark, isActive: isActive) }
     }
 }
 
@@ -1826,6 +1835,251 @@ private struct NordlichtCardDeco: View {
             withAnimation(.easeInOut(duration: 5.5).repeatForever(autoreverses: true))              { sway = 24 }
             withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true).delay(0.5))   { glow = 1.0 }
             withAnimation(.easeInOut(duration: 7.0).repeatForever(autoreverses: true).delay(1.0))   { wave = -16 }
+        }
+    }
+}
+
+// MARK: - Aurora Decoration
+
+struct AuroraDecorationLayer: View {
+    @State private var shift: CGFloat = 0
+    @State private var pulse: Double  = 0.55
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack {
+                ForEach(0..<5, id: \.self) { i in
+                    let colors: [(Color, Color)] = [
+                        (Color(red: 0.0, green: 0.9, blue: 0.8), Color(red: 0.5, green: 0.0, blue: 1.0)),
+                        (Color(red: 0.9, green: 0.0, blue: 1.0), Color(red: 0.0, green: 0.9, blue: 0.8)),
+                        (Color(red: 0.4, green: 0.0, blue: 1.0), Color(red: 0.0, green: 0.85, blue: 0.7)),
+                        (Color(red: 0.0, green: 0.8, blue: 0.9), Color(red: 0.85, green: 0.0, blue: 0.9)),
+                        (Color(red: 0.6, green: 0.0, blue: 1.0), Color(red: 0.0, green: 1.0, blue: 0.75)),
+                    ]
+                    let (c1, c2) = colors[i]
+                    let yFrac = 0.08 + Double(i) * 0.06
+                    Ellipse()
+                        .fill(LinearGradient(colors: [c1.opacity(0.30), c2.opacity(0.18), .clear],
+                                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: w * 1.3, height: h * 0.12)
+                        .offset(x: shift * CGFloat(i % 2 == 0 ? 1 : -1) * 0.7,
+                                y: h * yFrac - h * 0.15)
+                        .blur(radius: 22)
+                        .opacity(pulse)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 6.0).repeatForever(autoreverses: true))            { shift = 30 }
+            withAnimation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true).delay(0.8)) { pulse = 1.0 }
+        }
+    }
+}
+
+// MARK: - Obsidian Decoration
+
+struct ObsidianDecorationLayer: View {
+    @State private var shimmer: CGFloat = -1.0
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red: 0.05, green: 0.04, blue: 0.06).opacity(0.55), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                ForEach(0..<8, id: \.self) { i in
+                    let y = h * (0.1 + Double(i) * 0.11)
+                    let angle = Double(i) * 22.5
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.85, blue: 0.3).opacity(0.0),
+                                         Color(red: 1.0, green: 0.85, blue: 0.3).opacity(0.18),
+                                         Color(red: 1.0, green: 0.85, blue: 0.3).opacity(0.0)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: w * 1.6, height: 1.5)
+                        .rotationEffect(.degrees(angle))
+                        .offset(x: (shimmer * w) - w * 0.3, y: y - h * 0.5)
+                }
+                RadialGradient(
+                    colors: [Color(red: 0.85, green: 0.65, blue: 0.1).opacity(0.22), .clear],
+                    center: .center, startRadius: 0, endRadius: min(w, h) * 0.6
+                )
+            }
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 4.5).repeatForever(autoreverses: false)) { shimmer = 2.0 }
+        }
+    }
+}
+
+// MARK: - Nebula Decoration
+
+struct NebulaDecorationLayer: View {
+    @State private var drift: CGFloat = 0
+    @State private var glow: Double   = 0.45
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack {
+                let nebulaColors: [(CGFloat, CGFloat, Color, Double)] = [
+                    (0.25, 0.30, Color(red: 1.0, green: 0.15, blue: 0.6), 0.28),
+                    (0.70, 0.55, Color(red: 0.45, green: 0.0, blue: 0.85), 0.22),
+                    (0.50, 0.75, Color(red: 0.1, green: 0.55, blue: 1.0), 0.18),
+                    (0.15, 0.65, Color(red: 0.9, green: 0.0, blue: 0.5), 0.15),
+                    (0.80, 0.25, Color(red: 0.3, green: 0.0, blue: 0.9), 0.20),
+                ]
+                ForEach(0..<5, id: \.self) { i in
+                    let (xFrac, yFrac, color, opacity) = nebulaColors[i]
+                    let driftDir: CGFloat = i % 2 == 0 ? 1 : -1
+                    Ellipse()
+                        .fill(RadialGradient(
+                            colors: [color.opacity(opacity * glow / 0.45), .clear],
+                            center: .center, startRadius: 0, endRadius: min(w, h) * 0.4
+                        ))
+                        .frame(width: min(w, h) * 0.75, height: min(w, h) * 0.5)
+                        .position(x: w * xFrac + drift * driftDir * 14,
+                                  y: h * yFrac + drift * driftDir * 8)
+                        .blur(radius: 28)
+                }
+                ForEach(0..<60, id: \.self) { i in
+                    let xPos = CGFloat(i * 127 % Int(w == 0 ? 1 : w))
+                    let yPos = CGFloat(i * 83  % Int(h == 0 ? 1 : h))
+                    let size = CGFloat(1 + i % 3) * 0.6
+                    Circle()
+                        .fill(Color.white.opacity(Double(i % 5) * 0.04 + 0.04))
+                        .frame(width: size, height: size)
+                        .position(x: xPos, y: yPos)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 7.0).repeatForever(autoreverses: true))            { drift = 1.0 }
+            withAnimation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true).delay(1.0)) { glow = 1.0 }
+        }
+    }
+}
+
+// MARK: - Aurora Card Deco
+
+private struct AuroraCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var shift: CGFloat = 0
+    @State private var glow: Double   = 0.55
+
+    var body: some View {
+        let boost: Double = isActive ? 1.6 : 1.0
+        GeometryReader { geo in
+            let w = geo.size.width
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red: 0.0, green: 0.15, blue: 0.18).opacity(isDark ? 0.20 : 0.08), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                Ellipse()
+                    .fill(LinearGradient(
+                        colors: [Color(red: 0.0, green: 0.9, blue: 0.8).opacity((isDark ? 0.28 : 0.14) * boost * glow),
+                                 Color(red: 0.5, green: 0.0, blue: 1.0).opacity((isDark ? 0.18 : 0.09) * boost * glow),
+                                 .clear],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: w * 1.2, height: 36)
+                    .position(x: w * 0.5 + shift, y: 12)
+                    .blur(radius: 12)
+                Ellipse()
+                    .fill(Color(red: 0.9, green: 0.0, blue: 1.0).opacity((isDark ? 0.16 : 0.08) * boost * glow))
+                    .frame(width: w * 0.7, height: 20)
+                    .position(x: w * 0.5 - shift * 0.6, y: 28)
+                    .blur(radius: 9)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 5.0).repeatForever(autoreverses: true))            { shift = 20 }
+            withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true).delay(0.5)) { glow = 1.0 }
+        }
+    }
+}
+
+// MARK: - Obsidian Card Deco
+
+private struct ObsidianCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var shimmer: CGFloat = -1.0
+
+    var body: some View {
+        let boost: Double = isActive ? 1.6 : 1.0
+        GeometryReader { geo in
+            let w = geo.size.width
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red: 0.06, green: 0.05, blue: 0.08).opacity(isDark ? 0.30 : 0.12), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                Rectangle()
+                    .fill(LinearGradient(
+                        colors: [Color.clear,
+                                 Color(red: 1.0, green: 0.85, blue: 0.3).opacity((isDark ? 0.40 : 0.22) * boost),
+                                 Color.clear],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: w * 0.55, height: 44)
+                    .offset(x: shimmer * w, y: -6)
+                    .blur(radius: 6)
+                    .clipped()
+            }
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 3.5).repeatForever(autoreverses: false)) { shimmer = 1.8 }
+        }
+    }
+}
+
+// MARK: - Nebula Card Deco
+
+private struct NebulaCardDeco: View {
+    let isDark: Bool
+    let isActive: Bool
+    @State private var glow: Double = 0.50
+
+    var body: some View {
+        let boost: Double = isActive ? 1.6 : 1.0
+        GeometryReader { geo in
+            let w = geo.size.width
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red: 0.12, green: 0.0, blue: 0.18).opacity(isDark ? 0.22 : 0.10), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                Ellipse()
+                    .fill(Color(red: 1.0, green: 0.15, blue: 0.6).opacity((isDark ? 0.22 : 0.11) * boost * glow))
+                    .frame(width: w * 0.6, height: 30)
+                    .position(x: w * 0.3, y: 14)
+                    .blur(radius: 13)
+                Ellipse()
+                    .fill(Color(red: 0.45, green: 0.0, blue: 0.85).opacity((isDark ? 0.18 : 0.09) * boost * glow))
+                    .frame(width: w * 0.55, height: 26)
+                    .position(x: w * 0.72, y: 20)
+                    .blur(radius: 10)
+                Ellipse()
+                    .fill(Color(red: 0.1, green: 0.55, blue: 1.0).opacity((isDark ? 0.14 : 0.07) * boost * glow))
+                    .frame(width: w * 0.40, height: 18)
+                    .position(x: w * 0.5, y: 32)
+                    .blur(radius: 8)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true)) { glow = 1.0 }
         }
     }
 }
