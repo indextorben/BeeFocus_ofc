@@ -83,11 +83,7 @@ struct TagesMotivationView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.07, green: 0.07, blue: 0.13), Color(red: 0.12, green: 0.06, blue: 0.18)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            ThemeBackgroundView().ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header

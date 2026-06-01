@@ -26,11 +26,7 @@ struct NotizView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.05, green: 0.05, blue: 0.13),
-                             Color(red: 0.09, green: 0.05, blue: 0.20)],
-                    startPoint: .top, endPoint: .bottom
-                ).ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     searchBar
@@ -497,11 +493,7 @@ struct NotizEditorView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.05, green: 0.05, blue: 0.13),
-                             Color(red: 0.09, green: 0.05, blue: 0.20)],
-                    startPoint: .top, endPoint: .bottom
-                ).ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     titelField

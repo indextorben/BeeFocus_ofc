@@ -60,11 +60,7 @@ struct KITagesreflexionView: View {
         NavigationStack {
             ZStack {
                 // Softer evening gradient
-                LinearGradient(
-                    colors: [Color(red: 0.08, green: 0.06, blue: 0.18),
-                             Color(red: 0.14, green: 0.06, blue: 0.22)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                ).ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {

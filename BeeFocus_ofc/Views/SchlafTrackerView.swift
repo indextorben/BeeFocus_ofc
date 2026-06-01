@@ -21,11 +21,7 @@ struct SchlafTrackerView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.04, green: 0.04, blue: 0.14),
-                         Color(red: 0.08, green: 0.06, blue: 0.22)],
-                startPoint: .top, endPoint: .bottom
-            ).ignoresSafeArea()
+            ThemeBackgroundView().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {

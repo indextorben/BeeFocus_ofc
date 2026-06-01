@@ -60,11 +60,7 @@ struct KIWochenberichtView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.04, green: 0.06, blue: 0.18),
-                             Color(red: 0.06, green: 0.1, blue: 0.22)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                ).ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {

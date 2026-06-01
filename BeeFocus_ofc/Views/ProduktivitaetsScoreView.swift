@@ -76,12 +76,7 @@ struct ProduktivitaetsScoreView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.07, green: 0.07, blue: 0.13),
-                         Color(red: 0.1,  green: 0.06, blue: 0.18)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            ThemeBackgroundView().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {

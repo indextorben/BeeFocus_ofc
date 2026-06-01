@@ -14,11 +14,7 @@ struct WasserTrackerView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.05, green: 0.08, blue: 0.18), Color(red: 0.07, green: 0.12, blue: 0.22)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            ThemeBackgroundView().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {

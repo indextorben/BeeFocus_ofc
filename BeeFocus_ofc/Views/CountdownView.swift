@@ -9,11 +9,7 @@ struct CountdownView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.1, green: 0.15, blue: 0.35), Color(red: 0.25, green: 0.1, blue: 0.45)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 20) {

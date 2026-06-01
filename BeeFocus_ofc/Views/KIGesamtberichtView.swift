@@ -48,11 +48,7 @@ struct KIGesamtberichtView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.04, green: 0.04, blue: 0.18),
-                             Color(red: 0.08, green: 0.05, blue: 0.24)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                ).ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {

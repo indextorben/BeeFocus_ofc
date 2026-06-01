@@ -10,11 +10,7 @@ struct ZeiterfassungView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.25, green: 0.45, blue: 1.0), Color(red: 0.55, green: 0.3, blue: 1.0)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -273,11 +269,7 @@ private struct ZeiterfassungAddSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.25, green: 0.45, blue: 1.0), Color(red: 0.55, green: 0.3, blue: 1.0)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 VStack(spacing: 24) {
                     projektSection

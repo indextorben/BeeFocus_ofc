@@ -23,7 +23,7 @@ struct BrainDumpView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.07, green: 0.07, blue: 0.13).ignoresSafeArea()
+                ThemeBackgroundView().ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Input area
