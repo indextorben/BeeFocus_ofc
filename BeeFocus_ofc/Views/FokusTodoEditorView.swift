@@ -45,6 +45,7 @@ struct FokusTodoEditorView: View {
     @State private var selectedImagePreview: IdentifiableUIImage?
 
     @State private var addToCalendar: Bool
+    @State private var selectedCalendar: EKCalendar? = nil
     @State private var calendarAccessDenied = false
     @State private var showCamera = false
     @State private var showCameraPermAlert = false
@@ -110,6 +111,7 @@ struct FokusTodoEditorView: View {
                         prioritySection
                         dateTimeSection
                         if hasDueDate { reminderSection }
+                        if hasDueDate { calendarSection }
                         categorySection
                         subtasksSection
                         recurrenceSection
@@ -176,7 +178,14 @@ struct FokusTodoEditorView: View {
             Button("Abbrechen", role: .cancel) {}
         }
         .alert("Kein Kalender-Zugriff", isPresented: $calendarAccessDenied) {
-            Button("OK", role: .cancel) {}
+            Button("Einstellungen") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Bitte erlaube BeeFocus den Zugriff auf den Kalender in den Einstellungen.")
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker { img in
@@ -406,6 +415,37 @@ struct FokusTodoEditorView: View {
                 .overlay(Capsule().stroke(selected ? Color.clear : themeC1.opacity(0.3), lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Kalender
+    private var calendarSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("Systemkalender", icon: "calendar.badge.plus")
+            VStack(spacing: 0) {
+                Toggle(isOn: $addToCalendar.animation(.spring(response: 0.35))) {
+                    Label("Zum Kalender hinzufügen", systemImage: "calendar")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+                }
+                .tint(themeC1)
+                .padding(.horizontal, 14).padding(.vertical, 13)
+
+                if addToCalendar {
+                    Divider().opacity(0.15).padding(.horizontal, 14)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Kalender auswählen")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 14)
+                            .padding(.top, 10)
+                        CalendarPickerView(selectedCalendar: $selectedCalendar)
+                            .padding(.horizontal, 6)
+                            .padding(.bottom, 6)
+                    }
+                }
+            }
+            .themeGlass(cornerRadius: 16)
+        }
     }
 
     // MARK: - Kategorie
@@ -818,7 +858,7 @@ struct FokusTodoEditorView: View {
             if let off = todo.reminderOffsetMinutes, off >= 0 {
                 event.addAlarm(EKAlarm(relativeOffset: TimeInterval(-off * 60)))
             }
-            event.calendar = store.defaultCalendarForNewEvents
+            event.calendar = selectedCalendar ?? store.defaultCalendarForNewEvents
             try? store.save(event, span: .thisEvent)
         }
     }
