@@ -2,7 +2,7 @@ import Foundation
 import WatchConnectivity
 import Combine
 
-final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
+final class WatchSessionManager: NSObject, ObservableObject {
     static let shared = WatchSessionManager()
 
     @Published var snapshot: WatchSnapshot = .placeholder
@@ -21,14 +21,12 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         WCSession.default.activate()
     }
 
-    // Load from App Group (initial load / fallback)
     func loadSnapshot() {
         guard let data = defaults?.data(forKey: "widgetSnapshot"),
               let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
         DispatchQueue.main.async { self.snapshot = snap }
     }
 
-    // Mark a task as completed: send via WatchConnectivity (live) + App Group (fallback)
     func completeTask(id: UUID) {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(["completeTask": id.uuidString], replyHandler: nil)
@@ -48,17 +46,19 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         guard WCSession.default.isReachable else { return }
         WCSession.default.sendMessage(["toggleHabit": id.uuidString], replyHandler: nil)
     }
+}
 
-    // MARK: - WCSessionDelegate
+// MARK: - WCSessionDelegate
 
-    nonisolated func session(_ session: WCSession,
+extension WatchSessionManager: @preconcurrency WCSessionDelegate {
+    func session(_ session: WCSession,
                  didReceiveApplicationContext applicationContext: [String: Any]) {
-        guard let data = applicationContext["widgetSnapshot"] as? Data else { return }
-        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
+        guard let data = applicationContext["widgetSnapshot"] as? Data,
+              let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
         DispatchQueue.main.async { self.snapshot = snap }
     }
 
-    nonisolated func session(_ session: WCSession,
+    func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data,
