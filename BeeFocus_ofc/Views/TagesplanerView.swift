@@ -567,17 +567,17 @@ struct TagesplanerView: View {
                                 }
                             }
                             // Pencil button sits ABOVE the drag overlay so taps aren't blocked
-                            .overlay(alignment: .bottomTrailing) {
+                            .overlay(alignment: .topTrailing) {
                                 if !isDragging {
                                     Button { itemSheet = .editing(task) } label: {
                                         Image(systemName: "pencil.circle.fill")
-                                            .font(.system(size: 22))
+                                            .font(.system(size: 20))
                                             .foregroundStyle(themeC1.opacity(0.55))
                                             .shadow(color: .black.opacity(0.18), radius: 3, x: 0, y: 1)
                                     }
                                     .buttonStyle(.plain)
-                                    .padding(.trailing, 74)
-                                    .padding(.bottom, 6)
+                                    .padding(.top, 6)
+                                    .padding(.trailing, 8)
                                 }
                             }
 
