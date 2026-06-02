@@ -11,6 +11,7 @@ struct BeeFocusMacApp: App {
     init() {
         UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        MacCloudSettingsSync.shared.start()
     }
 
     var body: some Scene {
