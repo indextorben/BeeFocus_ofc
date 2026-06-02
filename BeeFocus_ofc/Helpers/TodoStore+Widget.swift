@@ -35,6 +35,7 @@ struct WidgetSnapshot: Codable {
     let waterGoalML: Int
     let habits: [WatchHabit]
     let countdownEvents: [WatchCountdown]
+    let isPro: Bool
 }
 
 struct WidgetTask: Codable, Identifiable {
@@ -171,6 +172,8 @@ extension TodoStore {
             .map { e in WatchCountdown(id: e.id, name: e.name, symbol: e.symbol,
                                        farbName: e.farbName, tageVerbleibend: e.tageVerbleibend) }
 
+        let isPro = NSUbiquitousKeyValueStore.default.bool(forKey: "beefocus_isPro")
+
         let snapshot = WidgetSnapshot(
             dueTodayCount: todayTodos.count,
             overdueCount: overdueCount,
@@ -185,7 +188,8 @@ extension TodoStore {
             waterTodayML: waterToday,
             waterGoalML: waterGoal,
             habits: watchHabits,
-            countdownEvents: Array(watchCountdowns)
+            countdownEvents: Array(watchCountdowns),
+            isPro: isPro
         )
 
         if let defaults = UserDefaults(suiteName: beeFocusAppGroup),

@@ -5,6 +5,7 @@ import UserNotifications
 struct BeeFocusMacApp: App {
     @StateObject private var todoStore = MacTodoStore()
     @StateObject private var timerMgr  = MacTimerManager()
+    @StateObject private var subManager = MacSubscriptionManager()
     @AppStorage("aktivesStatistikThema") private var activeTheme: String = ""
 
     init() {
@@ -17,6 +18,7 @@ struct BeeFocusMacApp: App {
             MacMainWindowView()
                 .environmentObject(todoStore)
                 .environmentObject(timerMgr)
+                .environmentObject(subManager)
                 .environment(\.activeTheme, activeTheme)
         }
         .windowResizability(.contentMinSize)
@@ -26,6 +28,7 @@ struct BeeFocusMacApp: App {
             MenuBarContentView()
                 .environmentObject(todoStore)
                 .environmentObject(timerMgr)
+                .environmentObject(subManager)
                 .environment(\.activeTheme, activeTheme)
                 .frame(width: 300)
         } label: {
