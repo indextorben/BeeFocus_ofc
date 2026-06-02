@@ -99,10 +99,19 @@ extension TodoStore {
         let today = cal.startOfDay(for: Date())
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
 
+        // Heute fällige + überfällige + Aufgaben ohne Datum (max. 8 für Watch)
         let todayTodos = todos.filter { todo in
-            guard !todo.isCompleted, let due = todo.dueDate else { return false }
-            return due >= today && due < tomorrow
-        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+            guard !todo.isCompleted else { return false }
+            guard let due = todo.dueDate else { return true }   // kein Datum → immer zeigen
+            return due < tomorrow                               // heute oder überfällig
+        }.sorted {
+            switch ($0.dueDate, $1.dueDate) {
+            case (nil, nil):   return false
+            case (nil, _):     return false
+            case (_, nil):     return true
+            default:           return $0.dueDate! < $1.dueDate!
+            }
+        }
 
         let filterMonthOnly = UserDefaults.standard.bool(forKey: "filterCurrentMonthOnly")
         let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today

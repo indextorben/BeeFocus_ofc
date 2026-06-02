@@ -84,7 +84,14 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
-                 error: Error?) {}
+                 error: Error?) {
+        guard activationState == .activated else { return }
+        // writeWidgetSnapshot() beim App-Start schlägt fehl weil Aktivierung async ist.
+        // Daher: nach Aktivierung den bereits in der App Group gespeicherten Snapshot pushen.
+        if let data = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc")?.data(forKey: "widgetSnapshot") {
+            try? WCSession.default.updateApplicationContext(["widgetSnapshot": data])
+        }
+    }
 
     func sessionDidBecomeInactive(_ session: WCSession) {}
 
