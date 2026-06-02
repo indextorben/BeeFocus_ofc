@@ -7,34 +7,46 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     @Published var snapshot: WatchSnapshot = .placeholder
 
-    private let defaults = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc")
+    // Watch-lokaler Speicher (nicht App Group – die ist gerätegebunden)
+    private let localKey = "watchLocalSnapshot"
 
     private override init() {
         super.init()
-        loadSnapshot()
-        setupWatchConnectivity()
+        loadLocalSnapshot()
+        setupSession()
     }
 
-    private func setupWatchConnectivity() {
+    // MARK: - Lokaler Snapshot (UserDefaults auf der Watch selbst)
+
+    private func loadLocalSnapshot() {
+        guard let data = UserDefaults.standard.data(forKey: localKey),
+              let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
+        snapshot = snap
+    }
+
+    private func saveLocalSnapshot(_ data: Data) {
+        UserDefaults.standard.set(data, forKey: localKey)
+    }
+
+    private func applySnapshotData(_ data: Data) {
+        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
+        saveLocalSnapshot(data)
+        DispatchQueue.main.async { self.snapshot = snap }
+    }
+
+    // MARK: - WatchConnectivity
+
+    private func setupSession() {
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
     }
 
-    func loadSnapshot() {
-        guard let data = defaults?.data(forKey: "widgetSnapshot"),
-              let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
-        DispatchQueue.main.async { self.snapshot = snap }
-    }
+    // MARK: - Watch → iPhone
 
     func completeTask(id: UUID) {
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(["completeTask": id.uuidString], replyHandler: nil)
-        }
-        var pending = defaults?.stringArray(forKey: "watchPendingCompletions") ?? []
-        guard !pending.contains(id.uuidString) else { return }
-        pending.append(id.uuidString)
-        defaults?.set(pending, forKey: "watchPendingCompletions")
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(["completeTask": id.uuidString], replyHandler: nil)
     }
 
     func addWater(ml: Int) {
@@ -51,21 +63,21 @@ final class WatchSessionManager: NSObject, ObservableObject {
 // MARK: - WCSessionDelegate
 
 extension WatchSessionManager: @preconcurrency WCSessionDelegate {
+
+    // Neuer Snapshot vom iPhone empfangen
     func session(_ session: WCSession,
                  didReceiveApplicationContext applicationContext: [String: Any]) {
-        guard let data = applicationContext["widgetSnapshot"] as? Data,
-              let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
-        DispatchQueue.main.async { self.snapshot = snap }
+        guard let data = applicationContext["widgetSnapshot"] as? Data else { return }
+        applySnapshotData(data)
     }
 
+    // Nach Aktivierung: gecachten Kontext prüfen
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
-        if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data,
-           let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) {
-            DispatchQueue.main.async { self.snapshot = snap }
-        } else {
-            DispatchQueue.main.async { self.loadSnapshot() }
+        guard activationState == .activated else { return }
+        if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data {
+            applySnapshotData(data)
         }
     }
 
