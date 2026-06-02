@@ -75,7 +75,6 @@ struct ContentView: View {
                 }
             }
         }
-        .onAppear { session.loadSnapshot() }
     }
 
     private var tabBar: some View {
