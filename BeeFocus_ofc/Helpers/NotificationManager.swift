@@ -203,6 +203,148 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         )
     }
 
+    // MARK: - Habit Reminder
+
+    private let habitReminderID = "habitReminder"
+
+    func scheduleHabitReminder(hour: Int, minute: Int) {
+        cancelHabitReminder()
+        let content = UNMutableNotificationContent()
+        content.title = "✅ Gewohnheiten-Check"
+        content.body  = "Hast du heute deine Gewohnheiten gepflegt?"
+        content.sound = .default
+        var comps = DateComponents(); comps.hour = hour; comps.minute = minute
+        let request = UNNotificationRequest(
+            identifier: habitReminderID, content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelHabitReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [habitReminderID])
+    }
+
+    // MARK: - Water Reminders
+
+    private let waterReminderPrefix = "water_"
+
+    /// Schedules daily water-drink reminders from 8:00 AM to 8:00 PM at `intervalHours` spacing.
+    func scheduleWaterReminders(intervalHours: Int) {
+        cancelWaterReminders()
+        let interval = max(1, intervalHours)
+        let center = UNUserNotificationCenter.current()
+        var hour = 8
+        var index = 0
+        while hour <= 20 && index < 13 {
+            let content = UNMutableNotificationContent()
+            content.title = "💧 Zeit zu trinken"
+            content.body  = "Trink ein Glas Wasser – dein Körper dankt es dir!"
+            content.sound = .default
+            var comps = DateComponents(); comps.hour = hour; comps.minute = 0
+            let request = UNNotificationRequest(
+                identifier: "\(waterReminderPrefix)\(index)", content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+            center.add(request)
+            hour  += interval
+            index += 1
+        }
+    }
+
+    func cancelWaterReminders() {
+        let ids = (0..<13).map { "\(waterReminderPrefix)\($0)" }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    // MARK: - Overdue Alert
+
+    private let overdueAlertID = "overdueAlert"
+
+    func scheduleOverdueAlert(hour: Int, minute: Int) {
+        cancelOverdueAlert()
+        let content = UNMutableNotificationContent()
+        content.title = "⚠️ Offene Aufgaben"
+        content.body  = "Du hast noch überfällige Aufgaben – ein guter Moment, sie zu erledigen."
+        content.sound = .default
+        var comps = DateComponents(); comps.hour = hour; comps.minute = minute
+        let request = UNNotificationRequest(
+            identifier: overdueAlertID, content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelOverdueAlert() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [overdueAlertID])
+    }
+
+    // MARK: - Weekly Review
+
+    private let weeklyReviewID = "weeklyReview"
+
+    /// weekday: 1 = Sonntag, 2 = Montag, … 7 = Samstag (wie NSCalendar)
+    func scheduleWeeklyReview(weekday: Int = 1, hour: Int, minute: Int) {
+        cancelWeeklyReview()
+        let content = UNMutableNotificationContent()
+        content.title = "📋 Wochenrückblick"
+        content.body  = "Nimm dir einen Moment und überprüfe deine Wochenziele."
+        content.sound = .default
+        var comps = DateComponents(); comps.weekday = weekday; comps.hour = hour; comps.minute = minute
+        let request = UNNotificationRequest(
+            identifier: weeklyReviewID, content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelWeeklyReview() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [weeklyReviewID])
+    }
+
+    // MARK: - Mood Reminder
+
+    private let moodReminderID = "moodReminder"
+
+    func scheduleMoodReminder(hour: Int, minute: Int) {
+        cancelMoodReminder()
+        let content = UNMutableNotificationContent()
+        content.title = "😊 Stimmungs-Check"
+        content.body  = "Wie fühlst du dich heute? Trag deine Stimmung ein."
+        content.sound = .default
+        var comps = DateComponents(); comps.hour = hour; comps.minute = minute
+        let request = UNNotificationRequest(
+            identifier: moodReminderID, content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelMoodReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [moodReminderID])
+    }
+
+    // MARK: - Evening / Gratitude Reminder
+
+    private let eveningReminderID = "eveningReminder"
+
+    func scheduleEveningReminder(hour: Int, minute: Int) {
+        cancelEveningReminder()
+        let content = UNMutableNotificationContent()
+        content.title = "🌙 Abendreflexion"
+        content.body  = "Nimm dir 5 Minuten für dein Tagesjournal oder Dankbarkeits-Eintrag."
+        content.sound = .default
+        var comps = DateComponents(); comps.hour = hour; comps.minute = minute
+        let request = UNNotificationRequest(
+            identifier: eveningReminderID, content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelEveningReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [eveningReminderID])
+    }
+
     // MARK: - Test
 
     func sendTestNotification() {
