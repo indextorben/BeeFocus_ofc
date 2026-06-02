@@ -42,6 +42,7 @@ struct MacMainWindowView: View {
         default:
             MacSettingsView()
                 .environmentObject(timerMgr)
+                .environmentObject(todoStore)
         }
     }
 

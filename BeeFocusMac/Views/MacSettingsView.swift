@@ -4,6 +4,7 @@ import UserNotifications
 struct MacSettingsView: View {
     @EnvironmentObject var timerMgr: MacTimerManager
     @EnvironmentObject var todoStore: MacTodoStore
+    @EnvironmentObject var subManager: MacSubscriptionManager
     @Environment(\.colorScheme) private var colorScheme
 
     // Timer
@@ -25,6 +26,7 @@ struct MacSettingsView: View {
     @State private var notificationMessage   = ""
     @State private var bannerColor: Color    = .green
     @State private var bannerDismissTask: Task<Void, Never>? = nil
+    @State private var showPaywall           = false
 
     private var isDark: Bool { colorScheme == .dark }
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
@@ -43,6 +45,9 @@ struct MacSettingsView: View {
                         .offset(y: sectionsAppeared ? 0 : 12)
                         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.05), value: sectionsAppeared)
 
+                    animatedSection(delay: 0.06) {
+                        proCard
+                    }
                     animatedSection(delay: 0.08) {
                         sectionGroup(icon: "paintbrush.fill", label: "Darstellung", color: .indigo) { darstellungCard }
                     }
@@ -104,6 +109,10 @@ struct MacSettingsView: View {
         } message: {
             Text("Alle Fokuspunkte und gespeicherte Statistiken werden zurückgesetzt.")
         }
+        .sheet(isPresented: $showPaywall) {
+            MacProPaywallView()
+                .environmentObject(subManager)
+        }
     }
 
     // MARK: - Hero Header
@@ -164,6 +173,86 @@ struct MacSettingsView: View {
             .opacity(headerAppeared ? 1 : 0)
         }
         .padding(.top, 20).padding(.bottom, 4)
+    }
+
+    // MARK: - Pro Card
+
+    private var proCard: some View {
+        let (c1, c2, _) = themeColors
+        let accent  = aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : c1
+        let accent2 = aktivesThema.isEmpty ? Color(red: 0.3,  green: 0.6,  blue: 1.0) : c2
+
+        return Button {
+            if !subManager.isPro { showPaywall = true }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(colors: [accent, accent2],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing))
+                        .frame(width: 40, height: 40)
+                        .shadow(color: accent.opacity(0.4), radius: 8)
+                    Image(systemName: subManager.isPro ? "crown.fill" : "crown")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(subManager.isPro ? "BeeFocus Pro aktiv" : "BeeFocus Pro")
+                        .font(.system(size: 15, weight: .bold))
+                    if subManager.isPro {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.seal.fill").foregroundStyle(.green).font(.system(size: 11))
+                            if let exp = subManager.expirationDate {
+                                Text("Aktiv bis \(exp, format: .dateTime.day().month().year())")
+                                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                            } else {
+                                Text("Lifetime – danke für deine Unterstützung! 🎉")
+                                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                            }
+                        }
+                    } else {
+                        Text("Alle Features freischalten")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                if subManager.isPro {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.system(size: 20))
+                } else {
+                    Label("Upgrade", systemImage: "arrow.up.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .background(
+                            LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing),
+                            in: Capsule()
+                        )
+                        .shadow(color: accent.opacity(0.35), radius: 6, y: 2)
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(
+                        subManager.isPro
+                            ? LinearGradient(colors: [accent.opacity(0.5), accent2.opacity(0.5)],
+                                             startPoint: .leading, endPoint: .trailing)
+                            : LinearGradient(colors: [Color.primary.opacity(0.08)],
+                                             startPoint: .leading, endPoint: .trailing),
+                        lineWidth: 1.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(subManager.isPro)
     }
 
     // MARK: - Section Cards
