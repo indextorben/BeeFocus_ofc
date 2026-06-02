@@ -68,4 +68,9 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
             DispatchQueue.main.async { self.loadSnapshot() }
         }
     }
+
+    #if os(iOS)
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidDeactivate(_ session: WCSession) { WCSession.default.activate() }
+    #endif
 }
