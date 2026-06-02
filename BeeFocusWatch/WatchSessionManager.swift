@@ -28,12 +28,6 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async { self.snapshot = snap }
     }
 
-    // Apply raw snapshot data received from any source
-    private func applySnapshotData(_ data: Data) {
-        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
-        DispatchQueue.main.async { self.snapshot = snap }
-    }
-
     // Mark a task as completed: send via WatchConnectivity (live) + App Group (fallback)
     func completeTask(id: UUID) {
         if WCSession.default.isReachable {
