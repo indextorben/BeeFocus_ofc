@@ -57,12 +57,29 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         store.writeWidgetSnapshot()
     }
 
+    @MainActor
+    private func handleAddWater(ml: Int) {
+        WasserStore.shared.add(ml: ml)
+        todoStore?.writeWidgetSnapshot()
+    }
+
+    @MainActor
+    private func handleToggleHabit(id: UUID) {
+        guard let habit = HabitStore.shared.habits.first(where: { $0.id == id }) else { return }
+        HabitStore.shared.toggle(habit)
+        todoStore?.writeWidgetSnapshot()
+    }
+
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let idString = message["completeTask"] as? String,
-              let id = UUID(uuidString: idString) else { return }
-        DispatchQueue.main.async { self.completeWatchTask(id: id) }
+        if let idString = message["completeTask"] as? String, let id = UUID(uuidString: idString) {
+            DispatchQueue.main.async { self.completeWatchTask(id: id) }
+        } else if let ml = message["addWater"] as? Int {
+            Task { @MainActor in self.handleAddWater(ml: ml) }
+        } else if let idString = message["toggleHabit"] as? String, let id = UUID(uuidString: idString) {
+            Task { @MainActor in self.handleToggleHabit(id: id) }
+        }
     }
 
     func session(_ session: WCSession,

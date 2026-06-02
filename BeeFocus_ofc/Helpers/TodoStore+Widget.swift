@@ -3,6 +3,23 @@ import WidgetKit
 
 // MARK: - Shared Widget Models (main app side)
 
+struct WatchHabit: Codable, Identifiable {
+    let id: UUID
+    let name: String
+    let icon: String
+    let colorName: String
+    let isCompletedToday: Bool
+    let streak: Int
+}
+
+struct WatchCountdown: Codable, Identifiable {
+    let id: UUID
+    let name: String
+    let symbol: String
+    let farbName: String
+    let tageVerbleibend: Int
+}
+
 struct WidgetSnapshot: Codable {
     let dueTodayCount: Int
     let overdueCount: Int
@@ -14,6 +31,10 @@ struct WidgetSnapshot: Codable {
     let monthTasks: [WidgetTask]
     let activeMonthLabel: String
     let todayBausteine: [WatchBaustein]
+    let waterTodayML: Int
+    let waterGoalML: Int
+    let habits: [WatchHabit]
+    let countdownEvents: [WatchCountdown]
 }
 
 struct WidgetTask: Codable, Identifiable {
@@ -125,6 +146,31 @@ extension TodoStore {
         // Build today's Baustein plan
         let bausteine = buildTodayBausteine()
 
+        // Water
+        let waterData = UserDefaults.standard.data(forKey: "wasser_eintraege_v1")
+        let waterEntries = (try? JSONDecoder().decode([WasserEintrag].self, from: waterData ?? Data())) ?? []
+        let waterToday = waterEntries.filter { cal.isDateInToday($0.date) }.reduce(0) { $0 + $1.ml }
+        let waterGoal = UserDefaults.standard.object(forKey: "wasserTagesziel") as? Int ?? 2000
+
+        // Habits
+        let habitData = UserDefaults.standard.data(forKey: "habits_v1")
+        let habitList = (try? JSONDecoder().decode([Habit].self, from: habitData ?? Data())) ?? []
+        let watchHabits = habitList.map { h in
+            WatchHabit(id: h.id, name: h.name, icon: h.icon, colorName: h.colorName,
+                       isCompletedToday: h.isCompleted(on: Date()),
+                       streak: h.currentStreak)
+        }
+
+        // Countdowns
+        let cdData = UserDefaults.standard.data(forKey: "countdown_events_v1")
+        let cdEvents = (try? JSONDecoder().decode([CountdownEvent].self, from: cdData ?? Data())) ?? []
+        let watchCountdowns = cdEvents
+            .filter { $0.tageVerbleibend >= 0 }
+            .sorted { $0.tageVerbleibend < $1.tageVerbleibend }
+            .prefix(10)
+            .map { e in WatchCountdown(id: e.id, name: e.name, symbol: e.symbol,
+                                       farbName: e.farbName, tageVerbleibend: e.tageVerbleibend) }
+
         let snapshot = WidgetSnapshot(
             dueTodayCount: todayTodos.count,
             overdueCount: overdueCount,
@@ -135,7 +181,11 @@ extension TodoStore {
             activeTheme: activeTheme,
             monthTasks: Array(monthTasks),
             activeMonthLabel: activeMonthLabel,
-            todayBausteine: bausteine
+            todayBausteine: bausteine,
+            waterTodayML: waterToday,
+            waterGoalML: waterGoal,
+            habits: watchHabits,
+            countdownEvents: Array(watchCountdowns)
         )
 
         if let defaults = UserDefaults(suiteName: beeFocusAppGroup),

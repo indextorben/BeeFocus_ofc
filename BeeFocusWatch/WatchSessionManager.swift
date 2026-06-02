@@ -45,6 +45,16 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         defaults?.set(pending, forKey: "watchPendingCompletions")
     }
 
+    func addWater(ml: Int) {
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(["addWater": ml], replyHandler: nil)
+    }
+
+    func toggleHabit(id: UUID) {
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(["toggleHabit": id.uuidString], replyHandler: nil)
+    }
+
     // MARK: - WCSessionDelegate
 
     // Receive snapshot pushed from iOS via updateApplicationContext
