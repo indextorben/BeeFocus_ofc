@@ -29,6 +29,20 @@
 			remoteGlobalIDString = 4C311F412FBA5B6100FC057E;
 			remoteInfo = BeeFocusWidgetExtension;
 		};
+		4C3C4EC52FCEAFEC00035189 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C3C4EB52FCEAFEB00035189;
+			remoteInfo = BeeFocusMac;
+		};
+		4C3C4ECF2FCEAFEC00035189 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C3C4EB52FCEAFEB00035189;
+			remoteInfo = BeeFocusMac;
+		};
 		4CAAF94E2FC383530066FDCD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4CCA1DC52DFF618A007F640D /* Project object */;
@@ -113,6 +127,9 @@
 		22C173DDB1774ABB88EF4150 /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShieldConfigurationExtension.swift; path = BeeFocusShieldExtension/ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		4C311F422FBA5B6100FC057E /* BeeFocusWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeeFocusWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C311FFF2FBAE4B600FC057E /* BeeFocusWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BeeFocusWidgetExtension.entitlements; sourceTree = "<group>"; };
+		4C3C4EB62FCEAFEB00035189 /* BeeFocusMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocusMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C3C4EC42FCEAFEC00035189 /* BeeFocusMacTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeeFocusMacTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C3C4ECE2FCEAFEC00035189 /* BeeFocusMacUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeeFocusMacUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C5964342EA2E37F0029EDCA /* BeeFocus-ofc-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "BeeFocus-ofc-Info.plist"; sourceTree = "<group>"; };
 		4C63FC752EA12A540062E93F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		4C63FC772EA12A540062E93F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -180,6 +197,21 @@
 			path = BeeFocusWidget;
 			sourceTree = "<group>";
 		};
+		4C3C4EB72FCEAFEB00035189 /* BeeFocusMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BeeFocusMac;
+			sourceTree = "<group>";
+		};
+		4C3C4EC72FCEAFEC00035189 /* BeeFocusMacTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BeeFocusMacTests;
+			sourceTree = "<group>";
+		};
+		4C3C4ED12FCEAFEC00035189 /* BeeFocusMacUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BeeFocusMacUITests;
+			sourceTree = "<group>";
+		};
 		4CAAF9492FC383530066FDCD /* BeeFocusShieldExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -241,6 +273,27 @@
 			files = (
 				4C311F442FBA5B6200FC057E /* SwiftUI.framework in Frameworks */,
 				4C311F432FBA5B6200FC057E /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4EB32FCEAFEB00035189 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4EC12FCEAFEC00035189 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4ECB2FCEAFEC00035189 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +398,9 @@
 				4CAAF9872FC4F3A10066FDCD /* BeeFocusWatch Watch App */,
 				4CAAF9952FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */,
 				4CAAF99F2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */,
+				4C3C4EB72FCEAFEB00035189 /* BeeFocusMac */,
+				4C3C4EC72FCEAFEC00035189 /* BeeFocusMacTests */,
+				4C3C4ED12FCEAFEC00035189 /* BeeFocusMacUITests */,
 				4C84FD8E2E1C561600DEF053 /* Frameworks */,
 				4CAAF9562FC386210066FDCD /* Widget */,
 				4CCA1DCE2DFF618A007F640D /* Products */,
@@ -365,6 +421,9 @@
 				4CAAF9832FC4F3A10066FDCD /* BeeFocusWatch Watch App.app */,
 				4CAAF9922FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests.xctest */,
 				4CAAF99C2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests.xctest */,
+				4C3C4EB62FCEAFEB00035189 /* BeeFocusMac.app */,
+				4C3C4EC42FCEAFEC00035189 /* BeeFocusMacTests.xctest */,
+				4C3C4ECE2FCEAFEC00035189 /* BeeFocusMacUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -394,6 +453,79 @@
 			productName = BeeFocusWidgetExtension;
 			productReference = 4C311F422FBA5B6100FC057E /* BeeFocusWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		4C3C4EB52FCEAFEB00035189 /* BeeFocusMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C3C4ED62FCEAFEC00035189 /* Build configuration list for PBXNativeTarget "BeeFocusMac" */;
+			buildPhases = (
+				4C3C4EB22FCEAFEB00035189 /* Sources */,
+				4C3C4EB32FCEAFEB00035189 /* Frameworks */,
+				4C3C4EB42FCEAFEB00035189 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4C3C4EB72FCEAFEB00035189 /* BeeFocusMac */,
+			);
+			name = BeeFocusMac;
+			packageProductDependencies = (
+			);
+			productName = BeeFocusMac;
+			productReference = 4C3C4EB62FCEAFEB00035189 /* BeeFocusMac.app */;
+			productType = "com.apple.product-type.application";
+			systemCapabilities = {
+				com.apple.iCloud = {
+					enabled = 1;
+				};
+			};
+		};
+		4C3C4EC32FCEAFEC00035189 /* BeeFocusMacTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C3C4ED92FCEAFEC00035189 /* Build configuration list for PBXNativeTarget "BeeFocusMacTests" */;
+			buildPhases = (
+				4C3C4EC02FCEAFEC00035189 /* Sources */,
+				4C3C4EC12FCEAFEC00035189 /* Frameworks */,
+				4C3C4EC22FCEAFEC00035189 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C3C4EC62FCEAFEC00035189 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4C3C4EC72FCEAFEC00035189 /* BeeFocusMacTests */,
+			);
+			name = BeeFocusMacTests;
+			packageProductDependencies = (
+			);
+			productName = BeeFocusMacTests;
+			productReference = 4C3C4EC42FCEAFEC00035189 /* BeeFocusMacTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4C3C4ECD2FCEAFEC00035189 /* BeeFocusMacUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C3C4EDC2FCEAFEC00035189 /* Build configuration list for PBXNativeTarget "BeeFocusMacUITests" */;
+			buildPhases = (
+				4C3C4ECA2FCEAFEC00035189 /* Sources */,
+				4C3C4ECB2FCEAFEC00035189 /* Frameworks */,
+				4C3C4ECC2FCEAFEC00035189 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C3C4ED02FCEAFEC00035189 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4C3C4ED12FCEAFEC00035189 /* BeeFocusMacUITests */,
+			);
+			name = BeeFocusMacUITests;
+			packageProductDependencies = (
+			);
+			productName = BeeFocusMacUITests;
+			productReference = 4C3C4ECE2FCEAFEC00035189 /* BeeFocusMacUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		4CAAF9442FC383530066FDCD /* BeeFocusShieldExtension */ = {
 			isa = PBXNativeTarget;
@@ -595,6 +727,17 @@
 					4C311F412FBA5B6100FC057E = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
+					4C3C4EB52FCEAFEB00035189 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					4C3C4EC32FCEAFEC00035189 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 4C3C4EB52FCEAFEB00035189;
+					};
+					4C3C4ECD2FCEAFEC00035189 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 4C3C4EB52FCEAFEB00035189;
+					};
 					4CAAF9442FC383530066FDCD = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
@@ -653,12 +796,36 @@
 				4CAAF9822FC4F3A10066FDCD /* BeeFocusWatch Watch App */,
 				4CAAF9912FC4F3A20066FDCD /* BeeFocusWatch Watch AppTests */,
 				4CAAF99B2FC4F3A20066FDCD /* BeeFocusWatch Watch AppUITests */,
+				4C3C4EB52FCEAFEB00035189 /* BeeFocusMac */,
+				4C3C4EC32FCEAFEC00035189 /* BeeFocusMacTests */,
+				4C3C4ECD2FCEAFEC00035189 /* BeeFocusMacUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		4C311F402FBA5B6100FC057E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4EB42FCEAFEB00035189 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4EC22FCEAFEC00035189 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4ECC2FCEAFEC00035189 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -732,6 +899,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4C3C4EB22FCEAFEB00035189 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4EC02FCEAFEC00035189 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3C4ECA2FCEAFEC00035189 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4CAAF9412FC383530066FDCD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -795,6 +983,16 @@
 			isa = PBXTargetDependency;
 			target = 4C311F412FBA5B6100FC057E /* BeeFocusWidgetExtension */;
 			targetProxy = 4C311F532FBA5B6200FC057E /* PBXContainerItemProxy */;
+		};
+		4C3C4EC62FCEAFEC00035189 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C3C4EB52FCEAFEB00035189 /* BeeFocusMac */;
+			targetProxy = 4C3C4EC52FCEAFEC00035189 /* PBXContainerItemProxy */;
+		};
+		4C3C4ED02FCEAFEC00035189 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C3C4EB52FCEAFEB00035189 /* BeeFocusMac */;
+			targetProxy = 4C3C4ECF2FCEAFEC00035189 /* PBXContainerItemProxy */;
 		};
 		4CAAF94F2FC383530066FDCD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -894,6 +1092,164 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4C3C4ED72FCEAFEC00035189 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BeeFocusMac/BeeFocusMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.TorbenLehneke.BeeFocusMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4C3C4ED82FCEAFEC00035189 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BeeFocusMac/BeeFocusMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.TorbenLehneke.BeeFocusMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4C3C4EDA2FCEAFEC00035189 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.TorbenLehneke.BeeFocusMacTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BeeFocusMac.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BeeFocusMac";
+			};
+			name = Debug;
+		};
+		4C3C4EDB2FCEAFEC00035189 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.TorbenLehneke.BeeFocusMacTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BeeFocusMac.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BeeFocusMac";
+			};
+			name = Release;
+		};
+		4C3C4EDD2FCEAFEC00035189 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.TorbenLehneke.BeeFocusMacUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = BeeFocusMac;
+			};
+			name = Debug;
+		};
+		4C3C4EDE2FCEAFEC00035189 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9SX9FU46;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.TorbenLehneke.BeeFocusMacUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = BeeFocusMac;
 			};
 			name = Release;
 		};
@@ -1492,6 +1848,33 @@
 			buildConfigurations = (
 				4C311F562FBA5B6200FC057E /* Debug */,
 				4C311F572FBA5B6200FC057E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C3C4ED62FCEAFEC00035189 /* Build configuration list for PBXNativeTarget "BeeFocusMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C3C4ED72FCEAFEC00035189 /* Debug */,
+				4C3C4ED82FCEAFEC00035189 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C3C4ED92FCEAFEC00035189 /* Build configuration list for PBXNativeTarget "BeeFocusMacTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C3C4EDA2FCEAFEC00035189 /* Debug */,
+				4C3C4EDB2FCEAFEC00035189 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C3C4EDC2FCEAFEC00035189 /* Build configuration list for PBXNativeTarget "BeeFocusMacUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C3C4EDD2FCEAFEC00035189 /* Debug */,
+				4C3C4EDE2FCEAFEC00035189 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

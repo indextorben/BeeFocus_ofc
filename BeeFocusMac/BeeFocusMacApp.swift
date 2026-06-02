@@ -1,9 +1,15 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct BeeFocusMacApp: App {
-    @StateObject private var todoStore   = MacTodoStore()
-    @StateObject private var timerMgr    = MacTimerManager()
+    @StateObject private var todoStore = MacTodoStore()
+    @StateObject private var timerMgr  = MacTimerManager()
+
+    init() {
+        UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -19,7 +25,6 @@ struct BeeFocusMacApp: App {
     }
 }
 
-/// Dynamisches Menübar-Icon: Uhr läuft → zeigt Countdown
 private struct MenuBarLabel: View {
     @EnvironmentObject var timerMgr: MacTimerManager
 
@@ -27,11 +32,11 @@ private struct MenuBarLabel: View {
         HStack(spacing: 4) {
             Image(systemName: "hexagon.fill")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(timerMgr.isRunning ? .orange : .primary)
+                .foregroundStyle(timerMgr.isRunning ? Color.orange : Color.primary)
             if timerMgr.isRunning {
                 Text(timerMgr.timeString)
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.orange)
             }
         }
     }
