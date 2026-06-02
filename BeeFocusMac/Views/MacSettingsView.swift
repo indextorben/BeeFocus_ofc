@@ -70,8 +70,11 @@ struct MacSettingsView: View {
                         sectionGroup(icon: "envelope.fill", label: "Feedback / Verbesserungen", color: .teal) { feedbackCard }
                     }
 
+                    datenschutzCard
+                        .opacity(sectionsAppeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.4).delay(0.35), value: sectionsAppeared)
                     versionCard
-                        .padding(.top, 8)
+                        .padding(.top, 2)
                         .opacity(sectionsAppeared ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.38), value: sectionsAppeared)
                 }
@@ -469,6 +472,28 @@ struct MacSettingsView: View {
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
         }
+    }
+
+    private var datenschutzCard: some View {
+        HStack(spacing: 16) {
+            Link(destination: URL(string: "https://torbenlehneke.de/datenschutz")!) {
+                Text("Datenschutzerklärung")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .underline()
+            }
+            Text("·")
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+            Link(destination: URL(string: "https://torbenlehneke.de/nutzungsbedingungen")!) {
+                Text("Nutzungsbedingungen")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .underline()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
     }
 
     private var versionCard: some View {

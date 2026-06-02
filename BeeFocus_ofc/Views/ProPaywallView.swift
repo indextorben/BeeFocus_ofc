@@ -360,12 +360,20 @@ struct ProPaywallView: View {
                     .underline()
             }
 
+            HStack(spacing: 16) {
+                Link("Datenschutzerklärung", destination: URL(string: "https://torbenlehneke.de/datenschutz")!)
+                Text("·").foregroundStyle(.white.opacity(0.25))
+                Link("Nutzungsbedingungen", destination: URL(string: "https://torbenlehneke.de/nutzungsbedingungen")!)
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(.white.opacity(0.35))
+
             Text("Abos verlängern sich automatisch. Kündigung jederzeit in den App-Store-Einstellungen möglich.")
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.3))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-                .padding(.top, 4)
+                .padding(.top, 2)
         }
     }
 }

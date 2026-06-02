@@ -226,6 +226,14 @@ struct MacProPaywallView: View {
                 }
                 .buttonStyle(.plain)
 
+                HStack(spacing: 12) {
+                    Link("Datenschutzerklärung", destination: URL(string: "https://torbenlehneke.de/datenschutz")!)
+                    Text("·").foregroundStyle(.white.opacity(0.2))
+                    Link("Nutzungsbedingungen", destination: URL(string: "https://torbenlehneke.de/nutzungsbedingungen")!)
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.3))
+
                 Text("Abos verlängern sich automatisch. Kündigung jederzeit möglich.")
                     .font(.system(size: 10))
                     .foregroundStyle(.white.opacity(0.25))

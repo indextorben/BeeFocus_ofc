@@ -266,8 +266,9 @@ struct EinstellungenView: View {
                             profilLinkCard
                         }
 
+                        datenschutzCard
                         versionCard
-                            .padding(.top, 8)
+                            .padding(.top, 4)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
@@ -1079,6 +1080,28 @@ struct EinstellungenView: View {
         case "groq":   return "Groq"
         default:       return "Google Gemini"
         }
+    }
+
+    private var datenschutzCard: some View {
+        HStack(spacing: 20) {
+            Link(destination: URL(string: "https://torbenlehneke.de/datenschutz")!) {
+                Text("Datenschutzerklärung")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .underline()
+            }
+            Text("·")
+                .font(.system(size: 12))
+                .foregroundStyle(.tertiary)
+            Link(destination: URL(string: "https://torbenlehneke.de/nutzungsbedingungen")!) {
+                Text("Nutzungsbedingungen")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .underline()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
     }
 
     private var versionCard: some View {
