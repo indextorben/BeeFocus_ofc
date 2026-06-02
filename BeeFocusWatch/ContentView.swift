@@ -1,7 +1,9 @@
 import SwiftUI
-import WatchKit
 import UserNotifications
 import Combine
+#if os(watchOS)
+import WatchKit
+#endif
 
 // MARK: - Theme accent
 
@@ -504,7 +506,9 @@ struct WasserView: View {
                         Button {
                             localAddedML += ml
                             session.addWater(ml: ml)
+                            #if os(watchOS)
                             WKInterfaceDevice.current().play(.click)
+                            #endif
                         } label: {
                             Text("+\(ml)")
                                 .font(.system(size: 11, weight: .semibold))
@@ -645,7 +649,9 @@ struct WatchTimerView: View {
         endTimestamp = 0
         isBreak.toggle()
         remaining = isBreak ? TimeInterval(shortBreakTime * 60) : TimeInterval(focusTime * 60)
+        #if os(watchOS)
         WKInterfaceDevice.current().play(.notification)
+        #endif
     }
 
     private func scheduleNotification() {
@@ -696,7 +702,9 @@ struct GewohnheitenView: View {
                             guard !isDone else { return }
                             completedLocally.insert(habit.id)
                             session.toggleHabit(id: habit.id)
+                            #if os(watchOS)
                             WKInterfaceDevice.current().play(.success)
+                            #endif
                         } label: {
                             HabitWatchRow(habit: habit, isDone: isDone)
                         }
