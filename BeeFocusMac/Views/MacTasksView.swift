@@ -3,7 +3,6 @@ import SwiftUI
 struct MacTasksView: View {
     @EnvironmentObject var todoStore: MacTodoStore
     @Environment(\.activeTheme) private var activeTheme
-    @Environment(\.colorScheme) private var colorScheme
 
     @State private var filter: TaskFilter = .all
     @State private var searchText = ""
@@ -14,7 +13,6 @@ struct MacTasksView: View {
     @State private var hasDate = false
 
     private var accent: Color { activeTheme.isEmpty ? .orange : activeTheme.themeAccent }
-    private var isDark: Bool { colorScheme == .dark }
 
     enum TaskFilter: String, CaseIterable {
         case all       = "Alle"
@@ -46,7 +44,7 @@ struct MacTasksView: View {
 
     var body: some View {
         ZStack {
-            background.ignoresSafeArea()
+            ThemeBackgroundView()
 
             VStack(spacing: 0) {
                 header
@@ -73,24 +71,6 @@ struct MacTasksView: View {
             }
         }
         .sheet(isPresented: $showAddSheet) { addSheet }
-    }
-
-    // MARK: - Background
-
-    private var background: some View {
-        Group {
-            if isDark {
-                LinearGradient(
-                    colors: [Color(red: 0.06, green: 0.06, blue: 0.12),
-                             Color(red: 0.10, green: 0.08, blue: 0.18)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)
-            } else {
-                LinearGradient(
-                    colors: [Color(red: 0.96, green: 0.95, blue: 1.0),
-                             Color(red: 0.99, green: 0.98, blue: 1.0)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-        }
     }
 
     // MARK: - Header
@@ -191,8 +171,8 @@ struct MacTasksView: View {
                         guard !newTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
                         let item = MacTodoItem(
                             title: newTitle,
-                            priority: newPriority,
-                            dueDate: hasDate ? newDueDate : nil
+                            dueDate: hasDate ? newDueDate : nil,
+                            priority: newPriority
                         )
                         todoStore.addTodo(item)
                         newTitle = ""; hasDate = false; newPriority = .medium

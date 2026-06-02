@@ -6,8 +6,6 @@ struct MacTimerView: View {
     @Environment(\.colorScheme)  private var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
-    @State private var wavePhase1: CGFloat = 0
-    @State private var wavePhase2: CGFloat = 0
     @State private var appeared = false
     @State private var showSettings = false
 
@@ -22,7 +20,7 @@ struct MacTimerView: View {
 
     var body: some View {
         ZStack {
-            background.ignoresSafeArea()
+            ThemeBackgroundView()
 
             VStack(spacing: 0) {
                 modeChips
@@ -58,48 +56,6 @@ struct MacTimerView: View {
         }
         .onAppear {
             withAnimation { appeared = true }
-            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { wavePhase1 = .pi * 2 }
-            withAnimation(.linear(duration: 9).repeatForever(autoreverses: false)) { wavePhase2 = .pi * 2 }
-        }
-    }
-
-    // MARK: - Background
-
-    private var background: some View {
-        ZStack {
-            if isDark {
-                LinearGradient(
-                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
-                             Color(red: 0.10, green: 0.08, blue: 0.20)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)
-            } else {
-                LinearGradient(
-                    colors: [Color(red: 0.95, green: 0.93, blue: 1.0),
-                             Color(red: 0.98, green: 0.97, blue: 1.0)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-
-            GeometryReader { geo in
-                Circle()
-                    .fill(RadialGradient(
-                        colors: [accent.opacity(isDark ? 0.30 : 0.16), .clear],
-                        center: .center, startRadius: 0, endRadius: geo.size.width * 0.5))
-                    .frame(width: geo.size.width, height: geo.size.width)
-                    .position(x: geo.size.width * 0.5, y: geo.size.height * 0.4)
-                    .blur(radius: 40)
-                    .animation(.easeInOut(duration: 0.6), value: mgr.mode)
-
-                GeometryReader { g in
-                    WaveShape(phase: wavePhase2, amplitude: 18, frequency: 1.5)
-                        .fill(accentColors[1].opacity(isDark ? 0.09 : 0.06))
-                        .frame(width: g.size.width, height: g.size.height * 0.38)
-                        .position(x: g.size.width * 0.5, y: g.size.height - g.size.height * 0.19)
-                    WaveShape(phase: wavePhase1, amplitude: 12, frequency: 2.2)
-                        .fill(accentColors[0].opacity(isDark ? 0.14 : 0.09))
-                        .frame(width: g.size.width, height: g.size.height * 0.25)
-                        .position(x: g.size.width * 0.5, y: g.size.height - g.size.height * 0.125)
-                }
-            }
         }
     }
 
