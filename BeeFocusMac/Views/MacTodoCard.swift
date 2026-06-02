@@ -4,6 +4,8 @@ struct MacTodoCard: View {
     let todo: MacTodoItem
     let onToggle: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
+    let onToggleFavorite: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.activeTheme) private var activeTheme
@@ -47,7 +49,6 @@ struct MacTodoCard: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            // Theme card decoration (Ozean, Wald, Nacht, …)
             TaskCardThemeDecoration(theme: activeTheme, isDark: isDark, isActive: false)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
@@ -86,7 +87,6 @@ struct MacTodoCard: View {
                     }
 
                     HStack(spacing: 8) {
-                        // Priority badge
                         Text(priorityLabel)
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 8)
@@ -104,27 +104,49 @@ struct MacTodoCard: View {
                             }
                             .foregroundStyle(todo.isOverdue ? .red : .secondary)
                         }
-
-                        if todo.isFavorite {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.yellow)
-                        }
                     }
                 }
 
                 Spacer()
 
+                // Dauerhafter Edit-Button
+                Button(action: onEdit) {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.blue.opacity(isHovered ? 0.85 : 0.35))
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.15), value: isHovered)
+
+                // Hover-Aktionen
                 if isHovered {
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.red.opacity(0.7))
-                            .frame(width: 32, height: 32)
-                            .background(Color.red.opacity(0.1), in: Circle())
+                    HStack(spacing: 6) {
+                        // Favorit-Toggle
+                        Button(action: onToggleFavorite) {
+                            Image(systemName: todo.isFavorite ? "star.fill" : "star")
+                                .font(.system(size: 13))
+                                .foregroundStyle(todo.isFavorite ? .yellow : .secondary.opacity(0.7))
+                                .frame(width: 32, height: 32)
+                                .background(Color.yellow.opacity(0.1), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
+
+                        // Löschen
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.red.opacity(0.7))
+                                .frame(width: 32, height: 32)
+                                .background(Color.red.opacity(0.1), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
                     }
-                    .buttonStyle(.plain)
-                    .transition(.scale.combined(with: .opacity))
+                } else if todo.isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.yellow)
                 }
             }
             .padding(.horizontal, 16)
@@ -141,11 +163,14 @@ struct MacTodoCard: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
         .onHover { isHovered = $0 }
         .opacity(todo.isCompleted ? 0.65 : 1.0)
+        .onTapGesture { if !todo.isCompleted { onEdit() } }
     }
 
     private func dueDateLabel(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date)    { return "Heute" }
-        if Calendar.current.isDateInTomorrow(date) { return "Morgen" }
+        let cal = Calendar.current
+        if cal.isDateInToday(date)    { return "Heute" }
+        if cal.isDateInTomorrow(date) { return "Morgen" }
+        if cal.isDateInYesterday(date) { return "Gestern" }
         let f = DateFormatter(); f.dateFormat = "d. MMM"; f.locale = Locale(identifier: "de_DE")
         return f.string(from: date)
     }

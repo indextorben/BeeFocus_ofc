@@ -1,14 +1,32 @@
 import Foundation
+import WatchConnectivity
 
-// Reads watch-initiated completions from the shared App Group and applies them to TodoStore.
-// Call applyPendingWatchCompletions() whenever the app becomes active.
-final class PhoneSessionManager {
+// Handles iOS ↔ Watch communication:
+// - Reads App Group for pending completions written by Watch
+// - Pushes snapshot updates to Watch via WatchConnectivity
+// - Receives live task-completion messages from Watch via WatchConnectivity
+final class PhoneSessionManager: NSObject, WCSessionDelegate {
     static let shared = PhoneSessionManager()
 
     private let defaults = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc")
     weak var todoStore: TodoStore?
 
-    private init() {}
+    private override init() {
+        super.init()
+        guard WCSession.isSupported() else { return }
+        WCSession.default.delegate = self
+        WCSession.default.activate()
+    }
+
+    // MARK: - Snapshot push (called from writeWidgetSnapshot)
+
+    func sendSnapshotData(_ data: Data) {
+        guard WCSession.default.activationState == .activated,
+              WCSession.default.isPaired else { return }
+        try? WCSession.default.updateApplicationContext(["widgetSnapshot": data])
+    }
+
+    // MARK: - App Group completions (called on didBecomeActive)
 
     func applyPendingWatchCompletions() {
         guard let pending = defaults?.stringArray(forKey: "watchPendingCompletions"),
@@ -28,5 +46,32 @@ final class PhoneSessionManager {
         defaults?.removeObject(forKey: "watchPendingCompletions")
 
         if applied { store.writeWidgetSnapshot() }
+    }
+
+    // Called when Watch sends a live completion via WatchConnectivity.
+    private func completeWatchTask(id: UUID) {
+        guard let store = todoStore,
+              let todo = store.todos.first(where: { $0.id == id }),
+              !todo.isCompleted else { return }
+        store.toggleTodo(todo)
+        store.writeWidgetSnapshot()
+    }
+
+    // MARK: - WCSessionDelegate
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        guard let idString = message["completeTask"] as? String,
+              let id = UUID(uuidString: idString) else { return }
+        DispatchQueue.main.async { self.completeWatchTask(id: id) }
+    }
+
+    func session(_ session: WCSession,
+                 activationDidCompleteWith activationState: WCSessionActivationState,
+                 error: Error?) {}
+
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+
+    func sessionDidDeactivate(_ session: WCSession) {
+        WCSession.default.activate()
     }
 }

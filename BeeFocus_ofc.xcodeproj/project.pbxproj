@@ -475,11 +475,6 @@
 			productName = BeeFocusMac;
 			productReference = 4C3C4EB62FCEAFEB00035189 /* BeeFocusMac.app */;
 			productType = "com.apple.product-type.application";
-			systemCapabilities = {
-				com.apple.iCloud = {
-					enabled = 1;
-				};
-			};
 		};
 		4C3C4EC32FCEAFEC00035189 /* BeeFocusMacTests */ = {
 			isa = PBXNativeTarget;
@@ -1322,6 +1317,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "BeeFocusWatch Watch App/BeeFocusWatchApp.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ND9SX9FU46;
@@ -1355,6 +1351,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "BeeFocusWatch Watch App/BeeFocusWatchApp.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ND9SX9FU46;

@@ -141,6 +141,7 @@ extension TodoStore {
         if let defaults = UserDefaults(suiteName: beeFocusAppGroup),
            let data = try? JSONEncoder().encode(snapshot) {
             defaults.set(data, forKey: "widgetSnapshot")
+            PhoneSessionManager.shared.sendSnapshotData(data)
         }
         WidgetCenter.shared.reloadAllTimelines()
     }

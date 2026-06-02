@@ -1,277 +1,547 @@
 import SwiftUI
+import Combine
 
 struct MacTagesplanerView: View {
     @EnvironmentObject var todoStore: MacTodoStore
-    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
-    @State private var showAddSheet = false
-    @State private var newTitle = ""
-    @State private var newTime  = Date()
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
-    private let cal = Calendar.current
-    private let hourHeight: CGFloat = 56
+    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
+    @State private var showQuickAdd = false
+    @State private var editingTodo: MacTodoItem? = nil
+    @State private var now: Date = Date()
+
+    private var cal: Calendar { Calendar.current }
+    private var isDark: Bool { colorScheme == .dark }
+    private var isToday: Bool { cal.isDateInToday(selectedDate) }
+    private var themeC1: Color { appThemaFarben(aktivesThema).0 }
+    private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Left: date strip
-            dateSidebar
-            Divider()
-            // Right: timeline
+        ZStack {
+            ThemeBackgroundView()
+
             VStack(spacing: 0) {
-                dayHeader
-                Divider()
+                viewHeader
+
                 ScrollViewReader { proxy in
-                    ScrollView {
-                        timelineContent
-                            .padding(.bottom, 20)
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            weekStrip
+                            progressCard
+                            treeTimeline
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 40)
                     }
                     .onAppear {
-                        proxy.scrollTo("hour-\(cal.component(.hour, from: Date()))", anchor: .top)
+                        now = Date()
+                        if isToday {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    proxy.scrollTo("nowIndicator", anchor: .center)
+                                }
+                            }
+                        }
+                    }
+                    .onChange(of: selectedDate) { _ in
+                        if isToday {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    proxy.scrollTo("nowIndicator", anchor: .center)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        .background(Color(NSColor.windowBackgroundColor))
-        .sheet(isPresented: $showAddSheet) { addSheet }
-    }
-
-    // MARK: - Date Sidebar
-
-    private var dateSidebar: some View {
-        VStack(spacing: 0) {
-            Text(monthYear)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.top, 16)
-                .padding(.bottom, 8)
-
-            ForEach(daysInWeek, id: \.self) { day in
-                let isSelected = cal.isDate(day, inSameDayAs: selectedDate)
-                let isToday    = cal.isDateInToday(day)
-                Button { selectedDate = cal.startOfDay(for: day) } label: {
-                    VStack(spacing: 2) {
-                        Text(weekdayShort(day))
-                            .font(.system(size: 10))
-                            .foregroundStyle(isToday ? .orange : .secondary)
-                        Text("\(cal.component(.day, from: day))")
-                            .font(.system(size: 16, weight: isSelected ? .bold : .regular))
-                            .foregroundStyle(isSelected ? .white : (isToday ? .orange : .primary))
-                            .frame(width: 34, height: 34)
-                            .background(isSelected ? Color.orange : Color.clear, in: Circle())
-                    }
-                    .padding(.vertical, 4)
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 8)
-
-                // Dot if tasks exist
-                let taskCount = todos(for: day).count
-                Circle()
-                    .fill(taskCount > 0 ? Color.orange.opacity(0.7) : Color.clear)
-                    .frame(width: 4, height: 4)
-                    .padding(.bottom, 4)
-            }
-
-            Spacer()
-
-            Button {
-                selectedDate = cal.startOfDay(for: Date())
-            } label: {
-                Text("Heute")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.orange)
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 16)
+        .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { _ in
+            now = Date()
         }
-        .frame(width: 60)
-        .background(Color(NSColor.controlBackgroundColor))
+        .sheet(isPresented: $showQuickAdd) {
+            MacTagesplanQuickAddSheet(selectedDate: selectedDate, themeC1: themeC1, themeC2: themeC2) { title, time in
+                let item = MacTodoItem(title: title, dueDate: time)
+                todoStore.addTodo(item)
+            }
+        }
+        .sheet(item: $editingTodo) { todo in
+            MacEditTodoSheet(todo: todo).environmentObject(todoStore)
+        }
     }
 
-    // MARK: - Day Header
+    // MARK: - View Header
 
-    private var dayHeader: some View {
+    private var viewHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(fullDateLabel)
-                    .font(.system(size: 16, weight: .bold))
-                let count = timedTodos.count + untimedTodos.count
+                Text(selectedDateTitle)
+                    .font(.system(size: 28, weight: .bold))
+                let count = dayTodos(for: selectedDate).count
                 Text("\(count) Aufgabe\(count == 1 ? "" : "n")")
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
             Spacer()
             Button {
-                newTime = cal.date(bySettingHour: 9, minute: 0, second: 0, of: selectedDate) ?? selectedDate
-                showAddSheet = true
+                showQuickAdd = true
             } label: {
-                Label("Aufgabe hinzufügen", systemImage: "plus.circle.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.orange)
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundStyle(themeC1)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.top, 20)
+        .padding(.bottom, 8)
     }
 
-    // MARK: - Timeline
+    // MARK: - Week Strip
 
-    private var timelineContent: some View {
-        VStack(spacing: 0) {
-            // Untimed tasks
-            if !untimedTodos.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("OHNE UHRZEIT")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 60)
-                        .padding(.vertical, 6)
-                    ForEach(untimedTodos) { todo in
-                        todoRow(todo, time: nil)
-                    }
+    private var weekStrip: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    selectedDate = cal.date(byAdding: .weekOfYear, value: -1, to: selectedDate) ?? selectedDate
                 }
-                Divider().padding(.leading, 60)
-            }
-
-            // Hourly timeline
-            ForEach(6..<23, id: \.self) { hour in
-                HStack(alignment: .top, spacing: 0) {
-                    // Hour label
-                    Text(String(format: "%02d:00", hour))
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 48, alignment: .trailing)
-                        .padding(.top, 2)
-                        .padding(.trailing, 8)
-
-                    // Divider line
-                    VStack(spacing: 0) {
-                        Divider()
-                        Spacer()
-                    }
-                    .frame(width: 1, height: hourHeight)
-
-                    // Tasks at this hour
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(todos(atHour: hour)) { todo in
-                            todoRow(todo, time: todo.dueDate)
-                        }
-                    }
-                    .padding(.leading, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(height: hourHeight)
-                .id("hour-\(hour)")
-                .background(cal.component(.hour, from: Date()) == hour && cal.isDateInToday(selectedDate)
-                    ? Color.orange.opacity(0.04) : Color.clear)
-            }
-        }
-        .padding(.top, 8)
-    }
-
-    private func todoRow(_ todo: MacTodoItem, time: Date?) -> some View {
-        HStack(spacing: 8) {
-            // Priority stripe
-            RoundedRectangle(cornerRadius: 2)
-                .fill(priorityColor(todo.priority))
-                .frame(width: 3, height: 28)
-
-            Button { todoStore.toggle(todo) } label: {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(todo.isCompleted ? Color.green : Color.secondary)
-                    .font(.system(size: 14))
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(themeC1)
+                    .frame(width: 28, height: 44)
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(todo.title)
-                    .font(.system(size: 13))
-                    .strikethrough(todo.isCompleted, color: .secondary)
-                    .foregroundStyle(todo.isCompleted ? Color.secondary : Color.primary)
-                    .lineLimit(1)
-                if let t = time {
-                    Text(shortTime(t))
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                ForEach(currentWeekDays(), id: \.self) { day in
+                    let isSelected = cal.isDate(day, inSameDayAs: selectedDate)
+                    let isTodayDay = cal.isDateInToday(day)
+                    Button {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            selectedDate = day
+                        }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Text(shortWeekday(day))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(isSelected ? .white : (isDark ? .white.opacity(0.5) : .secondary))
+                            ZStack {
+                                Circle()
+                                    .fill(isSelected
+                                          ? AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2],
+                                                                          startPoint: .top, endPoint: .bottom))
+                                          : (isTodayDay
+                                             ? AnyShapeStyle(themeC1.opacity(0.15))
+                                             : AnyShapeStyle(Color.clear)))
+                                    .frame(width: 30, height: 30)
+                                Text("\(cal.component(.day, from: day))")
+                                    .font(.system(size: 13, weight: isSelected || isTodayDay ? .bold : .regular))
+                                    .foregroundStyle(isSelected ? .white : (isDark ? .white.opacity(0.85) : .primary))
+                            }
+                            let hasTasks = todoStore.todos.contains {
+                                guard let due = $0.dueDate else { return false }
+                                return cal.isDate(due, inSameDayAs: day) && !$0.isCompleted
+                            }
+                            Circle()
+                                .fill(hasTasks ? themeC1 : Color.clear)
+                                .frame(width: 4, height: 4)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
                 }
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    selectedDate = cal.date(byAdding: .weekOfYear, value: 1, to: selectedDate) ?? selectedDate
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(themeC1)
+                    .frame(width: 28, height: 44)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
+        .themeGlass(cornerRadius: 14)
+    }
+
+    // MARK: - Progress Card
+
+    private var progressCard: some View {
+        let todos  = dayTodos(for: selectedDate)
+        let done   = todos.filter { $0.isCompleted }.count
+        let total  = todos.count
+        let prog   = total > 0 ? Double(done) / Double(total) : 0.0
+
+        return HStack(spacing: 14) {
+            ZStack {
+                Circle().stroke(themeC1.opacity(0.15), lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: prog)
+                    .stroke(LinearGradient(colors: [themeC1, themeC2],
+                                          startPoint: .leading, endPoint: .trailing),
+                           style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 0.5), value: prog)
+                Text("\(Int(prog * 100))%")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(isDark ? .white : .primary)
+            }
+            .frame(width: 50, height: 50)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(greetingOrDateLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isDark ? .white : .primary)
+                Text(total == 0 ? "Keine Aufgaben eingeplant"
+                                : "\(done) von \(total) erledigt")
+                    .font(.caption)
+                    .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+            }
+
+            Spacer()
+
+            if !isToday {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        selectedDate = cal.startOfDay(for: Date())
+                    }
+                } label: {
+                    Text("Heute")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(themeC1)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(themeC1.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .themeGlass(cornerRadius: 16)
+    }
+
+    // MARK: - Tree Timeline
+
+    private var treeTimeline: some View {
+        VStack(spacing: 0) {
+            untimedSection
+            treeSectionView(label: "Morgen", icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12)
+            treeSectionView(label: "Mittag",  icon: "sun.max.fill",         color: themeC1,  hours: 12..<18)
+            treeSectionView(label: "Abend",   icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    // Aufgaben ohne Uhrzeit
+    @ViewBuilder
+    private var untimedSection: some View {
+        let items = dayTodos(for: selectedDate).filter { $0.dueDate == nil }
+        if !items.isEmpty {
+            VStack(spacing: 0) {
+                sectionHeader(label: "Ohne Uhrzeit", icon: "tray.fill", color: .secondary)
+                ForEach(items) { todo in
+                    taskRow(todo: todo, showTime: false)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func treeSectionView(label: String, icon: String, color: Color, hours: Range<Int>) -> some View {
+        let tasks = tasksForHours(hours)
+        let sectionStart = cal.date(bySettingHour: hours.lowerBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+        let sectionEnd: Date = {
+            if hours.upperBound == 24 {
+                return cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: selectedDate)) ?? selectedDate
+            }
+            return cal.date(bySettingHour: hours.upperBound, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+        }()
+        let nowInSection = isToday && now >= sectionStart && now < sectionEnd
+
+        VStack(spacing: 0) {
+            sectionHeader(label: label, icon: icon, color: color)
+
+            if tasks.isEmpty {
+                if nowInSection { nowIndicatorRow }
+                freeTimeRow(
+                    minutes: CGFloat(max(sectionEnd.timeIntervalSince(sectionStart) / 60, 0)),
+                    color: color,
+                    showHint: true
+                )
+            } else {
+                // Gap before first task
+                if let firstDue = tasks.first?.dueDate {
+                    let preGap = CGFloat(max(firstDue.timeIntervalSince(sectionStart) / 60, 0))
+                    if preGap > 5 { freeTimeRow(minutes: preGap, color: color, showHint: false) }
+                }
+
+                // Now indicator position
+                let nowBeforeFirst = nowInSection && tasks.first.map { now < ($0.dueDate ?? .distantFuture) } ?? false
+                if nowBeforeFirst { nowIndicatorRow }
+
+                ForEach(Array(tasks.enumerated()), id: \.element.id) { idx, task in
+                    taskRow(todo: task, showTime: true)
+
+                    let nextStart = idx + 1 < tasks.count ? (tasks[idx + 1].dueDate ?? sectionEnd) : sectionEnd
+                    let gapMins = CGFloat(max(nextStart.timeIntervalSince(task.dueDate ?? sectionEnd) / 60, 0))
+
+                    let nowAfterThis = nowInSection
+                        && now >= (task.dueDate ?? sectionStart)
+                        && (idx + 1 >= tasks.count || now < (tasks[idx + 1].dueDate ?? sectionEnd))
+                    if nowAfterThis { nowIndicatorRow }
+
+                    if gapMins > 5 { freeTimeRow(minutes: gapMins, color: color, showHint: false) }
+                }
+            }
+        }
+    }
+
+    // MARK: - Section Header
+
+    private func sectionHeader(label: String, icon: String, color: Color) -> some View {
+        HStack(alignment: .center, spacing: 0) {
+            Spacer().frame(width: 52)
+            ZStack {
+                Circle().fill(color.opacity(0.18)).frame(width: 22, height: 22)
+                Circle().fill(color).frame(width: 11, height: 11)
+            }
+            .frame(width: 20)
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                Text(label)
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .foregroundStyle(color)
+            .padding(.leading, 10)
+            Rectangle()
+                .fill(color.opacity(0.18))
+                .frame(height: 1)
+                .padding(.leading, 8)
+        }
+        .padding(.top, 22)
+        .padding(.bottom, 4)
+        .padding(.trailing, 4)
+    }
+
+    // MARK: - Task Row
+
+    private func taskRow(todo: MacTodoItem, showTime: Bool) -> some View {
+        let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+        let isActive = isToday && !todo.isCompleted
+            && todo.dueDate.map { now >= $0 && now < $0.addingTimeInterval(3600) } ?? false
+        let borderColor: Color = todo.isCompleted ? .green.opacity(0.35)
+                               : isActive         ? themeC1.opacity(0.6)
+                               :                    themeC1.opacity(0.28)
+        let bgColor: Color = todo.isCompleted ? .green.opacity(isDark ? 0.08 : 0.05)
+                           : isActive         ? themeC1.opacity(isDark ? 0.18 : 0.10)
+                           :                   themeC1.opacity(isDark ? 0.12 : 0.07)
+
+        return HStack(alignment: .top, spacing: 0) {
+            // Zeit-Spalte
+            Group {
+                if showTime, let due = todo.dueDate {
+                    Text(shortTime(due))
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(todo.isCompleted ? .secondary : themeC1)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 44, alignment: .trailing)
+            .padding(.trailing, 8)
+            .padding(.top, 10)
+
+            // Spine: Punkt + Linie
+            VStack(spacing: 0) {
+                ZStack {
+                    if todo.isCompleted {
+                        Circle().fill(Color.green.opacity(0.25)).frame(width: 14, height: 14)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(Color.green)
+                    } else if isActive {
+                        Circle().fill(themeC1.opacity(0.2)).frame(width: 16, height: 16)
+                        Circle().fill(themeC1).frame(width: 8, height: 8)
+                    } else {
+                        Circle().fill(themeC1.opacity(0.6)).frame(width: 9, height: 9)
+                    }
+                }
+                .padding(.top, 8)
+                Rectangle()
+                    .fill(lineColor)
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(width: 20)
+
+            // Karte
+            HStack(spacing: 8) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        todoStore.toggle(todo)
+                    }
+                } label: {
+                    Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 17))
+                        .foregroundStyle(todo.isCompleted ? Color.green : themeC1.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(todo.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(isDark ? .white.opacity(0.95) : Color.primary)
+                        .strikethrough(todo.isCompleted, color: .secondary)
+                        .lineLimit(2)
+
+                    if !todo.description.isEmpty {
+                        Text(todo.description)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    if isActive {
+                        HStack(spacing: 3) {
+                            Circle().fill(themeC1).frame(width: 5, height: 5)
+                            Text("läuft gerade")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(themeC1)
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if todo.isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.yellow)
+                }
+
+                Button { editingTodo = todo } label: {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(themeC1.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 10).fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 10).fill(bgColor)
+                if !aktivesThema.isEmpty {
+                    TaskCardThemeDecoration(theme: aktivesThema, isDark: isDark, isActive: isActive)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: isActive ? 1.5 : 1))
+            .padding(.leading, 10)
+            .padding(.bottom, 6)
+            .frame(maxWidth: .infinity)
+        }
+        .opacity(todo.isCompleted ? 0.55 : 1.0)
+        .onTapGesture { editingTodo = todo }
+    }
+
+    // MARK: - Now Indicator
+
+    private var nowIndicatorRow: some View {
+        let fmt: DateFormatter = {
+            let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+        }()
+        return HStack(spacing: 0) {
+            Text(fmt.string(from: now))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(themeC1)
+                .frame(width: 44, alignment: .trailing)
+                .padding(.trailing, 8)
+            ZStack {
+                Circle().fill(themeC1.opacity(0.2)).frame(width: 18, height: 18)
+                Circle().fill(themeC1).frame(width: 9, height: 9)
+            }
+            .frame(width: 20)
+            Rectangle()
+                .fill(LinearGradient(colors: [themeC1, themeC1.opacity(0)],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(height: 1.5)
+                .padding(.leading, 10)
+                .padding(.trailing, 4)
+        }
+        .padding(.vertical, 4)
+        .id("nowIndicator")
+    }
+
+    // MARK: - Free Time Row
+
+    @ViewBuilder
+    private func freeTimeRow(minutes: CGFloat, color: Color, showHint: Bool) -> some View {
+        let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+        let height = max(min(minutes * 1.0, 90), 20)
+        HStack(alignment: .center, spacing: 0) {
+            Spacer().frame(width: 52)
+            Rectangle().fill(lineColor).frame(width: 2, height: height)
+                .frame(width: 20)
+            if showHint {
+                Button { showQuickAdd = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus").font(.system(size: 9, weight: .bold))
+                        Text(minutes >= 60
+                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") frei"
+                             : "\(Int(minutes))min frei")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundStyle(isDark ? .white.opacity(0.22) : Color.secondary.opacity(0.5))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .overlay(RoundedRectangle(cornerRadius: 8)
+                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .foregroundStyle(color.opacity(0.25)))
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 10)
             }
             Spacer()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 2)
     }
 
-    // MARK: - Add Sheet
+    // MARK: - Helpers
 
-    private var addSheet: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Aufgabe hinzufügen")
-                .font(.headline)
-            TextField("Aufgabenname", text: $newTitle)
-                .textFieldStyle(.roundedBorder)
-            DatePicker("Uhrzeit", selection: $newTime, displayedComponents: [.hourAndMinute])
-            HStack {
-                Spacer()
-                Button("Abbrechen") { showAddSheet = false }
-                    .keyboardShortcut(.cancelAction)
-                Button("Hinzufügen") {
-                    guard !newTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                    let item = MacTodoItem(title: newTitle, dueDate: newTime)
-                    todoStore.addTodo(item)
-                    newTitle = ""
-                    showAddSheet = false
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-        }
-        .padding(24)
-        .frame(width: 360)
-    }
-
-    // MARK: - Computed
-
-    private var timedTodos: [MacTodoItem]   { todos(for: selectedDate).filter { $0.dueDate != nil } }
-    private var untimedTodos: [MacTodoItem] { todos(for: selectedDate).filter { $0.dueDate == nil } }
-
-    private func todos(for day: Date) -> [MacTodoItem] {
+    private func dayTodos(for day: Date) -> [MacTodoItem] {
         todoStore.todos.filter {
-            guard let due = $0.dueDate else { return cal.isDate($0.createdAt, inSameDayAs: day) }
-            return cal.isDate(due, inSameDayAs: day)
+            if let due = $0.dueDate { return cal.isDate(due, inSameDayAs: day) }
+            return cal.isDate($0.createdAt, inSameDayAs: day)
         }
     }
 
-    private func todos(atHour hour: Int) -> [MacTodoItem] {
-        timedTodos.filter {
-            guard let due = $0.dueDate else { return false }
-            return cal.component(.hour, from: due) == hour
+    private func tasksForHours(_ hours: Range<Int>) -> [MacTodoItem] {
+        todoStore.todos.filter { todo in
+            guard let due = todo.dueDate else { return false }
+            guard cal.isDate(due, inSameDayAs: selectedDate) else { return false }
+            return hours.contains(cal.component(.hour, from: due))
         }
         .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
-    private var daysInWeek: [Date] {
-        let today = cal.startOfDay(for: Date())
-        let weekday = cal.component(.weekday, from: today)
-        let monday  = cal.date(byAdding: .day, value: 2 - weekday, to: today) ?? today
-        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: monday) }
+    private func currentWeekDays() -> [Date] {
+        var cal2 = Calendar(identifier: .gregorian)
+        cal2.firstWeekday = 2
+        let weekStart = cal2.date(from: cal2.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate)) ?? selectedDate
+        return (0..<7).compactMap { cal2.date(byAdding: .day, value: $0, to: weekStart) }
     }
 
-    private var monthYear: String {
-        let f = DateFormatter(); f.dateFormat = "MMMM yyyy"; f.locale = Locale(identifier: "de_DE")
-        return f.string(from: selectedDate)
-    }
-
-    private var fullDateLabel: String {
-        let f = DateFormatter(); f.dateFormat = "EEEE, d. MMMM"; f.locale = Locale(identifier: "de_DE")
-        return f.string(from: selectedDate)
-    }
-
-    private func weekdayShort(_ date: Date) -> String {
-        let f = DateFormatter(); f.dateFormat = "EE"; f.locale = Locale(identifier: "de_DE")
-        return f.string(from: date)
+    private func shortWeekday(_ date: Date) -> String {
+        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "EEE"
+        return String(f.string(from: date).prefix(2))
     }
 
     private func shortTime(_ date: Date) -> String {
@@ -279,8 +549,76 @@ struct MacTagesplanerView: View {
         return f.string(from: date)
     }
 
-    private func priorityColor(_ p: MacTodoPriority) -> Color {
-        let (r, g, b) = p.color
-        return Color(red: r, green: g, blue: b)
+    private var selectedDateTitle: String {
+        if isToday { return "Heute" }
+        let f = DateFormatter(); f.dateFormat = "EEEE, d. MMM"; f.locale = Locale(identifier: "de_DE")
+        return f.string(from: selectedDate)
+    }
+
+    private var greetingOrDateLabel: String {
+        if isToday {
+            let h = cal.component(.hour, from: Date())
+            if h < 12 { return "Guten Morgen" }
+            if h < 18 { return "Guten Mittag" }
+            return "Guten Abend"
+        }
+        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "EEEE"
+        return f.string(from: selectedDate)
+    }
+}
+
+// MARK: - Quick Add Sheet
+
+struct MacTagesplanQuickAddSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let selectedDate: Date
+    let themeC1: Color
+    let themeC2: Color
+    let onAdd: (String, Date?) -> Void
+
+    @State private var title = ""
+    @State private var hasTime = false
+    @State private var time: Date
+
+    init(selectedDate: Date, themeC1: Color, themeC2: Color, onAdd: @escaping (String, Date?) -> Void) {
+        self.selectedDate = selectedDate
+        self.themeC1 = themeC1
+        self.themeC2 = themeC2
+        self.onAdd = onAdd
+        let cal = Calendar.current
+        _time = State(initialValue: cal.date(bySettingHour: 9, minute: 0, second: 0, of: selectedDate) ?? selectedDate)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Aufgabe") {
+                    TextField("Titel", text: $title)
+                }
+                Section {
+                    Toggle("Uhrzeit festlegen", isOn: $hasTime)
+                    if hasTime {
+                        DatePicker("Uhrzeit", selection: $time, displayedComponents: [.hourAndMinute])
+                    }
+                }
+            }
+            .navigationTitle("Aufgabe einplanen")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Hinzufügen") {
+                        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                        let finalTime: Date? = hasTime ? time : nil
+                        onAdd(title, finalTime)
+                        dismiss()
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .frame(width: 360, height: 280)
     }
 }

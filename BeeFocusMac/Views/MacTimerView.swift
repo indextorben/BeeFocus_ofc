@@ -6,7 +6,7 @@ struct MacTimerView: View {
     @Environment(\.colorScheme)  private var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
-    @State private var appeared = false
+    @State private var appeared    = false
     @State private var showSettings = false
 
     private var isDark: Bool { colorScheme == .dark }
@@ -17,6 +17,21 @@ struct MacTimerView: View {
         return [c1, c2]
     }
     private var accent: Color { accentColors[0] }
+
+    private var modeLabel: String {
+        switch mgr.mode {
+        case .focus:      return "Fokus · Sitzung \(mgr.sessionCount + 1)"
+        case .shortBreak: return "Kurze Pause"
+        case .longBreak:  return "Lange Pause"
+        }
+    }
+
+    private var modeIcon: String {
+        switch mgr.mode {
+        case .focus:                 return "brain.head.profile"
+        case .shortBreak, .longBreak: return "cup.and.saucer.fill"
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -35,18 +50,19 @@ struct MacTimerView: View {
                     .opacity(appeared ? 1 : 0)
                     .animation(.spring(response: 0.7, dampingFraction: 0.75).delay(0.05), value: appeared)
 
-                Spacer().frame(height: 24)
+                Spacer().frame(height: 28)
 
-                sessionDots
+                modeBadge
                     .opacity(appeared ? 1 : 0)
-                    .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
+                    .offset(y: appeared ? 0 : 8)
+                    .animation(.easeOut(duration: 0.4).delay(0.25), value: appeared)
 
                 Spacer().frame(height: 36)
 
                 controls
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 16)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.3), value: appeared)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.30), value: appeared)
 
                 Spacer()
 
@@ -82,109 +98,129 @@ struct MacTimerView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Timer Ring
+    // MARK: - Timer Ring (identisch mit iOS)
 
     private var timerRing: some View {
         ZStack {
+            // Outer glow
             Circle()
-                .stroke(accent.opacity(0.15), lineWidth: 14)
+                .fill(RadialGradient(
+                    colors: [accent.opacity(isDark ? 0.18 : 0.10), .clear],
+                    center: .center, startRadius: 0, endRadius: 160))
+                .frame(width: 320, height: 320)
+                .blur(radius: 8)
+
+            // Glass backing
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: 260, height: 260)
+                .overlay(Circle().strokeBorder(
+                    LinearGradient(
+                        colors: [Color.white.opacity(isDark ? 0.15 : 0.70),
+                                 Color.white.opacity(isDark ? 0.05 : 0.25)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 1.5))
+                .shadow(color: Color.black.opacity(isDark ? 0.30 : 0.10), radius: 24, x: 0, y: 8)
+
+            // Track
+            Circle()
+                .stroke(Color.primary.opacity(0.07), lineWidth: 18)
                 .frame(width: 220, height: 220)
 
+            // Progress arc
             Circle()
                 .trim(from: 0, to: mgr.progress)
                 .stroke(
-                    AngularGradient(colors: [accentColors[1].opacity(0.7), accentColors[0]],
-                                    center: .center),
-                    style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                    LinearGradient(colors: accentColors,
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    style: StrokeStyle(lineWidth: 18, lineCap: .round)
                 )
                 .frame(width: 220, height: 220)
                 .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 1), value: mgr.progress)
-                .shadow(color: accent.opacity(0.4), radius: 8)
+                .animation(.linear(duration: 0.5), value: mgr.progress)
+                .shadow(color: accent.opacity(0.45), radius: 8, x: 0, y: 0)
 
+            // Time + session dots inside ring
             VStack(spacing: 6) {
                 Text(mgr.timeString)
-                    .font(.system(size: 52, weight: .bold, design: .monospaced))
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
                     .foregroundStyle(accent)
-                Text(mgr.mode.rawValue)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .minimumScaleFactor(0.5)
+
+                HStack(spacing: 7) {
+                    ForEach(0..<mgr.sessionsUntilLong, id: \.self) { i in
+                        Circle()
+                            .fill(i < (mgr.sessionCount % mgr.sessionsUntilLong)
+                                  ? accent
+                                  : Color.primary.opacity(0.18))
+                            .frame(width: 7, height: 7)
+                            .animation(.easeInOut(duration: 0.3), value: mgr.sessionCount)
+                    }
+                }
             }
         }
     }
 
-    // MARK: - Session Dots
+    // MARK: - Mode Badge (identisch mit iOS)
 
-    private var sessionDots: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<mgr.sessionsUntilLong, id: \.self) { i in
-                let filled = i < (mgr.sessionCount % mgr.sessionsUntilLong)
-                Circle()
-                    .fill(filled ? accent : Color.primary.opacity(0.15))
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(filled ? 1.1 : 1.0)
-                    .animation(.spring(response: 0.3), value: filled)
-            }
-            Text("Sitzung \(mgr.sessionCount + 1)")
-                .font(.system(size: 12))
+    private var modeBadge: some View {
+        HStack(spacing: 8) {
+            Image(systemName: modeIcon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(accent)
+            Text(modeLabel)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
-                .padding(.leading, 4)
         }
+        .padding(.horizontal, 18).padding(.vertical, 9)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(accent.opacity(isDark ? 0.3 : 0.2), lineWidth: 1))
+        .shadow(color: accent.opacity(0.15), radius: 8, x: 0, y: 3)
+        .animation(.easeInOut(duration: 0.4), value: mgr.mode)
     }
 
-    // MARK: - Controls
+    // MARK: - Controls (identisch mit iOS: Abstände, Größen, Stil)
 
     private var controls: some View {
-        HStack(spacing: 24) {
-            // Reset
-            Button { mgr.reset() } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 52, height: 52)
-                    .background(Color.primary.opacity(0.08), in: Circle())
-            }
-            .buttonStyle(.plain)
-
-            // Play / Pause
-            Button { mgr.startPause() } label: {
-                Image(systemName: mgr.isRunning ? "pause.fill" : "play.fill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 72, height: 72)
-                    .background(
-                        Circle().fill(
-                            LinearGradient(colors: accentColors,
-                                           startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                    )
-                    .shadow(color: accent.opacity(0.5), radius: 12, y: 4)
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.space, modifiers: [])
-
-            // Skip
-            Button { mgr.skipToNext() } label: {
-                Image(systemName: "forward.end.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 52, height: 52)
-                    .background(Color.primary.opacity(0.08), in: Circle())
-            }
-            .buttonStyle(.plain)
-
-            // Settings toggle
-            Button {
+        HStack(spacing: 28) {
+            controlButton(icon: "arrow.clockwise", isPrimary: false)  { mgr.reset() }
+            controlButton(icon: mgr.isRunning ? "pause.fill" : "play.fill", isPrimary: true) { mgr.startPause() }
+                .keyboardShortcut(.space, modifiers: [])
+            controlButton(icon: "gearshape.fill", isPrimary: false) {
                 withAnimation(.spring(response: 0.35)) { showSettings.toggle() }
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(showSettings ? accent : .secondary)
-                    .frame(width: 52, height: 52)
-                    .background(Color.primary.opacity(0.08), in: Circle())
             }
-            .buttonStyle(.plain)
         }
+    }
+
+    private func controlButton(icon: String, isPrimary: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack {
+                if isPrimary {
+                    Circle()
+                        .fill(LinearGradient(colors: accentColors,
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 80, height: 80)
+                        .shadow(color: accent.opacity(0.5), radius: 16, x: 0, y: 6)
+                } else {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 60, height: 60)
+                        .overlay(Circle().strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(isDark ? 0.15 : 0.65),
+                                         Color.white.opacity(isDark ? 0.05 : 0.20)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 1))
+                        .shadow(color: Color.black.opacity(isDark ? 0.22 : 0.07), radius: 10, x: 0, y: 4)
+                }
+
+                Image(systemName: icon)
+                    .font(.system(size: isPrimary ? 30 : 22, weight: .semibold))
+                    .foregroundStyle(isPrimary ? .white : .primary)
+            }
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.4), value: mgr.mode)
     }
 
     // MARK: - Settings Panel

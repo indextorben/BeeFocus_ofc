@@ -1,6 +1,7 @@
 import Foundation
 import CloudKit
 import Combine
+import AppKit
 
 @MainActor
 final class MacTodoStore: ObservableObject {
@@ -14,8 +15,27 @@ final class MacTodoStore: ObservableObject {
     // Map from todo.id → CKRecord.ID for updates/deletes
     private var recordIDMap: [UUID: CKRecord.ID] = [:]
 
+    private var syncTimer: Task<Void, Never>?
+
     init() {
         Task { await fetchTodos() }
+        startPeriodicSync()
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { await self?.fetchTodos() }
+        }
+    }
+
+    private func startPeriodicSync() {
+        syncTimer = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                guard !Task.isCancelled else { break }
+                await fetchTodos()
+            }
+        }
     }
 
     // MARK: - Fetch
@@ -77,7 +97,10 @@ final class MacTodoStore: ObservableObject {
 
     // MARK: - Delete
 
+    private(set) var lastDeleted: MacTodoItem? = nil
+
     func delete(_ item: MacTodoItem) {
+        lastDeleted = item
         todos.removeAll { $0.id == item.id }
         guard let ckID = recordIDMap[item.id] else { return }
         Task {
@@ -86,7 +109,35 @@ final class MacTodoStore: ObservableObject {
         }
     }
 
+    func undo() {
+        guard let item = lastDeleted else { return }
+        lastDeleted = nil
+        addTodo(item)
+    }
+
+    func deleteCompleted() {
+        let completed = todos.filter { $0.isCompleted }
+        todos.removeAll { $0.isCompleted }
+        for item in completed {
+            guard let ckID = recordIDMap[item.id] else { continue }
+            recordIDMap.removeValue(forKey: item.id)
+            Task { try? await db.deleteRecord(withID: ckID) }
+        }
+    }
+
     // MARK: - Update
+
+    func update(_ item: MacTodoItem) {
+        guard let idx = todos.firstIndex(where: { $0.id == item.id }) else { return }
+        todos[idx] = item
+        Task { await saveToCloudKit(item) }
+    }
+
+    func toggleFavorite(_ item: MacTodoItem) {
+        var updated = item
+        updated.isFavorite.toggle()
+        update(updated)
+    }
 
     private func saveToCloudKit(_ item: MacTodoItem) async {
         do {
@@ -111,6 +162,26 @@ final class MacTodoStore: ObservableObject {
 
     var todayTodos: [MacTodoItem] {
         todos.filter { $0.isDueToday && !$0.isCompleted }
+    }
+
+    var tomorrowTodos: [MacTodoItem] {
+        let cal = Calendar.current
+        let tom    = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
+        let tomEnd = cal.date(bySettingHour: 23, minute: 59, second: 59, of: tom) ?? tom
+        return todos.filter {
+            guard let due = $0.dueDate, !$0.isCompleted else { return false }
+            return due >= tom && due <= tomEnd
+        }
+    }
+
+    var thisWeekTodos: [MacTodoItem] {
+        let cal = Calendar.current
+        let today   = cal.startOfDay(for: Date())
+        let weekEnd = cal.date(byAdding: .day, value: 7, to: today) ?? today
+        return todos.filter {
+            guard let due = $0.dueDate, !$0.isCompleted else { return false }
+            return due >= today && due < weekEnd
+        }
     }
 
     var overdueTodos: [MacTodoItem] {
