@@ -57,21 +57,21 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - WCSessionDelegate
 
-    // Receive snapshot pushed from iOS via updateApplicationContext
-    func session(_ session: WCSession,
+    nonisolated func session(_ session: WCSession,
                  didReceiveApplicationContext applicationContext: [String: Any]) {
         guard let data = applicationContext["widgetSnapshot"] as? Data else { return }
-        applySnapshotData(data)
+        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
+        DispatchQueue.main.async { self.snapshot = snap }
     }
 
-    func session(_ session: WCSession,
+    nonisolated func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
-        // After activation, check if iOS already sent an application context
-        if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data {
-            applySnapshotData(data)
+        if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data,
+           let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) {
+            DispatchQueue.main.async { self.snapshot = snap }
         } else {
-            loadSnapshot()
+            DispatchQueue.main.async { self.loadSnapshot() }
         }
     }
 }
