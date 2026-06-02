@@ -26,6 +26,34 @@ struct BlurView: UIViewRepresentable {
     }
 }
 
+enum TodoTimeFilter: String, CaseIterable {
+    case alle        = "Alle"
+    case heute       = "Heute"
+    case morgen      = "Morgen"
+    case dieseWoche  = "Diese Woche"
+    case ueberfaellig = "Überfällig"
+
+    var icon: String {
+        switch self {
+        case .alle:         return "list.bullet"
+        case .heute:        return "sun.max.fill"
+        case .morgen:       return "moon.stars.fill"
+        case .dieseWoche:   return "calendar.badge.clock"
+        case .ueberfaellig: return "exclamationmark.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .alle:         return .blue
+        case .heute:        return .orange
+        case .morgen:       return .indigo
+        case .dieseWoche:   return .teal
+        case .ueberfaellig: return .red
+        }
+    }
+}
+
 struct TodoListView: View {
     // MARK: - Properties
     @Environment(\.colorScheme) var colorScheme
@@ -133,6 +161,7 @@ struct TodoListView: View {
     }
     @State private var showingAddFolderAlert = false
     @State private var newFolderName = ""
+    @State private var timeFilter: TodoTimeFilter = .alle
 
     // MARK: - Ordner-Zuweisung
     @State private var isShowingFolderPicker = false
@@ -267,9 +296,9 @@ struct TodoListView: View {
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .openTodayDueFromNotification)) { _ in
-                    // Reset category to all and enable today filter
                     selectedCategory = nil
                     showOnlyTodayFromNotification = true
+                    timeFilter = .heute
                 }
                 .onDisappear {
                     // Cancel the snackbar timer when view disappears
@@ -513,7 +542,32 @@ struct TodoListView: View {
 
             // Completed tasks are always hidden in the main list
             guard !todo.isCompleted else { return false }
-            return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth
+
+            // Time filter chips
+            let matchesTimeFilter: Bool = {
+                let c = Calendar.current
+                switch timeFilter {
+                case .alle:
+                    return true
+                case .heute:
+                    guard let due = todo.dueDate else { return false }
+                    return due >= todayStart && due <= todayEnd
+                case .morgen:
+                    let tom    = c.date(byAdding: .day, value: 1, to: todayStart) ?? todayStart
+                    let tomEnd = c.date(bySettingHour: 23, minute: 59, second: 59, of: tom) ?? todayEnd
+                    guard let due = todo.dueDate else { return false }
+                    return due >= tom && due <= tomEnd
+                case .dieseWoche:
+                    let weekEnd = c.date(byAdding: .day, value: 6, to: todayEnd) ?? todayEnd
+                    guard let due = todo.dueDate else { return false }
+                    return due >= todayStart && due <= weekEnd
+                case .ueberfaellig:
+                    guard let due = todo.dueDate else { return false }
+                    return due < todayStart
+                }
+            }()
+
+            return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth && matchesTimeFilter
         }
 
         // Deduplicate: keep first occurrence of each unique key
@@ -686,6 +740,7 @@ struct TodoListView: View {
                 highlightCard
                 categoryBar
                 AnyView(toolsStrip)
+                timeFilterBar
                 contentView
             }
             
@@ -1458,6 +1513,41 @@ struct TodoListView: View {
         .padding(.bottom, 4)
     }
     
+    private var timeFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TodoTimeFilter.allCases, id: \.self) { filter in
+                    let isSelected = timeFilter == filter
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            timeFilter = filter
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: filter.icon)
+                                .font(.system(size: 12, weight: .semibold))
+                            Text(filter.rawValue)
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(isSelected ? filter.color.opacity(0.22) : Color.clear)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(
+                            isSelected ? filter.color.opacity(0.7) : Color.secondary.opacity(0.25),
+                            lineWidth: 1.5
+                        ))
+                        .foregroundStyle(isSelected ? filter.color : Color.primary.opacity(0.65))
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.spring(response: 0.25), value: isSelected)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+    }
+
     private func categoryButton(for category: Category) -> some View {
         CategoryButton(
             title: LocalizedStringKey(category.name),
@@ -1488,8 +1578,6 @@ struct TodoListView: View {
         Group {
             if filteredTodos.isEmpty {
                 emptyStateView
-            } else if selectedCategory == nil && searchText.isEmpty {
-                folderListView
             } else {
                 todoListView
             }
