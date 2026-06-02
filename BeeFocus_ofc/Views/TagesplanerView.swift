@@ -1261,17 +1261,16 @@ struct TagesplanerView: View {
         return result
     }
 
-    @ViewBuilder
     private func parallelTasksRow(tasks: [TodoItem]) -> some View {
         let timeFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
-        let startDate = tasks.compactMap(\.dueDate).min() ?? Date()
-        let endDate   = tasks.compactMap { $0.endDate ?? $0.dueDate }.max() ?? startDate
-        let durationMins = CGFloat(max(endDate.timeIntervalSince(startDate) / 60, 45))
-        let rowH = max(durationMins * minsPerPt, 68)
+        let groupStart = tasks.compactMap(\.dueDate).min() ?? Date()
+        let groupEnd   = tasks.compactMap { $0.endDate ?? $0.dueDate }.max() ?? groupStart
+        let groupMins  = CGFloat(max(groupEnd.timeIntervalSince(groupStart) / 60, 45))
+        let rowH       = max(groupMins * minsPerPt, 68)
 
-        HStack(alignment: .top, spacing: 0) {
-            // Time column: start time
-            Text(timeFmt.string(from: startDate))
+        return HStack(alignment: .top, spacing: 0) {
+            // Zeitstempel der Gruppe
+            Text(timeFmt.string(from: groupStart))
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(themeC1)
                 .frame(width: 44, alignment: .trailing)
@@ -1292,18 +1291,24 @@ struct TagesplanerView: View {
             }
             .frame(width: 20)
 
-            // Side-by-side cards
+            // Karten nebeneinander, jede mit eigenem Offset + eigener Höhe
             HStack(alignment: .top, spacing: 6) {
                 ForEach(tasks) { task in
-                    parallelCard(task: task, rowHeight: rowH, timeFmt: timeFmt)
+                    let taskStart  = task.dueDate ?? groupStart
+                    let taskEnd    = task.endDate ?? task.dueDate ?? taskStart
+                    let topPad     = max(CGFloat(taskStart.timeIntervalSince(groupStart) / 60) * minsPerPt, 0)
+                    let cardH      = max(CGFloat(max(taskEnd.timeIntervalSince(taskStart) / 60, 30)) * minsPerPt, 40)
+                    parallelCard(task: task, cardHeight: cardH, timeFmt: timeFmt)
+                        .padding(.top, topPad)
                 }
             }
+            .frame(minHeight: rowH, alignment: .top)
             .padding(.leading, 10)
             .padding(.bottom, 6)
         }
     }
 
-    private func parallelCard(task: TodoItem, rowHeight: CGFloat, timeFmt: DateFormatter) -> some View {
+    private func parallelCard(task: TodoItem, cardHeight: CGFloat, timeFmt: DateFormatter) -> some View {
         let isActive = isToday && !task.isCompleted
             && (task.dueDate.map { now >= $0 } ?? false)
             && (task.endDate.map  { now < $0  } ?? false)
@@ -1342,9 +1347,7 @@ struct TagesplanerView: View {
                         .foregroundStyle(.secondary)
                 }
                 if let end = task.endDate {
-                    Text("–")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
+                    Text("–").font(.system(size: 9)).foregroundStyle(.secondary)
                     Text(timeFmt.string(from: end))
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(.secondary)
@@ -1359,10 +1362,8 @@ struct TagesplanerView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .topLeading)
-        .background {
-            RoundedRectangle(cornerRadius: 10).fill(bgColor)
-        }
+        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
+        .background { RoundedRectangle(cornerRadius: 10).fill(bgColor) }
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: isActive ? 1.8 : 1.2))
         .opacity(task.isCompleted ? 0.55 : 1.0)
     }
