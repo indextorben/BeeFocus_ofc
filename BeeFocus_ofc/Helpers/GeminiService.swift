@@ -81,11 +81,12 @@ struct GeminiService {
 
     // Reads the actual Gemini error message via the non-streaming endpoint (JSON body is reliable there)
     private static func fetchErrorMessage(apiKey: String, model: String) async -> String? {
-        let urlString = "https://generativelanguage.googleapis.com/v1/models/\(model):generateContent?key=\(apiKey)"
+        let urlString = "https://generativelanguage.googleapis.com/v1/models/\(model):generateContent"
         guard let url = URL(string: urlString) else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.timeoutInterval = 10
         let body: [String: Any] = ["contents": [["role": "user", "parts": [["text": "hi"]]]]]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -100,12 +101,13 @@ struct GeminiService {
         prompt: String, apiKey: String, model: String,
         continuation: AsyncThrowingStream<String, Error>.Continuation
     ) async -> StreamResult {
-        let urlString = "https://generativelanguage.googleapis.com/v1/models/\(model):streamGenerateContent?key=\(apiKey)&alt=sse"
+        let urlString = "https://generativelanguage.googleapis.com/v1/models/\(model):streamGenerateContent?alt=sse"
         guard let url = URL(string: urlString) else { return .failure(GeminiError.invalidKey) }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.timeoutInterval = 30
 
         let body: [String: Any] = [
@@ -150,11 +152,12 @@ struct GeminiService {
     // Validate key — tries models until one responds 200 or 429 (key valid, just limited)
     static func validate(apiKey: String) async -> Bool {
         for model in orderedModels {
-            let urlString = "https://generativelanguage.googleapis.com/v1/models/\(model):generateContent?key=\(apiKey)"
+            let urlString = "https://generativelanguage.googleapis.com/v1/models/\(model):generateContent"
             guard let url = URL(string: urlString) else { continue }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
             request.timeoutInterval = 15
             let body: [String: Any] = ["contents": [["role": "user", "parts": [["text": "Hi"]]]]]
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)

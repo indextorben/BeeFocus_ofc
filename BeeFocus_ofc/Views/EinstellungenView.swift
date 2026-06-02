@@ -722,6 +722,7 @@ struct EinstellungenView: View {
                 .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
+            #if DEBUG
             cardDivider()
             Button {
                 fokuspunktePeak += 1000
@@ -742,6 +743,7 @@ struct EinstellungenView: View {
                 .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
+            #endif
         }
     }
 
