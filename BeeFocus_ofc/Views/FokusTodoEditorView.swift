@@ -378,22 +378,44 @@ struct FokusTodoEditorView: View {
     }
 
     // MARK: - Erinnerung
+    private var reminderFireTime: Date? {
+        guard reminderOffset >= 0 else { return nil }
+        return dueDate.addingTimeInterval(TimeInterval(-reminderOffset * 60))
+    }
+
     private var reminderSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel("Erinnerung", icon: "bell.fill")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    reminderChip(-1, label: "Keine")
-                    reminderChip(0,  label: "Zur Zeit")
-                    reminderChip(5,  label: "5 min")
-                    reminderChip(15, label: "15 min")
-                    reminderChip(30, label: "30 min")
-                    reminderChip(60, label: "1 Std")
-                    reminderChip(120, label: "2 Std")
-                    reminderChip(1440, label: "1 Tag")
+            VStack(spacing: 0) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        reminderChip(-1,   label: "Keine")
+                        reminderChip(0,    label: "Zur Zeit")
+                        reminderChip(5,    label: "5 min")
+                        reminderChip(15,   label: "15 min")
+                        reminderChip(30,   label: "30 min")
+                        reminderChip(60,   label: "1 Std")
+                        reminderChip(120,  label: "2 Std")
+                        reminderChip(1440, label: "1 Tag")
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+
+                if let fireTime = reminderFireTime {
+                    Divider().opacity(0.15).padding(.horizontal, 14)
+                    HStack(spacing: 8) {
+                        Image(systemName: "bell.badge.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(themeC1)
+                        Text("Benachrichtigung um \(fireTime.formatted(.dateTime.hour().minute()))")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                }
             }
             .themeGlass(cornerRadius: 16)
         }
@@ -401,7 +423,12 @@ struct FokusTodoEditorView: View {
 
     private func reminderChip(_ offset: Int, label: String) -> some View {
         let selected = reminderOffset == offset
-        return Button { withAnimation(.spring(response: 0.3)) { reminderOffset = offset } } label: {
+        return Button {
+            withAnimation(.spring(response: 0.3)) { reminderOffset = offset }
+            if offset >= 0 {
+                NotificationManager.shared.requestAuthorization()
+            }
+        } label: {
             Text(label)
                 .font(.system(size: 13, weight: selected ? .semibold : .regular))
                 .foregroundStyle(selected ? .white : (isDark ? .white.opacity(0.7) : .secondary))

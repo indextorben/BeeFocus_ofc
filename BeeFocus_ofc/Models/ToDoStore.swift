@@ -548,21 +548,11 @@ class TodoStore: ObservableObject {
         CloudKitManager.shared.saveTodo(todo)
 
         if todo.calendarEnabled { addCalendarEvent(for: todo) }
-        if let dueDate = todo.dueDate {
-            let timeInterval = dueDate.timeIntervalSinceNow
-            if timeInterval > 0 {
-                // Determine if this is a reminder before due, or at due time
-                let hasReminder = (todo.reminderOffsetMinutes ?? -1) >= 0
-                let isReminderBeforeDue: Bool
-                let duration: TimeInterval
-                if let offset = todo.reminderOffsetMinutes, offset >= 0 {
-                    let reminderFire = dueDate.addingTimeInterval(TimeInterval(-offset * 60))
-                    duration = max(1, reminderFire.timeIntervalSinceNow)
-                    isReminderBeforeDue = reminderFire < dueDate
-                } else {
-                    duration = timeInterval
-                    isReminderBeforeDue = false
-                }
+        if let dueDate = todo.dueDate, let offset = todo.reminderOffsetMinutes, offset >= 0 {
+            let reminderFire = dueDate.addingTimeInterval(TimeInterval(-offset * 60))
+            let duration = max(1, reminderFire.timeIntervalSinceNow)
+            if duration > 0 {
+                let isReminderBeforeDue = offset > 0
 
                 // Build title/body with personalization fallback
                 let loc = LocalizationManager.shared
@@ -599,15 +589,12 @@ class TodoStore: ObservableObject {
                     return template
                 }()
 
-                let title: String
-                let body: String
-                if hasReminder && isReminderBeforeDue {
-                    title = (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultReminderTitle)
-                    body = (personalizedBody?.isEmpty == false ? personalizedBody! : defaultReminderBody)
-                } else {
-                    title = defaultDueTitle
-                    body = defaultDueBody
-                }
+                let title = isReminderBeforeDue
+                    ? (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultReminderTitle)
+                    : (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultDueTitle)
+                let body = isReminderBeforeDue
+                    ? (personalizedBody?.isEmpty == false ? personalizedBody! : defaultReminderBody)
+                    : (personalizedBody?.isEmpty == false ? personalizedBody! : defaultDueBody)
 
                 NotificationManager.shared.scheduleTimerNotification(
                     id: todo.id.uuidString,
@@ -618,7 +605,7 @@ class TodoStore: ObservableObject {
             }
         }
     }
-    
+
     func updateTodo(_ todo: TodoItem) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             let old = todos[index]
@@ -634,20 +621,12 @@ class TodoStore: ObservableObject {
 
             // Notifications aktualisieren
             NotificationManager.shared.cancelNotification(id: newTodo.id.uuidString)
-            if !newTodo.isCompleted, let dueDate = newTodo.dueDate {
-                let timeInterval = dueDate.timeIntervalSinceNow
-                if timeInterval > 0 {
-                    let hasReminder = (newTodo.reminderOffsetMinutes ?? -1) >= 0
-                    let isReminderBeforeDue: Bool
-                    let duration: TimeInterval
-                    if let offset = newTodo.reminderOffsetMinutes, offset >= 0 {
-                        let reminderFire = dueDate.addingTimeInterval(TimeInterval(-offset * 60))
-                        duration = max(1, reminderFire.timeIntervalSinceNow)
-                        isReminderBeforeDue = reminderFire < dueDate
-                    } else {
-                        duration = timeInterval
-                        isReminderBeforeDue = false
-                    }
+            if !newTodo.isCompleted, let dueDate = newTodo.dueDate,
+               let offset = newTodo.reminderOffsetMinutes, offset >= 0 {
+                let reminderFire = dueDate.addingTimeInterval(TimeInterval(-offset * 60))
+                let duration = max(1, reminderFire.timeIntervalSinceNow)
+                if duration > 0 {
+                    let isReminderBeforeDue = offset > 0
 
                     // Build title/body with personalization fallback
                     let loc = LocalizationManager.shared
@@ -684,15 +663,12 @@ class TodoStore: ObservableObject {
                         return template
                     }()
 
-                    let title: String
-                    let body: String
-                    if hasReminder && isReminderBeforeDue {
-                        title = (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultReminderTitle)
-                        body = (personalizedBody?.isEmpty == false ? personalizedBody! : defaultReminderBody)
-                    } else {
-                        title = defaultDueTitle
-                        body = defaultDueBody
-                    }
+                    let title = isReminderBeforeDue
+                        ? (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultReminderTitle)
+                        : (personalizedTitle?.isEmpty == false ? personalizedTitle! : defaultDueTitle)
+                    let body = isReminderBeforeDue
+                        ? (personalizedBody?.isEmpty == false ? personalizedBody! : defaultReminderBody)
+                        : (personalizedBody?.isEmpty == false ? personalizedBody! : defaultDueBody)
 
                     NotificationManager.shared.scheduleTimerNotification(
                         id: newTodo.id.uuidString,
