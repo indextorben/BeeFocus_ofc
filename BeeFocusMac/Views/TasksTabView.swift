@@ -151,7 +151,7 @@ struct TasksTabView: View {
                 } label: {
                     Image(systemName: showAddForm ? "xmark.circle.fill" : "plus.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundStyle(showAddForm ? .secondary : .orange)
+                        .foregroundStyle(showAddForm ? Color.gray : Color.orange)
                 }
                 .buttonStyle(.plain)
 

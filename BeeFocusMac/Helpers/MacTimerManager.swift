@@ -1,6 +1,11 @@
 import Foundation
 import SwiftUI
+import Combine
 import UserNotifications
+
+private extension Int {
+    var nonZero: Int? { self == 0 ? nil : self }
+}
 
 enum TimerMode: String {
     case focus     = "Fokuszeit"
@@ -18,16 +23,39 @@ enum TimerMode: String {
 
 @MainActor
 final class MacTimerManager: ObservableObject {
-    @AppStorage("mac_focusDuration")  var focusDuration:  Int = 25
-    @AppStorage("mac_shortBreak")     var shortBreak:     Int = 5
-    @AppStorage("mac_longBreak")      var longBreak:      Int = 15
-    @AppStorage("mac_sessionsUntilLong") var sessionsUntilLong: Int = 4
+    @Published var focusDuration:     Int = 25
+    @Published var shortBreak:        Int = 5
+    @Published var longBreak:         Int = 15
+    @Published var sessionsUntilLong: Int = 4
 
-    @Published private(set) var remaining:      Int = 25 * 60
-    @Published private(set) var totalSeconds:   Int = 25 * 60
-    @Published private(set) var mode:           TimerMode = .focus
-    @Published private(set) var isRunning:      Bool = false
-    @Published private(set) var sessionCount:   Int = 0
+    @Published var remaining:    Int = 0
+    @Published var totalSeconds: Int = 0
+    @Published var mode:         TimerMode = .focus
+    @Published var isRunning:    Bool = false
+    @Published var sessionCount: Int = 0
+
+    init() {
+        let ud = UserDefaults.standard
+        focusDuration     = ud.integer(forKey: "mac_focusDuration").nonZero     ?? 25
+        shortBreak        = ud.integer(forKey: "mac_shortBreak").nonZero        ?? 5
+        longBreak         = ud.integer(forKey: "mac_longBreak").nonZero         ?? 15
+        sessionsUntilLong = ud.integer(forKey: "mac_sessionsUntilLong").nonZero ?? 4
+        sessionCount      = ud.integer(forKey: "mac_sessionCount")
+
+        // Restore last saved remaining time (if app was quit while running)
+        let savedRemaining = ud.integer(forKey: "mac_remaining").nonZero ?? (focusDuration * 60)
+        let savedMode      = TimerMode(rawValue: ud.string(forKey: "mac_mode") ?? "") ?? .focus
+        mode         = savedMode
+        totalSeconds = savedRemaining  // will be recalculated when mode matches
+        remaining    = savedRemaining
+
+        // Recalculate total for current mode
+        switch savedMode {
+        case .focus:      totalSeconds = focusDuration * 60
+        case .shortBreak: totalSeconds = shortBreak * 60
+        case .longBreak:  totalSeconds = longBreak * 60
+        }
+    }
 
     private var timer: Timer? = nil
 
@@ -66,12 +94,11 @@ final class MacTimerManager: ObservableObject {
 
     private func start() {
         isRunning = true
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.tick()
-            }
+        let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.tick() }
         }
-        RunLoop.main.add(timer!, forMode: .common)
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     private func pause() {
@@ -87,6 +114,13 @@ final class MacTimerManager: ObservableObject {
             return
         }
         remaining -= 1
+        // Persist state every 5 seconds so the menu bar survives app restarts
+        if remaining % 5 == 0 {
+            let ud = UserDefaults.standard
+            ud.set(remaining, forKey: "mac_remaining")
+            ud.set(mode.rawValue, forKey: "mac_mode")
+            ud.set(sessionCount, forKey: "mac_sessionCount")
+        }
     }
 
     private func advance() {
@@ -130,24 +164,8 @@ final class MacTimerManager: ObservableObject {
         UNUserNotificationCenter.current().add(req)
     }
 
-    // MARK: - Mode Switch Helpers
 
-    func setFocusDuration(_ mins: Int) {
-        focusDuration = mins
-        if mode == .focus { resetToCurrentMode() }
-    }
-
-    func setShortBreak(_ mins: Int) {
-        shortBreak = mins
-        if mode == .shortBreak { resetToCurrentMode() }
-    }
-
-    func setLongBreak(_ mins: Int) {
-        longBreak = mins
-        if mode == .longBreak { resetToCurrentMode() }
-    }
-
-    private func resetToCurrentMode() {
+    func resetToCurrentMode() {
         pause()
         switch mode {
         case .focus:       totalSeconds = focusDuration * 60

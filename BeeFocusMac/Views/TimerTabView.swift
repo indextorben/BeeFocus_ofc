@@ -163,8 +163,20 @@ struct TimerTabView: View {
     private var settingsPanel: some View {
         VStack(spacing: 10) {
             durationRow("Fokus", value: $mgr.focusDuration, range: 5...90)
+                .onChange(of: mgr.focusDuration) { v in
+                    UserDefaults.standard.set(v, forKey: "mac_focusDuration")
+                    if mgr.mode == .focus { mgr.resetToCurrentMode() }
+                }
             durationRow("Kurze Pause", value: $mgr.shortBreak, range: 1...30)
+                .onChange(of: mgr.shortBreak) { v in
+                    UserDefaults.standard.set(v, forKey: "mac_shortBreak")
+                    if mgr.mode == .shortBreak { mgr.resetToCurrentMode() }
+                }
             durationRow("Lange Pause", value: $mgr.longBreak, range: 5...60)
+                .onChange(of: mgr.longBreak) { v in
+                    UserDefaults.standard.set(v, forKey: "mac_longBreak")
+                    if mgr.mode == .longBreak { mgr.resetToCurrentMode() }
+                }
             HStack {
                 Text("Sitzungen bis lange Pause")
                     .font(.system(size: 12))
@@ -172,6 +184,9 @@ struct TimerTabView: View {
                 Spacer()
                 Stepper("\(mgr.sessionsUntilLong)", value: $mgr.sessionsUntilLong, in: 2...8)
                     .font(.system(size: 12))
+                    .onChange(of: mgr.sessionsUntilLong) { v in
+                        UserDefaults.standard.set(v, forKey: "mac_sessionsUntilLong")
+                    }
             }
         }
         .padding(.horizontal, 16)
