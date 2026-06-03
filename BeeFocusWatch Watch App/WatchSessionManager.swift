@@ -48,8 +48,13 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     func requestFreshSnapshot() {
-        // transferUserInfo liefert auch wenn iPhone-App nicht im Vordergrund ist
-        WCSession.default.transferUserInfo(["requestSnapshot": true])
+        if WCSession.default.isReachable {
+            // sendMessage: sofort, wenn iPhone im Vordergrund/erreichbar
+            WCSession.default.sendMessage(["requestSnapshot": true], replyHandler: nil)
+        } else {
+            // transferUserInfo: zugestellt sobald iPhone wieder läuft
+            WCSession.default.transferUserInfo(["requestSnapshot": true])
+        }
     }
 
     // MARK: - Watch → iPhone
@@ -101,8 +106,14 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
         if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data {
             applySnapshotData(data)
         }
-        // Frischen Snapshot vom iPhone anfordern (auch im Hintergrund)
-        WCSession.default.transferUserInfo(["requestSnapshot": true])
+        requestFreshSnapshot()
+    }
+
+    // iPhone wird erreichbar → sofort frischen Snapshot anfordern
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        if session.isReachable {
+            requestFreshSnapshot()
+        }
     }
 
     #if os(iOS)

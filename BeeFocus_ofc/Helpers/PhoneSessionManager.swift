@@ -92,7 +92,9 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        if let idString = message["completeTask"] as? String, let id = UUID(uuidString: idString) {
+        if message["requestSnapshot"] != nil {
+            DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
+        } else if let idString = message["completeTask"] as? String, let id = UUID(uuidString: idString) {
             DispatchQueue.main.async { self.completeWatchTask(id: id) }
         } else if let ml = message["addWater"] as? Int {
             Task { @MainActor in self.handleAddWater(ml: ml) }
