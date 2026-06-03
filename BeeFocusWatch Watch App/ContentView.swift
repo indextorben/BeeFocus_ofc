@@ -489,19 +489,19 @@ struct MonatTaskRow: View {
 struct WasserView: View {
     @ObservedObject var session: WatchSessionManager
 
-    // Lokal auf Watch persistent gespeichert (übersteht View-Wechsel)
-    @AppStorage("watchLocalWaterML")   private var localML: Int = 0
-    @AppStorage("watchLocalWaterDate") private var localDateStr: String = ""
+    // Noch nicht vom iPhone bestätigte Wassermenge (Watch-Additionen)
+    @AppStorage("watchPendingWaterML")      private var pendingML: Int = 0
+    @AppStorage("watchPendingWaterDate")    private var pendingDateStr: String = ""
+    // Letzter bekannter Snapshot-Wert, um Bestätigungen zu erkennen
+    @AppStorage("watchLastSnapshotWaterML") private var lastSnapshotML: Int = 0
 
     private var todayStr: String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
     }
-    private var localAddedToday: Int {
-        localDateStr == todayStr ? localML : 0
-    }
+    private var pendingToday: Int { pendingDateStr == todayStr ? pendingML : 0 }
 
     private var totalML: Int {
-        session.hasRealSnapshot ? max(session.snapshot.waterTodayML, localAddedToday) : localAddedToday
+        (session.hasRealSnapshot ? session.snapshot.waterTodayML : 0) + pendingToday
     }
     private var goalML: Int { max(session.snapshot.waterGoalML, 1) }
     private var progress: Double { min(Double(totalML) / Double(goalML), 1.0) }
@@ -535,9 +535,8 @@ struct WasserView: View {
                 HStack(spacing: 6) {
                     ForEach([150, 250, 330], id: \.self) { ml in
                         Button {
-                            // Lokal persistieren (View-Wechsel-sicher)
-                            if localDateStr != todayStr { localML = 0; localDateStr = todayStr }
-                            localML += ml
+                            if pendingDateStr != todayStr { pendingML = 0; pendingDateStr = todayStr }
+                            pendingML += ml
                             session.addWater(ml: ml)
                             #if os(watchOS)
                             WKInterfaceDevice.current().play(.click)
@@ -559,6 +558,14 @@ struct WasserView: View {
             .padding(.vertical, 8)
         }
         .navigationTitle("Wasser")
+        .onChange(of: session.snapshot.waterTodayML) { newVal in
+            guard newVal > lastSnapshotML else { return }
+            let confirmed = newVal - lastSnapshotML
+            lastSnapshotML = newVal
+            if pendingDateStr == todayStr {
+                pendingML = max(0, pendingML - confirmed)
+            }
+        }
     }
 }
 
