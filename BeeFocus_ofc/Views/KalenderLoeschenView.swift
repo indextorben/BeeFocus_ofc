@@ -101,7 +101,7 @@ struct KalenderLoeschenView: View {
             Button("Abbrechen", role: .cancel) {}
         } message: {
             if let cal = selectedCalendar {
-                Text("Alle Einträge aus „\(cal.title)" im gewählten Zeitraum werden unwiderruflich gelöscht.")
+                Text("Alle Einträge aus \"\(cal.title)\" im gewählten Zeitraum werden unwiderruflich gelöscht.")
             }
         }
         .overlay {
