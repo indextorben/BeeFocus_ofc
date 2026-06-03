@@ -54,6 +54,11 @@ final class JournalStore: ObservableObject {
 
     func hasTodayEntry() -> Bool { todayEntry() != nil }
 
+    func entry(for date: Date) -> JournalEntry? {
+        let cal = Calendar.current
+        return entries.first { cal.isDate($0.date, inSameDayAs: date) }
+    }
+
     func averageMood(last days: Int = 7) -> Double {
         let recent = recentEntries(days: days)
         guard !recent.isEmpty else { return 0 }

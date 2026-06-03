@@ -7,8 +7,6 @@ struct EinstellungenView: View {
     @EnvironmentObject var todoStore: TodoStore
 
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-
     @AppStorage("showPastTasksGlobal") private var showPastTasksGlobal = false
     @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
     @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled = false
@@ -221,7 +219,7 @@ struct EinstellungenView: View {
                             darstellungCard
                         }
                         sectionGroup(icon: "bell.badge.fill", label: localizer.localizedString(forKey: "Benachrichtigungen"), color: .red) {
-                            benachrichtigungenCard
+                            benachrichtigungenLinkCard
                         }
                         sectionGroup(icon: "globe", label: localizer.localizedString(forKey: "Sprache"), color: .green) {
                             spracheCard
@@ -462,137 +460,34 @@ struct EinstellungenView: View {
         }
     }
 
-    private var benachrichtigungenCard: some View {
+    private var benachrichtigungenLinkCard: some View {
         glassCard {
-            // ── Master-Toggle ──────────────────────────────────────
-            iconToggleRow(icon: "bell.badge.fill", color: .red, label: localizer.localizedString(forKey: "Benachrichtigungen"), isOn: $notificationsEnabled)
-                .onChange(of: notificationsEnabled) { enabled in
-                    if enabled { requestNotificationPermission() }
-                    else { bannerColor = .red; showBanner(message: localizer.localizedString(forKey: "Benachrichtigungen deaktiviert")) }
-                }
-
-            // ── Morgen-Übersicht ───────────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "sun.max.fill", color: .orange, label: localizer.localizedString(forKey: "morning_summary_toggle"), isOn: $morningSummaryEnabled)
-                .onChange(of: morningSummaryEnabled) { enabled in
-                    if enabled { scheduleMorningSummaryNow() }
-                    else {
-                        NotificationManager.shared.cancelDailyMorningSummary()
-                        bannerColor = .red
-                        showBanner(message: localizer.localizedString(forKey: "Morgen-Übersicht deaktiviert"))
-                    }
-                }
-            if morningSummaryEnabled {
-                notificationTimeRow(time: $morningSummaryTime) { scheduleMorningSummaryNow() }
-            }
-
-            // ── Gewohnheiten-Erinnerung ────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "calendar.badge.checkmark", color: .green, label: "Gewohnheiten-Erinnerung", isOn: $habitReminderEnabled)
-                .onChange(of: habitReminderEnabled) { enabled in
-                    if enabled { scheduleHabitReminderNow() }
-                    else { NotificationManager.shared.cancelHabitReminder() }
-                }
-            if habitReminderEnabled {
-                notificationTimeRow(time: $habitReminderTime) { scheduleHabitReminderNow() }
-            }
-
-            // ── Wasser-Erinnerung ──────────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "drop.fill", color: .cyan, label: "Wasser-Erinnerung", isOn: $waterReminderEnabled)
-                .onChange(of: waterReminderEnabled) { enabled in
-                    if enabled { NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval) }
-                    else { NotificationManager.shared.cancelWaterReminders() }
-                }
-            if waterReminderEnabled {
-                cardDivider()
+            NavigationLink(destination: BenachrichtigungenView().environmentObject(todoStore)) {
                 HStack(spacing: 12) {
-                    iconBadge(icon: "clock.arrow.circlepath", color: .cyan)
-                    Text("Interval")
-                        .font(.system(size: 16))
+                    iconBadge(icon: "bell.badge.fill", color: .red)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Benachrichtigungen")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.primary)
+                        let active = activeNotificationCount
+                        Text(active == 0 ? "Keine aktiv" : "\(active) aktiv")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    Picker("", selection: $waterReminderInterval) {
-                        Text("1 Std").tag(1)
-                        Text("2 Std").tag(2)
-                        Text("3 Std").tag(3)
-                        Text("4 Std").tag(4)
-                    }
-                    .pickerStyle(.menu)
-                    .onChange(of: waterReminderInterval) { _ in
-                        NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval)
-                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.quaternary)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 12)
-            }
-
-            // ── Überfällige Aufgaben ───────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "exclamationmark.circle.fill", color: .red.opacity(0.85), label: "Überfällige Aufgaben", isOn: $overdueAlertEnabled)
-                .onChange(of: overdueAlertEnabled) { enabled in
-                    if enabled { scheduleOverdueAlertNow() }
-                    else { NotificationManager.shared.cancelOverdueAlert() }
-                }
-            if overdueAlertEnabled {
-                notificationTimeRow(time: $overdueAlertTime) { scheduleOverdueAlertNow() }
-            }
-
-            // ── Wochenrückblick ────────────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "calendar.badge.clock", color: .indigo, label: "Wochenrückblick (Sonntags)", isOn: $weeklyReviewEnabled)
-                .onChange(of: weeklyReviewEnabled) { enabled in
-                    if enabled { scheduleWeeklyReviewNow() }
-                    else { NotificationManager.shared.cancelWeeklyReview() }
-                }
-            if weeklyReviewEnabled {
-                notificationTimeRow(time: $weeklyReviewTime) { scheduleWeeklyReviewNow() }
-            }
-
-            // ── Stimmungs-Check ────────────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "face.smiling", color: .yellow, label: "Stimmungs-Check", isOn: $moodReminderEnabled)
-                .onChange(of: moodReminderEnabled) { enabled in
-                    if enabled { scheduleMoodReminderNow() }
-                    else { NotificationManager.shared.cancelMoodReminder() }
-                }
-            if moodReminderEnabled {
-                notificationTimeRow(time: $moodReminderTime) { scheduleMoodReminderNow() }
-            }
-
-            // ── Abendreflexion ─────────────────────────────────────
-            cardDivider()
-            iconToggleRow(icon: "moon.stars.fill", color: .purple, label: "Abendreflexion", isOn: $eveningReminderEnabled)
-                .onChange(of: eveningReminderEnabled) { enabled in
-                    if enabled { scheduleEveningReminderNow() }
-                    else { NotificationManager.shared.cancelEveningReminder() }
-                }
-            if eveningReminderEnabled {
-                notificationTimeRow(time: $eveningReminderTime) { scheduleEveningReminderNow() }
+                .padding(.horizontal, 16).padding(.vertical, 14)
             }
         }
     }
 
-    // MARK: - Notification Time Row Helper
-
-    private func notificationTimeRow(time: Binding<Double>, onSet: @escaping () -> Void) -> some View {
-        Group {
-            cardDivider()
-            HStack(spacing: 12) {
-                iconBadge(icon: "clock.fill", color: .teal)
-                Text(localizer.localizedString(forKey: "time"))
-                    .font(.system(size: 16))
-                Spacer()
-                DatePicker("", selection: Binding<Date>(
-                    get: { Calendar.current.startOfDay(for: Date()).addingTimeInterval(time.wrappedValue) },
-                    set: { newDate in
-                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                        time.wrappedValue = Double((comps.hour ?? 0) * 3600 + (comps.minute ?? 0) * 60)
-                        onSet()
-                    }
-                ), displayedComponents: [.hourAndMinute])
-                .labelsHidden()
-            }
-            .padding(.horizontal, 16).padding(.vertical, 12)
-        }
+    private var activeNotificationCount: Int {
+        [morningSummaryEnabled, habitReminderEnabled, waterReminderEnabled,
+         overdueAlertEnabled, weeklyReviewEnabled, moodReminderEnabled, eveningReminderEnabled]
+            .filter { $0 }.count
     }
 
     private var spracheCard: some View {
@@ -1219,21 +1114,6 @@ struct EinstellungenView: View {
             .opacity(0.5)
     }
 
-    // MARK: - Notifications
-    private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            DispatchQueue.main.async {
-                if granted {
-                    bannerColor = .green
-                    showBanner(message: localizer.localizedString(forKey: "Benachrichtigung erlaubt"))
-                } else {
-                    bannerColor = .red
-                    showBanner(message: localizer.localizedString(forKey: "Benachrichtigungen abgelehnt"))
-                }
-            }
-        }
-    }
-
     // MARK: - Banner
     private func showBanner(message: String) {
         notificationMessage = message
@@ -1318,46 +1198,6 @@ struct EinstellungenView: View {
         }
     }
 
-    private func scheduleHabitReminderNow() {
-        let s = Int(habitReminderTime)
-        NotificationManager.shared.scheduleHabitReminder(
-            hour: max(0, min(23, s / 3600)),
-            minute: max(0, min(59, (s % 3600) / 60))
-        )
-    }
-
-    private func scheduleOverdueAlertNow() {
-        let s = Int(overdueAlertTime)
-        NotificationManager.shared.scheduleOverdueAlert(
-            hour: max(0, min(23, s / 3600)),
-            minute: max(0, min(59, (s % 3600) / 60))
-        )
-    }
-
-    private func scheduleWeeklyReviewNow() {
-        let s = Int(weeklyReviewTime)
-        NotificationManager.shared.scheduleWeeklyReview(
-            weekday: 1,
-            hour: max(0, min(23, s / 3600)),
-            minute: max(0, min(59, (s % 3600) / 60))
-        )
-    }
-
-    private func scheduleMoodReminderNow() {
-        let s = Int(moodReminderTime)
-        NotificationManager.shared.scheduleMoodReminder(
-            hour: max(0, min(23, s / 3600)),
-            minute: max(0, min(59, (s % 3600) / 60))
-        )
-    }
-
-    private func scheduleEveningReminderNow() {
-        let s = Int(eveningReminderTime)
-        NotificationManager.shared.scheduleEveningReminder(
-            hour: max(0, min(23, s / 3600)),
-            minute: max(0, min(59, (s % 3600) / 60))
-        )
-    }
 }
 
 // MARK: - Detail Views

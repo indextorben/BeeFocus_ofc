@@ -7,10 +7,17 @@ struct FokusJournalView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
     @State private var showEntrySheet = false
+    @State private var entrySheetDate: Date = Date()
     @State private var editEntry: JournalEntry? = nil
     @State private var showAIAnalysis = false
     @State private var aiAnalysisText = ""
     @State private var isLoadingAI = false
+
+    private var last7Days: [Date] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return (0..<7).reversed().compactMap { cal.date(byAdding: .day, value: -$0, to: today) }
+    }
 
     private var c1: Color { appThemaFarben(aktivesThema).0 }
     private var c2: Color { appThemaFarben(aktivesThema).1 }
@@ -29,6 +36,10 @@ struct FokusJournalView: View {
                 VStack(spacing: 16) {
                     headerSection.padding(.top, 24).padding(.horizontal, 20)
 
+                    // Weekly overview + backfill
+                    weeklyStatsCard
+                        .padding(.horizontal, 20)
+
                     // Today prompt
                     if !store.hasTodayEntry() {
                         todayPromptCard
@@ -38,12 +49,6 @@ struct FokusJournalView: View {
                     // AI Analysis button (Pro)
                     if store.entries.count >= 3 {
                         aiAnalysisButton
-                            .padding(.horizontal, 20)
-                    }
-
-                    // Mood trend
-                    if store.entries.count >= 3 {
-                        moodTrendCard
                             .padding(.horizontal, 20)
                     }
 
@@ -95,7 +100,7 @@ struct FokusJournalView: View {
             }
         }
         .sheet(isPresented: $showEntrySheet) {
-            JournalEntrySheet(existing: nil, accent: accent)
+            JournalEntrySheet(existing: nil, initialDate: entrySheetDate, accent: accent)
         }
         .sheet(item: $editEntry) { entry in
             JournalEntrySheet(existing: entry, accent: accent)
@@ -116,6 +121,7 @@ struct FokusJournalView: View {
             }
             Spacer()
             Button {
+                entrySheetDate = Date()
                 showEntrySheet = true
             } label: {
                 Image(systemName: "square.and.pencil")
@@ -130,7 +136,7 @@ struct FokusJournalView: View {
     // MARK: - Today Prompt
 
     private var todayPromptCard: some View {
-        Button { showEntrySheet = true } label: {
+        Button { entrySheetDate = Date(); showEntrySheet = true } label: {
             HStack(spacing: 14) {
                 Text("✍️")
                     .font(.system(size: 28))
@@ -158,6 +164,98 @@ struct FokusJournalView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Weekly Stats
+
+    private var weeklyStatsCard: some View {
+        let recentEntries = store.recentEntries(days: 7)
+        let count = recentEntries.count
+        let avgMood = count > 0 ? Double(recentEntries.map(\.moodScore).reduce(0, +)) / Double(count) : 0.0
+        let totalFocus = recentEntries.map(\.focusMinutes).reduce(0, +)
+        let hours = totalFocus / 60
+        let mins = totalFocus % 60
+        let cal = Calendar.current
+
+        return VStack(alignment: .leading, spacing: 14) {
+            Text("Diese Woche")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+
+            HStack(spacing: 0) {
+                ForEach(last7Days, id: \.self) { date in
+                    let existing = store.entry(for: date)
+                    let isToday = cal.isDateInToday(date)
+                    Button {
+                        if let e = existing {
+                            editEntry = e
+                        } else {
+                            entrySheetDate = date
+                            showEntrySheet = true
+                        }
+                    } label: {
+                        VStack(spacing: 5) {
+                            if let e = existing {
+                                Text(e.moodEmoji)
+                                    .font(.system(size: 22))
+                            } else {
+                                ZStack {
+                                    Circle()
+                                        .fill(isToday ? accent.opacity(0.18) : Color.white.opacity(0.06))
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(isToday ? accent : .white.opacity(0.25))
+                                }
+                            }
+                            Text(date.formatted(.dateTime.weekday(.abbreviated)))
+                                .font(.system(size: 9))
+                                .foregroundStyle(isToday ? accent : .white.opacity(0.35))
+                                .fontWeight(isToday ? .bold : .regular)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if count > 0 {
+                Divider().background(.white.opacity(0.08))
+                HStack(spacing: 0) {
+                    weekStatItem(value: "\(count)/7", label: "Tage")
+                    if avgMood > 0 {
+                        Divider().frame(height: 28).background(.white.opacity(0.1))
+                        weekStatItem(
+                            value: String(format: "%.1f", avgMood),
+                            label: "Ø Stimmung",
+                            color: moodColor(for: avgMood)
+                        )
+                    }
+                    if totalFocus > 0 {
+                        Divider().frame(height: 28).background(.white.opacity(0.1))
+                        weekStatItem(
+                            value: hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m",
+                            label: "Fokuszeit"
+                        )
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
+    }
+
+    private func weekStatItem(value: String, label: String, color: Color = .white) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - AI Analysis
@@ -195,44 +293,6 @@ struct FokusJournalView: View {
         }
         .buttonStyle(.plain)
         .disabled(isLoadingAI)
-    }
-
-    // MARK: - Mood Trend
-
-    private var moodTrendCard: some View {
-        let recent = store.recentEntries(days: 7).reversed().map { $0 }
-        let avg = store.averageMood(last: 7)
-
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Stimmungstrend (7 Tage)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.6))
-                Spacer()
-                if avg > 0 {
-                    Text(String(format: "Ø %.1f", avg))
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(moodColor(for: avg))
-                }
-            }
-
-            HStack(spacing: 6) {
-                ForEach(recent, id: \.id) { entry in
-                    VStack(spacing: 4) {
-                        Text(entry.moodEmoji)
-                            .font(.system(size: 20))
-                        Text(entry.date.formatted(.dateTime.weekday(.abbreviated)))
-                            .font(.system(size: 9))
-                            .foregroundStyle(.white.opacity(0.35))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .padding(16)
-        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 1))
-        .padding(.horizontal, 20)
     }
 
     private func moodColor(for avg: Double) -> Color {
@@ -475,16 +535,23 @@ struct JournalEntryCard: View {
 
 struct JournalEntrySheet: View {
     let existing: JournalEntry?
+    var initialDate: Date = Date()
     let accent: Color
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = JournalStore.shared
 
+    @State private var selectedDate: Date = Date()
     @State private var moodScore: Int = 3
     @State private var wentWell: String = ""
     @State private var distraction: String = ""
     @State private var tomorrowPriority: String = ""
     @State private var focusMinutes: Int = 0
+
+    private var maxBackfillDate: Date { Date() }
+    private var minBackfillDate: Date {
+        Calendar.current.date(byAdding: .day, value: -60, to: Date()) ?? Date()
+    }
 
     var body: some View {
         NavigationStack {
@@ -523,6 +590,29 @@ struct JournalEntrySheet: View {
                             }
                             .padding(.vertical, 12)
                             .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
+                        }
+
+                        // Date picker (only for new entries)
+                        if existing == nil {
+                            HStack {
+                                Image(systemName: "calendar")
+                                    .foregroundStyle(accent)
+                                Text("Datum")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                DatePicker(
+                                    "",
+                                    selection: $selectedDate,
+                                    in: minBackfillDate...maxBackfillDate,
+                                    displayedComponents: .date
+                                )
+                                .labelsHidden()
+                                .colorScheme(.dark)
+                                .tint(accent)
+                            }
+                            .padding(14)
+                            .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
                         }
 
                         // Focus minutes
@@ -586,8 +676,10 @@ struct JournalEntrySheet: View {
                     distraction      = e.distraction
                     tomorrowPriority = e.tomorrowPriority
                     focusMinutes     = e.focusMinutes
+                    selectedDate     = e.date
                 } else {
                     focusMinutes = 0
+                    selectedDate = initialDate
                 }
             }
             .preferredColorScheme(.dark)
@@ -633,7 +725,7 @@ struct JournalEntrySheet: View {
         entry.distraction      = distraction
         entry.tomorrowPriority = tomorrowPriority
         entry.focusMinutes     = focusMinutes
-        if existing == nil { entry.date = Date() }
+        if existing == nil { entry.date = selectedDate }
         store.save(entry)
         dismiss()
     }
