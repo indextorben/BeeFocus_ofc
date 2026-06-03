@@ -680,6 +680,12 @@ struct EinstellungenView: View {
             } label: {
                 iconNavRow(icon: "doc.on.doc.fill", color: .purple, label: "Duplikate löschen")
             }
+            cardDivider()
+            NavigationLink {
+                KalenderLoeschenView()
+            } label: {
+                iconNavRow(icon: "calendar.badge.minus", color: .teal, label: "Kalendereinträge löschen")
+            }
         }
     }
 
