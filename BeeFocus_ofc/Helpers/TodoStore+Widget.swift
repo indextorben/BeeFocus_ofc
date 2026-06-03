@@ -156,7 +156,14 @@ extension TodoStore {
         let activeTheme = UserDefaults.standard.string(forKey: "aktivesStatistikThema") ?? ""
 
         let topTasks = Array(todayTodos.prefix(8)).map { makeWidgetTask($0, today: today) }
-        let planTasks = Array(allOpenSorted.prefix(20)).map { makeWidgetTask($0, today: today) }
+
+        let planFiltered = filterMonthOnly
+            ? allOpenSorted.filter { todo in
+                guard let due = todo.dueDate else { return false }
+                return (due >= activeMonthStart && due <= activeMonthEnd) || due < today
+            }
+            : allOpenSorted
+        let planTasks = Array(planFiltered.prefix(20)).map { makeWidgetTask($0, today: today) }
 
         let monthTasks = todos.filter { todo in
             guard !todo.isCompleted, let due = todo.dueDate else { return false }
