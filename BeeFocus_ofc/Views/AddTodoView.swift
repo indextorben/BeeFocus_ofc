@@ -272,6 +272,12 @@ struct AddTodoView: View {
                     selectedWeekOption = presetLabel(for: dueDate)
                 }
             }
+            .onChange(of: title) { newValue in
+                autoMatchCategory(from: newValue + " " + description)
+            }
+            .onChange(of: description) { newValue in
+                autoMatchCategory(from: title + " " + newValue)
+            }
             .onChange(of: selectedItems) { _ in
                 Task { await processSelectedItems() }
             }
@@ -800,6 +806,12 @@ struct AddTodoView: View {
         selectedItems = []
     }
 
+    private func autoMatchCategory(from text: String) {
+        let lower = text.lowercased()
+        guard let match = todoStore.categories.first(where: { lower.contains($0.name.lowercased()) }) else { return }
+        category = match
+    }
+
     private func addSubTask() {
         guard !newSubTaskTitle.isEmpty else { return }
         subTasks.append(SubTask(title: newSubTaskTitle))
@@ -1022,6 +1034,8 @@ struct AddTodoView: View {
 
         if !parsedTitle.isEmpty { title = parsedTitle }
         if !parsedDescription.isEmpty && parsedDescription.lowercased() != "leer" { description = parsedDescription }
+
+        autoMatchCategory(from: parsedTitle + " " + parsedDescription + " " + quickInputText)
 
         if parsedDateStr != "keins", !parsedDateStr.isEmpty {
             let isoFmt = DateFormatter()
