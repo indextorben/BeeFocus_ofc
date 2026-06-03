@@ -34,17 +34,17 @@ private let dateFmt: DateFormatter = {
 // MARK: - Tab
 
 enum WatchTab: String, CaseIterable {
-    case heute     = "Heute"
-    case tagesplan = "Plan"
-    case monat     = "Monat"
-    case mehr      = "Mehr"
+    case alle  = "Alle"
+    case tag   = "Tag"
+    case monat = "Monat"
+    case mehr  = "Mehr"
 
     var icon: String {
         switch self {
-        case .heute:     return "sun.max.fill"
-        case .tagesplan: return "rectangle.stack.fill"
-        case .monat:     return "calendar"
-        case .mehr:      return "ellipsis.circle.fill"
+        case .alle:  return "list.bullet"
+        case .tag:   return "clock.fill"
+        case .monat: return "calendar"
+        case .mehr:  return "ellipsis.circle.fill"
         }
     }
 }
@@ -53,7 +53,7 @@ enum WatchTab: String, CaseIterable {
 
 struct ContentView: View {
     @StateObject private var session = WatchSessionManager.shared
-    @State private var activeTab: WatchTab = .heute
+    @State private var activeTab: WatchTab = .alle
 
     var accent: Color { themeAccent(for: session.snapshot.activeTheme) }
 
@@ -63,10 +63,10 @@ struct ContentView: View {
                 tabBar
                 Group {
                     switch activeTab {
-                    case .heute:
-                        TodayView(session: session, accent: accent)
-                    case .tagesplan:
-                        TagesplanView(session: session, accent: accent)
+                    case .alle:
+                        AlleView(session: session, accent: accent)
+                    case .tag:
+                        TagView(session: session, accent: accent)
                     case .monat:
                         MonatView(session: session, accent: accent)
                     case .mehr:
@@ -161,9 +161,9 @@ struct MehrView: View {
     }
 }
 
-// MARK: - Today
+// MARK: - Alle
 
-struct TodayView: View {
+struct AlleView: View {
     @ObservedObject var session: WatchSessionManager
     @State private var doneIDs: Set<UUID> = []
     let accent: Color
@@ -178,7 +178,7 @@ struct TodayView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(.init())
 
-            if snap.topTasks.isEmpty {
+            if snap.planTasks.isEmpty {
                 Section {
                     Label("Alles erledigt!", systemImage: "checkmark.seal.fill")
                         .foregroundStyle(.green)
@@ -187,7 +187,7 @@ struct TodayView: View {
                 .listRowBackground(Color.clear)
             } else {
                 Section {
-                    ForEach(snap.topTasks) { task in
+                    ForEach(snap.planTasks) { task in
                         TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
                             session.completeTask(id: task.id)
                         }
@@ -201,12 +201,12 @@ struct TodayView: View {
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            statCell(n: snap.dueTodayCount,       label: "Heute",      color: accent)
+            statCell(n: snap.planTasks.count,       label: "Offen",      color: accent)
             Divider().frame(height: 22).padding(.horizontal, 4)
-            statCell(n: snap.completedTodayCount, label: "Erledigt",   color: .green)
+            statCell(n: snap.completedTodayCount,   label: "Erledigt",   color: .green)
             if snap.overdueCount > 0 {
                 Divider().frame(height: 22).padding(.horizontal, 4)
-                statCell(n: snap.overdueCount,    label: "Überfällig", color: .orange)
+                statCell(n: snap.overdueCount,      label: "Überfällig", color: .orange)
             }
         }
         .padding(.vertical, 4)
@@ -306,43 +306,37 @@ struct TaskRow: View {
     }
 }
 
-// MARK: - Planer (alle offenen Aufgaben nach Datum)
+// MARK: - Tag (Tagesplan-Blöcke)
 
-struct TagesplanView: View {
+struct TagView: View {
     @ObservedObject var session: WatchSessionManager
-    @State private var doneIDs: Set<UUID> = []
     let accent: Color
 
     var body: some View {
         List {
-            if !session.snapshot.todayBausteine.isEmpty {
+            if session.snapshot.todayBausteine.isEmpty {
+                Section {
+                    VStack(spacing: 8) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.secondary)
+                        Text("Kein Tagesplan angelegt")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+                .listRowBackground(Color.clear)
+            } else {
                 Section(header:
-                    Text("TAGESPLAN")
+                    Text(dateFmt.string(from: Date()).uppercased())
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(accent)
                 ) {
                     ForEach(session.snapshot.todayBausteine) { baustein in
                         BausteinRow(baustein: baustein)
-                    }
-                }
-            }
-
-            if session.snapshot.planTasks.isEmpty && session.snapshot.todayBausteine.isEmpty {
-                Section {
-                    Label("Keine offenen Aufgaben", systemImage: "checkmark.seal.fill")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                .listRowBackground(Color.clear)
-            } else if !session.snapshot.planTasks.isEmpty {
-                Section(header:
-                    Text("AUFGABEN")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                ) {
-                    ForEach(session.snapshot.planTasks) { task in
-                        TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
-                            session.completeTask(id: task.id)
-                        }
                     }
                 }
             }
