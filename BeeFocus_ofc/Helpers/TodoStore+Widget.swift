@@ -159,13 +159,14 @@ extension TodoStore {
 
         let topTasks = Array(todayTodos.prefix(15)).map { makeWidgetTask($0, today: today) }
 
+        // planTasks spiegelt exakt die iPhone "Alle"-Ansicht wider
         let planFiltered = filterMonthOnly
             ? allOpenSorted.filter { todo in
                 guard let due = todo.dueDate else { return true }  // datumlose immer zeigen
-                return (due >= activeMonthStart && due <= activeMonthEnd) || due < today
+                return due >= monthStart && due <= monthEnd  // strikt aktueller Monat
             }
             : allOpenSorted
-        let planTasks = Array(planFiltered.prefix(30)).map { makeWidgetTask($0, today: today) }
+        let planTasks = Array(planFiltered.prefix(50)).map { makeWidgetTask($0, today: today) }
 
         let monthTasks = todos.filter { todo in
             guard !todo.isCompleted, let due = todo.dueDate else { return false }
