@@ -3,10 +3,18 @@ import SwiftUI
 struct OrdnerView: View {
     @EnvironmentObject var todoStore: TodoStore
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
     @State private var showingAddAlert = false
     @State private var newFolderName = ""
-    @State private var isEditing = false
+    @State private var folderToDelete: String? = nil
+    @State private var showDeleteConfirm = false
+    @State private var appeared = false
+
+    private var isDark: Bool { colorScheme == .dark }
+    private var c1: Color { appThemaFarben(aktivesThema).0 }
+    private var c2: Color { appThemaFarben(aktivesThema).1 }
+    private var accent: Color { aktivesThema.isEmpty ? Color.indigo : c1 }
 
     private let standardFolders: [(title: String, icon: String, color: Color)] = [
         ("Heute",                    "sun.max.fill",                   .orange),
@@ -18,7 +26,321 @@ struct OrdnerView: View {
         ("Geburtstage & Feiertage",  "calendar.badge.exclamationmark", .pink),
     ]
 
-    private func taskCount(for standardTitle: String) -> Int {
+    // MARK: - Body
+
+    var body: some View {
+        ZStack {
+            background.ignoresSafeArea()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+
+                    sectionCard(
+                        icon: "folder.fill",
+                        title: "Standard-Ordner",
+                        color: accent,
+                        sectionIndex: 0
+                    ) {
+                        ForEach(Array(standardFolders.enumerated()), id: \.offset) { i, folder in
+                            if i > 0 { rowDivider() }
+                            standardFolderRow(folder)
+                        }
+                    }
+
+                    sectionCard(
+                        icon: "folder.badge.plus",
+                        title: "Eigene Ordner",
+                        color: accent,
+                        sectionIndex: 1
+                    ) {
+                        if todoStore.customFolders.isEmpty {
+                            emptyCustomState
+                        } else {
+                            ForEach(Array(todoStore.customFolders.enumerated()), id: \.offset) { i, folder in
+                                if i > 0 { rowDivider() }
+                                customFolderRow(folder)
+                            }
+                        }
+                    }
+
+                    Text("Aufgaben können über das Kontextmenü (langer Druck) in Ordner verschoben werden.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut.delay(0.35), value: appeared)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 48)
+            }
+        }
+        .navigationTitle("Ordner")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    newFolderName = ""
+                    showingAddAlert = true
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(accent)
+                        .frame(width: 34, height: 34)
+                        .background(accent.opacity(0.12), in: Circle())
+                }
+            }
+        }
+        .alert("Neuer Ordner", isPresented: $showingAddAlert) {
+            TextField("Ordnername", text: $newFolderName)
+            Button("Erstellen") {
+                let name = newFolderName.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty else { return }
+                todoStore.addCustomFolder(name)
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Gib einen Namen für den neuen Ordner ein.")
+        }
+        .confirmationDialog("Ordner löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Löschen", role: .destructive) {
+                if let f = folderToDelete { todoStore.removeCustomFolder(f) }
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Die Aufgaben in diesem Ordner bleiben erhalten.")
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.05)) {
+                appeared = true
+            }
+        }
+    }
+
+    // MARK: - Standard Folder Row
+
+    private func standardFolderRow(_ folder: (title: String, icon: String, color: Color)) -> some View {
+        HStack(spacing: 14) {
+            iconBadge(icon: folder.icon, color: folder.color)
+
+            Text(folder.title)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+
+            Spacer()
+
+            let count = taskCount(for: folder.title)
+            if count > 0 {
+                Text("\(count)")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(folder.color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(folder.color.opacity(isDark ? 0.22 : 0.12), in: Capsule())
+            }
+
+            Image(systemName: "lock.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(.quaternary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+    }
+
+    // MARK: - Custom Folder Row
+
+    private func customFolderRow(_ folder: String) -> some View {
+        HStack(spacing: 14) {
+            iconBadge(icon: "folder.fill", color: accent)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(folder)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
+
+                let count = todoStore.todos.filter { $0.customFolder == folder }.count
+                Text(count == 0 ? "Leer" : "\(count) Aufgabe\(count == 1 ? "" : "n")")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            let count = todoStore.todos.filter { $0.customFolder == folder }.count
+            if count > 0 {
+                Text("\(count)")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(accent.opacity(isDark ? 0.22 : 0.12), in: Capsule())
+            }
+
+            Button {
+                folderToDelete = folder
+                showDeleteConfirm = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.red.opacity(0.7))
+                    .frame(width: 32, height: 32)
+                    .background(.red.opacity(isDark ? 0.14 : 0.08), in: Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+    }
+
+    // MARK: - Empty State
+
+    private var emptyCustomState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "folder.badge.plus")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(accent.opacity(0.5))
+            Text("Noch keine eigenen Ordner")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
+            Text("Tippe oben auf das Ordner-Symbol, um einen neuen Ordner zu erstellen.")
+                .font(.system(size: 13))
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Section Card
+
+    @ViewBuilder
+    private func sectionCard<Content: View>(
+        icon: String,
+        title: String,
+        color: Color,
+        sectionIndex: Int,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let delay = 0.10 + Double(sectionIndex) * 0.08
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(aktivesThema.isEmpty ? color : c1.opacity(0.85))
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(aktivesThema.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(c1.opacity(0.5)))
+            }
+            .padding(.horizontal, 4)
+            .padding(.bottom, 10)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(LinearGradient(
+                        colors: [c1.opacity(isDark ? 0.14 : 0.09),
+                                 c2.opacity(isDark ? 0.07 : 0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .opacity(aktivesThema.isEmpty ? 0 : 1)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: aktivesThema.isEmpty
+                                ? [Color.white.opacity(isDark ? 0.12 : 0.60),
+                                   Color.white.opacity(isDark ? 0.04 : 0.20)]
+                                : [c1.opacity(isDark ? 0.50 : 0.32),
+                                   c2.opacity(isDark ? 0.22 : 0.16)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: .black.opacity(isDark ? 0.22 : 0.07), radius: 14, x: 0, y: 5)
+            .shadow(color: c1.opacity(isDark ? 0.18 : 0.08), radius: 18, x: 0, y: 2)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 28)
+        .animation(.spring(response: 0.55, dampingFraction: 0.78).delay(delay), value: appeared)
+    }
+
+    // MARK: - Helpers
+
+    private func iconBadge(icon: String, color: Color) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 36, height: 36)
+            .background(
+                LinearGradient(
+                    colors: [color, color.opacity(0.75)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+            .shadow(color: color.opacity(0.35), radius: 4, x: 0, y: 2)
+    }
+
+    private func rowDivider() -> some View {
+        Divider()
+            .padding(.leading, 66)
+            .opacity(0.4)
+    }
+
+    // MARK: - Background
+
+    private var background: some View {
+        ZStack {
+            if isDark {
+                LinearGradient(
+                    colors: [Color(red: 0.06, green: 0.06, blue: 0.14),
+                             Color(red: 0.10, green: 0.08, blue: 0.20),
+                             Color(red: 0.08, green: 0.06, blue: 0.16)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            } else {
+                LinearGradient(
+                    colors: [Color(red: 0.94, green: 0.92, blue: 1.0),
+                             Color(red: 0.97, green: 0.95, blue: 1.0),
+                             Color(red: 0.92, green: 0.96, blue: 1.0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            }
+            Circle()
+                .fill(RadialGradient(
+                    colors: [c1.opacity(isDark ? 0.20 : 0.13), .clear],
+                    center: .center, startRadius: 0, endRadius: 220
+                ))
+                .frame(width: 440, height: 440)
+                .offset(x: -80, y: -100)
+                .blur(radius: 30)
+            Circle()
+                .fill(RadialGradient(
+                    colors: [c2.opacity(isDark ? 0.13 : 0.09), .clear],
+                    center: .center, startRadius: 0, endRadius: 180
+                ))
+                .frame(width: 320, height: 320)
+                .offset(x: 140, y: 250)
+                .blur(radius: 25)
+        }
+        .animation(.easeInOut(duration: 0.6), value: aktivesThema)
+    }
+
+    // MARK: - Task Count
+
+    private func taskCount(for title: String) -> Int {
         let cal = Calendar.current
         let now = Date()
         let startOfToday = cal.startOfDay(for: now)
@@ -26,7 +348,7 @@ struct OrdnerView: View {
         let endOfWeek    = cal.date(byAdding: .day, value: 6, to: endOfToday) ?? now
         let endOfMonth   = cal.date(byAdding: .day, value: 29, to: endOfToday) ?? now
 
-        switch standardTitle {
+        switch title {
         case "Heute":
             return todoStore.todos.filter {
                 guard let d = $0.dueDate else { return false }
@@ -59,133 +381,9 @@ struct OrdnerView: View {
             return todoStore.todos.filter { todo in
                 if let catName = todo.category?.name.lowercased(),
                    keywords.contains(where: { catName.contains($0) }) { return true }
-                let title = todo.title.lowercased()
-                return keywords.contains(where: { title.hasPrefix($0) })
+                return keywords.contains(where: { todo.title.lowercased().hasPrefix($0) })
             }.count
         default: return 0
-        }
-    }
-
-    var body: some View {
-        List {
-            // MARK: Standard-Ordner
-            Section {
-                ForEach(Array(standardFolders.enumerated()), id: \.offset) { _, folder in
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(folder.color.opacity(0.15))
-                                .frame(width: 36, height: 36)
-                            Image(systemName: folder.icon)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(folder.color)
-                        }
-                        Text(folder.title)
-                            .font(.system(size: 16))
-                        Spacer()
-                        let count = taskCount(for: folder.title)
-                        if count > 0 {
-                            Text("\(count)")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(folder.color)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(folder.color.opacity(0.12), in: Capsule())
-                        }
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color(.tertiaryLabel))
-                    }
-                    .padding(.vertical, 2)
-                }
-            } header: {
-                Text("Standard-Ordner")
-            } footer: {
-                Text("Diese Ordner werden automatisch anhand der Fälligkeitsdaten befüllt.")
-            }
-
-            // MARK: Eigene Ordner
-            Section {
-                if todoStore.customFolders.isEmpty {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            Image(systemName: "folder.badge.questionmark")
-                                .font(.system(size: 28))
-                                .foregroundStyle(Color(.tertiaryLabel))
-                            Text("Noch keine eigenen Ordner")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 12)
-                        Spacer()
-                    }
-                } else {
-                    ForEach(todoStore.customFolders, id: \.self) { folder in
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(Color.indigo.opacity(0.15))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.indigo)
-                            }
-                            Text(folder)
-                                .font(.system(size: 16))
-                            Spacer()
-                            let count = todoStore.todos.filter { $0.customFolder == folder }.count
-                            if count > 0 {
-                                Text("\(count)")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(.indigo)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.indigo.opacity(0.12), in: Capsule())
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                    .onDelete { indexSet in
-                        for i in indexSet {
-                            todoStore.removeCustomFolder(todoStore.customFolders[i])
-                        }
-                    }
-                    .onMove { source, dest in
-                        todoStore.moveCustomFolder(from: source, to: dest)
-                    }
-                }
-            } header: {
-                HStack {
-                    Text("Eigene Ordner")
-                    Spacer()
-                    Button {
-                        newFolderName = ""
-                        showingAddAlert = true
-                    } label: {
-                        Label("Hinzufügen", systemImage: "plus")
-                            .labelStyle(.iconOnly)
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                }
-            } footer: {
-                Text("Aufgaben kannst du über das Kontextmenü (langer Druck) oder den Auswahlmodus in Ordner verschieben.")
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Ordner")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                EditButton()
-            }
-        }
-        .alert("Neuer Ordner", isPresented: $showingAddAlert) {
-            TextField("Ordnername", text: $newFolderName)
-            Button("Erstellen") { todoStore.addCustomFolder(newFolderName) }
-            Button("Abbrechen", role: .cancel) { }
-        } message: {
-            Text("Gib einen Namen für den neuen Ordner ein.")
         }
     }
 }
