@@ -18,6 +18,7 @@ struct QuickAddSheet: View {
     @AppStorage("selectedLanguage")    private var selectedLanguage = "Deutsch"
 
     @ObservedObject private var speech = SpeechManager.shared
+    @ObservedObject private var sub = SubscriptionManager.shared
     private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
 
     @State private var userInput: String = ""
@@ -27,6 +28,11 @@ struct QuickAddSheet: View {
     @State private var addedSuccessfully = false
     @State private var examplesAppeared = false
 
+    @State private var isGeneratingSubTasks = false
+    @State private var showSubTaskPaywall = false
+    @State private var showAISubTaskKeyAlert = false
+    @State private var subTaskGenerationTask: Task<Void, Never>? = nil
+
     @FocusState private var inputFocused: Bool
 
     struct ParsedTask {
@@ -35,6 +41,7 @@ struct QuickAddSheet: View {
         var dueDate: Date?
         var category: Category?
         var note: String
+        var subTasks: [SubTask] = []
     }
 
     // MARK: - Body
@@ -66,6 +73,12 @@ struct QuickAddSheet: View {
                 }
             }
         }
+        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAISubTaskKeyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+        }
+        .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
     }
 
     // MARK: - Input View
@@ -280,6 +293,53 @@ struct QuickAddSheet: View {
             )
             .padding(.horizontal, 24)
 
+            // Teilaufgaben
+            if !task.subTasks.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(task.subTasks) { sub in
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle").font(.system(size: 11)).foregroundStyle(.secondary)
+                            Text(sub.title).font(.system(size: 13)).foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(14)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(.horizontal, 24)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            // KI-Aufteilen Button
+            Button {
+                guard sub.isPro else { showSubTaskPaywall = true; return }
+                if isGeneratingSubTasks {
+                    subTaskGenerationTask?.cancel()
+                    isGeneratingSubTasks = false
+                } else {
+                    subTaskGenerationTask = Task { await generateSubTasks(for: task) }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if isGeneratingSubTasks {
+                        ProgressView().scaleEffect(0.75).tint(themeC1)
+                        Text("Stopp").font(.system(size: 13, weight: .medium))
+                    } else {
+                        Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
+                        Text(sub.isPro ? "Mit KI in Teilaufgaben aufteilen" : "Mit KI aufteilen ✦")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                }
+                .foregroundStyle(sub.isPro ? themeC1 : .secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(themeC1.opacity(sub.isPro ? 0.3 : 0.1), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
+            .animation(.easeInOut(duration: 0.2), value: isGeneratingSubTasks)
+
             // Buttons
             VStack(spacing: 12) {
                 Button {
@@ -443,11 +503,68 @@ struct QuickAddSheet: View {
             }
         }
 
-        let category = catName.flatMap { name in
+        var category = catName.flatMap { name in
             todoStore.categories.first { $0.name.lowercased() == name.lowercased() }
+        }
+        // Fallback: string matching when AI returned no category
+        if category == nil {
+            let searchText = (title + " " + note + " " + userInput).lowercased()
+            category = todoStore.categories.first { searchText.contains($0.name.lowercased()) }
         }
 
         return ParsedTask(title: title, priority: priority, dueDate: dueDate, category: category, note: note)
+    }
+
+    private func generateSubTasks(for task: ParsedTask) async {
+        isGeneratingSubTasks = true
+
+        var contextParts: [String] = ["Aufgabe: \(task.title)"]
+        if !task.note.isEmpty { contextParts.append("Beschreibung: \(task.note)") }
+        contextParts.append("Priorität: \(task.priority.displayName)")
+        if let cat = task.category { contextParts.append("Kategorie: \(cat.name)") }
+        let context = contextParts.joined(separator: "\n")
+
+        let prompt = """
+        Teile diese Aufgabe in 3 bis 6 sinnvolle, konkrete Teilaufgaben auf Deutsch auf.
+        \(context)
+
+        Regeln:
+        - Jede Teilaufgabe ist eine ausführbare Aktion
+        - Maximal 8 Wörter pro Teilaufgabe
+        - Eine Teilaufgabe pro Zeile, ohne Nummerierung und ohne Aufzählungszeichen
+        - Antworte NUR mit den Teilaufgaben, eine pro Zeile
+        """
+
+        var raw = ""
+        do {
+            for try await chunk in aiStream(prompt: prompt) {
+                try Task.checkCancellation()
+                raw += chunk
+            }
+        } catch is CancellationError {
+            await MainActor.run { isGeneratingSubTasks = false }; return
+        } catch {}
+
+        await MainActor.run {
+            let newTasks = raw
+                .components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .map { line -> String in
+                    var s = line
+                    if s.hasPrefix("- ") || s.hasPrefix("• ") { s = String(s.dropFirst(2)) }
+                    if s.count > 2, s[s.index(s.startIndex, offsetBy: 1)] == "." || s[s.index(s.startIndex, offsetBy: 1)] == ")" {
+                        s = String(s.dropFirst(3))
+                    }
+                    return s.trimmingCharacters(in: .whitespaces)
+                }
+                .filter { !$0.isEmpty }
+                .map { SubTask(title: $0) }
+
+            withAnimation {
+                parsedTask?.subTasks = newTasks
+            }
+            isGeneratingSubTasks = false
+        }
     }
 
     private func addTask(_ task: ParsedTask) {
@@ -457,7 +574,8 @@ struct QuickAddSheet: View {
             dueDate: task.dueDate,
             category: task.category,
             categoryID: task.category?.id,
-            priority: task.priority
+            priority: task.priority,
+            subTasks: task.subTasks
         )
         todoStore.addTodo(item)
 
