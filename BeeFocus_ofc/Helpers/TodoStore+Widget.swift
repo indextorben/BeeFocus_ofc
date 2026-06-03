@@ -100,11 +100,17 @@ extension TodoStore {
         let today = cal.startOfDay(for: Date())
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
 
-        // "Heute": überfällige + heute fällige + Aufgaben ohne Datum
+        let filterMonthOnly = UserDefaults.standard.bool(forKey: "filterCurrentMonthOnly")
+        let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today
+        let monthEnd   = cal.date(byAdding: DateComponents(month: 1, second: -1), to: monthStart) ?? today
+
+        // "Heute": heute fällig + datumlose immer; überfällige nur im akt. Monat wenn Filter aktiv
         let todayTodos = todos.filter { todo in
             guard !todo.isCompleted else { return false }
             guard let due = todo.dueDate else { return true }
-            return due < tomorrow
+            guard due < tomorrow else { return false }
+            if filterMonthOnly && due < today { return due >= monthStart }
+            return true
         }.sorted {
             switch ($0.dueDate, $1.dueDate) {
             case (nil, nil):   return false
@@ -114,7 +120,7 @@ extension TodoStore {
             }
         }
 
-        // "Planer": alle offenen Aufgaben nach Datum sortiert (Planer-Ansicht)
+        // "Planer": alle offenen Aufgaben nach Datum sortiert
         let allOpenSorted = todos.filter { !$0.isCompleted }
             .sorted { a, b in
                 switch (a.dueDate, b.dueDate) {
@@ -124,10 +130,6 @@ extension TodoStore {
                 default:           return a.dueDate! < b.dueDate!
                 }
             }
-
-        let filterMonthOnly = UserDefaults.standard.bool(forKey: "filterCurrentMonthOnly")
-        let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today
-        let monthEnd   = cal.date(byAdding: DateComponents(month: 1, second: -1), to: monthStart) ?? today
 
         let firstDayOfNextMonth = cal.date(byAdding: .month, value: 1, to: monthStart) ?? today
         let daysUntilNextMonth = cal.dateComponents([.day], from: today, to: firstDayOfNextMonth).day ?? 31
