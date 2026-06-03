@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import EventKit
+import FoundationModels
 
 extension View {
     @ViewBuilder
@@ -124,6 +125,16 @@ struct AddTodoView: View {
     @State private var reminderBody: String = ""
     private let allowedDynamicTypeRange: ClosedRange<DynamicTypeSize> = .xSmall ... .large
 
+    // KI-Erinnerung
+    @ObservedObject private var sub = SubscriptionManager.shared
+    @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
+    @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
+    @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
+    @State private var isGeneratingReminder = false
+    @State private var showReminderPaywall = false
+    @State private var showAIReminderKeyAlert = false
+    @State private var reminderGenerationTask: Task<Void, Never>? = nil
+
     private var dynamicDefaultReminderTitle: String {
         let loc = LocalizationManager.shared
         let isGerman = (loc.currentLanguageCode == "de")
@@ -211,6 +222,12 @@ struct AddTodoView: View {
             } message: {
                 Text(localizer.localizedString(forKey: "category_missing_message"))
             }
+            .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIReminderKeyAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            }
+            .sheet(isPresented: $showReminderPaywall) { ProPaywallView() }
             .onAppear {
                 // Kategorie automatisch setzen oder Default anlegen
                 if category == nil {
@@ -324,9 +341,44 @@ struct AddTodoView: View {
                     Text(reminder2h).tag(120)
                     Text(reminder1d).tag(1440)
                 }
-                TextField("", text: $reminderTitle, prompt: Text(dynamicDefaultReminderTitle))
-                TextField("", text: $reminderBody, prompt: Text(dynamicDefaultReminderBody), axis: .vertical)
-                    .lineLimit(4)
+                if reminderSelection >= 0 {
+                    HStack {
+                        TextField("", text: $reminderTitle, prompt: Text(dynamicDefaultReminderTitle))
+                        if !title.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button {
+                                guard sub.isPro else { showReminderPaywall = true; return }
+                                if isGeneratingReminder {
+                                    reminderGenerationTask?.cancel()
+                                    isGeneratingReminder = false
+                                } else {
+                                    reminderGenerationTask = Task { await generateReminder() }
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if isGeneratingReminder {
+                                        ProgressView().scaleEffect(0.7)
+                                        Text("Stopp").font(.system(size: 11, weight: .medium))
+                                    } else {
+                                        Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
+                                        Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
+                                    }
+                                }
+                                .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                                .padding(.horizontal, 9).padding(.vertical, 4)
+                                .background(Capsule().fill(sub.isPro ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.08)))
+                                .overlay(Capsule().stroke(sub.isPro ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5))
+                            }
+                            .buttonStyle(.plain)
+                            .animation(.easeInOut(duration: 0.2), value: isGeneratingReminder)
+                        }
+                    }
+                    TextField("", text: $reminderBody, prompt: Text(dynamicDefaultReminderBody), axis: .vertical)
+                        .lineLimit(4)
+                } else {
+                    TextField("", text: $reminderTitle, prompt: Text(dynamicDefaultReminderTitle))
+                    TextField("", text: $reminderBody, prompt: Text(dynamicDefaultReminderBody), axis: .vertical)
+                        .lineLimit(4)
+                }
                 Text(localizer.localizedString(forKey: "reminder_edit_hint"))
                     .font(.footnote)
                     .foregroundColor(.secondary)
@@ -638,6 +690,101 @@ struct AddTodoView: View {
         // Always use the persisted category (handles duplicate name gracefully)
         category = todoStore.categories.first(where: { $0.name == trimmedName }) ?? newCategory
         newCategoryName = ""
+    }
+
+    private func generateReminder() async {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        isGeneratingReminder = true
+        reminderTitle = ""
+        reminderBody = ""
+
+        var contextParts: [String] = ["Aufgabe: \(t)"]
+        if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            contextParts.append("Beschreibung: \(description)")
+        }
+        contextParts.append("Priorität: \(priority.displayName)")
+        if let cat = category { contextParts.append("Kategorie: \(cat.name)") }
+        if hasDueDate {
+            let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .short
+            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+        }
+        let context = contextParts.joined(separator: "\n")
+
+        let prompt = """
+        Erstelle einen Erinnerungstitel und einen Erinnerungstext für diese Aufgabe auf Deutsch.
+        \(context)
+
+        Regeln:
+        - Titel: maximal 6 Wörter, direkt und motivierend
+        - Text: maximal 2 Sätze, konkret und hilfreich
+        - Kein Markdown, keine Aufzählungszeichen
+        - Antworte NUR in diesem Format (keine weiteren Zeilen):
+        TITEL: <titel>
+        TEXT: <text>
+        """
+
+        var raw = ""
+        do {
+            switch aiProvider {
+            case "apple":
+                if #available(iOS 26.0, *) {
+                    guard case .available = SystemLanguageModel.default.availability else {
+                        isGeneratingReminder = false; return
+                    }
+                    let session = LanguageModelSession()
+                    for try await partial in session.streamResponse(to: prompt) {
+                        try Task.checkCancellation()
+                        raw = partial.content
+                        await MainActor.run { parseReminderResponse(raw) }
+                    }
+                }
+            case "openai":
+                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIReminderKeyAlert = true; isGeneratingReminder = false }; return
+                }
+                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { parseReminderResponse(raw) }
+                }
+            case "groq":
+                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIReminderKeyAlert = true; isGeneratingReminder = false }; return
+                }
+                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { parseReminderResponse(raw) }
+                }
+            default:
+                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIReminderKeyAlert = true; isGeneratingReminder = false }; return
+                }
+                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { parseReminderResponse(raw) }
+                }
+            }
+        } catch is CancellationError {
+            // stopped by user, keep partial
+        } catch {
+            // keep partial result
+        }
+        await MainActor.run { isGeneratingReminder = false }
+    }
+
+    @MainActor
+    private func parseReminderResponse(_ raw: String) {
+        let lines = raw.components(separatedBy: "\n")
+        for line in lines {
+            if line.hasPrefix("TITEL:") {
+                reminderTitle = line.dropFirst("TITEL:".count).trimmingCharacters(in: .whitespaces)
+            } else if line.hasPrefix("TEXT:") {
+                reminderBody = line.dropFirst("TEXT:".count).trimmingCharacters(in: .whitespaces)
+            }
+        }
     }
 
     private func saveTodo() {
