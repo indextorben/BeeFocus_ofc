@@ -153,6 +153,9 @@ struct TimerView: View {
                 longBreakTime: $longBreakTime,
                 sessionsUntilLongBreak: $sessionsUntilLongBreak
             )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(24)
         }
         .alert(localizer.localizedString(forKey: "timer_notification_title"), isPresented: $showingNotificationAlert) {
             Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
