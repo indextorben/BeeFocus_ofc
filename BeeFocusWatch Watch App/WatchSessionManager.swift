@@ -6,6 +6,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     static let shared = WatchSessionManager()
 
     @Published var snapshot: WatchSnapshot = .placeholder
+    @Published var hasRealSnapshot: Bool = false
 
     // Watch-lokaler Speicher (nicht App Group – die ist gerätegebunden)
     private let localKey = "watchLocalSnapshot"
@@ -22,6 +23,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: localKey),
               let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
         snapshot = snap
+        hasRealSnapshot = true
     }
 
     private func saveLocalSnapshot(_ data: Data) {
@@ -31,7 +33,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
     private func applySnapshotData(_ data: Data) {
         guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
         saveLocalSnapshot(data)
-        DispatchQueue.main.async { self.snapshot = snap }
+        DispatchQueue.main.async {
+            self.snapshot = snap
+            self.hasRealSnapshot = true
+        }
     }
 
     // MARK: - WatchConnectivity
@@ -40,6 +45,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
+    }
+
+    func requestFreshSnapshot() {
+        // transferUserInfo liefert auch wenn iPhone-App nicht im Vordergrund ist
+        WCSession.default.transferUserInfo(["requestSnapshot": true])
     }
 
     // MARK: - Watch → iPhone
@@ -71,7 +81,7 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
         applySnapshotData(data)
     }
 
-    // Nach Aktivierung: gecachten Kontext prüfen
+    // Nach Aktivierung: gecachten Kontext laden und frischen Snapshot anfordern
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
@@ -79,6 +89,8 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
         if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data {
             applySnapshotData(data)
         }
+        // Frischen Snapshot vom iPhone anfordern (auch im Hintergrund)
+        WCSession.default.transferUserInfo(["requestSnapshot": true])
     }
 
     #if os(iOS)

@@ -1,88 +1,111 @@
 import Foundation
-import WatchConnectivity
 import Combine
+import WatchConnectivity
+
+private let appGroupID  = "group.com.TorbenLehneke.BeeFocus-ofc"
+private let snapshotKey = "widgetSnapshot"
+
+// App-Group-Schlüssel für ausstehende Watch-Aktionen (Relay zur Haupt-App)
+private let pendingCompletionsKey  = "pendingWatchCompletions"
+private let pendingWaterKey        = "pendingWatchWaterMl"
+®private let pendingHabitTogglesKey = "pendingWatchHabitToggles"
 
 final class WatchSessionManager: NSObject, ObservableObject {
     static let shared = WatchSessionManager()
 
     @Published var snapshot: WatchSnapshot = .placeholder
-
-    // Watch-lokaler Speicher (nicht App Group – die ist gerätegebunden)
-    private let localKey = "watchLocalSnapshot"
+    @Published var hasRealSnapshot: Bool = false
 
     private override init() {
         super.init()
-        loadLocalSnapshot()
-        setupSession()
+        setupWCSession()
+        loadAndForward()
     }
 
-    // MARK: - Lokaler Snapshot (UserDefaults auf der Watch selbst)
-
-    private func loadLocalSnapshot() {
-        guard let data = UserDefaults.standard.data(forKey: localKey),
-              let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
-        snapshot = snap
+    func requestFreshSnapshot() {
+        loadAndForward()
     }
 
-    private func saveLocalSnapshot(_ data: Data) {
-        UserDefaults.standard.set(data, forKey: localKey)
+    // Lädt Snapshot aus der App Group, zeigt ihn lokal + leitet ihn an die Watch weiter
+    private func loadAndForward() {
+        guard
+            let defaults = UserDefaults(suiteName: appGroupID),
+            let data = defaults.data(forKey: snapshotKey),
+            let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data)
+        else { return }
+
+        DispatchQueue.main.async {
+            self.snapshot = snap
+            self.hasRealSnapshot = true
+        }
+        sendToWatch(data)
     }
 
-    private func applySnapshotData(_ data: Data) {
-        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
-        saveLocalSnapshot(data)
-        DispatchQueue.main.async { self.snapshot = snap }
+    private func sendToWatch(_ data: Data) {
+        guard WCSession.default.activationState == .activated,
+              WCSession.default.isPaired,
+              WCSession.default.isWatchAppInstalled else { return }
+        try? WCSession.default.updateApplicationContext([snapshotKey: data])
     }
 
-    // MARK: - WatchConnectivity
-
-    private func setupSession() {
+    private func setupWCSession() {
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
     }
 
-    // MARK: - Watch → iPhone
+    // Stubs – kein direkter Effekt in der Vorschau-App
+    func completeTask(id: UUID) {}
+    func addWater(ml: Int) {}
+    func toggleHabit(id: UUID) {}
 
-    func completeTask(id: UUID) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(["completeTask": id.uuidString], replyHandler: nil)
+    // MARK: - Pending-Aktionen in App Group speichern
+
+    private func queueCompletion(_ id: UUID) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        var pending = defaults.stringArray(forKey: pendingCompletionsKey) ?? []
+        pending.append(id.uuidString)
+        defaults.set(pending, forKey: pendingCompletionsKey)
     }
 
-    func addWater(ml: Int) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(["addWater": ml], replyHandler: nil)
+    private func queueWater(ml: Int) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        var pending = (defaults.array(forKey: pendingWaterKey) as? [Int]) ?? []
+        pending.append(ml)
+        defaults.set(pending, forKey: pendingWaterKey)
     }
 
-    func toggleHabit(id: UUID) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(["toggleHabit": id.uuidString], replyHandler: nil)
+    private func queueHabitToggle(_ id: UUID) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+        var pending = defaults.stringArray(forKey: pendingHabitTogglesKey) ?? []
+        pending.append(id.uuidString)
+        defaults.set(pending, forKey: pendingHabitTogglesKey)
     }
 }
 
-// MARK: - WCSessionDelegate
-
 extension WatchSessionManager: @preconcurrency WCSessionDelegate {
 
-    // Neuer Snapshot vom iPhone empfangen
-    func session(_ session: WCSession,
-                 didReceiveApplicationContext applicationContext: [String: Any]) {
-        guard let data = applicationContext["widgetSnapshot"] as? Data else { return }
-        applySnapshotData(data)
+    // Watch sendet Aktionen → in App Group queuen, Haupt-App liest beim nächsten Start
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        if let idString = message["completeTask"] as? String, let id = UUID(uuidString: idString) {
+            queueCompletion(id)
+        } else if let ml = message["addWater"] as? Int {
+            queueWater(ml: ml)
+        } else if let idString = message["toggleHabit"] as? String, let id = UUID(uuidString: idString) {
+            queueHabitToggle(id)
+        }
     }
 
-    // Nach Aktivierung: gecachten Kontext prüfen
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         guard activationState == .activated else { return }
-        if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data {
-            applySnapshotData(data)
-        }
+        DispatchQueue.main.async { self.loadAndForward() }
     }
 
-    #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
-    func sessionDidDeactivate(_ session: WCSession) { WCSession.default.activate() }
-    #endif
+
+    func sessionDidDeactivate(_ session: WCSession) {
+        WCSession.default.activate()
+    }
 }

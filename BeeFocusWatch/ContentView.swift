@@ -311,20 +311,23 @@ struct TaskRow: View {
 
 struct TagesplanView: View {
     @ObservedObject var session: WatchSessionManager
+    @State private var doneIDs: Set<UUID> = []
     let accent: Color
 
     var body: some View {
         List {
-            if session.snapshot.todayBausteine.isEmpty {
+            if session.snapshot.planTasks.isEmpty {
                 Section {
-                    Label("Keine Bausteine für heute", systemImage: "rectangle.stack")
+                    Label("Keine offenen Aufgaben", systemImage: "checkmark.seal.fill")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 .listRowBackground(Color.clear)
             } else {
                 Section {
-                    ForEach(session.snapshot.todayBausteine) { b in
-                        BausteinRow(baustein: b)
+                    ForEach(session.snapshot.planTasks) { task in
+                        TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
+                            session.completeTask(id: task.id)
+                        }
                     }
                 }
             }

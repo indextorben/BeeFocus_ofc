@@ -13,6 +13,50 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         WCSession.default.activate()
     }
 
+    // MARK: - Pending completions (called on didBecomeActive)
+
+    func applyPendingWatchCompletions() {
+        guard let defaults = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc"),
+              let store = todoStore else { return }
+
+        // Task-Erledigungen
+        if let ids = defaults.stringArray(forKey: "pendingWatchCompletions"), !ids.isEmpty {
+            defaults.removeObject(forKey: "pendingWatchCompletions")
+            DispatchQueue.main.async {
+                for idString in ids {
+                    guard let id = UUID(uuidString: idString),
+                          let todo = store.todos.first(where: { $0.id == id }),
+                          !todo.isCompleted else { continue }
+                    store.toggleTodo(todo)
+                }
+                store.writeWidgetSnapshot()
+            }
+        }
+
+        // Wasser
+        if let mlValues = defaults.array(forKey: "pendingWatchWaterMl") as? [Int], !mlValues.isEmpty {
+            defaults.removeObject(forKey: "pendingWatchWaterMl")
+            DispatchQueue.main.async {
+                for ml in mlValues { WasserStore.shared.add(ml: ml) }
+                store.writeWidgetSnapshot()
+            }
+        }
+
+        // Gewohnheiten
+        if let ids = defaults.stringArray(forKey: "pendingWatchHabitToggles"), !ids.isEmpty {
+            defaults.removeObject(forKey: "pendingWatchHabitToggles")
+            DispatchQueue.main.async {
+                for idString in ids {
+                    guard let id = UUID(uuidString: idString),
+                          let habit = HabitStore.shared.habits.first(where: { $0.id == id })
+                    else { continue }
+                    HabitStore.shared.toggle(habit)
+                }
+                store.writeWidgetSnapshot()
+            }
+        }
+    }
+
     // MARK: - Snapshot push (iOS → Watch)
 
     func sendSnapshotData(_ data: Data) {
@@ -57,16 +101,27 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         }
     }
 
+    // Snapshot-Anfragen kommen via transferUserInfo (auch wenn App im Hintergrund)
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        if userInfo["requestSnapshot"] != nil {
+            DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
+        }
+    }
+
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         guard activationState == .activated,
               WCSession.default.isPaired,
               WCSession.default.isWatchAppInstalled else { return }
-        // Erster writeWidgetSnapshot() schlägt fehl weil Aktivierung async läuft.
-        // Nach Aktivierung direkt aus der App Group laden und pushen.
-        if let data = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc")?.data(forKey: "widgetSnapshot") {
-            try? WCSession.default.updateApplicationContext(["widgetSnapshot": data])
+        DispatchQueue.main.async {
+            if self.todoStore != nil {
+                // TodoStore ist bereits bereit → frischen Snapshot bauen und senden
+                self.todoStore?.writeWidgetSnapshot()
+            } else if let data = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc")?.data(forKey: "widgetSnapshot") {
+                // Fallback: letzten gecachten Snapshot pushen
+                try? WCSession.default.updateApplicationContext(["widgetSnapshot": data])
+            }
         }
     }
 

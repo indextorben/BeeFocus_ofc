@@ -36,6 +36,7 @@ struct WidgetSnapshot: Codable {
     let habits: [WatchHabit]
     let countdownEvents: [WatchCountdown]
     let isPro: Bool
+    let planTasks: [WidgetTask]
 }
 
 struct WidgetTask: Codable, Identifiable {
@@ -99,11 +100,11 @@ extension TodoStore {
         let today = cal.startOfDay(for: Date())
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
 
-        // Heute fällige + überfällige + Aufgaben ohne Datum (max. 8 für Watch)
+        // "Heute": überfällige + heute fällige + Aufgaben ohne Datum
         let todayTodos = todos.filter { todo in
             guard !todo.isCompleted else { return false }
-            guard let due = todo.dueDate else { return true }   // kein Datum → immer zeigen
-            return due < tomorrow                               // heute oder überfällig
+            guard let due = todo.dueDate else { return true }
+            return due < tomorrow
         }.sorted {
             switch ($0.dueDate, $1.dueDate) {
             case (nil, nil):   return false
@@ -112,6 +113,17 @@ extension TodoStore {
             default:           return $0.dueDate! < $1.dueDate!
             }
         }
+
+        // "Planer": alle offenen Aufgaben nach Datum sortiert (Planer-Ansicht)
+        let allOpenSorted = todos.filter { !$0.isCompleted }
+            .sorted { a, b in
+                switch (a.dueDate, b.dueDate) {
+                case (nil, nil):   return false
+                case (nil, _):     return false
+                case (_, nil):     return true
+                default:           return a.dueDate! < b.dueDate!
+                }
+            }
 
         let filterMonthOnly = UserDefaults.standard.bool(forKey: "filterCurrentMonthOnly")
         let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today
@@ -144,6 +156,7 @@ extension TodoStore {
         let activeTheme = UserDefaults.standard.string(forKey: "aktivesStatistikThema") ?? ""
 
         let topTasks = Array(todayTodos.prefix(8)).map { makeWidgetTask($0, today: today) }
+        let planTasks = Array(allOpenSorted.prefix(20)).map { makeWidgetTask($0, today: today) }
 
         let monthTasks = todos.filter { todo in
             guard !todo.isCompleted, let due = todo.dueDate else { return false }
@@ -198,7 +211,8 @@ extension TodoStore {
             waterGoalML: waterGoal,
             habits: watchHabits,
             countdownEvents: Array(watchCountdowns),
-            isPro: isPro
+            isPro: isPro,
+            planTasks: planTasks
         )
 
         if let defaults = UserDefaults(suiteName: beeFocusAppGroup),

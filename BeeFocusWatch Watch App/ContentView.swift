@@ -78,29 +78,28 @@ struct ContentView: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(WatchTab.allCases, id: \.self) { tab in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { activeTab = tab }
                 } label: {
-                    VStack(spacing: 3) {
+                    VStack(spacing: 4) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 13, weight: activeTab == tab ? .semibold : .regular))
+                            .font(.system(size: 16, weight: activeTab == tab ? .semibold : .regular))
                             .foregroundStyle(activeTab == tab ? accent : .secondary)
                         Text(tab.rawValue)
-                            .font(.system(size: 8, weight: activeTab == tab ? .semibold : .regular))
+                            .font(.system(size: 9, weight: activeTab == tab ? .semibold : .regular))
                             .foregroundStyle(activeTab == tab ? accent : .secondary)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 5)
-                    .background(activeTab == tab ? accent.opacity(0.15) : Color.clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(activeTab == tab ? accent.opacity(0.18) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 4)
-        .padding(.top, 4)
+        .padding(.top, 2)
     }
 }
 
@@ -153,7 +152,6 @@ struct MehrView: View {
             .listRowBackground(rowBg(.pink))
         }
         .listStyle(.plain)
-        .navigationTitle("Mehr")
     }
 
     private func rowBg(_ color: Color) -> some View {
@@ -307,24 +305,27 @@ struct TaskRow: View {
     }
 }
 
-// MARK: - Tagesplan
+// MARK: - Planer (alle offenen Aufgaben nach Datum)
 
 struct TagesplanView: View {
     @ObservedObject var session: WatchSessionManager
+    @State private var doneIDs: Set<UUID> = []
     let accent: Color
 
     var body: some View {
         List {
-            if session.snapshot.todayBausteine.isEmpty {
+            if session.snapshot.planTasks.isEmpty {
                 Section {
-                    Label("Keine Bausteine für heute", systemImage: "rectangle.stack")
+                    Label("Keine offenen Aufgaben", systemImage: "checkmark.seal.fill")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 .listRowBackground(Color.clear)
             } else {
                 Section {
-                    ForEach(session.snapshot.todayBausteine) { b in
-                        BausteinRow(baustein: b)
+                    ForEach(session.snapshot.planTasks) { task in
+                        TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
+                            session.completeTask(id: task.id)
+                        }
                     }
                 }
             }
@@ -468,9 +469,21 @@ struct MonatTaskRow: View {
 
 struct WasserView: View {
     @ObservedObject var session: WatchSessionManager
-    @State private var localAddedML: Int = 0
 
-    private var totalML: Int { session.snapshot.waterTodayML + localAddedML }
+    // Lokal auf Watch persistent gespeichert (übersteht View-Wechsel)
+    @AppStorage("watchLocalWaterML")   private var localML: Int = 0
+    @AppStorage("watchLocalWaterDate") private var localDateStr: String = ""
+
+    private var todayStr: String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
+    }
+    private var localAddedToday: Int {
+        localDateStr == todayStr ? localML : 0
+    }
+
+    private var totalML: Int {
+        session.hasRealSnapshot ? max(session.snapshot.waterTodayML, localAddedToday) : localAddedToday
+    }
     private var goalML: Int { max(session.snapshot.waterGoalML, 1) }
     private var progress: Double { min(Double(totalML) / Double(goalML), 1.0) }
 
@@ -503,7 +516,9 @@ struct WasserView: View {
                 HStack(spacing: 6) {
                     ForEach([150, 250, 330], id: \.self) { ml in
                         Button {
-                            localAddedML += ml
+                            // Lokal persistieren (View-Wechsel-sicher)
+                            if localDateStr != todayStr { localML = 0; localDateStr = todayStr }
+                            localML += ml
                             session.addWater(ml: ml)
                             #if os(watchOS)
                             WKInterfaceDevice.current().play(.click)

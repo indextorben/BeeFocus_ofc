@@ -18,6 +18,7 @@ struct WatchSnapshot: Codable {
     let habits: [WatchHabit]
     let countdownEvents: [WatchCountdown]
     let isPro: Bool
+    let planTasks: [WatchTask]
 
     init(dueTodayCount: Int, overdueCount: Int, completedTodayCount: Int,
          totalOpenCount: Int, focusMinutesToday: Int, topTasks: [WatchTask],
@@ -25,7 +26,7 @@ struct WatchSnapshot: Codable {
          activeMonthLabel: String = "", todayBausteine: [WatchBaustein] = [],
          waterTodayML: Int = 0, waterGoalML: Int = 2000,
          habits: [WatchHabit] = [], countdownEvents: [WatchCountdown] = [],
-         isPro: Bool = false) {
+         isPro: Bool = false, planTasks: [WatchTask] = []) {
         self.dueTodayCount = dueTodayCount
         self.overdueCount = overdueCount
         self.completedTodayCount = completedTodayCount
@@ -41,6 +42,7 @@ struct WatchSnapshot: Codable {
         self.habits = habits
         self.countdownEvents = countdownEvents
         self.isPro = isPro
+        self.planTasks = planTasks
     }
 
     init(from decoder: Decoder) throws {
@@ -60,6 +62,7 @@ struct WatchSnapshot: Codable {
         habits              = (try? c.decode([WatchHabit].self, forKey: .habits)) ?? []
         countdownEvents     = (try? c.decode([WatchCountdown].self, forKey: .countdownEvents)) ?? []
         isPro               = (try? c.decode(Bool.self, forKey: .isPro)) ?? false
+        planTasks           = (try? c.decode([WatchTask].self, forKey: .planTasks)) ?? []
     }
 
     static let placeholder = WatchSnapshot(

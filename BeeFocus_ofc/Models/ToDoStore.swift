@@ -1212,11 +1212,15 @@ class TodoStore: ObservableObject {
         if newTodos != todos {
             todos = newTodos
             saveTodos()
-            DispatchQueue.main.async { self.objectWillChange.send() }
+            DispatchQueue.main.async {
+                self.objectWillChange.send()
+                self.writeWidgetSnapshot()
+            }
         } else if changed {
             // Falls Reihenfolge geändert wurde, trotzdem speichern
             todos = newTodos
             saveTodos()
+            DispatchQueue.main.async { self.writeWidgetSnapshot() }
         }
     }
     

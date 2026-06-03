@@ -11,6 +11,24 @@ struct BrainDumpView: View {
     @State private var filterTag: BrainDumpTag? = nil
     @State private var showClearConfirm = false
 
+    // AI state
+    @AppStorage("aiProvider") private var aiProvider: String = "gemini"
+    @AppStorage("openaiSelectedModel") private var openaiModel: String = OpenAIService.models[0]
+    @AppStorage("groqSelectedModel") private var groqModel: String = GroqService.models[0]
+    @State private var autoTaggingIDs: Set<UUID> = []
+    @State private var reformulatingIDs: Set<UUID> = []
+    @State private var showNoKeyAlert = false
+    @State private var showAnalyse = false
+    @State private var analyseText = ""
+    @State private var analyseLoading = false
+    @State private var showExtract = false
+    @State private var extractedTasks: [String] = []
+    @State private var addedExtractTasks: Set<String> = []
+    @State private var extractLoading = false
+    @State private var showReflexion = false
+    @State private var reflexionText = ""
+    @State private var reflexionLoading = false
+
     private var accent: Color {
         aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : appThemaFarben(aktivesThema).0
     }
@@ -20,35 +38,52 @@ struct BrainDumpView: View {
         return store.eintraege.filter { $0.tag == tag }
     }
 
+    private var apiKey: String? {
+        switch aiProvider {
+        case "openai": return KeychainHelper.load(for: OpenAIService.keychainKey)
+        case "groq":   return KeychainHelper.load(for: GroqService.keychainKey)
+        default:       return KeychainHelper.load(for: GeminiService.keychainKey)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 ThemeBackgroundView().ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Input area
                     inputCard
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
 
-                    // Tag filter
                     tagFilter
                         .padding(.top, 12)
 
-                    // Entries list
+                    if !store.eintraege.isEmpty {
+                        aiActionsRow
+                            .padding(.horizontal, 16)
+                            .padding(.top, 10)
+                    }
+
                     if filteredEntries.isEmpty {
                         emptyState
                     } else {
                         ScrollView(showsIndicators: false) {
                             LazyVStack(spacing: 10) {
                                 ForEach(filteredEntries) { entry in
-                                    BrainDumpCard(entry: entry, accent: accent) {
-                                        convertToTodo(entry)
-                                    } onDelete: {
-                                        withAnimation(.spring(response: 0.3)) {
-                                            store.delete(entry)
-                                        }
-                                    }
+                                    BrainDumpCard(
+                                        entry: entry,
+                                        accent: accent,
+                                        isAutoTagging: autoTaggingIDs.contains(entry.id),
+                                        isReformulating: reformulatingIDs.contains(entry.id),
+                                        onConvert: { convertToTodo(entry) },
+                                        onDelete: {
+                                            withAnimation(.spring(response: 0.3)) {
+                                                store.delete(entry)
+                                            }
+                                        },
+                                        onReformulate: { reformuliereEntry(entry) }
+                                    )
                                     .padding(.horizontal, 16)
                                     .transition(.asymmetric(
                                         insertion: .scale(scale: 0.95).combined(with: .opacity),
@@ -84,6 +119,14 @@ struct BrainDumpView: View {
                     withAnimation { store.clearAll() }
                 }
             }
+            .alert("Kein KI-Anbieter", isPresented: $showNoKeyAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Bitte richte einen KI-Anbieter in den Einstellungen ein.")
+            }
+            .sheet(isPresented: $showAnalyse) { analyseSheet }
+            .sheet(isPresented: $showExtract) { extractSheet }
+            .sheet(isPresented: $showReflexion) { reflexionSheet }
             .preferredColorScheme(.dark)
         }
     }
@@ -92,7 +135,6 @@ struct BrainDumpView: View {
 
     private var inputCard: some View {
         VStack(spacing: 12) {
-            // Tag selector
             HStack(spacing: 8) {
                 ForEach(BrainDumpTag.allCases, id: \.self) { tag in
                     Button { selectedTag = tag } label: {
@@ -113,7 +155,6 @@ struct BrainDumpView: View {
             }
             .horizontallyScrollable()
 
-            // Text input + send
             HStack(spacing: 10) {
                 TextField("Gedanken, Ideen, Aufgaben...", text: $inputText, axis: .vertical)
                     .font(.system(size: 15))
@@ -123,12 +164,16 @@ struct BrainDumpView: View {
                     .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
 
                 Button {
-                    guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !text.isEmpty else { return }
                     withAnimation(.spring(response: 0.3)) {
-                        store.add(text: inputText, tag: selectedTag)
+                        store.add(text: text, tag: selectedTag)
                         inputText = ""
                     }
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    if let newEntry = store.eintraege.first {
+                        Task { await autoTagEntry(newEntry) }
+                    }
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 32))
@@ -179,6 +224,34 @@ struct BrainDumpView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - AI Actions Row
+
+    private var aiActionsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                aiChip(label: "Aufräumen", icon: "sparkles") { analyseEntries() }
+                aiChip(label: "Aufgaben", icon: "list.clipboard") { extrahiereAufgaben() }
+                aiChip(label: "Reflexion", icon: "calendar.badge.clock") { wochenReflexion() }
+            }
+        }
+    }
+
+    private func aiChip(label: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(accent)
+            .padding(.horizontal, 11).padding(.vertical, 6)
+            .background(accent.opacity(0.12), in: Capsule())
+            .overlay(Capsule().stroke(accent.opacity(0.3), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
     private var emptyState: some View {
         VStack(spacing: 12) {
             Spacer()
@@ -197,6 +270,352 @@ struct BrainDumpView: View {
         }
     }
 
+    // MARK: - AI Sheets
+
+    private var analyseSheet: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if analyseLoading {
+                            HStack {
+                                Spacer()
+                                VStack(spacing: 12) {
+                                    ProgressView().tint(accent)
+                                    Text("Analysiere deine Gedanken...")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+                                Spacer()
+                            }
+                            .padding(.top, 60)
+                        } else {
+                            Text(analyseText)
+                                .font(.system(size: 15))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .padding(16)
+                                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Gedanken aufräumen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fertig") { showAnalyse = false }.foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var extractSheet: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                Group {
+                    if extractLoading {
+                        VStack(spacing: 12) {
+                            ProgressView().tint(accent)
+                            Text("Suche nach Aufgaben...")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    } else if extractedTasks.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.white.opacity(0.15))
+                            Text("Keine Aufgaben gefunden")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 10) {
+                                ForEach(extractedTasks, id: \.self) { task in
+                                    let added = addedExtractTasks.contains(task)
+                                    HStack(spacing: 12) {
+                                        Text(task)
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(added ? .white.opacity(0.35) : .white.opacity(0.9))
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        Spacer()
+                                        Button {
+                                            guard !added else { return }
+                                            let todo = TodoItem(title: task, dueDate: Date())
+                                            todoStore.addTodo(todo)
+                                            addedExtractTasks.insert(task)
+                                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                        } label: {
+                                            Image(systemName: added ? "checkmark.circle.fill" : "plus.circle.fill")
+                                                .font(.system(size: 22))
+                                                .foregroundStyle(added ? .green.opacity(0.6) : accent)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(added)
+                                    }
+                                    .padding(12)
+                                    .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                                }
+                            }
+                            .padding(16)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Aufgaben extrahieren")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fertig") {
+                        showExtract = false
+                        addedExtractTasks = []
+                    }.foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var reflexionSheet: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if reflexionLoading {
+                            HStack {
+                                Spacer()
+                                VStack(spacing: 12) {
+                                    ProgressView().tint(accent)
+                                    Text("Erstelle deine Wochen-Reflexion...")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+                                Spacer()
+                            }
+                            .padding(.top, 60)
+                        } else {
+                            Text(reflexionText)
+                                .font(.system(size: 15))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .padding(16)
+                                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Wochen-Reflexion")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fertig") { showReflexion = false }.foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    // MARK: - AI Logic
+
+    private func callAI(prompt: String) async throws -> String {
+        guard let key = apiKey else { throw URLError(.userAuthenticationRequired) }
+        var result = ""
+        switch aiProvider {
+        case "openai":
+            for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
+                result += chunk
+            }
+        case "groq":
+            for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
+                result += chunk
+            }
+        default:
+            for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
+                result += chunk
+            }
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // Feature 1: Auto-Kategorisierung
+    private func autoTagEntry(_ entry: BrainDumpEintrag) async {
+        guard apiKey != nil else { return }
+        let id = entry.id
+        autoTaggingIDs.insert(id)
+
+        let prompt = """
+        Klassifiziere diesen Gedanken in genau eine der folgenden Kategorien: idee, aufgabe, frage, sorge, danke.
+        Antworte NUR mit dem einen Wort der Kategorie, ohne Erklärung, ohne Punkt.
+
+        Gedanke: "\(entry.text)"
+        """
+
+        do {
+            let result = try await callAI(prompt: prompt)
+            let tagRaw = result.lowercased().trimmingCharacters(in: .punctuationCharacters)
+            if let newTag = BrainDumpTag(rawValue: tagRaw), newTag != entry.tag {
+                await MainActor.run {
+                    withAnimation(.spring(response: 0.4)) {
+                        store.updateTag(entry, newTag: newTag)
+                    }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
+        } catch {}
+
+        await MainActor.run { autoTaggingIDs.remove(id) }
+    }
+
+    // Feature 2: Gedanken aufräumen
+    private func analyseEntries() {
+        guard apiKey != nil else { showNoKeyAlert = true; return }
+        showAnalyse = true
+        analyseLoading = true
+        analyseText = ""
+
+        let entries = store.eintraege.map { "[\($0.tag.label)] \($0.text)" }.joined(separator: "\n")
+        let prompt = """
+        Analysiere diese Brain-Dump-Einträge des Nutzers und gib eine strukturierte Übersicht auf Deutsch:
+        - Erkenne Muster und wiederkehrende Themen
+        - Identifiziere, was den Nutzer am meisten beschäftigt
+        - Gib 2-3 konkrete Empfehlungen
+        Nutze maximal 200 Wörter. Keine Markdown-Formatierung.
+
+        Einträge:
+        \(entries)
+        """
+
+        Task {
+            do {
+                let result = try await callAI(prompt: prompt)
+                await MainActor.run { analyseText = result; analyseLoading = false }
+            } catch {
+                await MainActor.run {
+                    analyseText = "Fehler: \(error.localizedDescription)"
+                    analyseLoading = false
+                }
+            }
+        }
+    }
+
+    // Feature 3: Aufgaben extrahieren
+    private func extrahiereAufgaben() {
+        guard apiKey != nil else { showNoKeyAlert = true; return }
+        showExtract = true
+        extractLoading = true
+        extractedTasks = []
+        addedExtractTasks = []
+
+        let entries = store.eintraege.filter { !$0.isConverted }
+            .map { "- \($0.text)" }.joined(separator: "\n")
+        let prompt = """
+        Extrahiere aus diesen Brain-Dump-Einträgen alle konkreten, ausführbaren Aufgaben – auch wenn sie als Sorge, Idee oder Frage formuliert sind.
+        Formuliere jede Aufgabe als klaren, aktionsfähigen deutschen Satz (z. B. "Arzttermin vereinbaren").
+        Gib NUR die Aufgaben aus, eine pro Zeile, ohne Nummerierung, ohne Erklärungen, ohne Leerzeilen.
+        Maximal 8 Aufgaben.
+
+        Einträge:
+        \(entries)
+        """
+
+        Task {
+            do {
+                let result = try await callAI(prompt: prompt)
+                let tasks = result.components(separatedBy: "\n")
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                await MainActor.run { extractedTasks = tasks; extractLoading = false }
+            } catch {
+                await MainActor.run { extractedTasks = []; extractLoading = false }
+            }
+        }
+    }
+
+    // Feature 4: Eintrags-Umformulierung
+    private func reformuliereEntry(_ entry: BrainDumpEintrag) {
+        guard apiKey != nil else { showNoKeyAlert = true; return }
+        let id = entry.id
+        reformulatingIDs.insert(id)
+
+        let prompt = """
+        Formuliere diesen rohen Gedanken in einen klaren, aktionsfähigen, positiv formulierten deutschen Satz um.
+        Antworte NUR mit dem umformulierten Satz, ohne Erklärungen, ohne Anführungszeichen.
+
+        Gedanke: "\(entry.text)"
+        """
+
+        Task {
+            do {
+                let result = try await callAI(prompt: prompt)
+                await MainActor.run {
+                    if !result.isEmpty {
+                        withAnimation(.spring(response: 0.3)) {
+                            store.updateText(entry, newText: result)
+                        }
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    }
+                    reformulatingIDs.remove(id)
+                }
+            } catch {
+                await MainActor.run { reformulatingIDs.remove(id) }
+            }
+        }
+    }
+
+    // Feature 5: Wochen-Reflexion
+    private func wochenReflexion() {
+        guard apiKey != nil else { showNoKeyAlert = true; return }
+        showReflexion = true
+        reflexionLoading = true
+        reflexionText = ""
+
+        let cal = Calendar.current
+        let sevenDaysAgo = cal.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let recent = store.eintraege.filter { $0.date >= sevenDaysAgo }
+
+        guard !recent.isEmpty else {
+            reflexionText = "Keine Einträge der letzten 7 Tage gefunden."
+            reflexionLoading = false
+            return
+        }
+
+        let entries = recent.map { "[\($0.tag.label)] \($0.text)" }.joined(separator: "\n")
+        let prompt = """
+        Du bist ein einfühlsamer Produktivitäts-Coach. Erstelle eine kurze Wochen-Reflexion auf Deutsch basierend auf diesen Brain-Dump-Einträgen der letzten 7 Tage:
+        - Was hat den Nutzer beschäftigt?
+        - Was wurde positiv erlebt (Dankbarkeit / Ideen)?
+        - Was sollte priorisiert werden?
+        - Ein ermutigendes Abschlussstatement
+        Maximal 180 Wörter. Keine Markdown-Formatierung.
+
+        Einträge:
+        \(entries)
+        """
+
+        Task {
+            do {
+                let result = try await callAI(prompt: prompt)
+                await MainActor.run { reflexionText = result; reflexionLoading = false }
+            } catch {
+                await MainActor.run {
+                    reflexionText = "Fehler: \(error.localizedDescription)"
+                    reflexionLoading = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Actions
+
     private func convertToTodo(_ entry: BrainDumpEintrag) {
         let todo = TodoItem(title: entry.text, dueDate: Date())
         todoStore.addTodo(todo)
@@ -210,30 +629,48 @@ struct BrainDumpView: View {
 struct BrainDumpCard: View {
     let entry: BrainDumpEintrag
     let accent: Color
+    let isAutoTagging: Bool
+    let isReformulating: Bool
     let onConvert: () -> Void
     let onDelete: () -> Void
+    let onReformulate: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Tag icon
             ZStack {
                 Circle()
                     .fill(entry.tag.color.opacity(0.15))
                     .frame(width: 36, height: 36)
-                Image(systemName: entry.tag.icon)
-                    .font(.system(size: 15))
-                    .foregroundStyle(entry.tag.color)
+                if isAutoTagging {
+                    ProgressView()
+                        .scaleEffect(0.65)
+                        .tint(entry.tag.color)
+                } else {
+                    Image(systemName: entry.tag.icon)
+                        .font(.system(size: 15))
+                        .foregroundStyle(entry.tag.color)
+                }
             }
             .padding(.top, 2)
+            .animation(.easeInOut(duration: 0.2), value: isAutoTagging)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(entry.text)
-                    .font(.system(size: 14))
-                    .foregroundStyle(entry.isConverted ? .white.opacity(0.35) : .white.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
+                if isReformulating {
+                    HStack(spacing: 6) {
+                        ProgressView().scaleEffect(0.6).tint(.white.opacity(0.5))
+                        Text("Wird umformuliert...")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .italic()
+                    }
+                } else {
+                    Text(entry.text)
+                        .font(.system(size: 14))
+                        .foregroundStyle(entry.isConverted ? .white.opacity(0.35) : .white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 HStack(spacing: 8) {
-                    // Tag label
                     Text(entry.tag.label)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(entry.tag.color.opacity(0.8))
@@ -273,6 +710,13 @@ struct BrainDumpCard: View {
         .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.07), lineWidth: 1))
         .opacity(entry.isConverted ? 0.7 : 1.0)
+        .contextMenu {
+            if !entry.isConverted && !isReformulating {
+                Button { onReformulate() } label: {
+                    Label("Umformulieren", systemImage: "sparkles")
+                }
+            }
+        }
     }
 }
 

@@ -75,6 +75,22 @@ final class BrainDumpStore: ObservableObject {
         persist()
     }
 
+    func updateTag(_ eintrag: BrainDumpEintrag, newTag: BrainDumpTag) {
+        if let idx = eintraege.firstIndex(where: { $0.id == eintrag.id }) {
+            eintraege[idx].tag = newTag
+        }
+        persist()
+    }
+
+    func updateText(_ eintrag: BrainDumpEintrag, newText: String) {
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let idx = eintraege.firstIndex(where: { $0.id == eintrag.id }) {
+            eintraege[idx].text = trimmed
+        }
+        persist()
+    }
+
     func clearAll() {
         eintraege.removeAll()
         persist()
