@@ -71,6 +71,9 @@ class TodoStore: ObservableObject {
     private var isSyncInProgress = false
     private var syncTask: Task<Void, Never>?
 
+    // Widget snapshot debounce
+    var widgetDebounceTimer: Timer?
+
     // MARK: - Undo/Redo Engine
     private enum Action: Codable {
         case create(todo: TodoItem)
@@ -1330,6 +1333,7 @@ class TodoStore: ObservableObject {
     
     deinit {
         syncTimer?.invalidate()
+        widgetDebounceTimer?.invalidate()
         syncTask?.cancel()
     }
     
@@ -1439,6 +1443,15 @@ class TodoStore: ObservableObject {
         // Anwenden über updateTodo, damit Notifications/CloudKit korrekt aktualisiert werden
         for updated in itemsToUpdate {
             self.updateTodo(updated)
+        }
+    }
+
+    // MARK: - Widget Snapshot (debounced)
+
+    func writeWidgetSnapshot() {
+        widgetDebounceTimer?.invalidate()
+        widgetDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+            self?.performWidgetSnapshot()
         }
     }
 }

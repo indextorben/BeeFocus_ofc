@@ -95,7 +95,7 @@ struct WatchBaustein: Codable, Identifiable {
 let beeFocusAppGroup = "group.com.TorbenLehneke.BeeFocus-ofc"
 
 extension TodoStore {
-    func writeWidgetSnapshot() {
+    func performWidgetSnapshot() {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!

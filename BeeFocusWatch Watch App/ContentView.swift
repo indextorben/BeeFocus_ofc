@@ -575,8 +575,7 @@ struct WatchTimerView: View {
     @AppStorage("watchTimerIsBreak") private var isBreak: Bool = false
 
     @State private var remaining: TimeInterval = 0
-
-    private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var timerCancellable: AnyCancellable?
 
     private var totalDuration: TimeInterval {
         isBreak ? TimeInterval(shortBreakTime * 60) : TimeInterval(focusTime * 60)
@@ -639,8 +638,14 @@ struct WatchTimerView: View {
             }
         }
         .padding(.horizontal, 8)
-        .onAppear(perform: restoreTimer)
-        .onReceive(clock) { _ in tick() }
+        .onAppear {
+            restoreTimer()
+            if running { startClock() }
+        }
+        .onDisappear { stopClock() }
+        .onChange(of: running) { isRunning in
+            isRunning ? startClock() : stopClock()
+        }
         .navigationTitle("Timer")
     }
 
@@ -673,9 +678,20 @@ struct WatchTimerView: View {
     }
 
     private func tick() {
-        guard running else { return }
         remaining = max(0, endTimestamp - Date().timeIntervalSince1970)
         if remaining <= 0 { timerFinished() }
+    }
+
+    private func startClock() {
+        guard timerCancellable == nil else { return }
+        timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in tick() }
+    }
+
+    private func stopClock() {
+        timerCancellable?.cancel()
+        timerCancellable = nil
     }
 
     private func timerFinished() {
