@@ -1,13 +1,8 @@
-//
-//  TodoCard.swift
-//  BeeFocus_ofc
-//
-//  Created by Torben Lehneke on 17.06.25.
-//
-
 import Foundation
 import SwiftUI
 import SwiftData
+
+// MARK: - Priority Badge
 
 struct PriorityBadge: View {
     let text: String
@@ -15,17 +10,16 @@ struct PriorityBadge: View {
 
     var body: some View {
         Text(text)
-            .font(.caption)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(color.opacity(0.15)))
-            .foregroundColor(color)
-            .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 1))
-            .shadow(color: color.opacity(0.2), radius: 2, x: 0, y: 1)
-            .scaleEffect(0.95)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.14), in: Capsule())
+            .overlay(Capsule().stroke(color.opacity(0.28), lineWidth: 1))
     }
 }
+
+// MARK: - TodoCard
 
 struct TodoCard: View {
     @Binding var todo: TodoItem
@@ -57,43 +51,27 @@ struct TodoCard: View {
     @State private var showingSubTasks = false
     @State private var showingImages = false
     @State private var isPressed = false
-    @Environment(\.colorScheme) private var colorScheme
-    
-    @ObservedObject private var localizer = LocalizationManager.shared
-    let languages = ["Deutsch", "Englisch"]
-    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
-    @AppStorage("aktivePriorityStyle") private var aktivePriorityStyle: String = "standard"
-    
+    @State private var appeared = false
     @State private var images: [Data] = []
 
-    var baseGradient: LinearGradient {
-        switch todo.priority {
-        case .low:
-            return LinearGradient(colors: [.green.opacity(0.1), .green.opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .medium:
-            return LinearGradient(colors: [.orange.opacity(0.1), .orange.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .high:
-            return LinearGradient(colors: [.red.opacity(0.15), .red.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
-    }
+    @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var localizer = LocalizationManager.shared
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @AppStorage("aktivePriorityStyle")   private var aktivePriorityStyle: String = "standard"
 
-    var shadowColor: Color {
-        switch todo.priority {
-        case .low: return Color.green.opacity(0.2)
-        case .medium: return Color.orange.opacity(0.25)
-        case .high: return Color.red.opacity(0.3)
-        }
-    }
+    // MARK: - Computed
 
-    var priorityColor: Color {
+    private var isDark: Bool { colorScheme == .dark }
+
+    private var priorityColor: Color {
         switch todo.priority {
-        case .low: return .green
+        case .low:    return .green
         case .medium: return .orange
-        case .high: return .red
+        case .high:   return .red
         }
     }
 
-    var priorityText: String {
+    private var priorityText: String {
         if aktivePriorityStyle == "emoji" {
             switch todo.priority {
             case .low:    return "🟢 " + localizer.localizedString(forKey: "priority_low")
@@ -102,199 +80,287 @@ struct TodoCard: View {
             }
         }
         switch todo.priority {
-        case .low: return localizer.localizedString(forKey: "priority_low")
+        case .low:    return localizer.localizedString(forKey: "priority_low")
         case .medium: return localizer.localizedString(forKey: "priority_medium")
-        case .high: return localizer.localizedString(forKey: "priority_high")
+        case .high:   return localizer.localizedString(forKey: "priority_high")
         }
     }
+
+    // Accent color: overdue → red, has date → blue, else → priority color
+    private var cardAccent: Color {
+        guard !todo.isCompleted else { return .secondary }
+        if todo.isOverdue        { return .red }
+        if todo.dueDate != nil   { return Color(red: 0.25, green: 0.55, blue: 1.0) }
+        return priorityColor
+    }
+
+    private var cardTintOpacity: Double { isDark ? 0.12 : 0.07 }
+
+    private var cardBorderOpacity: Double { isDark ? 0.38 : 0.22 }
+
+    private var hasInfoRow: Bool {
+        todo.dueDate != nil
+        || (showCategory && todo.category?.name.isEmpty == false)
+        || !todo.subTasks.isEmpty
+        || !todo.imageDataArray.isEmpty
+    }
+
+    // MARK: - Body
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            HStack(alignment: .center, spacing: 12) {
-                // MARK: - Checkmark
-                ZStack {
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                            onToggle()
+        HStack(spacing: 0) {
+            // Left accent bar
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(cardAccent)
+                .frame(width: 4)
+                .padding(.vertical, 10)
+                .padding(.leading, 10)
+                .animation(.spring(response: 0.4, dampingFraction: 0.75), value: todo.isOverdue)
+                .animation(.spring(response: 0.4, dampingFraction: 0.75), value: todo.dueDate != nil)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // Top row: checkmark + title + menu
+                HStack(alignment: .top, spacing: 11) {
+                    checkmarkButton
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(todo.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(
+                                todo.isCompleted
+                                    ? AnyShapeStyle(.secondary)
+                                    : AnyShapeStyle(isDark ? Color.white.opacity(0.92) : Color.primary)
+                            )
+                            .strikethrough(todo.isCompleted, color: .secondary)
+                            .animation(.easeInOut(duration: 0.2), value: todo.isCompleted)
+
+                        if !todo.description.isEmpty {
+                            Text(todo.description)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                                .strikethrough(todo.isCompleted, color: .secondary)
+                                .lineLimit(2)
+                                .animation(.easeInOut(duration: 0.2), value: todo.isCompleted)
                         }
-                    }) {
-                        Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(todo.isCompleted ? .green : .gray)
-                            .scaleEffect(todo.isCompleted ? 1.1 : 1.0)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: todo.isCompleted)
                     }
-                    .buttonStyle(.plain)
+
+                    Spacer(minLength: 4)
+
+                    menuButton
+                }
+                .padding(.top, 13)
+                .padding(.horizontal, 12)
+
+                // Info row
+                if hasInfoRow {
+                    infoRow
+                        .padding(.horizontal, 12)
+                        .padding(.top, 8)
                 }
 
-                // MARK: - Title & Description
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(todo.title)
-                        .font(.headline)
-                        .foregroundColor(todo.isCompleted ? .gray : .primary)
-                        .strikethrough(todo.isCompleted)
-                        .animation(.easeInOut(duration: 0.25), value: todo.isCompleted)
-
-                    if !todo.description.isEmpty {
-                        Text(todo.description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .strikethrough(todo.isCompleted)
-                            .animation(.easeInOut(duration: 0.25), value: todo.isCompleted)
-                    }
-
-                    if showCategory, let categoryName = todo.category?.name, !categoryName.isEmpty {
-                        HStack(spacing: 6) {
-                            Image(systemName: "tag.fill")
-                                .foregroundColor(.secondary)
-                            Text(categoryName)
-                        }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-
-                    if let due = todo.dueDate {
-                        HStack(spacing: 6) {
-                            Image(systemName: "calendar")
-                                .foregroundColor(.blue)
-                            Text(due, style: .date)
-                            Text(due, style: .time)
-                        }
-                        .font(.caption)
-                        .foregroundColor(todo.isOverdue ? .red : .blue)
-                    }
+                // Bottom: priority badge
+                HStack {
+                    Spacer()
+                    PriorityBadge(text: priorityText, color: priorityColor)
                 }
-
-                Spacer()
-
-                // MARK: - Action Buttons (Subtasks, Images, Edit, Delete)
-                HStack(spacing: 13) {
-                    if !todo.subTasks.isEmpty {
-                        Button {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                showingSubTasks = true
-                            }
-                        } label: {
-                            Image(systemName: "list.bullet")
-                                .font(.system(size: 17, weight: .bold))
-                                .foregroundColor(.blue)
-                        }
-                    }
-
-                    if !todo.imageDataArray.isEmpty {
-                        Button {
-                            images = todo.imageDataArray
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                showingImages = true
-                            }
-                        } label: {
-                            Image(systemName: "photo.on.rectangle")
-                                .font(.system(size: 17, weight: .bold))
-                                .foregroundColor(.blue)
-                        }
-                    }
-
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(.blue)
-                    }
-
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(.red)
-                    }
-                }
-                .frame(minHeight: 60)
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
+                .padding(.bottom, 11)
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(baseGradient)
-                    .shadow(color: shadowColor.opacity(isPressed ? 0.2 : 0.4), radius: isPressed ? 6 : 12, x: 0, y: 4)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: aktivesThema.isEmpty
-                                ? [priorityColor.opacity(0.25), priorityColor.opacity(0.12)]
-                                : [appThemaFarben(aktivesThema).0.opacity(0.50), appThemaFarben(aktivesThema).1.opacity(0.25)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
-            .animation(.easeInOut(duration: 0.4), value: aktivesThema)
-            .scaleEffect(isPressed ? 0.97 : 1.0)
-            .opacity(isPressed ? 0.95 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.15)) { isPressed = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    withAnimation(.easeInOut(duration: 0.15)) { isPressed = false }
-                }
-            }
-            .contextMenu {
-                if let onShare = onShare {
-                    Button {
-                        onShare()
-                    } label: {
-                        Label {
-                            Text(localizer.localizedString(forKey: "Teilen"))
-                        } icon: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-
-                if let onMoveToFolder = onMoveToFolder {
-                    Button {
-                        onMoveToFolder()
-                    } label: {
-                        Label("In Ordner verschieben", systemImage: "folder.badge.plus")
-                    }
-                }
-
-                Button {
-                    onEdit()
-                } label: {
-                    Label {
-                        Text(localizer.localizedString(forKey: "Bearbeiten"))
-                    } icon: {
-                        Image(systemName: "pencil")
-                    }
-                }
-
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label {
-                        Text(localizer.localizedString(forKey: "Löschen"))
-                    } icon: {
-                        Image(systemName: "trash")
-                    }
-                }
-            }
-            .transition(.asymmetric(
-                insertion: .scale(scale: 0.95).combined(with: .opacity),
-                removal: .scale(scale: 0.95).combined(with: .opacity)
-            ))
-            .animation(.spring(response: 0.35, dampingFraction: 0.75), value: todo.isCompleted)
-            .sheet(isPresented: $showingSubTasks) { SubTasksView(todo: todo) }
-            .sheet(isPresented: $showingImages) { ImagesView(images: $images) }
-
-            // MARK: - Priority Badge only (Favorite star removed)
-            HStack(spacing: 6) {
-                PriorityBadge(text: priorityText, color: priorityColor)
-            }
-            .padding(10)
-            .transition(.opacity)
         }
-        .padding(.vertical, 2)
+        // Glass background
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(cardAccent.opacity(cardTintOpacity))
+                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: cardAccent)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(cardAccent.opacity(cardBorderOpacity), lineWidth: 1)
+                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: cardAccent)
+        )
+        .shadow(color: cardAccent.opacity(isDark ? 0.18 : 0.10), radius: 8, x: 0, y: 3)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        // Press
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .opacity(isPressed ? 0.92 : (todo.isCompleted ? 0.65 : 1.0))
+        .animation(.spring(response: 0.28, dampingFraction: 0.7), value: isPressed)
+        .animation(.easeInOut(duration: 0.25), value: todo.isCompleted)
+        // Entrance
+        .opacity(appeared ? (todo.isCompleted ? 0.65 : 1.0) : 0)
+        .offset(y: appeared ? 0 : 18)
+        .animation(.spring(response: 0.5, dampingFraction: 0.78), value: appeared)
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.78).delay(0.04)) {
+                appeared = true
+            }
+        }
+        // Tap for press flash
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.12)) { isPressed = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                withAnimation(.easeInOut(duration: 0.12)) { isPressed = false }
+            }
+        }
+        // Context menu (long press)
+        .contextMenu {
+            contextMenuItems
+        }
+        .transition(.asymmetric(
+            insertion: .scale(scale: 0.95).combined(with: .opacity),
+            removal: .scale(scale: 0.92).combined(with: .opacity)
+        ))
+        .padding(.vertical, 3)
+        .sheet(isPresented: $showingSubTasks) { SubTasksView(todo: todo) }
+        .sheet(isPresented: $showingImages) { ImagesView(images: $images) }
+    }
+
+    // MARK: - Checkmark
+
+    private var checkmarkButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.65)) {
+                onToggle()
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(todo.isCompleted ? .green.opacity(0.15) : .clear)
+                    .frame(width: 30, height: 30)
+                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(todo.isCompleted ? .green : .secondary.opacity(0.6))
+                    .scaleEffect(todo.isCompleted ? 1.08 : 1.0)
+            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: todo.isCompleted)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Ellipsis Menu
+
+    private var menuButton: some View {
+        Menu {
+            contextMenuItems
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .background(.secondary.opacity(isDark ? 0.15 : 0.10), in: Circle())
+        }
+        .menuStyle(.borderlessButton)
+    }
+
+    // MARK: - Info Row
+
+    private var infoRow: some View {
+        HStack(spacing: 6) {
+            // Due date / overdue
+            if let due = todo.dueDate {
+                if todo.isOverdue && !todo.isCompleted {
+                    Label("Überfällig", systemImage: "exclamationmark.clock.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(.red, in: Capsule())
+                } else {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 10))
+                        Text(due, style: .date)
+                        Text(due, style: .time)
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color(red: 0.25, green: 0.55, blue: 1.0))
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color(red: 0.25, green: 0.55, blue: 1.0).opacity(isDark ? 0.18 : 0.10), in: Capsule())
+                }
+            }
+
+            // Category
+            if showCategory, let cat = todo.category?.name, !cat.isEmpty {
+                HStack(spacing: 3) {
+                    Image(systemName: "tag.fill")
+                        .font(.system(size: 9))
+                    Text(cat)
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(.secondary.opacity(0.10), in: Capsule())
+            }
+
+            Spacer(minLength: 0)
+
+            // Subtasks
+            if !todo.subTasks.isEmpty {
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        showingSubTasks = true
+                    }
+                } label: {
+                    let done = todo.subTasks.filter(\.isCompleted).count
+                    HStack(spacing: 3) {
+                        Image(systemName: "checklist")
+                            .font(.system(size: 10))
+                        Text("\(done)/\(todo.subTasks.count)")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundStyle(cardAccent)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(cardAccent.opacity(isDark ? 0.18 : 0.10), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Images
+            if !todo.imageDataArray.isEmpty {
+                Button {
+                    images = todo.imageDataArray
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        showingImages = true
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "photo.fill")
+                            .font(.system(size: 10))
+                        Text("\(todo.imageDataArray.count)")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(.secondary.opacity(0.10), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.bottom, 2)
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        Button { onEdit() } label: {
+            Label(localizer.localizedString(forKey: "Bearbeiten"), systemImage: "pencil")
+        }
+        if let onShare {
+            Button { onShare() } label: {
+                Label(localizer.localizedString(forKey: "Teilen"), systemImage: "square.and.arrow.up")
+            }
+        }
+        if let onMoveToFolder {
+            Button { onMoveToFolder() } label: {
+                Label("In Ordner verschieben", systemImage: "folder.badge.plus")
+            }
+        }
+        Divider()
+        Button(role: .destructive) { onDelete() } label: {
+            Label(localizer.localizedString(forKey: "Löschen"), systemImage: "trash")
+        }
     }
 }
-
