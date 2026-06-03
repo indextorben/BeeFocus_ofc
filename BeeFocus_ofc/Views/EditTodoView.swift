@@ -49,6 +49,12 @@ struct EditTodoView: View {
     @State private var showAIKeyAlert = false
     @State private var descGenerationTask: Task<Void, Never>? = nil
 
+    // MARK: - KI-Aufteilen
+    @State private var isGeneratingSubTasks = false
+    @State private var showSubTaskPaywall = false
+    @State private var showAISubTaskKeyAlert = false
+    @State private var subTaskGenerationTask: Task<Void, Never>? = nil
+
     // MARK: - KI-Erinnerung
     @State private var isGeneratingReminder = false
     @State private var showReminderPaywall = false
@@ -267,6 +273,12 @@ struct EditTodoView: View {
         .onAppear {
             if hasDueDate { selectedWeekOption = presetLabel(for: dueDate) }
         }
+        .onChange(of: title) { newValue in
+            autoMatchCategory(from: newValue + " " + description)
+        }
+        .onChange(of: description) { newValue in
+            autoMatchCategory(from: title + " " + newValue)
+        }
         .onChange(of: dueDate) { newValue in
             selectedWeekOption = hasDueDate ? presetLabel(for: newValue) : nil
         }
@@ -293,6 +305,12 @@ struct EditTodoView: View {
         } message: { sub in
             Text("Möchtest du \"\(sub.title)\" wirklich löschen?")
         }
+        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAISubTaskKeyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+        }
+        .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
         .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -556,7 +574,39 @@ struct EditTodoView: View {
     }
     
     private var subTasksSection: some View {
-        Section(header: Text(localizer.localizedString(forKey: "subtasks_section"))) {
+        Section(header: HStack {
+            Text(localizer.localizedString(forKey: "subtasks_section"))
+            Spacer()
+            if !title.trimmingCharacters(in: .whitespaces).isEmpty {
+                Button {
+                    guard sub.isPro else { showSubTaskPaywall = true; return }
+                    if isGeneratingSubTasks {
+                        subTaskGenerationTask?.cancel()
+                        isGeneratingSubTasks = false
+                    } else {
+                        subTaskGenerationTask = Task { await generateSubTasks() }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        if isGeneratingSubTasks {
+                            ProgressView().scaleEffect(0.65)
+                            Text("Stopp").font(.system(size: 11, weight: .medium))
+                        } else {
+                            Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
+                            Text(sub.isPro ? "KI aufteilen" : "KI aufteilen ✦")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                    }
+                    .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(sub.isPro ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.08)))
+                    .overlay(Capsule().stroke(sub.isPro ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.2), value: isGeneratingSubTasks)
+                .textCase(nil)
+            }
+        }) {
             ForEach(subTasks) { subTask in
                 HStack {
                     Button(action: {
@@ -859,6 +909,103 @@ struct EditTodoView: View {
             } else if line.hasPrefix("TEXT:") {
                 reminderBody = line.dropFirst("TEXT:".count).trimmingCharacters(in: .whitespaces)
             }
+        }
+    }
+
+    private func autoMatchCategory(from text: String) {
+        let lower = text.lowercased()
+        guard let match = todoStore.categories.first(where: { lower.contains($0.name.lowercased()) }) else { return }
+        category = match
+    }
+
+    private func generateSubTasks() async {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        isGeneratingSubTasks = true
+
+        var contextParts: [String] = ["Aufgabe: \(t)"]
+        if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            contextParts.append("Beschreibung: \(description)")
+        }
+        contextParts.append("Priorität: \(priority.displayName)")
+        contextParts.append("Kategorie: \(category.name)")
+        let context = contextParts.joined(separator: "\n")
+
+        let prompt = """
+        Teile diese Aufgabe in 3 bis 6 sinnvolle, konkrete Teilaufgaben auf Deutsch auf.
+        \(context)
+
+        Regeln:
+        - Jede Teilaufgabe ist eine ausführbare Aktion
+        - Maximal 8 Wörter pro Teilaufgabe
+        - Eine Teilaufgabe pro Zeile, ohne Nummerierung und ohne Aufzählungszeichen
+        - Antworte NUR mit den Teilaufgaben, eine pro Zeile
+        """
+
+        var raw = ""
+        do {
+            switch aiProvider {
+            case "apple":
+                if #available(iOS 26.0, *) {
+                    guard case .available = SystemLanguageModel.default.availability else {
+                        isGeneratingSubTasks = false; return
+                    }
+                    let session = LanguageModelSession()
+                    for try await partial in session.streamResponse(to: prompt) {
+                        try Task.checkCancellation()
+                        raw = partial.content
+                    }
+                }
+            case "openai":
+                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAISubTaskKeyAlert = true; isGeneratingSubTasks = false }; return
+                }
+                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                }
+            case "groq":
+                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAISubTaskKeyAlert = true; isGeneratingSubTasks = false }; return
+                }
+                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                }
+            default:
+                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAISubTaskKeyAlert = true; isGeneratingSubTasks = false }; return
+                }
+                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                }
+            }
+        } catch is CancellationError {
+            await MainActor.run { isGeneratingSubTasks = false }; return
+        } catch {}
+
+        await MainActor.run {
+            let newTasks = raw
+                .components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .map { line -> String in
+                    var s = line
+                    if s.hasPrefix("- ") || s.hasPrefix("• ") { s = String(s.dropFirst(2)) }
+                    if s.count > 2, s[s.index(s.startIndex, offsetBy: 1)] == "." || s[s.index(s.startIndex, offsetBy: 1)] == ")" {
+                        s = String(s.dropFirst(3))
+                    }
+                    return s.trimmingCharacters(in: .whitespaces)
+                }
+                .filter { !$0.isEmpty }
+                .map { SubTask(title: $0) }
+
+            withAnimation {
+                for task in newTasks where !subTasks.contains(where: { $0.title == task.title }) {
+                    subTasks.append(task)
+                }
+            }
+            isGeneratingSubTasks = false
         }
     }
 
