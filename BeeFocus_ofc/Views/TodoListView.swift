@@ -96,6 +96,7 @@ struct TodoListView: View {
     
     //Fileimporter
     @State private var showingActionSheet = false
+    @State private var showingEllipsisMenu = false
     @State private var showingFileImporter = false
     @State private var showingTemplates = false
     @AppStorage("todayHighlightID") private var highlightIDStr: String = ""
@@ -1162,39 +1163,7 @@ struct TodoListView: View {
                 }
                 .disabled(!todoStore.canRedo)
                 
-                Menu {
-                    if isSelecting && !selectedTodoIDs.isEmpty {
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                isShowingFolderPicker = true
-                            }
-                        } label: {
-                            Label("In Ordner verschieben", systemImage: "folder.badge.plus")
-                        }
-                        Divider()
-                    }
-                    Button {
-                        showingTemplates = true
-                    } label: {
-                        Label("Aufgaben-Vorlagen", systemImage: "rectangle.stack.fill")
-                    }
-                    Divider()
-                    Button {
-                        showingDeleteCompletedByDateSheet = true
-                    } label: {
-                        Label(localizer.localizedString(forKey: "Nach Zeitraum löschen"), systemImage: "calendar")
-                    }
-                    Button(role: .destructive) {
-                        showingConfirmTrashCompleted = true
-                    } label: {
-                        Label(localizer.localizedString(forKey: "Abgeschlossene in Papierkorb"), systemImage: "trash")
-                    }
-                    Button(role: .destructive) {
-                        showingDeleteDuplicatesConfirm = true
-                    } label: {
-                        Label("Duplikate entfernen", systemImage: "doc.on.doc")
-                    }
-                } label: {
+                Button { showingEllipsisMenu = true } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.primary)
@@ -1215,10 +1184,26 @@ struct TodoListView: View {
                                     .opacity(0.35)
                             }
                         )
-                        .overlay(
-                            Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                        )
+                        .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1))
                         .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+                .sheet(isPresented: $showingEllipsisMenu) {
+                    EllipsisMenuView(
+                        showFolderOption: isSelecting && !selectedTodoIDs.isEmpty,
+                        onMoveToFolder: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isShowingFolderPicker = true
+                            }
+                        },
+                        onVorlagen:         { showingTemplates = true },
+                        onDeleteByDate:     { showingDeleteCompletedByDateSheet = true },
+                        onTrashCompleted:   { showingConfirmTrashCompleted = true },
+                        onRemoveDuplicates: { showingDeleteDuplicatesConfirm = true }
+                    )
+                    .presentationDetents([.height(isSelecting && !selectedTodoIDs.isEmpty ? 490 : 420)])
+                    .presentationDragIndicator(.hidden)
+                    .presentationCornerRadius(24)
                 }
 
                 Button(action: {
