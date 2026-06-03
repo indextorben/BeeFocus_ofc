@@ -164,9 +164,30 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.endDate = endDate
     }
 
+    // true wenn ein Zeitraum gesetzt ist und gerade läuft (dueDate ≤ now ≤ endDate)
+    var isActive: Bool {
+        guard !isCompleted, let start = dueDate, let end = endDate else { return false }
+        let now = Date()
+        return start <= now && now <= end
+    }
+
+    // überfällig: bei Zeitraum erst nach endDate, bei einzelnem Datum sofort nach dueDate
     var isOverdue: Bool {
-        guard let dueDate = dueDate else { return false }
-        return !isCompleted && dueDate < Date()
+        guard !isCompleted else { return false }
+        let now = Date()
+        if let end = endDate { return now > end }
+        guard let start = dueDate else { return false }
+        return start < now
+    }
+
+    var remainingTimeString: String? {
+        guard isActive, let end = endDate else { return nil }
+        let secs = max(0, end.timeIntervalSince(Date()))
+        let h = Int(secs) / 3600
+        let m = (Int(secs) % 3600) / 60
+        if h > 0 { return "noch \(h)h \(m)m" }
+        if m > 0 { return "noch \(m)m" }
+        return "endet gleich"
     }
 
     var progress: Double {

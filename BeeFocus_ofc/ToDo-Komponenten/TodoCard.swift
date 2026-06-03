@@ -86,11 +86,12 @@ struct TodoCard: View {
         }
     }
 
-    // Accent color: overdue → red, has date → blue, else → priority color
+    // Accent: überfällig → rot | aktiv (läuft) → grün | hat Datum → blau | sonst → Priorität
     private var cardAccent: Color {
         guard !todo.isCompleted else { return .secondary }
-        if todo.isOverdue        { return .red }
-        if todo.dueDate != nil   { return Color(red: 0.25, green: 0.55, blue: 1.0) }
+        if todo.isOverdue      { return .red }
+        if todo.isActive       { return Color(red: 0.15, green: 0.75, blue: 0.45) }
+        if todo.dueDate != nil { return Color(red: 0.25, green: 0.55, blue: 1.0) }
         return priorityColor
     }
 
@@ -259,15 +260,33 @@ struct TodoCard: View {
 
     private var infoRow: some View {
         HStack(spacing: 6) {
-            // Due date / overdue
-            if let due = todo.dueDate {
-                if todo.isOverdue && !todo.isCompleted {
+            // Due date / status badge
+            if todo.dueDate != nil && !todo.isCompleted {
+                if todo.isActive {
+                    // Zeitraum läuft gerade
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(red: 0.15, green: 0.75, blue: 0.45))
+                            .frame(width: 6, height: 6)
+                        Text("Läuft")
+                            .fontWeight(.bold)
+                        if let remaining = todo.remainingTimeString {
+                            Text("· \(remaining)")
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color(red: 0.15, green: 0.75, blue: 0.45), in: Capsule())
+                } else if todo.isOverdue {
                     Label("Überfällig", systemImage: "exclamationmark.clock.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(.red, in: Capsule())
-                } else {
+                } else if let due = todo.dueDate {
+                    // Geplant, noch nicht fällig
                     HStack(spacing: 4) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 10))
