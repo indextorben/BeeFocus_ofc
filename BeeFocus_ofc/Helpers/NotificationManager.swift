@@ -205,24 +205,32 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Habit Reminder
 
-    private let habitReminderID = "habitReminder"
+    private let habitReminderPrefix = "habit_"
 
-    func scheduleHabitReminder(hour: Int, minute: Int) {
+    func scheduleHabitReminders(intervalHours: Int) {
         cancelHabitReminder()
-        let content = UNMutableNotificationContent()
-        content.title = "✅ Gewohnheiten-Check"
-        content.body  = "Hast du heute deine Gewohnheiten gepflegt?"
-        content.sound = .default
-        var comps = DateComponents(); comps.hour = hour; comps.minute = minute
-        let request = UNNotificationRequest(
-            identifier: habitReminderID, content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
-        UNUserNotificationCenter.current().add(request)
+        let interval = max(1, intervalHours)
+        let center = UNUserNotificationCenter.current()
+        var hour = 8
+        var index = 0
+        while hour <= 20 && index < 13 {
+            let content = UNMutableNotificationContent()
+            content.title = "✅ Gewohnheiten-Check"
+            content.body  = "Hast du heute deine Gewohnheiten gepflegt?"
+            content.sound = .default
+            var comps = DateComponents(); comps.hour = hour; comps.minute = 0
+            let request = UNNotificationRequest(
+                identifier: "\(habitReminderPrefix)\(index)", content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: true))
+            center.add(request)
+            hour  += interval
+            index += 1
+        }
     }
 
     func cancelHabitReminder() {
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: [habitReminderID])
+        let ids = (0..<13).map { "\(habitReminderPrefix)\($0)" } + ["habitReminder"]
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
     // MARK: - Water Reminders

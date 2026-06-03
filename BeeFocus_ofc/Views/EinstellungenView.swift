@@ -19,7 +19,6 @@ struct EinstellungenView: View {
     @AppStorage("morningSummaryTime") private var morningSummaryTime: Double = 6 * 3600
 
     @AppStorage("habitReminderEnabled") private var habitReminderEnabled = false
-    @AppStorage("habitReminderTime") private var habitReminderTime: Double = 8 * 3600
 
     @AppStorage("waterReminderEnabled") private var waterReminderEnabled = false
     @AppStorage("waterReminderInterval") private var waterReminderInterval = 2

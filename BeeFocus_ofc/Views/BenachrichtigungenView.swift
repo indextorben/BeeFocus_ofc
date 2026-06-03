@@ -12,7 +12,7 @@ struct BenachrichtigungenView: View {
     @AppStorage("morningSummaryEnabled")   private var morningSummaryEnabled = true
     @AppStorage("morningSummaryTime")      private var morningSummaryTime: Double = 6 * 3600
     @AppStorage("habitReminderEnabled")    private var habitReminderEnabled = false
-    @AppStorage("habitReminderTime")       private var habitReminderTime: Double = 8 * 3600
+    @AppStorage("habitReminderInterval")   private var habitReminderInterval = 2
     @AppStorage("waterReminderEnabled")    private var waterReminderEnabled = false
     @AppStorage("waterReminderInterval")   private var waterReminderInterval = 2
     @AppStorage("overdueAlertEnabled")     private var overdueAlertEnabled = false
@@ -24,6 +24,7 @@ struct BenachrichtigungenView: View {
     @AppStorage("eveningReminderEnabled")  private var eveningReminderEnabled = false
     @AppStorage("eveningReminderTime")     private var eveningReminderTime: Double = 21 * 3600 + 30 * 60
 
+    @State private var expandedItems: Set<String> = []
     @State private var showBannerView = false
     @State private var bannerMessage = ""
     @State private var bannerColor: Color = .green
@@ -39,132 +40,111 @@ struct BenachrichtigungenView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
-                    // Permission status
                     if authStatus == .denied {
-                        permissionDeniedBanner
-                            .padding(.top, 8)
+                        permissionDeniedBanner.padding(.top, 8)
                     }
 
-                    // Master toggle
+                    // Master
                     sectionCard(header: "Allgemein", icon: "bell.fill", color: accent) {
-                        toggleRow(
+                        notifItem(
                             icon: "bell.badge.fill", color: accent,
-                            label: "Benachrichtigungen aktiv",
-                            isOn: $notificationsEnabled
-                        )
-                        .onChange(of: notificationsEnabled) { enabled in
-                            if enabled {
-                                requestPermission()
-                            } else {
-                                showBanner("Benachrichtigungen deaktiviert", color: .red)
-                            }
-                        }
+                            label: "Benachrichtigungen aktiv", id: "master",
+                            isOn: $notificationsEnabled,
+                            onEnable: { requestPermission() },
+                            onDisable: { showBanner("Benachrichtigungen deaktiviert", color: .red) }
+                        ) { EmptyView() }
                     }
 
                     // Tagesstruktur
                     sectionCard(header: "Tagesstruktur", icon: "sun.max.fill", color: .orange) {
-                        toggleRow(icon: "sun.max.fill", color: .orange,
-                                  label: "Morgen-Übersicht",
-                                  isOn: $morningSummaryEnabled)
-                            .onChange(of: morningSummaryEnabled) { enabled in
-                                if enabled { scheduleMorningSummary() }
-                                else { NotificationManager.shared.cancelDailyMorningSummary() }
-                            }
-                        if morningSummaryEnabled {
+                        notifItem(
+                            icon: "sun.max.fill", color: .orange,
+                            label: "Morgen-Übersicht", id: "morning",
+                            isOn: $morningSummaryEnabled,
+                            onEnable: { scheduleMorningSummary() },
+                            onDisable: { NotificationManager.shared.cancelDailyMorningSummary() }
+                        ) {
                             timeRow(time: $morningSummaryTime) { scheduleMorningSummary() }
                         }
 
                         divider()
-                        toggleRow(icon: "exclamationmark.circle.fill", color: .red.opacity(0.9),
-                                  label: "Überfällige Aufgaben",
-                                  isOn: $overdueAlertEnabled)
-                            .onChange(of: overdueAlertEnabled) { enabled in
-                                if enabled { scheduleOverdueAlert() }
-                                else { NotificationManager.shared.cancelOverdueAlert() }
-                            }
-                        if overdueAlertEnabled {
+                        notifItem(
+                            icon: "exclamationmark.circle.fill", color: .red.opacity(0.9),
+                            label: "Überfällige Aufgaben", id: "overdue",
+                            isOn: $overdueAlertEnabled,
+                            onEnable: { scheduleOverdueAlert() },
+                            onDisable: { NotificationManager.shared.cancelOverdueAlert() }
+                        ) {
                             timeRow(time: $overdueAlertTime) { scheduleOverdueAlert() }
                         }
 
                         divider()
-                        toggleRow(icon: "calendar.badge.clock", color: .indigo,
-                                  label: "Wochenrückblick (Sonntags)",
-                                  isOn: $weeklyReviewEnabled)
-                            .onChange(of: weeklyReviewEnabled) { enabled in
-                                if enabled { scheduleWeeklyReview() }
-                                else { NotificationManager.shared.cancelWeeklyReview() }
-                            }
-                        if weeklyReviewEnabled {
+                        notifItem(
+                            icon: "calendar.badge.clock", color: .indigo,
+                            label: "Wochenrückblick (Sonntags)", id: "weekly",
+                            isOn: $weeklyReviewEnabled,
+                            onEnable: { scheduleWeeklyReview() },
+                            onDisable: { NotificationManager.shared.cancelWeeklyReview() }
+                        ) {
                             timeRow(time: $weeklyReviewTime) { scheduleWeeklyReview() }
                         }
                     }
 
                     // Wohlbefinden
                     sectionCard(header: "Wohlbefinden", icon: "heart.fill", color: .pink) {
-                        toggleRow(icon: "drop.fill", color: .cyan,
-                                  label: "Wasser-Erinnerung",
-                                  isOn: $waterReminderEnabled)
-                            .onChange(of: waterReminderEnabled) { enabled in
-                                if enabled { NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval) }
-                                else { NotificationManager.shared.cancelWaterReminders() }
+                        notifItem(
+                            icon: "drop.fill", color: .cyan,
+                            label: "Wasser-Erinnerung", id: "water",
+                            isOn: $waterReminderEnabled,
+                            onEnable: { NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval) },
+                            onDisable: { NotificationManager.shared.cancelWaterReminders() }
+                        ) {
+                            intervalRow(
+                                icon: "clock.arrow.circlepath", color: .cyan,
+                                selection: $waterReminderInterval
+                            ) {
+                                NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval)
                             }
-                        if waterReminderEnabled {
-                            divider()
-                            HStack(spacing: 12) {
-                                iconBadge(icon: "clock.arrow.circlepath", color: .cyan)
-                                Text("Interval")
-                                    .font(.system(size: 16))
-                                Spacer()
-                                Picker("", selection: $waterReminderInterval) {
-                                    Text("1 Std").tag(1)
-                                    Text("2 Std").tag(2)
-                                    Text("3 Std").tag(3)
-                                    Text("4 Std").tag(4)
-                                }
-                                .pickerStyle(.menu)
-                                .onChange(of: waterReminderInterval) { _ in
-                                    NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval)
-                                }
-                            }
-                            .padding(.horizontal, 16).padding(.vertical, 12)
                         }
 
                         divider()
-                        toggleRow(icon: "face.smiling", color: .yellow,
-                                  label: "Stimmungs-Check",
-                                  isOn: $moodReminderEnabled)
-                            .onChange(of: moodReminderEnabled) { enabled in
-                                if enabled { scheduleMoodReminder() }
-                                else { NotificationManager.shared.cancelMoodReminder() }
-                            }
-                        if moodReminderEnabled {
+                        notifItem(
+                            icon: "face.smiling", color: .yellow,
+                            label: "Stimmungs-Check", id: "mood",
+                            isOn: $moodReminderEnabled,
+                            onEnable: { scheduleMoodReminder() },
+                            onDisable: { NotificationManager.shared.cancelMoodReminder() }
+                        ) {
                             timeRow(time: $moodReminderTime) { scheduleMoodReminder() }
                         }
 
                         divider()
-                        toggleRow(icon: "moon.stars.fill", color: .purple,
-                                  label: "Abendreflexion",
-                                  isOn: $eveningReminderEnabled)
-                            .onChange(of: eveningReminderEnabled) { enabled in
-                                if enabled { scheduleEveningReminder() }
-                                else { NotificationManager.shared.cancelEveningReminder() }
-                            }
-                        if eveningReminderEnabled {
+                        notifItem(
+                            icon: "moon.stars.fill", color: .purple,
+                            label: "Abendreflexion", id: "evening",
+                            isOn: $eveningReminderEnabled,
+                            onEnable: { scheduleEveningReminder() },
+                            onDisable: { NotificationManager.shared.cancelEveningReminder() }
+                        ) {
                             timeRow(time: $eveningReminderTime) { scheduleEveningReminder() }
                         }
                     }
 
                     // Gewohnheiten
                     sectionCard(header: "Gewohnheiten", icon: "calendar.badge.checkmark", color: .green) {
-                        toggleRow(icon: "calendar.badge.checkmark", color: .green,
-                                  label: "Gewohnheiten-Erinnerung",
-                                  isOn: $habitReminderEnabled)
-                            .onChange(of: habitReminderEnabled) { enabled in
-                                if enabled { scheduleHabitReminder() }
-                                else { NotificationManager.shared.cancelHabitReminder() }
+                        notifItem(
+                            icon: "calendar.badge.checkmark", color: .green,
+                            label: "Gewohnheiten-Erinnerung", id: "habit",
+                            isOn: $habitReminderEnabled,
+                            onEnable: { NotificationManager.shared.scheduleHabitReminders(intervalHours: habitReminderInterval) },
+                            onDisable: { NotificationManager.shared.cancelHabitReminder() }
+                        ) {
+                            intervalRow(
+                                icon: "clock.arrow.circlepath", color: .green,
+                                selection: $habitReminderInterval
+                            ) {
+                                NotificationManager.shared.scheduleHabitReminders(intervalHours: habitReminderInterval)
                             }
-                        if habitReminderEnabled {
-                            timeRow(time: $habitReminderTime) { scheduleHabitReminder() }
                         }
                     }
 
@@ -196,7 +176,6 @@ struct BenachrichtigungenView: View {
                 .padding(.bottom, 16)
             }
 
-            // Banner
             if showBannerView {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.white)
@@ -215,6 +194,104 @@ struct BenachrichtigungenView: View {
         .navigationTitle("Benachrichtigungen")
         .navigationBarTitleDisplayMode(.large)
         .onAppear { checkAuthStatus() }
+    }
+
+    // MARK: - Expandable Notification Item
+
+    private func notifItem<Detail: View>(
+        icon: String, color: Color, label: String, id: String,
+        isOn: Binding<Bool>,
+        onEnable: @escaping () -> Void,
+        onDisable: @escaping () -> Void,
+        @ViewBuilder detail: () -> Detail
+    ) -> some View {
+        let isExpanded = expandedItems.contains(id)
+        return VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                iconBadge(icon: icon, color: color)
+                Text(label).font(.system(size: 16))
+                Spacer()
+                Toggle("", isOn: isOn)
+                    .labelsHidden()
+                    .onChange(of: isOn.wrappedValue) { enabled in
+                        if enabled { onEnable() }
+                        else {
+                            onDisable()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                expandedItems.remove(id)
+                            }
+                        }
+                    }
+                if isOn.wrappedValue {
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            if isExpanded { expandedItems.remove(id) }
+                            else { expandedItems.insert(id) }
+                        }
+                    } label: {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 26, height: 26)
+                            .background(.secondary.opacity(0.1), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+
+            if isOn.wrappedValue && isExpanded {
+                detail()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    // MARK: - Detail Row Helpers
+
+    private func timeRow(time: Binding<Double>, onSet: @escaping () -> Void) -> some View {
+        Group {
+            divider()
+            HStack(spacing: 12) {
+                iconBadge(icon: "clock.fill", color: .teal)
+                Text("Uhrzeit").font(.system(size: 16))
+                Spacer()
+                DatePicker("", selection: Binding<Date>(
+                    get: { Calendar.current.startOfDay(for: Date()).addingTimeInterval(time.wrappedValue) },
+                    set: { newDate in
+                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                        time.wrappedValue = Double((comps.hour ?? 0) * 3600 + (comps.minute ?? 0) * 60)
+                        onSet()
+                    }
+                ), displayedComponents: [.hourAndMinute])
+                .labelsHidden()
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+        }
+    }
+
+    private func intervalRow(
+        icon: String, color: Color,
+        selection: Binding<Int>,
+        onChange: @escaping () -> Void
+    ) -> some View {
+        Group {
+            divider()
+            HStack(spacing: 12) {
+                iconBadge(icon: icon, color: color)
+                Text("Interval").font(.system(size: 16))
+                Spacer()
+                Picker("", selection: selection) {
+                    Text("1 Std").tag(1)
+                    Text("2 Std").tag(2)
+                    Text("3 Std").tag(3)
+                    Text("4 Std").tag(4)
+                }
+                .pickerStyle(.menu)
+                .onChange(of: selection.wrappedValue) { _ in onChange() }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+        }
     }
 
     // MARK: - Permission Banner
@@ -332,17 +409,8 @@ struct BenachrichtigungenView: View {
                         )
                 )
                 .shadow(color: .black.opacity(darkModeEnabled ? 0.25 : 0.08), radius: 16, x: 0, y: 6)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-    }
-
-    private func toggleRow(icon: String, color: Color, label: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: 12) {
-            iconBadge(icon: icon, color: color)
-            Text(label).font(.system(size: 16))
-            Spacer()
-            Toggle("", isOn: isOn).labelsHidden()
-        }
-        .padding(.horizontal, 16).padding(.vertical, 12)
     }
 
     private func iconBadge(icon: String, color: Color) -> some View {
@@ -360,27 +428,6 @@ struct BenachrichtigungenView: View {
 
     private func divider() -> some View {
         Divider().padding(.leading, 58).opacity(0.5)
-    }
-
-    private func timeRow(time: Binding<Double>, onSet: @escaping () -> Void) -> some View {
-        Group {
-            divider()
-            HStack(spacing: 12) {
-                iconBadge(icon: "clock.fill", color: .teal)
-                Text(localizer.localizedString(forKey: "time")).font(.system(size: 16))
-                Spacer()
-                DatePicker("", selection: Binding<Date>(
-                    get: { Calendar.current.startOfDay(for: Date()).addingTimeInterval(time.wrappedValue) },
-                    set: { newDate in
-                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                        time.wrappedValue = Double((comps.hour ?? 0) * 3600 + (comps.minute ?? 0) * 60)
-                        onSet()
-                    }
-                ), displayedComponents: [.hourAndMinute])
-                .labelsHidden()
-            }
-            .padding(.horizontal, 16).padding(.vertical, 12)
-        }
     }
 
     // MARK: - Banner
@@ -444,13 +491,6 @@ struct BenachrichtigungenView: View {
                 showBanner(localizer.localizedString(forKey: "Morgen-Übersicht aktualisiert"))
             }
         }
-    }
-
-    private func scheduleHabitReminder() {
-        let s = Int(habitReminderTime)
-        NotificationManager.shared.scheduleHabitReminder(
-            hour: max(0, min(23, s / 3600)), minute: max(0, min(59, (s % 3600) / 60))
-        )
     }
 
     private func scheduleOverdueAlert() {
