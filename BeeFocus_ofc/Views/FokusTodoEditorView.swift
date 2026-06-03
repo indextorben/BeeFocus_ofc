@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import EventKit
+import FoundationModels
 
 // MARK: - FokusTodoEditorView
 
@@ -39,6 +40,18 @@ struct FokusTodoEditorView: View {
 
     @State private var subTasks: [SubTask]
     @State private var newSubTaskTitle = ""
+    @State private var subTaskPendingDelete: SubTask? = nil
+    @State private var showSubTaskDeleteAlert = false
+
+    // MARK: - KI-Beschreibung
+    @ObservedObject private var sub = SubscriptionManager.shared
+    @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
+    @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
+    @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
+    @State private var isGeneratingDescription = false
+    @State private var showDescPaywall = false
+    @State private var showAIKeyAlert = false
+    @State private var descGenerationTask: Task<Void, Never>? = nil
 
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var selectedImages: [IdentifiableUIImage] = []
@@ -187,6 +200,21 @@ struct FokusTodoEditorView: View {
         } message: {
             Text("Bitte erlaube BeeFocus den Zugriff auf den Kalender in den Einstellungen.")
         }
+        .alert("Teilaufgabe löschen?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
+            Button("Löschen", role: .destructive) {
+                withAnimation { subTasks.removeAll { $0.id == sub.id } }
+                subTaskPendingDelete = nil
+            }
+            Button("Abbrechen", role: .cancel) { subTaskPendingDelete = nil }
+        } message: { sub in
+            Text("Möchtest du \"\(sub.title)\" wirklich löschen?")
+        }
+        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIKeyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+        }
+        .sheet(isPresented: $showDescPaywall) { ProPaywallView() }
         .sheet(isPresented: $showCamera) {
             CameraPicker { img in
                 if let img { selectedImages.append(IdentifiableUIImage(image: img)) }
@@ -212,27 +240,157 @@ struct FokusTodoEditorView: View {
 
                 if !bodyText.isEmpty || true {
                     Divider().opacity(0.15).padding(.horizontal, 14)
-                    TextEditor(text: $bodyText)
-                        .font(.system(size: 15))
-                        .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
-                        .frame(minHeight: 72, maxHeight: 160)
-                        .scrollContentBackground(.hidden)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .overlay(alignment: .topLeading) {
-                            if bodyText.isEmpty {
-                                Text("Beschreibung (optional)")
-                                    .font(.system(size: 15))
-                                    .foregroundStyle(.secondary.opacity(0.6))
-                                    .padding(.horizontal, 14)
-                                    .padding(.top, 12)
-                                    .allowsHitTesting(false)
+                    ZStack(alignment: .topTrailing) {
+                        TextEditor(text: $bodyText)
+                            .font(.system(size: 15))
+                            .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
+                            .frame(minHeight: 72, maxHeight: 160)
+                            .scrollContentBackground(.hidden)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .overlay(alignment: .topLeading) {
+                                if bodyText.isEmpty {
+                                    Text("Beschreibung (optional)")
+                                        .font(.system(size: 15))
+                                        .foregroundStyle(.secondary.opacity(0.6))
+                                        .padding(.horizontal, 14)
+                                        .padding(.top, 12)
+                                        .allowsHitTesting(false)
+                                }
                             }
-                        }
+                        aiDescriptionButton
+                            .padding(.top, 8)
+                            .padding(.trailing, 10)
+                    }
                 }
             }
             .themeGlass(cornerRadius: 16)
         }
+    }
+
+    @ViewBuilder
+    private var aiDescriptionButton: some View {
+        if title.trimmingCharacters(in: .whitespaces).isEmpty {
+            EmptyView()
+        } else {
+            Button {
+                guard sub.isPro else { showDescPaywall = true; return }
+                if isGeneratingDescription {
+                    descGenerationTask?.cancel()
+                    isGeneratingDescription = false
+                } else {
+                    descGenerationTask = Task { await generateDescription() }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    if isGeneratingDescription {
+                        ProgressView().scaleEffect(0.7).tint(themeC1)
+                        Text("Stopp")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(themeC1)
+                    } else {
+                        Image(systemName: sub.isPro ? "sparkles" : "sparkles")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(sub.isPro ? themeC1 : .secondary)
+                        Text(sub.isPro ? "KI" : "KI ✦")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(sub.isPro ? themeC1 : .secondary)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(isGeneratingDescription
+                              ? themeC1.opacity(0.12)
+                              : (sub.isPro ? themeC1.opacity(0.12) : Color.secondary.opacity(0.08)))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(sub.isPro ? themeC1.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+            .animation(.easeInOut(duration: 0.2), value: isGeneratingDescription)
+        }
+    }
+
+    private func generateDescription() async {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        isGeneratingDescription = true
+        bodyText = ""
+
+        var contextParts: [String] = ["Aufgabe: \(t)"]
+        contextParts.append("Priorität: \(priority.displayName)")
+        if let cat = category { contextParts.append("Kategorie: \(cat.name)") }
+        if hasDueDate {
+            let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .none
+            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+        }
+        let context = contextParts.joined(separator: "\n")
+
+        let prompt = """
+        Schreibe eine kurze, motivierende Beschreibung für diese Aufgabe auf Deutsch.
+        \(context)
+
+        Regeln:
+        - Maximal 3 Sätze
+        - Konkrete Hinweise oder sinnvolle nächste Schritte nennen
+        - Natürlich und hilfreich formulieren
+        - Kein Aufzählungszeichen, kein Markdown
+        - Antworte NUR mit der Beschreibung
+        """
+
+        var raw = ""
+        do {
+            switch aiProvider {
+            case "apple":
+                if #available(iOS 26.0, *) {
+                    guard case .available = SystemLanguageModel.default.availability else {
+                        isGeneratingDescription = false; return
+                    }
+                    let session = LanguageModelSession()
+                    for try await partial in session.streamResponse(to: prompt) {
+                        try Task.checkCancellation()
+                        raw = partial.content
+                        await MainActor.run { bodyText = raw }
+                    }
+                }
+            case "openai":
+                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
+                }
+                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { bodyText = raw }
+                }
+            case "groq":
+                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
+                }
+                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { bodyText = raw }
+                }
+            default:
+                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
+                }
+                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { bodyText = raw }
+                }
+            }
+        } catch is CancellationError {
+            // stopped by user, keep what was generated
+        } catch {
+            // keep partial result if anything was generated
+        }
+        await MainActor.run { isGeneratingDescription = false }
     }
 
     // MARK: - Priorität
@@ -533,15 +691,24 @@ struct FokusTodoEditorView: View {
                 if !subTasks.isEmpty {
                     ForEach(subTasks) { sub in
                         HStack(spacing: 10) {
-                            Image(systemName: "circle")
-                                .font(.system(size: 16))
-                                .foregroundStyle(themeC1.opacity(0.5))
+                            Button {
+                                if let idx = subTasks.firstIndex(where: { $0.id == sub.id }) {
+                                    withAnimation { subTasks[idx].isCompleted.toggle() }
+                                }
+                            } label: {
+                                Image(systemName: sub.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(sub.isCompleted ? .green : themeC1.opacity(0.5))
+                            }
+                            .buttonStyle(.plain)
                             Text(sub.title)
                                 .font(.system(size: 15))
                                 .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
+                                .strikethrough(sub.isCompleted, color: .gray)
                             Spacer()
                             Button {
-                                withAnimation { subTasks.removeAll { $0.id == sub.id } }
+                                subTaskPendingDelete = sub
+                                showSubTaskDeleteAlert = true
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 17))

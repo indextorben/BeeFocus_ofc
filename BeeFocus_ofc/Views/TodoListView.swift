@@ -161,7 +161,7 @@ struct TodoListView: View {
     }
     @State private var showingAddFolderAlert = false
     @State private var newFolderName = ""
-    @State private var timeFilter: TodoTimeFilter = .alle
+    @State private var timeFilter: TodoTimeFilter = .heute
 
     // MARK: - Ordner-Zuweisung
     @State private var isShowingFolderPicker = false
@@ -1260,11 +1260,15 @@ struct TodoListView: View {
                         )
                 }
                 .buttonStyle(PlainButtonStyle())
-                .confirmationDialog("Was möchten Sie tun?", isPresented: $showingActionSheet) {
-                    Button(localizer.localizedString(forKey: "Neue Aufgabe hinzufügen")) { showingAddTodo = true }
-                    Button(localizer.localizedString(forKey: "Aufgabe importieren")) { showingFileImporter = true }
-                    Button("Aus Kalender importieren") { showingCalendarImport = true }
-                    Button(localizer.localizedString(forKey: "Abbrechen"), role: .cancel) { }
+                .sheet(isPresented: $showingActionSheet) {
+                    PlusActionMenuView(
+                        onNeu: { showingAddTodo = true },
+                        onKalender: { showingCalendarImport = true },
+                        onImport: { showingFileImporter = true }
+                    )
+                    .presentationDetents([.height(260)])
+                    .presentationDragIndicator(.hidden)
+                    .presentationCornerRadius(24)
                 }
                 .fileImporter(
                     isPresented: $showingFileImporter,

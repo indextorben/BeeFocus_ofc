@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import EventKit
+import FoundationModels
 
 struct EditTodoView: View {
     @Environment(\.dismiss) private var dismiss
@@ -35,6 +36,18 @@ struct EditTodoView: View {
     
     // MARK: - State controls
     @State private var showDeleteConfirmation = false
+    @State private var subTaskPendingDelete: SubTask? = nil
+    @State private var showSubTaskDeleteAlert = false
+
+    // MARK: - KI-Beschreibung
+    @ObservedObject private var sub = SubscriptionManager.shared
+    @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
+    @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
+    @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
+    @State private var isGeneratingDescription = false
+    @State private var showDescPaywall = false
+    @State private var showAIKeyAlert = false
+    @State private var descGenerationTask: Task<Void, Never>? = nil
     @State private var showCamera = false
     @State private var showCameraPermissionAlert = false
     @State private var showDiscardDialog = false
@@ -265,14 +278,59 @@ struct EditTodoView: View {
         } message: {
             Text(localizer.localizedString(forKey: "discard_changes_message"))
         }
+        .alert("Teilaufgabe löschen?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
+            Button("Löschen", role: .destructive) {
+                subTasks.removeAll { $0.id == sub.id }
+                subTaskPendingDelete = nil
+            }
+            Button("Abbrechen", role: .cancel) { subTaskPendingDelete = nil }
+        } message: { sub in
+            Text("Möchtest du \"\(sub.title)\" wirklich löschen?")
+        }
+        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIKeyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+        }
+        .sheet(isPresented: $showDescPaywall) { ProPaywallView() }
     }
     
     // MARK: - Sections
     private var basicInfoSection: some View {
         Section(header: Text(localizer.localizedString(forKey: "todo_title_section"))) {
             TextField(localizer.localizedString(forKey: "todo_title_placeholder"), text: $title)
-            TextEditor(text: $description)
-                .frame(height: 100)
+            ZStack(alignment: .topTrailing) {
+                TextEditor(text: $description)
+                    .frame(height: 100)
+                if !title.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Button {
+                        guard sub.isPro else { showDescPaywall = true; return }
+                        if isGeneratingDescription {
+                            descGenerationTask?.cancel()
+                            isGeneratingDescription = false
+                        } else {
+                            descGenerationTask = Task { await generateDescription() }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            if isGeneratingDescription {
+                                ProgressView().scaleEffect(0.7)
+                                Text("Stopp").font(.system(size: 11, weight: .medium))
+                            } else {
+                                Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
+                                Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
+                            }
+                        }
+                        .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(Capsule().fill(sub.isPro ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.08)))
+                        .overlay(Capsule().stroke(sub.isPro ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4).padding(.trailing, 4)
+                    .animation(.easeInOut(duration: 0.2), value: isGeneratingDescription)
+                }
+            }
         }
     }
     
@@ -454,11 +512,23 @@ struct EditTodoView: View {
         Section(header: Text(localizer.localizedString(forKey: "subtasks_section"))) {
             ForEach(subTasks) { subTask in
                 HStack {
+                    Button(action: {
+                        if let idx = subTasks.firstIndex(where: { $0.id == subTask.id }) {
+                            subTasks[idx].isCompleted.toggle()
+                        }
+                    }) {
+                        Image(systemName: subTask.isCompleted ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(subTask.isCompleted ? .green : .gray)
+                    }
+                    .buttonStyle(.plain)
                     Text(subTask.title)
+                        .strikethrough(subTask.isCompleted, color: .gray)
+                        .foregroundColor(subTask.isCompleted ? .secondary : .primary)
                     Spacer()
-                    Button(action: { deleteSubTask(subTask) }) {
+                    Button(action: { subTaskPendingDelete = subTask; showSubTaskDeleteAlert = true }) {
                         Image(systemName: "trash").foregroundColor(.red)
                     }
+                    .buttonStyle(.plain)
                 }
             }
             
@@ -571,6 +641,84 @@ struct EditTodoView: View {
         guard !newSubTaskTitle.isEmpty else { return }
         subTasks.append(SubTask(title: newSubTaskTitle))
         newSubTaskTitle = ""
+    }
+
+    private func generateDescription() async {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        isGeneratingDescription = true
+        description = ""
+
+        var contextParts: [String] = ["Aufgabe: \(t)"]
+        contextParts.append("Priorität: \(priority.displayName)")
+        contextParts.append("Kategorie: \(category.name)")
+        if hasDueDate {
+            let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .none
+            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+        }
+        let context = contextParts.joined(separator: "\n")
+
+        let prompt = """
+        Schreibe eine kurze, motivierende Beschreibung für diese Aufgabe auf Deutsch.
+        \(context)
+
+        Regeln:
+        - Maximal 3 Sätze
+        - Konkrete Hinweise oder sinnvolle nächste Schritte nennen
+        - Natürlich und hilfreich formulieren
+        - Kein Aufzählungszeichen, kein Markdown
+        - Antworte NUR mit der Beschreibung
+        """
+
+        var raw = ""
+        do {
+            switch aiProvider {
+            case "apple":
+                if #available(iOS 26.0, *) {
+                    guard case .available = SystemLanguageModel.default.availability else {
+                        isGeneratingDescription = false; return
+                    }
+                    let session = LanguageModelSession()
+                    for try await partial in session.streamResponse(to: prompt) {
+                        try Task.checkCancellation()
+                        raw = partial.content
+                        await MainActor.run { description = raw }
+                    }
+                }
+            case "openai":
+                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
+                }
+                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { description = raw }
+                }
+            case "groq":
+                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
+                }
+                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { description = raw }
+                }
+            default:
+                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
+                }
+                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                    await MainActor.run { description = raw }
+                }
+            }
+        } catch is CancellationError {
+            // stopped by user, keep partial
+        } catch {
+            // keep partial result
+        }
+        await MainActor.run { isGeneratingDescription = false }
     }
     
     private func deleteSubTask(_ subTask: SubTask) {

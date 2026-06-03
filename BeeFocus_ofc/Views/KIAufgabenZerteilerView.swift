@@ -21,6 +21,8 @@ struct KIAufgabenZerteilerView: View {
     @State private var keyVisible = false
     @State private var subtasks: [SubtaskItem] = []
     @State private var taskAdded = false
+    @State private var cardsAppeared = false
+    @State private var subtasksAppeared = false
     @FocusState private var titleFocused: Bool
 
     private var isDark: Bool { colorScheme == .dark }
@@ -49,6 +51,9 @@ struct KIAufgabenZerteilerView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         headerCard
+                            .opacity(cardsAppeared ? 1 : 0)
+                            .offset(y: cardsAppeared ? 0 : -16)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.78).delay(0.05), value: cardsAppeared)
                         inputCard
                         if showSetup { setupCard }
                         else if let error = errorMessage { errorCard(error) }
@@ -66,7 +71,10 @@ struct KIAufgabenZerteilerView: View {
                 ToolbarItem(placement: .principal) { providerMenu }
             }
         }
-        .onAppear { titleFocused = true }
+        .onAppear {
+            titleFocused = true
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { cardsAppeared = true }
+        }
     }
 
     private var providerMenu: some View {
@@ -213,28 +221,41 @@ struct KIAufgabenZerteilerView: View {
             .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
 
             // Teilaufgaben-Liste
-            ForEach(subtasks) { task in
-                HStack(spacing: 10) {
-                    Image(systemName: "arrow.turn.down.right")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(task.title)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
-                        if !task.dauer.isEmpty {
-                            Text("⏱ \(task.dauer)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.vertical, 4)
+            ForEach(Array(subtasks.enumerated()), id: \.element.id) { i, task in
+                subtaskRow(task: task, index: i)
             }
         }
         .padding(16)
         .themeGlass(cornerRadius: 16)
+        .onAppear {
+            subtasksAppeared = false
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { subtasksAppeared = true }
+        }
+    }
+
+    @ViewBuilder
+    private func subtaskRow(task: SubtaskItem, index: Int) -> some View {
+        let delay = 0.05 + Double(index) * 0.055
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.turn.down.right")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(task.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
+                if !task.dauer.isEmpty {
+                    Text("⏱ \(task.dauer)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+        }
+        .padding(.vertical, 4)
+        .opacity(subtasksAppeared ? 1 : 0)
+        .offset(x: subtasksAppeared ? 0 : -20)
+        .animation(.spring(response: 0.5, dampingFraction: 0.78).delay(delay), value: subtasksAppeared)
     }
 
     private func addAsOneTask() {

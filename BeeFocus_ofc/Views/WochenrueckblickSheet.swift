@@ -16,6 +16,7 @@ struct WochenrueckblickSheet: View {
     @State private var reviewText: String = ""
     @State private var isGenerating = false
     @State private var generated = false
+    @State private var appeared = false
 
     // MARK: - Week data
 
@@ -75,10 +76,16 @@ struct WochenrueckblickSheet: View {
 
             VStack(spacing: 0) {
                 handle
+                    .opacity(appeared ? 1 : 0)
+                    .scaleEffect(x: appeared ? 1 : 0.3)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.7).delay(0.0), value: appeared)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         headerSection
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : -14)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: appeared)
                         statsGrid
                         dayBarsSection
                         if generated {
@@ -95,6 +102,9 @@ struct WochenrueckblickSheet: View {
                     .padding(.bottom, 40)
                 }
             }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appeared = true }
         }
     }
 
@@ -148,6 +158,10 @@ struct WochenrueckblickSheet: View {
                 label: String(localized: "review_tasks_done"),
                 diff: taskDiff
             )
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 20)
+            .animation(.spring(response: 0.52, dampingFraction: 0.75).delay(0.12), value: appeared)
+
             statCard(
                 icon: "timer",
                 color: themeC2,
@@ -155,6 +169,9 @@ struct WochenrueckblickSheet: View {
                 label: String(localized: "review_focus_time"),
                 diff: focusDiff
             )
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 20)
+            .animation(.spring(response: 0.52, dampingFraction: 0.75).delay(0.20), value: appeared)
         }
     }
 
@@ -213,6 +230,7 @@ struct WochenrueckblickSheet: View {
                     let thisVal = todoStore.dailyStats[day] ?? 0
                     let lastVal = todoStore.dailyStats[lastWeekDays[safe: i] ?? day] ?? 0
                     let isToday = cal.isDateInToday(day)
+                    let barDelay = 0.28 + Double(i) * 0.05
 
                     VStack(spacing: 4) {
                         // bars
@@ -220,13 +238,15 @@ struct WochenrueckblickSheet: View {
                             // last week (faint)
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(Color.secondary.opacity(0.2))
-                                .frame(width: 10, height: max(4, CGFloat(lastVal) / CGFloat(maxVal) * 60))
+                                .frame(width: 10, height: appeared ? max(4, CGFloat(lastVal) / CGFloat(maxVal) * 60) : 0)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(barDelay + 0.04), value: appeared)
 
                             // this week
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(LinearGradient(colors: [themeC1, themeC2],
                                                      startPoint: .top, endPoint: .bottom))
-                                .frame(width: 10, height: max(4, CGFloat(thisVal) / CGFloat(maxVal) * 60))
+                                .frame(width: 10, height: appeared ? max(4, CGFloat(thisVal) / CGFloat(maxVal) * 60) : 0)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.65).delay(barDelay), value: appeared)
                         }
 
                         // day label
@@ -235,6 +255,8 @@ struct WochenrueckblickSheet: View {
                             .foregroundStyle(isToday ? themeC1 : .secondary)
                     }
                     .frame(maxWidth: .infinity)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.easeIn(duration: 0.2).delay(barDelay), value: appeared)
                 }
             }
             .frame(height: 88)

@@ -25,6 +25,7 @@ struct QuickAddSheet: View {
     @State private var parsedTask: ParsedTask? = nil
     @State private var errorText: String = ""
     @State private var addedSuccessfully = false
+    @State private var examplesAppeared = false
 
     @FocusState private var inputFocused: Bool
 
@@ -176,7 +177,7 @@ struct QuickAddSheet: View {
                     .foregroundStyle(.secondary)
                     .padding(.leading, 4)
 
-                ForEach(examplePrompts, id: \.self) { example in
+                ForEach(Array(examplePrompts.enumerated()), id: \.offset) { index, example in
                     Button {
                         userInput = example
                         inputFocused = false
@@ -191,19 +192,34 @@ struct QuickAddSheet: View {
                                 .foregroundStyle(darkModeEnabled ? .white.opacity(0.8) : .primary)
                                 .multilineTextAlignment(.leading)
                             Spacer()
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(themeC1.opacity(0.5))
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
                     }
                     .buttonStyle(.plain)
+                    .opacity(examplesAppeared ? 1 : 0)
+                    .offset(x: examplesAppeared ? 0 : 22)
+                    .animation(
+                        .spring(response: 0.5, dampingFraction: 0.78)
+                            .delay(0.08 + Double(index) * 0.07),
+                        value: examplesAppeared
+                    )
                 }
             }
             .padding(.horizontal, 24)
 
             Spacer()
         }
-        .onAppear { inputFocused = true }
+        .onAppear {
+            inputFocused = true
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.15)) {
+                examplesAppeared = true
+            }
+        }
     }
 
     // MARK: - Preview View
