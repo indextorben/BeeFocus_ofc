@@ -55,18 +55,30 @@ final class WatchSessionManager: NSObject, ObservableObject {
     // MARK: - Watch → iPhone
 
     func completeTask(id: UUID) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(["completeTask": id.uuidString], replyHandler: nil)
+        let msg: [String: Any] = ["completeTask": id.uuidString]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(msg, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(msg)
+        }
     }
 
     func addWater(ml: Int) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(["addWater": ml], replyHandler: nil)
+        let msg: [String: Any] = ["addWater": ml]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(msg, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(msg)
+        }
     }
 
     func toggleHabit(id: UUID) {
-        guard WCSession.default.isReachable else { return }
-        WCSession.default.sendMessage(["toggleHabit": id.uuidString], replyHandler: nil)
+        let msg: [String: Any] = ["toggleHabit": id.uuidString]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(msg, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(msg)
+        }
     }
 }
 

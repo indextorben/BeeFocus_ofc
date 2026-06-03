@@ -101,10 +101,16 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         }
     }
 
-    // Snapshot-Anfragen kommen via transferUserInfo (auch wenn App im Hintergrund)
+    // Aktionen + Snapshot-Anfragen via transferUserInfo (auch wenn iPhone nicht erreichbar war)
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         if userInfo["requestSnapshot"] != nil {
             DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
+        } else if let idString = userInfo["completeTask"] as? String, let id = UUID(uuidString: idString) {
+            DispatchQueue.main.async { self.completeWatchTask(id: id) }
+        } else if let ml = userInfo["addWater"] as? Int {
+            Task { @MainActor in self.handleAddWater(ml: ml) }
+        } else if let idString = userInfo["toggleHabit"] as? String, let id = UUID(uuidString: idString) {
+            Task { @MainActor in self.handleToggleHabit(id: id) }
         }
     }
 

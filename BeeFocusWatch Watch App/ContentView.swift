@@ -196,6 +196,7 @@ struct TodayView: View {
             }
         }
         .listStyle(.plain)
+        .refreshable { session.requestFreshSnapshot() }
     }
 
     private var statsRow: some View {
@@ -314,14 +315,30 @@ struct TagesplanView: View {
 
     var body: some View {
         List {
-            if session.snapshot.planTasks.isEmpty {
+            if !session.snapshot.todayBausteine.isEmpty {
+                Section(header:
+                    Text("TAGESPLAN")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(accent)
+                ) {
+                    ForEach(session.snapshot.todayBausteine) { baustein in
+                        BausteinRow(baustein: baustein)
+                    }
+                }
+            }
+
+            if session.snapshot.planTasks.isEmpty && session.snapshot.todayBausteine.isEmpty {
                 Section {
                     Label("Keine offenen Aufgaben", systemImage: "checkmark.seal.fill")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 .listRowBackground(Color.clear)
-            } else {
-                Section {
+            } else if !session.snapshot.planTasks.isEmpty {
+                Section(header:
+                    Text("AUFGABEN")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                ) {
                     ForEach(session.snapshot.planTasks) { task in
                         TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
                             session.completeTask(id: task.id)
@@ -331,6 +348,7 @@ struct TagesplanView: View {
             }
         }
         .listStyle(.plain)
+        .refreshable { session.requestFreshSnapshot() }
     }
 }
 
@@ -407,6 +425,7 @@ struct MonatView: View {
             }
         }
         .listStyle(.plain)
+        .refreshable { session.requestFreshSnapshot() }
     }
 }
 
