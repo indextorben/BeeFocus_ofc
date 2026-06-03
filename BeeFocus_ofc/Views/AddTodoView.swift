@@ -310,8 +310,8 @@ struct AddTodoView: View {
             if showQuickInput {
                 ZStack(alignment: .topLeading) {
                     if quickInputText.isEmpty {
-                        Text("z. B. „Zahnarzt Mittwoch 15 Uhr 30 Min vorher erinnern, hohe Priorität"")
-                            .foregroundStyle(.tertiary)
+                        Text("z. B. Zahnarzt Mittwoch 15 Uhr, 30 Min vorher, hohe Priorität")
+                            .foregroundStyle(Color.secondary.opacity(0.6))
                             .font(.body)
                             .padding(.top, 8)
                             .padding(.leading, 4)
