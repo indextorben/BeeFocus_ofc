@@ -125,6 +125,14 @@ struct AddTodoView: View {
     @State private var reminderBody: String = ""
     private let allowedDynamicTypeRange: ClosedRange<DynamicTypeSize> = .xSmall ... .large
 
+    // KI-Schnelleingabe
+    @State private var showQuickInput = false
+    @State private var quickInputText = ""
+    @State private var isParsingQuickInput = false
+    @State private var showQuickInputPaywall = false
+    @State private var showAIQuickKeyAlert = false
+    @State private var quickInputTask: Task<Void, Never>? = nil
+
     // KI-Erinnerung
     @ObservedObject private var sub = SubscriptionManager.shared
     @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
@@ -181,6 +189,7 @@ struct AddTodoView: View {
 
     private var contentView: some View {
         let formContent = Form {
+            quickInputSection
             basicInfoSection
             categoryAndPrioritySection
             dueDateSection
@@ -222,6 +231,12 @@ struct AddTodoView: View {
             } message: {
                 Text(localizer.localizedString(forKey: "category_missing_message"))
             }
+            .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIQuickKeyAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            }
+            .sheet(isPresented: $showQuickInputPaywall) { ProPaywallView() }
             .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIReminderKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -269,6 +284,78 @@ struct AddTodoView: View {
 
         func body(content: Content) -> some View {
             content.contentViewInteractiveDismiss(hasUnsavedChanges: hasUnsavedChanges)
+        }
+    }
+
+    // MARK: - KI-Schnelleingabe Section
+    private var quickInputSection: some View {
+        Section {
+            Toggle(isOn: $showQuickInput) {
+                Label {
+                    Text(sub.isPro ? "Schnelleingabe mit KI" : "Schnelleingabe mit KI ✦")
+                        .foregroundStyle(sub.isPro ? .primary : .secondary)
+                } icon: {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                }
+            }
+            .tint(Color.accentColor)
+            .onChange(of: showQuickInput) { newValue in
+                if newValue && !sub.isPro {
+                    showQuickInput = false
+                    showQuickInputPaywall = true
+                }
+            }
+
+            if showQuickInput {
+                ZStack(alignment: .topLeading) {
+                    if quickInputText.isEmpty {
+                        Text("z. B. „Zahnarzt Mittwoch 15 Uhr 30 Min vorher erinnern, hohe Priorität"")
+                            .foregroundStyle(.tertiary)
+                            .font(.body)
+                            .padding(.top, 8)
+                            .padding(.leading, 4)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $quickInputText)
+                        .frame(minHeight: 80)
+                        .scrollContentBackground(.hidden)
+                }
+
+                Button {
+                    if isParsingQuickInput {
+                        quickInputTask?.cancel()
+                        isParsingQuickInput = false
+                    } else {
+                        quickInputTask = Task { await parseQuickInput() }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isParsingQuickInput {
+                            ProgressView().scaleEffect(0.8)
+                            Text("Stopp")
+                        } else {
+                            Image(systemName: "sparkles")
+                            Text("Felder ausfüllen")
+                        }
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+                .disabled(quickInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isParsingQuickInput)
+                .animation(.easeInOut(duration: 0.2), value: isParsingQuickInput)
+            }
+        } header: {
+            Text("KI-Schnelleingabe")
+        } footer: {
+            if showQuickInput {
+                Text("Die KI füllt Titel, Datum, Uhrzeit, Priorität und Erinnerung automatisch aus.")
+                    .font(.footnote)
+            }
         }
     }
 
@@ -690,6 +777,142 @@ struct AddTodoView: View {
         // Always use the persisted category (handles duplicate name gracefully)
         category = todoStore.categories.first(where: { $0.name == trimmedName }) ?? newCategory
         newCategoryName = ""
+    }
+
+    private func parseQuickInput() async {
+        let input = quickInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return }
+        isParsingQuickInput = true
+
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "de_DE")
+        df.dateFormat = "EEEE, d. MMMM yyyy"
+        let todayStr = df.string(from: Date())
+
+        let prompt = """
+        Heute ist \(todayStr). Analysiere diese Aufgabenbeschreibung und extrahiere die Daten.
+
+        Eingabe: \(input)
+
+        Regeln:
+        - DATUM immer als ISO-8601 (YYYY-MM-DD), "keins" wenn nicht angegeben
+        - UHRZEIT als HH:MM, "keine" wenn nicht angegeben
+        - PRIORITÄT: hoch, mittel oder niedrig
+        - ERINNERUNG: eine Zahl aus [-1, 0, 5, 15, 30, 60, 120, 1440], -1 wenn nicht erwähnt
+        - Antworte NUR in diesem Format (keine weiteren Zeilen):
+        TITEL: <titel>
+        BESCHREIBUNG: <kurze beschreibung oder leer>
+        DATUM: <YYYY-MM-DD oder keins>
+        UHRZEIT: <HH:MM oder keine>
+        PRIORITÄT: <hoch|mittel|niedrig>
+        ERINNERUNG: <zahl>
+        """
+
+        var raw = ""
+        do {
+            switch aiProvider {
+            case "apple":
+                if #available(iOS 26.0, *) {
+                    guard case .available = SystemLanguageModel.default.availability else {
+                        isParsingQuickInput = false; return
+                    }
+                    let session = LanguageModelSession()
+                    for try await partial in session.streamResponse(to: prompt) {
+                        try Task.checkCancellation()
+                        raw = partial.content
+                    }
+                }
+            case "openai":
+                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIQuickKeyAlert = true; isParsingQuickInput = false }; return
+                }
+                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                }
+            case "groq":
+                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIQuickKeyAlert = true; isParsingQuickInput = false }; return
+                }
+                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                }
+            default:
+                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
+                    await MainActor.run { showAIQuickKeyAlert = true; isParsingQuickInput = false }; return
+                }
+                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
+                    try Task.checkCancellation()
+                    raw += chunk
+                }
+            }
+        } catch is CancellationError {
+            await MainActor.run { isParsingQuickInput = false }; return
+        } catch {}
+
+        await MainActor.run {
+            applyQuickInputResult(raw)
+            isParsingQuickInput = false
+            showQuickInput = false
+        }
+    }
+
+    @MainActor
+    private func applyQuickInputResult(_ raw: String) {
+        var parsedTitle = ""
+        var parsedDescription = ""
+        var parsedDateStr = ""
+        var parsedTimeStr = ""
+        var parsedPriority = ""
+        var parsedReminder = -1
+
+        for line in raw.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("TITEL:") {
+                parsedTitle = trimmed.dropFirst("TITEL:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("BESCHREIBUNG:") {
+                parsedDescription = trimmed.dropFirst("BESCHREIBUNG:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("DATUM:") {
+                parsedDateStr = trimmed.dropFirst("DATUM:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("UHRZEIT:") {
+                parsedTimeStr = trimmed.dropFirst("UHRZEIT:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("PRIORITÄT:") {
+                parsedPriority = trimmed.dropFirst("PRIORITÄT:".count).trimmingCharacters(in: .whitespaces).lowercased()
+            } else if trimmed.hasPrefix("ERINNERUNG:") {
+                parsedReminder = Int(trimmed.dropFirst("ERINNERUNG:".count).trimmingCharacters(in: .whitespaces)) ?? -1
+            }
+        }
+
+        if !parsedTitle.isEmpty { title = parsedTitle }
+        if !parsedDescription.isEmpty && parsedDescription.lowercased() != "leer" { description = parsedDescription }
+
+        if parsedDateStr != "keins", !parsedDateStr.isEmpty {
+            let isoFmt = DateFormatter()
+            isoFmt.dateFormat = "yyyy-MM-dd"
+            if let date = isoFmt.date(from: parsedDateStr) {
+                var components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+                if parsedTimeStr != "keine", !parsedTimeStr.isEmpty {
+                    let parts = parsedTimeStr.split(separator: ":").compactMap { Int($0) }
+                    if parts.count == 2 { components.hour = parts[0]; components.minute = parts[1] }
+                } else {
+                    components.hour = 9; components.minute = 0
+                }
+                if let finalDate = Calendar.current.date(from: components) {
+                    dueDate = finalDate
+                    hasDueDate = true
+                }
+            }
+        }
+
+        switch parsedPriority {
+        case "hoch": priority = .high
+        case "niedrig": priority = .low
+        default: priority = .medium
+        }
+
+        let allowed = [-1, 0, 5, 15, 30, 60, 120, 1440]
+        if allowed.contains(parsedReminder) { reminderSelection = parsedReminder }
     }
 
     private func generateReminder() async {

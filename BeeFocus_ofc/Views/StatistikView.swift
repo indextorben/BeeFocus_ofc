@@ -33,6 +33,7 @@ struct StatistikView: View {
     @State private var showChallenges = false
     @State private var showKIGesamtbericht = false
     @State private var showKIAnalyse = false
+    @State private var showProStatistik = false
     @State private var showKIReflexion = false
     @State private var showKIWochenbericht = false
     @State private var showKIZerteiler = false
@@ -437,6 +438,7 @@ struct StatistikView: View {
     @ViewBuilder private var allSections: some View {
         AnyView(sectionsTop)
         AnyView(sectionsMiddle)
+        AnyView(sectionsProStatistik)
         AnyView(sectionsKI)
         AnyView(sectionsGesamtbericht)
     }
@@ -509,6 +511,21 @@ struct StatistikView: View {
                         iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Fokus-Challenges ansehen")
                     }
                     .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: - Pro Statistiken
+    @ViewBuilder private var sectionsProStatistik: some View {
+        animatedSection(delay: 0.57) {
+            sectionGroup(icon: "chart.bar.xaxis", label: "Pro Statistiken", color: Color(red: 0.2, green: 0.6, blue: 1.0)) {
+                glassCard {
+                    Button { showProStatistik = true } label: {
+                        iconNavRow(icon: "chart.bar.xaxis", color: Color(red: 0.2, green: 0.6, blue: 1.0), label: "Wochentag, Tageszeit & Kategorie-Analyse")
+                    }
+                    .buttonStyle(.plain)
+                    kiProBadge(color: Color(red: 0.2, green: 0.6, blue: 1.0))
                 }
             }
         }
@@ -679,6 +696,12 @@ struct StatistikView: View {
                     .environmentObject(todoStore)
             }
 
+            .sheet(isPresented: $showProStatistik) {
+                StatistikProView()
+                    .environmentObject(todoStore)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
             .sheet(isPresented: $showWochenrueckblick) {
                 let (c1, c2, _) = appThemaFarben(aktivesThema)
                 WochenrueckblickSheet(
