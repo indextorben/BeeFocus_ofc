@@ -8,7 +8,7 @@ private let snapshotKey = "widgetSnapshot"
 // App-Group-Schlüssel für ausstehende Watch-Aktionen (Relay zur Haupt-App)
 private let pendingCompletionsKey  = "pendingWatchCompletions"
 private let pendingWaterKey        = "pendingWatchWaterMl"
-®private let pendingHabitTogglesKey = "pendingWatchHabitToggles"
+private let pendingHabitTogglesKey = "pendingWatchHabitToggles"
 
 final class WatchSessionManager: NSObject, ObservableObject {
     static let shared = WatchSessionManager()
