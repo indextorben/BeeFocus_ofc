@@ -127,6 +127,23 @@ struct StatistikView: View {
         TimerManager.shared.applyUpdatedSettingsIfNeeded()
     }
 
+    private func migrateThemeNamesToEnglish() {
+        let migrationKey = "themeNamesMigratedToEnglish_v1"
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+        let map = [
+            "Herbst": "Autumn", "Wald": "Forest", "Eis": "Ice",
+            "Nordlicht": "Northern Lights", "Kirschblüte": "Cherry Blossom",
+            "Lavendel": "Lavender", "Sonnenuntergang": "Sunset",
+            "Ozean": "Ocean", "Galaxie": "Galaxy", "Vulkan": "Volcano",
+            "Nacht": "Night"
+        ]
+        let items = freigeschalteteItemsString.components(separatedBy: ",").map { map[$0] ?? $0 }
+        freigeschalteteItemsString = items.joined(separator: ",")
+        if let renamed = map[aktivesThema] { aktivesThema = renamed }
+        if let renamed = map[aktiverTimerModus] { aktiverTimerModus = renamed }
+        UserDefaults.standard.set(true, forKey: migrationKey)
+    }
+
     private func deaktiviereTimerModus() {
         aktiverTimerModus = ""
         UserDefaults.standard.set(25, forKey: "focusTime")
@@ -714,6 +731,7 @@ struct StatistikView: View {
             }
         }
         .onAppear {
+            migrateThemeNamesToEnglish()
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) { headerAppeared = true }
             withAnimation(.easeOut(duration: 0.5).delay(0.3)) { sectionsAppeared = true }
             if fokuspunkteAktuellBerechnet > fokuspunktePeak {
