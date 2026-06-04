@@ -363,7 +363,7 @@ struct ProPaywallView: View {
             HStack(spacing: 16) {
                 Link("Datenschutzerklärung", destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/datenschutz.html")!)
                 Text("·").foregroundStyle(.white.opacity(0.25))
-                Link("Nutzungsbedingungen", destination: URL(string: "https://torbenlehneke.de/nutzungsbedingungen")!)
+                Link("Nutzungsbedingungen", destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/nutzungsbedingungen.html")!)
             }
             .font(.system(size: 11))
             .foregroundStyle(.white.opacity(0.35))

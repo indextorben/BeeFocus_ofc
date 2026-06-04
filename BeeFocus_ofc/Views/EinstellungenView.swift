@@ -1007,7 +1007,7 @@ struct EinstellungenView: View {
             Text("·")
                 .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
-            Link(destination: URL(string: "https://torbenlehneke.de/nutzungsbedingungen")!) {
+            Link(destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/nutzungsbedingungen.html")!) {
                 Text("Nutzungsbedingungen")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
