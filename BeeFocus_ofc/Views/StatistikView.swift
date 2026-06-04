@@ -1128,7 +1128,7 @@ struct StatistikView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text("Fokuspunkte").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.75))
+                        Text("Focus Points").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.75))
                         Button { showFPInfo = true } label: {
                             Image(systemName: "info.circle.fill")
                                 .font(.system(size: 18, weight: .semibold))
@@ -1149,9 +1149,9 @@ struct StatistikView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("Gesamt").font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
+                    Text("Total").font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
                     Text("\(fokuspunkteGesamt) FP").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.85))
-                    Text("verdient").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
+                    Text("earned").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
                 }
             }
             .padding(.horizontal, 20).padding(.vertical, 18)
@@ -1170,8 +1170,8 @@ struct StatistikView: View {
                     HStack(spacing: 12) {
                         iconBadge(icon: "bolt.fill", color: Color(red: 1, green: 0.55, blue: 0.0))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Dein Guthaben").font(.system(size: 13)).foregroundStyle(.secondary)
-                            Text("\(fokuspunkteVerfuegbar) Fokuspunkte")
+                            Text("Your balance").font(.system(size: 13)).foregroundStyle(.secondary)
+                            Text("\(fokuspunkteVerfuegbar) Focus Points")
                                 .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
                         }
@@ -1179,7 +1179,7 @@ struct StatistikView: View {
                         if let name = kaufErfolg {
                             HStack(spacing: 4) {
                                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                                Text("\(name) freigeschaltet!").font(.system(size: 11, weight: .semibold)).foregroundStyle(.green)
+                                Text("\(name) unlocked!").font(.system(size: 11, weight: .semibold)).foregroundStyle(.green)
                             }
                             .transition(.opacity.combined(with: .scale))
                         }
@@ -1280,12 +1280,12 @@ struct StatistikView: View {
             isPresented: Binding(get: { kaufBestaetigung != nil }, set: { if !$0 { kaufBestaetigung = nil } })
         ) {
             if let item = kaufBestaetigung {
-                Button("Freischalten (\(item.kosten) FP)") { kaufeItem(item); kaufBestaetigung = nil }
-                Button("Abbrechen", role: .cancel) { kaufBestaetigung = nil }
+                Button("Unlock (\(item.kosten) FP)") { kaufeItem(item); kaufBestaetigung = nil }
+                Button("Cancel", role: .cancel) { kaufBestaetigung = nil }
             }
         } message: {
             if let item = kaufBestaetigung {
-                Text("Kostet \(item.kosten) Fokuspunkte. Du hast \(fokuspunkteVerfuegbar) FP.")
+                Text("Costs \(item.kosten) focus points. You have \(fokuspunkteVerfuegbar) FP.")
             }
         }
         // Verkauf-Dialog
@@ -1865,12 +1865,12 @@ struct StatistikView: View {
                     Text(stats.name).font(.system(size: 13, weight: .bold))
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Ø Fokus").font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text("Ø Focus").font(.system(size: 9)).foregroundStyle(.secondary)
                             Text(avgText).font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(stats.avg == 0 ? Color.secondary : Color.green)
                         }
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Gesamt").font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text("Total").font(.system(size: 9)).foregroundStyle(.secondary)
                             Text(totalText).font(.system(size: 11, weight: .semibold))
                         }
                         if let best = stats.best, best.minutes > 0 {
@@ -2141,7 +2141,7 @@ struct StatistikView: View {
             // Total focus time
             HStack(spacing: 12) {
                 iconBadge(icon: "timer", color: .cyan)
-                Text("Gesamt Fokuszeit")
+                Text("Total Focus Time")
                     .font(.system(size: 16))
                 Spacer()
                 let h = totalFocusMinutesAll / 60
