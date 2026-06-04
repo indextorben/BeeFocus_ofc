@@ -998,7 +998,7 @@ struct EinstellungenView: View {
 
     private var datenschutzCard: some View {
         HStack(spacing: 20) {
-            Link(destination: URL(string: "https://torbenlehneke.de/datenschutz")!) {
+            Link(destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/datenschutz.html")!) {
                 Text("Datenschutzerklärung")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
