@@ -64,10 +64,10 @@ struct KIAufgabenZerteilerView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("KI-Aufgaben-Zerteiler")
+            .navigationTitle("AI Task Splitter")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fertig") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItem(placement: .principal) { providerMenu }
             }
         }
@@ -107,10 +107,10 @@ struct KIAufgabenZerteilerView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Aufgaben-Zerteiler")
+                Text("Task Splitter")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
-                Text("KI zerlegt komplexe Aufgaben in konkrete Schritte")
+                Text("AI breaks down complex tasks into concrete steps")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -124,8 +124,8 @@ struct KIAufgabenZerteilerView: View {
     // MARK: - Input
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Aufgabe").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            TextField("z.B. Website redesign, Buch schreiben, Präsentation…", text: $aufgabenTitel, axis: .vertical)
+            Text("Task").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            TextField("e.g. Website redesign, write book, presentation…", text: $aufgabenTitel, axis: .vertical)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isDark ? .white : .primary)
                 .lineLimit(1...3)
@@ -133,8 +133,8 @@ struct KIAufgabenZerteilerView: View {
                 .padding(12)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
-            Text("Kontext (optional)").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            TextField("Deadline, Tools, Ziel, Besonderheiten…", text: $kontext, axis: .vertical)
+            Text("Context (optional)").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            TextField("Deadline, tools, goal, special notes…", text: $kontext, axis: .vertical)
                 .font(.system(size: 14))
                 .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
                 .lineLimit(2...4)
@@ -149,7 +149,7 @@ struct KIAufgabenZerteilerView: View {
                 HStack(spacing: 8) {
                     if isLoading { ProgressView().scaleEffect(0.85).tint(.white) }
                     else { Image(systemName: "scissors") }
-                    Text(isLoading ? "Analysiere…" : "In Teilaufgaben zerlegen")
+                    Text(isLoading ? "Analyzing…" : "Split into subtasks")
                 }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
@@ -172,7 +172,7 @@ struct KIAufgabenZerteilerView: View {
     private var loadingCard: some View {
         HStack(spacing: 10) {
             ProgressView().tint(accent)
-            Text("KI zerlegt deine Aufgabe…").font(.subheadline).foregroundStyle(.secondary)
+            Text("AI is splitting your task…").font(.subheadline).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading).padding(16)
         .themeGlass(cornerRadius: 16)
@@ -183,7 +183,7 @@ struct KIAufgabenZerteilerView: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(accent)
-                    Text("\(subtasks.count) Teilaufgaben erkannt")
+                    Text("\(subtasks.count) subtasks identified")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                 }
@@ -191,7 +191,7 @@ struct KIAufgabenZerteilerView: View {
                 Button {
                     addAsOneTask()
                 } label: {
-                    Label(taskAdded ? "Hinzugefügt" : "Als Aufgabe speichern",
+                    Label(taskAdded ? "Added" : "Save as task",
                           systemImage: taskAdded ? "checkmark.circle.fill" : "plus.circle.fill")
                         .font(.caption.weight(.semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 10).padding(.vertical, 5)
@@ -274,11 +274,11 @@ struct KIAufgabenZerteilerView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("KI nicht verfügbar").font(.subheadline.weight(.semibold))
+                Text("AI unavailable").font(.subheadline.weight(.semibold))
             }
             Text(msg).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button { errorMessage = nil; Task { await generate() } } label: {
-                Label(hasKey ? "Erneut versuchen" : "API-Key hinzufügen",
+                Label(hasKey ? "Try again" : "Add API Key",
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -307,10 +307,10 @@ struct KIAufgabenZerteilerView: View {
             }
             .padding(10).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button("Abbrechen") { showSetup = false }
+                Button("Cancel") { showSetup = false }
                     .font(.subheadline).foregroundStyle(.secondary).buttonStyle(.plain)
                 Spacer()
-                Button("Speichern") {
+                Button("Save") {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -335,8 +335,8 @@ struct KIAufgabenZerteilerView: View {
                 if case .available = SystemLanguageModel.default.availability {
                     do { let s = LanguageModelSession(); for try await p in s.streamResponse(to: prompt) { raw = p.content }; generatedText = raw }
                     catch { errorMessage = error.localizedDescription; isLoading = false; return }
-                } else { errorMessage = "Apple Intelligence ist nicht verfügbar."; isLoading = false; return }
-            } else { errorMessage = "Apple Intelligence benötigt iOS 26."; isLoading = false; return }
+                } else { errorMessage = "Apple Intelligence is not available."; isLoading = false; return }
+            } else { errorMessage = "Apple Intelligence requires iOS 26."; isLoading = false; return }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { raw += c; generatedText = raw } }
@@ -358,19 +358,19 @@ struct KIAufgabenZerteilerView: View {
     }
 
     private func buildPrompt() -> String {
-        let kontextZeile = kontext.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\nKontext: \(kontext)"
+        let kontextZeile = kontext.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\nContext: \(kontext)"
         return """
-        Zerlege diese Aufgabe in konkrete, umsetzbare Teilaufgaben. Antworte NUR mit einem JSON-Array, kein anderer Text.
+        Break down this task into concrete, actionable subtasks. Respond ONLY with a JSON array, no other text.
 
-        Aufgabe: \(aufgabenTitel)\(kontextZeile)
+        Task: \(aufgabenTitel)\(kontextZeile)
 
-        Format: [{"title":"Teilaufgabe","dauer":"z.B. 30min oder 2h"},...]
+        Format: [{"title":"Subtask","dauer":"e.g. 30min or 2h"},...]
 
-        Regeln:
-        - 5–10 Teilaufgaben, logisch geordnet
-        - Jede Teilaufgabe ist alleine ausführbar und klar formuliert
-        - Zeitschätzung realistisch
-        - Auf Deutsch
+        Rules:
+        - 5–10 subtasks, logically ordered
+        - Each subtask is independently executable and clearly formulated
+        - Time estimate should be realistic
+        - In English
         """
     }
 

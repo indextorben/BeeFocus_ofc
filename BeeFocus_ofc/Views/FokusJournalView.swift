@@ -391,7 +391,7 @@ struct FokusJournalView: View {
             "Datum: \(df.string(from: e.date)), Stimmung: \(e.moodScore)/5, Gut lief: \(e.wentWell), Ablenkung: \(e.distraction), Morgen-Ziel: \(e.tomorrowPriority)"
         }.joined(separator: "\n")
 
-        let prompt = "Du bist ein Produktivitäts-Coach. Analysiere diese Fokus-Tagebuch-Einträge der letzten Woche und gib eine kurze, motivierende Analyse (3–5 Sätze) mit konkreten Erkenntnissen und einem Tipp. Kein Markdown.\n\n\(summary)"
+        let prompt = "You are a productivity coach. Analyze these focus journal entries from the past week and provide a short, motivating analysis (3–5 sentences) with concrete insights and one tip. No Markdown.\n\n\(summary)"
 
         let provider = UserDefaults.standard.string(forKey: "aiProvider") ?? "gemini"
 
@@ -640,14 +640,14 @@ struct JournalEntrySheet: View {
                         )
                         journalField(
                             emoji: "⚡",
-                            label: "Was hat mich abgelenkt?",
-                            placeholder: "Störungen, Energiefresser...",
+                            label: "What distracted me?",
+                            placeholder: "Disruptions, energy drains...",
                             text: $distraction
                         )
                         journalField(
                             emoji: "🎯",
-                            label: "Mein wichtigstes Ziel für morgen",
-                            placeholder: "Die eine Aufgabe die zählt...",
+                            label: "My most important goal for tomorrow",
+                            placeholder: "The one task that counts...",
                             text: $tomorrowPriority
                         )
                     }
@@ -655,7 +655,7 @@ struct JournalEntrySheet: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle(existing == nil ? "Tagesrückblick" : "Eintrag bearbeiten")
+            .navigationTitle(existing == nil ? "Daily Review" : "Edit Entry")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {

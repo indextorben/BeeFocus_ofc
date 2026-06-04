@@ -84,7 +84,7 @@ struct PlusActionMenuView: View {
                 item: ActionItem(icon: "calendar.badge.plus",
                                  gradient: [.indigo, Color(red: 0.3, green: 0.2, blue: 0.9)],
                                  title: "Aus Kalender importieren",
-                                 description: "Termine als Aufgaben hinzufügen")
+                                 description: "Add appointments as tasks")
             ) { onKalender(); dismiss() }
 
             divider

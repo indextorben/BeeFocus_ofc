@@ -49,11 +49,11 @@ struct KIAufgabenAnalyseView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("KI-Aufgaben-Analyse")
+            .navigationTitle("AI Task Analysis")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .principal) {
                     Menu {
@@ -82,7 +82,7 @@ struct KIAufgabenAnalyseView: View {
                     GeminiKeyGuideView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Fertig") {
+                                Button("Done") {
                                     showGuide = false
                                     if hasKey { Task { await generate() } }
                                 }
@@ -107,10 +107,10 @@ struct KIAufgabenAnalyseView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Aufgaben-Analyse")
+                Text("Task Analysis")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
-                Text("\(providerLabel) analysiert deine \(todos.count) Aufgaben")
+                Text("\(providerLabel) is analyzing your \(todos.count) tasks")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -137,10 +137,10 @@ struct KIAufgabenAnalyseView: View {
         let noDate   = todos.filter { !$0.isCompleted && $0.dueDate == nil }.count
 
         return HStack(spacing: 8) {
-            analyseChip("\(open)", "Offen",         color: accent)
-            analyseChip("\(overdue)", "Überfällig", color: .red)
-            analyseChip("\(high)", "Dringend",      color: .orange)
-            analyseChip("\(noDate)", "Ohne Datum",  color: .secondary)
+            analyseChip("\(open)", "Open",         color: accent)
+            analyseChip("\(overdue)", "Overdue", color: .red)
+            analyseChip("\(high)", "Urgent",      color: .orange)
+            analyseChip("\(noDate)", "No Date",  color: .secondary)
         }
     }
 
@@ -175,11 +175,11 @@ struct KIAufgabenAnalyseView: View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text("Analysiere deine Aufgaben…")
+                Text("Analyzing your tasks…")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Text("Die KI prüft Prioritäten, Deadlines und Muster in deiner Aufgabenliste.")
+            Text("AI is checking priorities, deadlines and patterns in your task list.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -195,7 +195,7 @@ struct KIAufgabenAnalyseView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(accent)
-                Text("KI-Analyse")
+                Text("AI Analysis")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -237,7 +237,7 @@ struct KIAufgabenAnalyseView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("KI nicht verfügbar").font(.subheadline.weight(.semibold))
+                Text("AI unavailable").font(.subheadline.weight(.semibold))
             }
             Text(message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
@@ -245,7 +245,7 @@ struct KIAufgabenAnalyseView: View {
                     Button {
                         errorMessage = nil; Task { await generate() }
                     } label: {
-                        Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                        Label("Try again", systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -254,7 +254,7 @@ struct KIAufgabenAnalyseView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button { showSetup = true; errorMessage = nil } label: {
-                        Label("API-Key hinzufügen", systemImage: "key.fill")
+                        Label("Add API Key", systemImage: "key.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -294,10 +294,10 @@ struct KIAufgabenAnalyseView: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
 
             HStack {
-                Button("Abbrechen") { showSetup = false }
+                Button("Cancel") { showSetup = false }
                     .font(.subheadline).foregroundStyle(.secondary).buttonStyle(.plain)
                 Spacer()
-                Button("Speichern & Analysieren") {
+                Button("Save & Analyze") {
                     let trimmed = keyInput.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     let kcKey: String
@@ -341,8 +341,8 @@ struct KIAufgabenAnalyseView: View {
                         for try await partial in stream { generatedText = partial.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence ist auf diesem Gerät nicht verfügbar." }
-            } else { errorMessage = "Apple Intelligence benötigt iOS 26." }
+                } else { errorMessage = "Apple Intelligence is not available on this device." }
+            } else { errorMessage = "Apple Intelligence requires iOS 26." }
 
         case "openai":
             if let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty {
@@ -387,37 +387,37 @@ struct KIAufgabenAnalyseView: View {
         var taskLines = open.prefix(25).map { t -> String in
             var line = "- \(t.title)"
             if let due = t.dueDate {
-                let overdueMark = due < today ? " [ÜBERFÄLLIG]" : ""
-                let f = DateFormatter(); f.dateFormat = "dd.MM."; f.locale = Locale(identifier: "de_DE")
-                line += " (fällig: \(f.string(from: due))\(overdueMark))"
+                let overdueMark = due < today ? " [OVERDUE]" : ""
+                let f = DateFormatter(); f.dateFormat = "MM/dd"; f.locale = Locale.current
+                line += " (due: \(f.string(from: due))\(overdueMark))"
             }
             switch t.priority {
-            case .high:   line += " [Hoch]"
-            case .medium: line += " [Mittel]"
+            case .high:   line += " [High]"
+            case .medium: line += " [Medium]"
             case .low:    break
             }
             return line
         }.joined(separator: "\n")
 
         return """
-        Du bist ein produktiver Assistent. Analysiere diese Aufgabenliste und gib auf Deutsch eine strukturierte, ehrliche Analyse.
+        You are a productive assistant. Analyze this task list and provide a structured, honest analysis in English.
 
-        AUFGABEN (\(open.count) offen):
+        TASKS (\(open.count) open):
         \(taskLines)
 
-        STATISTIK:
-        - Überfällig: \(overdue.count)
-        - Heute fällig: \(todayDue.count)
-        - Hohe Priorität: \(highPrio.count)
-        - Ohne Datum: \(noDate.count)
+        STATISTICS:
+        - Overdue: \(overdue.count)
+        - Due today: \(todayDue.count)
+        - High priority: \(highPrio.count)
+        - No date: \(noDate.count)
 
-        Analysiere:
-        1. **Kritische Engpässe** – was muss sofort erledigt werden und warum
-        2. **Priorisierungsempfehlung** – Top 3 Aufgaben für heute mit Begründung
-        3. **Muster & Risiken** – was fällt auf (z.B. viele überfällige, fehlende Deadlines)
-        4. **Konkrete Tipp** – ein umsetzbarer Tipp für bessere Aufgabenverwaltung
+        Analyze:
+        1. **Critical bottlenecks** – what needs to be done immediately and why
+        2. **Prioritization recommendation** – Top 3 tasks for today with reasoning
+        3. **Patterns & risks** – what stands out (e.g. many overdue, missing deadlines)
+        4. **Concrete tip** – one actionable tip for better task management
 
-        Sei direkt, konkret und hilfreich. Maximal 280 Wörter. Nutze Emojis sparsam.
+        Be direct, concrete and helpful. Maximum 280 words. Use emojis sparingly.
         """
     }
 

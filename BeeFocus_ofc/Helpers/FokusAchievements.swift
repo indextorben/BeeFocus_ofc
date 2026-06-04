@@ -29,10 +29,10 @@ struct FokusAchievement: Identifiable {
     let progressLabel: (AchievementContext) -> String
 
     enum Kategorie: String, CaseIterable {
-        case fokuszeit = "Fokuszeit"
+        case fokuszeit = "Focus Time"
         case streak    = "Streak"
-        case aufgaben  = "Aufgaben"
-        case spezial   = "Spezial"
+        case aufgaben  = "Tasks"
+        case spezial   = "Special"
 
         var systemIcon: String {
             switch self {
@@ -64,457 +64,457 @@ private let _allAchievements: [FokusAchievement] = [
 
     FokusAchievement(
         id: "erste_session",
-        name: "Erste Schritte",
-        beschreibung: "Starte deine allererste Fokus-Session",
+        name: "First Steps",
+        beschreibung: "Start your very first focus session",
         icon: "play.circle.fill",
         farbe: .green,
         kategorie: .fokuszeit,
         bonusPunkte: 25,
         isUnlocked: { $0.totalSekunden >= 60 },
         progress:   { min(1.0, Double($0.totalSekunden) / 60.0) },
-        progressLabel: { _ in "Starte eine Fokus-Session" }
+        progressLabel: { _ in "Start a focus session" }
     ),
 
     FokusAchievement(
         id: "30min_total",
-        name: "Halb dabei",
-        beschreibung: "30 Minuten Fokus insgesamt gesammelt",
+        name: "Halfway There",
+        beschreibung: "Collected 30 minutes of focus in total",
         icon: "hourglass",
         farbe: .teal,
         kategorie: .fokuszeit,
         bonusPunkte: 50,
         isUnlocked: { $0.totalSekunden >= 1800 },
         progress:   { min(1.0, Double($0.totalSekunden) / 1800.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 60) von 30 min" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 60) of 30 min" }
     ),
 
     FokusAchievement(
         id: "1h_total",
-        name: "Stunden-Macher",
-        beschreibung: "1 Stunde Fokuszeit insgesamt erreicht",
+        name: "Hour Maker",
+        beschreibung: "Reached 1 hour of focus time in total",
         icon: "clock.fill",
         farbe: .blue,
         kategorie: .fokuszeit,
         bonusPunkte: 75,
         isUnlocked: { $0.totalSekunden >= 3600 },
         progress:   { min(1.0, Double($0.totalSekunden) / 3600.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 60) von 60 min" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 60) of 60 min" }
     ),
 
     FokusAchievement(
         id: "2h_day",
-        name: "Tages-Sprint",
-        beschreibung: "2 Stunden an einem einzigen Tag fokussiert",
+        name: "Daily Sprint",
+        beschreibung: "Focused for 2 hours in a single day",
         icon: "bolt.fill",
         farbe: .yellow,
         kategorie: .fokuszeit,
         bonusPunkte: 150,
         isUnlocked: { $0.maxTagesSekunden >= 7200 },
         progress:   { min(1.0, Double($0.maxTagesSekunden) / 7200.0) },
-        progressLabel: { ctx in "\(ctx.maxTagesSekunden / 60) von 120 min (bester Tag)" }
+        progressLabel: { ctx in "\(ctx.maxTagesSekunden / 60) of 120 min (best day)" }
     ),
 
     FokusAchievement(
         id: "4h_day",
-        name: "Power-Tag",
-        beschreibung: "4 Stunden an einem einzigen Tag fokussiert",
+        name: "Power Day",
+        beschreibung: "Focused for 4 hours in a single day",
         icon: "star.fill",
         farbe: .orange,
         kategorie: .fokuszeit,
         bonusPunkte: 300,
         isUnlocked: { $0.maxTagesSekunden >= 14400 },
         progress:   { min(1.0, Double($0.maxTagesSekunden) / 14400.0) },
-        progressLabel: { ctx in "\(ctx.maxTagesSekunden / 60) von 240 min (bester Tag)" }
+        progressLabel: { ctx in "\(ctx.maxTagesSekunden / 60) of 240 min (best day)" }
     ),
 
     FokusAchievement(
         id: "10h_total",
-        name: "Doppelstellig",
-        beschreibung: "10 Stunden Fokus insgesamt gesammelt",
+        name: "Double Digits",
+        beschreibung: "Collected 10 hours of focus in total",
         icon: "10.circle.fill",
         farbe: .indigo,
         kategorie: .fokuszeit,
         bonusPunkte: 200,
         isUnlocked: { $0.totalSekunden >= 36000 },
         progress:   { min(1.0, Double($0.totalSekunden) / 36000.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) von 10 Stunden" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) of 10 hours" }
     ),
 
     FokusAchievement(
         id: "50h_total",
-        name: "Halbzeit-Meister",
-        beschreibung: "50 Stunden Fokus – du bist nicht zu stoppen",
+        name: "Halfway Master",
+        beschreibung: "50 hours of focus – you can't be stopped",
         icon: "50.circle.fill",
         farbe: .purple,
         kategorie: .fokuszeit,
         bonusPunkte: 500,
         isUnlocked: { $0.totalSekunden >= 180000 },
         progress:   { min(1.0, Double($0.totalSekunden) / 180000.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) von 50 Stunden" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) of 50 hours" }
     ),
 
     FokusAchievement(
         id: "100h_total",
-        name: "100-Stunden-Legende",
-        beschreibung: "100 Stunden konzentrierte Arbeit – absolute Elite",
+        name: "100-Hour Legend",
+        beschreibung: "100 hours of concentrated work – absolute elite",
         icon: "crown.fill",
         farbe: Color(red: 1.0, green: 0.75, blue: 0.0),
         kategorie: .fokuszeit,
         bonusPunkte: 1200,
         isUnlocked: { $0.totalSekunden >= 360000 },
         progress:   { min(1.0, Double($0.totalSekunden) / 360000.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) von 100 Stunden" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) of 100 hours" }
     ),
 
     // ────────────── STREAK ──────────────
 
     FokusAchievement(
         id: "streak_3",
-        name: "Drei am Stück",
-        beschreibung: "3 Tage hintereinander fokussiert",
+        name: "Three in a Row",
+        beschreibung: "Focused for 3 consecutive days",
         icon: "flame",
         farbe: .orange,
         kategorie: .streak,
         bonusPunkte: 75,
         isUnlocked: { $0.longestStreak >= 3 },
         progress:   { min(1.0, Double($0.longestStreak) / 3.0) },
-        progressLabel: { ctx in "Längste Streak: \(ctx.longestStreak) von 3 Tagen" }
+        progressLabel: { ctx in "Longest streak: \(ctx.longestStreak) of 3 days" }
     ),
 
     FokusAchievement(
         id: "streak_7",
-        name: "Wochenkrieger",
-        beschreibung: "7 Tage am Stück – eine ganze Woche ohne Pause",
+        name: "Week Warrior",
+        beschreibung: "7 days in a row – a whole week without a break",
         icon: "flame.fill",
         farbe: .red,
         kategorie: .streak,
         bonusPunkte: 200,
         isUnlocked: { $0.longestStreak >= 7 },
         progress:   { min(1.0, Double($0.longestStreak) / 7.0) },
-        progressLabel: { ctx in "\(ctx.longestStreak) von 7 Tagen" }
+        progressLabel: { ctx in "\(ctx.longestStreak) of 7 days" }
     ),
 
     FokusAchievement(
         id: "streak_14",
-        name: "Zwei Wochen nonstop",
-        beschreibung: "14 Tage Fokus-Streak – beeindruckende Disziplin",
+        name: "Two Weeks Nonstop",
+        beschreibung: "14-day focus streak – impressive discipline",
         icon: "medal.fill",
         farbe: Color(red: 0.8, green: 0.5, blue: 0.1),
         kategorie: .streak,
         bonusPunkte: 400,
         isUnlocked: { $0.longestStreak >= 14 },
         progress:   { min(1.0, Double($0.longestStreak) / 14.0) },
-        progressLabel: { ctx in "\(ctx.longestStreak) von 14 Tagen" }
+        progressLabel: { ctx in "\(ctx.longestStreak) of 14 days" }
     ),
 
     FokusAchievement(
         id: "streak_30",
-        name: "Monats-Champion",
-        beschreibung: "30 Tage Fokus-Streak – ein ganzer Monat!",
+        name: "Monthly Champion",
+        beschreibung: "30-day focus streak – a whole month!",
         icon: "trophy.fill",
         farbe: Color(red: 1.0, green: 0.75, blue: 0.0),
         kategorie: .streak,
         bonusPunkte: 1000,
         isUnlocked: { $0.longestStreak >= 30 },
         progress:   { min(1.0, Double($0.longestStreak) / 30.0) },
-        progressLabel: { ctx in "\(ctx.longestStreak) von 30 Tagen" }
+        progressLabel: { ctx in "\(ctx.longestStreak) of 30 days" }
     ),
 
     // ────────────── AUFGABEN ──────────────
 
     FokusAchievement(
         id: "task_1",
-        name: "Erste Aufgabe",
-        beschreibung: "Deine allererste Aufgabe erledigt",
+        name: "First Task",
+        beschreibung: "Completed your very first task",
         icon: "checkmark.circle.fill",
         farbe: .green,
         kategorie: .aufgaben,
         bonusPunkte: 25,
         isUnlocked: { $0.completedTasks >= 1 },
         progress:   { min(1.0, Double($0.completedTasks)) },
-        progressLabel: { _ in "Erledige eine Aufgabe" }
+        progressLabel: { _ in "Complete a task" }
     ),
 
     FokusAchievement(
         id: "task_10",
-        name: "Aufgaben-Einsteiger",
-        beschreibung: "10 Aufgaben erfolgreich abgeschlossen",
+        name: "Task Beginner",
+        beschreibung: "Successfully completed 10 tasks",
         icon: "list.bullet.circle.fill",
         farbe: .mint,
         kategorie: .aufgaben,
         bonusPunkte: 75,
         isUnlocked: { $0.completedTasks >= 10 },
         progress:   { min(1.0, Double($0.completedTasks) / 10.0) },
-        progressLabel: { ctx in "\(ctx.completedTasks) von 10 Aufgaben" }
+        progressLabel: { ctx in "\(ctx.completedTasks) of 10 tasks" }
     ),
 
     FokusAchievement(
         id: "task_50",
-        name: "Aufgaben-Profi",
-        beschreibung: "50 Aufgaben abgehakt – du machst Dinge!",
+        name: "Task Pro",
+        beschreibung: "50 tasks checked off – you get things done!",
         icon: "checkmark.seal.fill",
         farbe: .blue,
         kategorie: .aufgaben,
         bonusPunkte: 200,
         isUnlocked: { $0.completedTasks >= 50 },
         progress:   { min(1.0, Double($0.completedTasks) / 50.0) },
-        progressLabel: { ctx in "\(ctx.completedTasks) von 50 Aufgaben" }
+        progressLabel: { ctx in "\(ctx.completedTasks) of 50 tasks" }
     ),
 
     FokusAchievement(
         id: "task_100",
-        name: "Aufgaben-Legende",
-        beschreibung: "100 Aufgaben erledigt – das ist echte Produktivität",
+        name: "Task Legend",
+        beschreibung: "100 tasks completed – that's real productivity",
         icon: "100.circle.fill",
         farbe: .purple,
         kategorie: .aufgaben,
         bonusPunkte: 500,
         isUnlocked: { $0.completedTasks >= 100 },
         progress:   { min(1.0, Double($0.completedTasks) / 100.0) },
-        progressLabel: { ctx in "\(ctx.completedTasks) von 100 Aufgaben" }
+        progressLabel: { ctx in "\(ctx.completedTasks) of 100 tasks" }
     ),
 
     // ────────────── SPEZIAL ──────────────
 
     FokusAchievement(
         id: "weekend",
-        name: "Wochenend-Held",
-        beschreibung: "Auch am Wochenende fokussiert – Respekt!",
+        name: "Weekend Hero",
+        beschreibung: "Focused on the weekend too – respect!",
         icon: "sun.max.fill",
         farbe: .yellow,
         kategorie: .spezial,
         bonusPunkte: 100,
         isUnlocked: { $0.weekendFokus },
         progress:   { $0.weekendFokus ? 1.0 : 0.0 },
-        progressLabel: { _ in "Fokussiere dich an einem Samstag oder Sonntag" }
+        progressLabel: { _ in "Focus on a Saturday or Sunday" }
     ),
 
     FokusAchievement(
         id: "first_purchase",
-        name: "Erster Kauf",
-        beschreibung: "Erstes Item im Fokus-Store freigeschaltet",
+        name: "First Purchase",
+        beschreibung: "Unlocked the first item in the Focus Store",
         icon: "bag.fill",
         farbe: .pink,
         kategorie: .spezial,
         bonusPunkte: 50,
         isUnlocked: { $0.freigeschalteteCount >= 1 },
         progress:   { min(1.0, Double($0.freigeschalteteCount)) },
-        progressLabel: { _ in "Kaufe ein Item im Fokus-Store" }
+        progressLabel: { _ in "Buy an item in the Focus Store" }
     ),
 
     FokusAchievement(
         id: "sammler",
-        name: "Sammler",
-        beschreibung: "5 Items im Fokus-Store freigeschaltet",
+        name: "Collector",
+        beschreibung: "Unlocked 5 items in the Focus Store",
         icon: "bag.badge.plus",
         farbe: Color(red: 0.6, green: 0.3, blue: 0.9),
         kategorie: .spezial,
         bonusPunkte: 150,
         isUnlocked: { $0.freigeschalteteCount >= 5 },
         progress:   { min(1.0, Double($0.freigeschalteteCount) / 5.0) },
-        progressLabel: { ctx in "\(ctx.freigeschalteteCount) von 5 Items" }
+        progressLabel: { ctx in "\(ctx.freigeschalteteCount) of 5 items" }
     ),
 
     FokusAchievement(
         id: "goal_reached",
-        name: "Tagesziel erreicht!",
-        beschreibung: "Das tägliche Fokus-Ziel zum ersten Mal erfüllt",
+        name: "Daily Goal Reached!",
+        beschreibung: "Fulfilled the daily focus goal for the first time",
         icon: "target",
         farbe: .mint,
         kategorie: .spezial,
         bonusPunkte: 100,
         isUnlocked: { $0.goalReachedCount >= 1 },
         progress:   { min(1.0, Double($0.goalReachedCount)) },
-        progressLabel: { _ in "Erreiche dein Tagesziel einmal" }
+        progressLabel: { _ in "Reach your daily goal once" }
     ),
 
     FokusAchievement(
         id: "goal_10",
-        name: "Zehn Ziele",
-        beschreibung: "10 Mal das tägliche Fokus-Ziel erreicht",
+        name: "Ten Goals",
+        beschreibung: "Reached the daily focus goal 10 times",
         icon: "scope",
         farbe: .cyan,
         kategorie: .spezial,
         bonusPunkte: 300,
         isUnlocked: { $0.goalReachedCount >= 10 },
         progress:   { min(1.0, Double($0.goalReachedCount) / 10.0) },
-        progressLabel: { ctx in "\(ctx.goalReachedCount) von 10 Zielen" }
+        progressLabel: { ctx in "\(ctx.goalReachedCount) of 10 goals" }
     ),
 
     // ────────────── FOKUSZEIT (Erweiterung) ──────────────
 
     FokusAchievement(
         id: "5h_day",
-        name: "Fokus-Marathon",
-        beschreibung: "5 Stunden an einem einzigen Tag fokussiert",
+        name: "Focus Marathon",
+        beschreibung: "Focused for 5 hours in a single day",
         icon: "figure.run",
         farbe: Color(red: 1.0, green: 0.4, blue: 0.0),
         kategorie: .fokuszeit,
         bonusPunkte: 400,
         isUnlocked: { $0.maxTagesSekunden >= 18000 },
         progress:   { min(1.0, Double($0.maxTagesSekunden) / 18000.0) },
-        progressLabel: { ctx in "\(ctx.maxTagesSekunden / 60) von 300 min (bester Tag)" }
+        progressLabel: { ctx in "\(ctx.maxTagesSekunden / 60) of 300 min (best day)" }
     ),
 
     FokusAchievement(
         id: "25h_total",
-        name: "Viertel-Hundert",
-        beschreibung: "25 Stunden Fokus insgesamt gesammelt",
+        name: "Quarter Hundred",
+        beschreibung: "Collected 25 hours of focus in total",
         icon: "25.circle.fill",
         farbe: Color(red: 0.2, green: 0.6, blue: 1.0),
         kategorie: .fokuszeit,
         bonusPunkte: 350,
         isUnlocked: { $0.totalSekunden >= 90000 },
         progress:   { min(1.0, Double($0.totalSekunden) / 90000.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) von 25 Stunden" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) of 25 hours" }
     ),
 
     FokusAchievement(
         id: "200h_total",
-        name: "Fokus-Titan",
-        beschreibung: "200 Stunden Fokus – du hast ein neues Level erreicht",
+        name: "Focus Titan",
+        beschreibung: "200 hours of focus – you've reached a new level",
         icon: "infinity.circle.fill",
         farbe: Color(red: 0.9, green: 0.2, blue: 0.5),
         kategorie: .fokuszeit,
         bonusPunkte: 2000,
         isUnlocked: { $0.totalSekunden >= 720000 },
         progress:   { min(1.0, Double($0.totalSekunden) / 720000.0) },
-        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) von 200 Stunden" }
+        progressLabel: { ctx in "\(ctx.totalSekunden / 3600) of 200 hours" }
     ),
 
     // ────────────── STREAK (Erweiterung) ──────────────
 
     FokusAchievement(
         id: "streak_50",
-        name: "Unaufhaltsam",
-        beschreibung: "50 Tage Fokus-Streak – absolute Disziplin",
+        name: "Unstoppable",
+        beschreibung: "50-day focus streak – absolute discipline",
         icon: "bolt.circle.fill",
         farbe: Color(red: 1.0, green: 0.55, blue: 0.0),
         kategorie: .streak,
         bonusPunkte: 1500,
         isUnlocked: { $0.longestStreak >= 50 },
         progress:   { min(1.0, Double($0.longestStreak) / 50.0) },
-        progressLabel: { ctx in "\(ctx.longestStreak) von 50 Tagen" }
+        progressLabel: { ctx in "\(ctx.longestStreak) of 50 days" }
     ),
 
     FokusAchievement(
         id: "streak_100",
-        name: "100-Tage-Legende",
-        beschreibung: "100 Tage Streak – du bist eine Legende",
+        name: "100-Day Legend",
+        beschreibung: "100-day streak – you are a legend",
         icon: "laurel.leading",
         farbe: Color(red: 1.0, green: 0.75, blue: 0.0),
         kategorie: .streak,
         bonusPunkte: 3000,
         isUnlocked: { $0.longestStreak >= 100 },
         progress:   { min(1.0, Double($0.longestStreak) / 100.0) },
-        progressLabel: { ctx in "\(ctx.longestStreak) von 100 Tagen" }
+        progressLabel: { ctx in "\(ctx.longestStreak) of 100 days" }
     ),
 
     // ────────────── AUFGABEN (Erweiterung) ──────────────
 
     FokusAchievement(
         id: "task_25",
-        name: "Aufgaben-Sammler",
-        beschreibung: "25 Aufgaben erfolgreich abgeschlossen",
+        name: "Task Collector",
+        beschreibung: "Successfully completed 25 tasks",
         icon: "tray.full.fill",
         farbe: Color(red: 0.1, green: 0.75, blue: 0.5),
         kategorie: .aufgaben,
         bonusPunkte: 100,
         isUnlocked: { $0.completedTasks >= 25 },
         progress:   { min(1.0, Double($0.completedTasks) / 25.0) },
-        progressLabel: { ctx in "\(ctx.completedTasks) von 25 Aufgaben" }
+        progressLabel: { ctx in "\(ctx.completedTasks) of 25 tasks" }
     ),
 
     FokusAchievement(
         id: "task_250",
-        name: "Aufgaben-Titan",
-        beschreibung: "250 Aufgaben abgehakt – unglaubliche Produktivität",
+        name: "Task Titan",
+        beschreibung: "250 tasks checked off – incredible productivity",
         icon: "checkmark.rectangle.stack.fill",
         farbe: Color(red: 0.3, green: 0.5, blue: 1.0),
         kategorie: .aufgaben,
         bonusPunkte: 1000,
         isUnlocked: { $0.completedTasks >= 250 },
         progress:   { min(1.0, Double($0.completedTasks) / 250.0) },
-        progressLabel: { ctx in "\(ctx.completedTasks) von 250 Aufgaben" }
+        progressLabel: { ctx in "\(ctx.completedTasks) of 250 tasks" }
     ),
 
     FokusAchievement(
         id: "task_500",
-        name: "Aufgaben-Gott",
-        beschreibung: "500 Aufgaben erledigt – du bist unaufhaltbar",
+        name: "Task God",
+        beschreibung: "500 tasks completed – you are unstoppable",
         icon: "star.circle.fill",
         farbe: Color(red: 0.6, green: 0.1, blue: 0.9),
         kategorie: .aufgaben,
         bonusPunkte: 2000,
         isUnlocked: { $0.completedTasks >= 500 },
         progress:   { min(1.0, Double($0.completedTasks) / 500.0) },
-        progressLabel: { ctx in "\(ctx.completedTasks) von 500 Aufgaben" }
+        progressLabel: { ctx in "\(ctx.completedTasks) of 500 tasks" }
     ),
 
     // ────────────── SPEZIAL (Erweiterung) ──────────────
 
     FokusAchievement(
         id: "fokustage_7",
-        name: "Erste Woche",
-        beschreibung: "An 7 verschiedenen Tagen fokussiert",
+        name: "First Week",
+        beschreibung: "Focused on 7 different days",
         icon: "calendar.circle.fill",
         farbe: .teal,
         kategorie: .spezial,
         bonusPunkte: 75,
         isUnlocked: { $0.totalFokustage >= 7 },
         progress:   { min(1.0, Double($0.totalFokustage) / 7.0) },
-        progressLabel: { ctx in "\(ctx.totalFokustage) von 7 Fokus-Tagen" }
+        progressLabel: { ctx in "\(ctx.totalFokustage) of 7 focus days" }
     ),
 
     FokusAchievement(
         id: "fokustage_30",
-        name: "Fokus-Monat",
-        beschreibung: "An 30 verschiedenen Tagen fokussiert",
+        name: "Focus Month",
+        beschreibung: "Focused on 30 different days",
         icon: "calendar.badge.checkmark",
         farbe: Color(red: 0.2, green: 0.7, blue: 0.8),
         kategorie: .spezial,
         bonusPunkte: 200,
         isUnlocked: { $0.totalFokustage >= 30 },
         progress:   { min(1.0, Double($0.totalFokustage) / 30.0) },
-        progressLabel: { ctx in "\(ctx.totalFokustage) von 30 Fokus-Tagen" }
+        progressLabel: { ctx in "\(ctx.totalFokustage) of 30 focus days" }
     ),
 
     FokusAchievement(
         id: "fokustage_100",
-        name: "Fokus-Veteran",
-        beschreibung: "An 100 verschiedenen Tagen fokussiert – echte Hingabe",
+        name: "Focus Veteran",
+        beschreibung: "Focused on 100 different days – true dedication",
         icon: "rosette",
         farbe: Color(red: 0.5, green: 0.3, blue: 1.0),
         kategorie: .spezial,
         bonusPunkte: 800,
         isUnlocked: { $0.totalFokustage >= 100 },
         progress:   { min(1.0, Double($0.totalFokustage) / 100.0) },
-        progressLabel: { ctx in "\(ctx.totalFokustage) von 100 Fokus-Tagen" }
+        progressLabel: { ctx in "\(ctx.totalFokustage) of 100 focus days" }
     ),
 
     FokusAchievement(
         id: "goal_30",
-        name: "Ziel-Fanatiker",
-        beschreibung: "30 Mal das tägliche Fokus-Ziel erreicht",
+        name: "Goal Fanatic",
+        beschreibung: "Reached the daily focus goal 30 times",
         icon: "checkmark.seal.fill",
         farbe: Color(red: 0.0, green: 0.8, blue: 0.6),
         kategorie: .spezial,
         bonusPunkte: 600,
         isUnlocked: { $0.goalReachedCount >= 30 },
         progress:   { min(1.0, Double($0.goalReachedCount) / 30.0) },
-        progressLabel: { ctx in "\(ctx.goalReachedCount) von 30 Zielen" }
+        progressLabel: { ctx in "\(ctx.goalReachedCount) of 30 goals" }
     ),
 
     FokusAchievement(
         id: "store_veteran",
-        name: "Store-Veteran",
-        beschreibung: "10 Items im Fokus-Store freigeschaltet",
+        name: "Store Veteran",
+        beschreibung: "Unlocked 10 items in the Focus Store",
         icon: "storefront.fill",
         farbe: Color(red: 1.0, green: 0.55, blue: 0.0),
         kategorie: .spezial,
         bonusPunkte: 300,
         isUnlocked: { $0.freigeschalteteCount >= 10 },
         progress:   { min(1.0, Double($0.freigeschalteteCount) / 10.0) },
-        progressLabel: { ctx in "\(ctx.freigeschalteteCount) von 10 Items" }
+        progressLabel: { ctx in "\(ctx.freigeschalteteCount) of 10 items" }
     ),
 ]

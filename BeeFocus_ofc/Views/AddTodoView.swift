@@ -840,23 +840,23 @@ struct AddTodoView: View {
         guard !t.isEmpty else { return }
         isGeneratingSubTasks = true
 
-        var contextParts: [String] = ["Aufgabe: \(t)"]
+        var contextParts: [String] = ["Task: \(t)"]
         if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            contextParts.append("Beschreibung: \(description)")
+            contextParts.append("Description: \(description)")
         }
-        contextParts.append("Priorität: \(priority.displayName)")
-        if let cat = category { contextParts.append("Kategorie: \(cat.name)") }
+        contextParts.append("Priority: \(priority.displayName)")
+        if let cat = category { contextParts.append("Category: \(cat.name)") }
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Teile diese Aufgabe in 3 bis 6 sinnvolle, konkrete Teilaufgaben auf Deutsch auf.
+        Split this task into 3 to 6 meaningful, concrete subtasks.
         \(context)
 
-        Regeln:
-        - Jede Teilaufgabe ist eine ausführbare Aktion
-        - Maximal 8 Wörter pro Teilaufgabe
-        - Eine Teilaufgabe pro Zeile, ohne Nummerierung und ohne Aufzählungszeichen
-        - Antworte NUR mit den Teilaufgaben, eine pro Zeile
+        Rules:
+        - Each subtask is an actionable step
+        - Maximum 8 words per subtask
+        - One subtask per line, no numbering, no bullet points
+        - Reply ONLY with the subtasks, one per line
         """
 
         var raw = ""
@@ -938,22 +938,22 @@ struct AddTodoView: View {
         let todayStr = df.string(from: Date())
 
         let prompt = """
-        Heute ist \(todayStr). Analysiere diese Aufgabenbeschreibung und extrahiere die Daten.
+        Today is \(todayStr). Analyze this task description and extract the data.
 
-        Eingabe: \(input)
+        Input: \(input)
 
-        Regeln:
-        - DATUM immer als ISO-8601 (YYYY-MM-DD), "keins" wenn nicht angegeben
-        - UHRZEIT als HH:MM, "keine" wenn nicht angegeben
-        - PRIORITÄT: hoch, mittel oder niedrig
-        - ERINNERUNG: eine Zahl aus [-1, 0, 5, 15, 30, 60, 120, 1440], -1 wenn nicht erwähnt
-        - Antworte NUR in diesem Format (keine weiteren Zeilen):
-        TITEL: <titel>
-        BESCHREIBUNG: <kurze beschreibung oder leer>
-        DATUM: <YYYY-MM-DD oder keins>
-        UHRZEIT: <HH:MM oder keine>
-        PRIORITÄT: <hoch|mittel|niedrig>
-        ERINNERUNG: <zahl>
+        Rules:
+        - DATE always as ISO-8601 (YYYY-MM-DD), "none" if not specified
+        - TIME as HH:MM, "none" if not specified
+        - PRIORITY: high, medium or low
+        - REMINDER: a number from [-1, 0, 5, 15, 30, 60, 120, 1440], -1 if not mentioned
+        - Reply ONLY in this format (no additional lines):
+        TITLE: <title>
+        DESCRIPTION: <short description or empty>
+        DATE: <YYYY-MM-DD or none>
+        TIME: <HH:MM or none>
+        PRIORITY: <high|medium|low>
+        REMINDER: <number>
         """
 
         var raw = ""
@@ -1017,32 +1017,32 @@ struct AddTodoView: View {
 
         for line in raw.components(separatedBy: "\n") {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("TITEL:") {
-                parsedTitle = trimmed.dropFirst("TITEL:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("BESCHREIBUNG:") {
-                parsedDescription = trimmed.dropFirst("BESCHREIBUNG:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("DATUM:") {
-                parsedDateStr = trimmed.dropFirst("DATUM:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("UHRZEIT:") {
-                parsedTimeStr = trimmed.dropFirst("UHRZEIT:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("PRIORITÄT:") {
-                parsedPriority = trimmed.dropFirst("PRIORITÄT:".count).trimmingCharacters(in: .whitespaces).lowercased()
-            } else if trimmed.hasPrefix("ERINNERUNG:") {
-                parsedReminder = Int(trimmed.dropFirst("ERINNERUNG:".count).trimmingCharacters(in: .whitespaces)) ?? -1
+            if trimmed.hasPrefix("TITLE:") {
+                parsedTitle = trimmed.dropFirst("TITLE:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("DESCRIPTION:") {
+                parsedDescription = trimmed.dropFirst("DESCRIPTION:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("DATE:") {
+                parsedDateStr = trimmed.dropFirst("DATE:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("TIME:") {
+                parsedTimeStr = trimmed.dropFirst("TIME:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("PRIORITY:") {
+                parsedPriority = trimmed.dropFirst("PRIORITY:".count).trimmingCharacters(in: .whitespaces).lowercased()
+            } else if trimmed.hasPrefix("REMINDER:") {
+                parsedReminder = Int(trimmed.dropFirst("REMINDER:".count).trimmingCharacters(in: .whitespaces)) ?? -1
             }
         }
 
         if !parsedTitle.isEmpty { title = parsedTitle }
-        if !parsedDescription.isEmpty && parsedDescription.lowercased() != "leer" { description = parsedDescription }
+        if !parsedDescription.isEmpty && parsedDescription.lowercased() != "empty" { description = parsedDescription }
 
         autoMatchCategory(from: parsedTitle + " " + parsedDescription + " " + quickInputText)
 
-        if parsedDateStr != "keins", !parsedDateStr.isEmpty {
+        if parsedDateStr != "none", !parsedDateStr.isEmpty {
             let isoFmt = DateFormatter()
             isoFmt.dateFormat = "yyyy-MM-dd"
             if let date = isoFmt.date(from: parsedDateStr) {
                 var components = Calendar.current.dateComponents([.year, .month, .day], from: date)
-                if parsedTimeStr != "keine", !parsedTimeStr.isEmpty {
+                if parsedTimeStr != "none", !parsedTimeStr.isEmpty {
                     let parts = parsedTimeStr.split(separator: ":").compactMap { Int($0) }
                     if parts.count == 2 { components.hour = parts[0]; components.minute = parts[1] }
                 } else {
@@ -1056,8 +1056,8 @@ struct AddTodoView: View {
         }
 
         switch parsedPriority {
-        case "hoch": priority = .high
-        case "niedrig": priority = .low
+        case "high": priority = .high
+        case "low": priority = .low
         default: priority = .medium
         }
 
@@ -1072,28 +1072,28 @@ struct AddTodoView: View {
         reminderTitle = ""
         reminderBody = ""
 
-        var contextParts: [String] = ["Aufgabe: \(t)"]
+        var contextParts: [String] = ["Task: \(t)"]
         if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            contextParts.append("Beschreibung: \(description)")
+            contextParts.append("Description: \(description)")
         }
-        contextParts.append("Priorität: \(priority.displayName)")
-        if let cat = category { contextParts.append("Kategorie: \(cat.name)") }
+        contextParts.append("Priority: \(priority.displayName)")
+        if let cat = category { contextParts.append("Category: \(cat.name)") }
         if hasDueDate {
             let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .short
-            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+            contextParts.append("Due date: \(fmt.string(from: dueDate))")
         }
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Erstelle einen Erinnerungstitel und einen Erinnerungstext für diese Aufgabe auf Deutsch.
+        Create a reminder title and reminder text for this task.
         \(context)
 
-        Regeln:
-        - Titel: maximal 6 Wörter, direkt und motivierend
-        - Text: maximal 2 Sätze, konkret und hilfreich
-        - Kein Markdown, keine Aufzählungszeichen
-        - Antworte NUR in diesem Format (keine weiteren Zeilen):
-        TITEL: <titel>
+        Rules:
+        - Title: maximum 6 words, direct and motivating
+        - Text: maximum 2 sentences, concrete and helpful
+        - No Markdown, no bullet points
+        - Reply ONLY in this format (no additional lines):
+        TITLE: <title>
         TEXT: <text>
         """
 
@@ -1152,8 +1152,8 @@ struct AddTodoView: View {
     private func parseReminderResponse(_ raw: String) {
         let lines = raw.components(separatedBy: "\n")
         for line in lines {
-            if line.hasPrefix("TITEL:") {
-                reminderTitle = line.dropFirst("TITEL:".count).trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("TITLE:") {
+                reminderTitle = line.dropFirst("TITLE:".count).trimmingCharacters(in: .whitespaces)
             } else if line.hasPrefix("TEXT:") {
                 reminderBody = line.dropFirst("TEXT:".count).trimmingCharacters(in: .whitespaces)
             }

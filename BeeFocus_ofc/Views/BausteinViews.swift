@@ -47,15 +47,15 @@ struct BausteinPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Baustein einfügen")
+            .navigationTitle("Insert Block")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showingVerwaltung = true } label: {
-                        Label("Verwalten", systemImage: "slider.horizontal.3")
+                        Label("Manage", systemImage: "slider.horizontal.3")
                     }
                 }
             }
@@ -78,7 +78,7 @@ struct BausteinPickerSheet: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(sucheFocused || !suche.isEmpty ? themeC1 : .secondary)
-                    TextField("Suchen…", text: $suche)
+                    TextField("Search…", text: $suche)
                         .font(.system(size: 15))
                         .focused($sucheFocused)
                         .submitLabel(.search)
@@ -107,7 +107,7 @@ struct BausteinPickerSheet: View {
                     keineErgebnisse
                 } else {
                     pickerSection(
-                        titel: suche.isEmpty ? "Alle Bausteine" : "Ergebnisse",
+                        titel: suche.isEmpty ? "All Blocks" : "Results",
                         symbol: suche.isEmpty ? nil : "magnifyingglass",
                         bausteine: bausteine
                     )
@@ -128,7 +128,7 @@ struct BausteinPickerSheet: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(themeC1)
-                Text("Jetzt passend")
+                Text("Fitting now")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
             }
@@ -283,10 +283,10 @@ struct BausteinPickerSheet: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 32))
                 .foregroundStyle(themeC1.opacity(0.35))
-            Text("Keine Bausteine gefunden")
+            Text("No blocks found")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isDark ? .white.opacity(0.7) : .primary)
-            Text("Versuche einen anderen Begriff.")
+            Text("Try a different search term.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -299,17 +299,17 @@ struct BausteinPickerSheet: View {
             Image(systemName: "square.3.layers.3d")
                 .font(.system(size: 48))
                 .foregroundStyle(themeC1.opacity(0.4))
-            Text("Noch keine Bausteine")
+            Text("No blocks yet")
                 .font(.headline)
                 .foregroundStyle(isDark ? .white : .primary)
-            Text("Erstelle Bausteine, die du immer wieder in deinen Tagesplan einfügen kannst.")
+            Text("Create blocks you can repeatedly insert into your daily plan.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button {
                 showingVerwaltung = true
             } label: {
-                Label("Ersten Baustein erstellen", systemImage: "plus")
+                Label("Create first block", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
@@ -353,7 +353,7 @@ struct BausteinListView: View {
                 }
             }
         }
-        .navigationTitle("Bausteine")
+        .navigationTitle("Blocks")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -406,7 +406,7 @@ struct BausteinListView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(b.titel.isEmpty ? "Neuer Baustein" : b.titel)
+                    Text(b.titel.isEmpty ? "New Block" : b.titel)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     if b.isHighPriority {
@@ -449,10 +449,10 @@ struct BausteinListView: View {
             Image(systemName: "square.3.layers.3d")
                 .font(.system(size: 52))
                 .foregroundStyle(themeC1.opacity(0.35))
-            Text("Noch keine Bausteine")
+            Text("No blocks yet")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(isDark ? .white : .primary)
-            Text("Erstelle wiederverwendbare Zeitblöcke für deinen Tagesplan.")
+            Text("Create reusable time blocks for your daily plan.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -460,7 +460,7 @@ struct BausteinListView: View {
             Button {
                 editingBaustein = TagesplanBaustein()
             } label: {
-                Label("Ersten Baustein erstellen", systemImage: "plus")
+                Label("Create first block", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -530,14 +530,14 @@ struct BausteinEditSheet: View {
                     .padding(.vertical, 12)
                 }
             }
-            .navigationTitle(isExisting ? "Baustein bearbeiten" : "Neuer Baustein")
+            .navigationTitle(isExisting ? "Edit Block" : "New Block")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Sichern") {
+                    Button("Save") {
                         onSave(baustein)
                         dismiss()
                     }
@@ -563,7 +563,7 @@ struct BausteinEditSheet: View {
                     .foregroundStyle(baustein.farbe.color)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(baustein.titel.isEmpty ? "Titel…" : baustein.titel)
+                Text(baustein.titel.isEmpty ? "Title…" : baustein.titel)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Text(baustein.zeitLabel)
@@ -586,8 +586,8 @@ struct BausteinEditSheet: View {
     // MARK: Titel
 
     private var titelSection: some View {
-        editSection(label: "Titel") {
-            TextField("z. B. Deep Work Session", text: $baustein.titel)
+        editSection(label: "Title") {
+            TextField("e.g. Deep Work Session", text: $baustein.titel)
                 .font(.system(size: 16))
                 .padding(14)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -597,11 +597,11 @@ struct BausteinEditSheet: View {
     // MARK: Zeit
 
     private var zeitSection: some View {
-        editSection(label: "Zeitraum") {
+        editSection(label: "Time Range") {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     iconBadge("clock", color: baustein.farbe.color)
-                    Text("Startzeit festlegen")
+                    Text("Set start time")
                         .font(.system(size: 15))
                     Spacer()
                     Toggle("", isOn: $baustein.hatStartZeit).labelsHidden()
@@ -612,7 +612,7 @@ struct BausteinEditSheet: View {
                     Divider().padding(.horizontal, 14)
                     HStack(spacing: 12) {
                         iconBadge("play.fill", color: .green)
-                        Text("Von")
+                        Text("From")
                             .font(.system(size: 15))
                         Spacer()
                         zeitPicker(stunde: $baustein.startStunde, minute: $baustein.startMinute)
@@ -622,7 +622,7 @@ struct BausteinEditSheet: View {
                     Divider().padding(.horizontal, 14)
                     HStack(spacing: 12) {
                         iconBadge("stop.fill", color: .red)
-                        Text("Bis (optional)")
+                        Text("Until (optional)")
                             .font(.system(size: 15))
                         Spacer()
                         Toggle("", isOn: $baustein.hatEndZeit).labelsHidden()
@@ -633,7 +633,7 @@ struct BausteinEditSheet: View {
                         Divider().padding(.horizontal, 14)
                         HStack(spacing: 12) {
                             iconBadge("flag.fill", color: .red)
-                            Text("Ende")
+                            Text("End")
                                 .font(.system(size: 15))
                             Spacer()
                             zeitPicker(stunde: $baustein.endStunde, minute: $baustein.endMinute)
@@ -673,9 +673,9 @@ struct BausteinEditSheet: View {
     // MARK: Wochentage
 
     private var wochentageSection: some View {
-        editSection(label: "Wiederkehrend an") {
+        editSection(label: "Recurring on") {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Wähle Tage, an denen dieser Baustein als Vorschlag erscheint.")
+                Text("Choose days on which this block appears as a suggestion.")
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     .padding(.horizontal, 2)
@@ -713,7 +713,7 @@ struct BausteinEditSheet: View {
     // MARK: Symbol
 
     private var symbolSection: some View {
-        editSection(label: "Symbol") {
+        editSection(label: "Icon") {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                 ForEach(symbole, id: \.self) { sym in
                     let isOn = baustein.symbol == sym
@@ -742,7 +742,7 @@ struct BausteinEditSheet: View {
     // MARK: Farbe
 
     private var farbeSection: some View {
-        editSection(label: "Farbe") {
+        editSection(label: "Color") {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(BausteinFarbe.allCases, id: \.rawValue) { f in
@@ -779,11 +779,11 @@ struct BausteinEditSheet: View {
     // MARK: Optionen
 
     private var optionenSection: some View {
-        editSection(label: "Optionen") {
+        editSection(label: "Options") {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     iconBadge("exclamationmark.circle.fill", color: .orange)
-                    Text("Hohe Priorität")
+                    Text("High Priority")
                         .font(.system(size: 15))
                     Spacer()
                     Toggle("", isOn: $baustein.isHighPriority).labelsHidden()
@@ -802,7 +802,7 @@ struct BausteinEditSheet: View {
                 onSave(baustein)
                 dismiss()
             } label: {
-                Text("Speichern")
+                Text("Save")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -819,7 +819,7 @@ struct BausteinEditSheet: View {
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
-                    Label("Baustein löschen", systemImage: "trash")
+                    Label("Delete Block", systemImage: "trash")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -828,14 +828,14 @@ struct BausteinEditSheet: View {
                         .foregroundStyle(.red)
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.25), lineWidth: 1))
                 }
-                .confirmationDialog("Baustein löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                    Button("Löschen", role: .destructive) {
+                .confirmationDialog("Delete Block?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                    Button("Delete", role: .destructive) {
                         store.loeschen(baustein)
                         dismiss()
                     }
-                    Button("Abbrechen", role: .cancel) {}
+                    Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("\"\(baustein.titel)\" wird dauerhaft gelöscht.")
+                    Text("\"\(baustein.titel)\" will be permanently deleted.")
                 }
             }
         }

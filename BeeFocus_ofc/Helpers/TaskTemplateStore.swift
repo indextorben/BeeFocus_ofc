@@ -28,53 +28,53 @@ struct TaskTemplate: Identifiable, Codable {
 
     static let builtIn: [TaskTemplate] = [
         TaskTemplate(
-            name: "Morgenroutine", icon: "sun.rise.fill", colorName: "orange",
+            name: "Morning Routine", icon: "sun.rise.fill", colorName: "orange",
             tasks: [
-                TemplateTask(title: "Sport / Bewegung"),
-                TemplateTask(title: "Duschen & fertigmachen"),
-                TemplateTask(title: "Frühstück"),
-                TemplateTask(title: "Tagesplan aufschreiben"),
-                TemplateTask(title: "Heutiges Highlight setzen"),
+                TemplateTask(title: "Exercise / Movement"),
+                TemplateTask(title: "Shower & get ready"),
+                TemplateTask(title: "Breakfast"),
+                TemplateTask(title: "Write down daily plan"),
+                TemplateTask(title: "Set today's highlight"),
             ], isBuiltIn: true
         ),
         TaskTemplate(
-            name: "Produktiver Arbeitstag", icon: "briefcase.fill", colorName: "blue",
+            name: "Productive Workday", icon: "briefcase.fill", colorName: "blue",
             tasks: [
-                TemplateTask(title: "E-Mails checken & beantworten"),
-                TemplateTask(title: "Wichtigste Aufgabe angehen"),
-                TemplateTask(title: "Meetings vorbereiten"),
-                TemplateTask(title: "Fortschritt dokumentieren"),
-                TemplateTask(title: "Posteingang leeren"),
+                TemplateTask(title: "Check & reply to emails"),
+                TemplateTask(title: "Tackle most important task"),
+                TemplateTask(title: "Prepare meetings"),
+                TemplateTask(title: "Document progress"),
+                TemplateTask(title: "Empty inbox"),
             ], isBuiltIn: true
         ),
         TaskTemplate(
-            name: "Lerneinheit", icon: "book.fill", colorName: "purple",
+            name: "Study Session", icon: "book.fill", colorName: "purple",
             tasks: [
-                TemplateTask(title: "Lernziele für heute setzen"),
-                TemplateTask(title: "Kapitel / Material durcharbeiten"),
-                TemplateTask(title: "Notizen zusammenfassen"),
-                TemplateTask(title: "Übungsaufgaben lösen"),
-                TemplateTask(title: "Wiederholung & offene Fragen"),
+                TemplateTask(title: "Set learning goals for today"),
+                TemplateTask(title: "Work through chapter / material"),
+                TemplateTask(title: "Summarize notes"),
+                TemplateTask(title: "Solve practice problems"),
+                TemplateTask(title: "Review & open questions"),
             ], isBuiltIn: true
         ),
         TaskTemplate(
-            name: "Wochenplanung", icon: "calendar", colorName: "teal",
+            name: "Weekly Planning", icon: "calendar", colorName: "teal",
             tasks: [
-                TemplateTask(title: "Rückblick letzte Woche"),
-                TemplateTask(title: "3 Wochenziele setzen"),
-                TemplateTask(title: "Kalender & Termine prüfen"),
-                TemplateTask(title: "Aufgaben priorisieren"),
-                TemplateTask(title: "Einkaufs- / To-Do-Liste"),
+                TemplateTask(title: "Review last week"),
+                TemplateTask(title: "Set 3 weekly goals"),
+                TemplateTask(title: "Check calendar & appointments"),
+                TemplateTask(title: "Prioritize tasks"),
+                TemplateTask(title: "Shopping / To-Do list"),
             ], isBuiltIn: true
         ),
         TaskTemplate(
             name: "Deep Work Session", icon: "brain.head.profile", colorName: "red",
             tasks: [
-                TemplateTask(title: "Handy auf lautlos / wegräumen"),
-                TemplateTask(title: "Fokusziel für Session notieren"),
-                TemplateTask(title: "Pomodoro-Timer starten"),
-                TemplateTask(title: "Ablenkungen protokollieren"),
-                TemplateTask(title: "Ergebnis & Notizen festhalten"),
+                TemplateTask(title: "Put phone on silent / put away"),
+                TemplateTask(title: "Note focus goal for session"),
+                TemplateTask(title: "Start Pomodoro timer"),
+                TemplateTask(title: "Log distractions"),
+                TemplateTask(title: "Record result & notes"),
             ], isBuiltIn: true
         ),
     ]

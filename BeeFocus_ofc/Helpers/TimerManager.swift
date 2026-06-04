@@ -393,8 +393,8 @@ final class TimerManager: ObservableObject {
 
     // MARK: - Notifications
     private func scheduleNotification() {
-        let title = isBreak ? "Pause beendet" : "Fokuszeit vorbei"
-        let body = isBreak ? "Weiter geht's mit Fokus!" : "Zeit für eine Pause."
+        let title = isBreak ? "Break over" : "Focus time's up"
+        let body = isBreak ? "Time to focus!" : "Time for a break."
 
         NotificationManager.shared.scheduleTimerNotification(
             title: title,

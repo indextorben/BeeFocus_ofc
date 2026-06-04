@@ -129,8 +129,8 @@ extension Habit {
     ]
 
     static let availableColors: [(name: String, label: String)] = [
-        ("purple", "Lila"), ("blue", "Blau"), ("green", "Grün"),
-        ("orange", "Orange"), ("red", "Rot"), ("yellow", "Gelb"),
-        ("pink", "Pink"), ("cyan", "Cyan"), ("teal", "Türkis")
+        ("purple", "Purple"), ("blue", "Blue"), ("green", "Green"),
+        ("orange", "Orange"), ("red", "Red"), ("yellow", "Yellow"),
+        ("pink", "Pink"), ("cyan", "Cyan"), ("teal", "Teal")
     ]
 }

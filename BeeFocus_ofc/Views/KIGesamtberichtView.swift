@@ -63,11 +63,11 @@ struct KIGesamtberichtView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("KI-Gesamtbericht")
+            .navigationTitle("AI Overall Report")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .principal) { providerMenu }
                 if !generatedText.isEmpty {
@@ -101,10 +101,10 @@ struct KIGesamtberichtView: View {
                         .foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("KI-Gesamtbericht")
+                    Text("AI Overall Report")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("Alle App-Daten analysiert & zusammengefasst")
+                    Text("All app data analyzed & summarized")
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.5))
                 }
@@ -112,8 +112,8 @@ struct KIGesamtberichtView: View {
             }
 
             HStack(spacing: 8) {
-                quickStat("✅", "\(completedCount)", "Erledigt")
-                quickStat("⏱", "\(totalFocusMins)m", "Fokus")
+                quickStat("✅", "\(completedCount)", "Completed")
+                quickStat("⏱", "\(totalFocusMins)m", "Focus")
                 quickStat("🔥", "\(habitCount)", "Habits")
                 quickStat("📖", "\(journalCount)", "Journal")
             }
@@ -138,19 +138,19 @@ struct KIGesamtberichtView: View {
 
     private var sectionPicker: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Was soll einbezogen werden?")
+            Text("What should be included?")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.45))
                 .textCase(.uppercase)
                 .tracking(0.8)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                toggle("checkmark.circle.fill", "Aufgaben",     Color(red: 0.3,  green: 0.8,  blue: 0.5),  $inclAufgaben)
-                toggle("timer",                "Fokuszeit",     Color(red: 0.3,  green: 0.6,  blue: 1.0),  $inclFokuszeit)
-                toggle("calendar.badge.checkmark", "Gewohnheiten", Color(red: 0.3, green: 0.82, blue: 0.5), $inclGewohnheiten)
-                toggle("book.closed.fill",     "Journal",       Color(red: 0.65, green: 0.35, blue: 1.0),  $inclJournal)
-                toggle("drop.fill",            "Wasser",        Color(red: 0.15, green: 0.75, blue: 0.95), $inclWasser)
-                toggle("medal.fill",           "Abzeichen",     Color(red: 0.6,  green: 0.3,  blue: 0.9),  $inclAbzeichen)
+                toggle("checkmark.circle.fill", "Tasks",        Color(red: 0.3,  green: 0.8,  blue: 0.5),  $inclAufgaben)
+                toggle("timer",                "Focus time",   Color(red: 0.3,  green: 0.6,  blue: 1.0),  $inclFokuszeit)
+                toggle("calendar.badge.checkmark", "Habits",   Color(red: 0.3, green: 0.82, blue: 0.5), $inclGewohnheiten)
+                toggle("book.closed.fill",     "Journal",      Color(red: 0.65, green: 0.35, blue: 1.0),  $inclJournal)
+                toggle("drop.fill",            "Water",        Color(red: 0.15, green: 0.75, blue: 0.95), $inclWasser)
+                toggle("medal.fill",           "Badges",       Color(red: 0.6,  green: 0.3,  blue: 0.9),  $inclAbzeichen)
             }
 
             Button { Task { await generate() } } label: {
@@ -160,7 +160,7 @@ struct KIGesamtberichtView: View {
                     } else {
                         Image(systemName: "sparkles")
                     }
-                    Text(generatedText.isEmpty ? "Bericht generieren" : "Neu generieren")
+                    Text(generatedText.isEmpty ? "Generate report" : "Regenerate")
                         .font(.system(size: 16, weight: .semibold))
                 }
                 .foregroundStyle(.white)
@@ -216,9 +216,9 @@ struct KIGesamtberichtView: View {
                     .symbolEffect(.variableColor.iterative, options: .repeating)
             }
             VStack(spacing: 6) {
-                Text("KI analysiert alle deine Daten…")
+                Text("AI is analyzing all your data…")
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
-                Text("Das kann einen Moment dauern")
+                Text("This may take a moment")
                     .font(.system(size: 13)).foregroundStyle(.white.opacity(0.4))
             }
         }
@@ -235,7 +235,7 @@ struct KIGesamtberichtView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles").font(.system(size: 11)).foregroundStyle(accent)
-                        Text("KI-GESAMTBERICHT")
+                        Text("AI OVERALL REPORT")
                             .font(.system(size: 10, weight: .semibold)).foregroundStyle(.white.opacity(0.4)).tracking(1.5)
                     }
                     Text(formattedDate).font(.system(size: 13)).foregroundStyle(.white.opacity(0.55))
@@ -308,14 +308,14 @@ struct KIGesamtberichtView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("KI nicht verfügbar").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text("AI unavailable").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(msg).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             Button {
                 errorMessage = nil
                 if hasKey { Task { await generate() } } else { showSetup = true }
             } label: {
-                Label(hasKey ? "Erneut versuchen" : "API-Key hinzufügen",
+                Label(hasKey ? "Try again" : "Add API Key",
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -346,10 +346,10 @@ struct KIGesamtberichtView: View {
             }
             .padding(10).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button("Abbrechen") { showSetup = false }
+                Button("Cancel") { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button("Speichern") {
+                Button("Save") {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -404,16 +404,16 @@ struct KIGesamtberichtView: View {
     }
 
     private let sectionMeta: [(keyword: String, icon: String, color: Color)] = [
-        ("Gesamtbewertung",  "sparkles",                  Color(red: 0.55, green: 0.35, blue: 1.0)),
-        ("Aufgaben",         "checkmark.circle.fill",     Color(red: 0.3,  green: 0.8,  blue: 0.5)),
-        ("Fokuszeit",        "timer",                     Color(red: 0.3,  green: 0.6,  blue: 1.0)),
-        ("Fokus",            "timer",                     Color(red: 0.3,  green: 0.6,  blue: 1.0)),
-        ("Gewohnheiten",     "calendar.badge.checkmark",  Color(red: 0.3,  green: 0.82, blue: 0.5)),
-        ("Journal",          "book.closed.fill",          Color(red: 0.65, green: 0.35, blue: 1.0)),
-        ("Wasser",           "drop.fill",                 Color(red: 0.15, green: 0.75, blue: 0.95)),
-        ("Abzeichen",        "medal.fill",                Color(red: 0.6,  green: 0.3,  blue: 0.9)),
-        ("Empfehlungen",     "lightbulb.fill",            Color(red: 1.0,  green: 0.7,  blue: 0.2)),
-        ("Verbesserung",     "lightbulb.fill",            Color(red: 1.0,  green: 0.7,  blue: 0.2)),
+        ("Overall Assessment", "sparkles",                  Color(red: 0.55, green: 0.35, blue: 1.0)),
+        ("Tasks",              "checkmark.circle.fill",     Color(red: 0.3,  green: 0.8,  blue: 0.5)),
+        ("Focus Time",         "timer",                     Color(red: 0.3,  green: 0.6,  blue: 1.0)),
+        ("Focus",              "timer",                     Color(red: 0.3,  green: 0.6,  blue: 1.0)),
+        ("Habits",             "calendar.badge.checkmark",  Color(red: 0.3,  green: 0.82, blue: 0.5)),
+        ("Journal",            "book.closed.fill",          Color(red: 0.65, green: 0.35, blue: 1.0)),
+        ("Water",              "drop.fill",                 Color(red: 0.15, green: 0.75, blue: 0.95)),
+        ("Badges",             "medal.fill",                Color(red: 0.6,  green: 0.3,  blue: 0.9)),
+        ("Recommendations",    "lightbulb.fill",            Color(red: 1.0,  green: 0.7,  blue: 0.2)),
+        ("Improvement",        "lightbulb.fill",            Color(red: 1.0,  green: 0.7,  blue: 0.2)),
     ]
 
     private var parsedSections: [BerichtSection] {
@@ -450,7 +450,7 @@ struct KIGesamtberichtView: View {
         flush()
 
         if sections.isEmpty && !generatedText.isEmpty {
-            return [BerichtSection(title: "KI-Analyse", body: generatedText, icon: "sparkles",
+            return [BerichtSection(title: "AI Analysis", body: generatedText, icon: "sparkles",
                                    color: Color(red: 0.55, green: 0.35, blue: 1.0))]
         }
         return sections
@@ -481,7 +481,7 @@ struct KIGesamtberichtView: View {
     // MARK: - Helpers
 
     private var formattedDate: String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "d. MMMM yyyy"
+        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "d. MMMM yyyy"
         return f.string(from: Date())
     }
 
@@ -500,8 +500,8 @@ struct KIGesamtberichtView: View {
                         for try await p in s.streamResponse(to: prompt) { generatedText = p.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence ist auf diesem Gerät nicht verfügbar." }
-            } else { errorMessage = "Apple Intelligence benötigt iOS 26." }
+                } else { errorMessage = "Apple Intelligence is not available on this device." }
+            } else { errorMessage = "Apple Intelligence requires iOS 26." }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { generatedText += c }; isLoading = false; return }
@@ -524,11 +524,11 @@ struct KIGesamtberichtView: View {
 
     private func buildPrompt() -> String {
         var parts: [String] = ["""
-        Erstelle einen professionellen, persönlichen und motivierenden KI-Gesamtbericht für einen BeeFocus-Nutzer.
-        Antworte ausschließlich auf Deutsch.
-        Strukturiere den Bericht mit ## Überschriften. Beginne IMMER mit ## Gesamtbewertung.
-        Schreibe konkret, positiv-konstruktiv und direkt ansprechend (Du-Form).
-        Vermeide Markdown außer ## Überschriften. Keine Sternchen, keine Bullet-Listen.
+        Create a professional, personal and motivating AI overall report for a BeeFocus user.
+        Respond exclusively in English.
+        Structure the report with ## headings. ALWAYS begin with ## Overall Assessment.
+        Write concretely, constructively positive and address the user directly (you-form).
+        Avoid Markdown except ## headings. No asterisks, no bullet lists.
         """]
 
         if inclAufgaben {
@@ -537,9 +537,9 @@ struct KIGesamtberichtView: View {
             let open  = total - done
             let overdue = todoStore.todos.filter { !$0.isCompleted && ($0.dueDate.map { $0 < Date() } == true) }.count
             let favorites = todoStore.todos.filter { $0.isFavorite }.count
-            let cats = Dictionary(grouping: todoStore.todos, by: { $0.category?.name ?? "Ohne Kategorie" })
+            let cats = Dictionary(grouping: todoStore.todos, by: { $0.category?.name ?? "No Category" })
             let catStr = cats.map { "\($0.key): \($0.value.count)" }.joined(separator: ", ")
-            parts.append("## Aufgaben\nGesamt: \(total) | Erledigt: \(done) | Offen: \(open) | Überfällig: \(overdue) | Favoriten: \(favorites). Kategorien: \(catStr)")
+            parts.append("## Tasks\nTotal: \(total) | Completed: \(done) | Open: \(open) | Overdue: \(overdue) | Favorites: \(favorites). Categories: \(catStr)")
         }
 
         if inclFokuszeit {
@@ -547,27 +547,27 @@ struct KIGesamtberichtView: View {
             let days  = todoStore.dailyFocusMinutes.count
             let avg   = days > 0 ? total / days : 0
             let today = todoStore.dailyFocusMinutes[Calendar.current.startOfDay(for: Date())] ?? 0
-            parts.append("## Fokuszeit\nGesamt: \(total) Minuten | Ø pro Tag: \(avg) min | Heute: \(today) min | Aktive Tage: \(days)")
+            parts.append("## Focus Time\nTotal: \(total) minutes | Avg per day: \(avg) min | Today: \(today) min | Active days: \(days)")
         }
 
         if inclGewohnheiten {
             let habits = HabitStore.shared.habits
             if habits.isEmpty {
-                parts.append("## Gewohnheiten\nNoch keine Gewohnheiten erfasst.")
+                parts.append("## Habits\nNo habits tracked yet.")
             } else {
-                let str = habits.map { "\($0.name) – Streak: \($0.currentStreak) Tage, gesamt: \($0.totalCompletions)×" }.joined(separator: "; ")
-                parts.append("## Gewohnheiten\n\(str)")
+                let str = habits.map { "\($0.name) – Streak: \($0.currentStreak) days, total: \($0.totalCompletions)×" }.joined(separator: "; ")
+                parts.append("## Habits\n\(str)")
             }
         }
 
         if inclJournal {
             let entries = JournalStore.shared.entries
             if entries.isEmpty {
-                parts.append("## Journal\nNoch keine Journal-Einträge vorhanden.")
+                parts.append("## Journal\nNo journal entries yet.")
             } else {
                 let avgMood   = Double(entries.map { $0.moodScore   }.reduce(0, +)) / Double(entries.count)
                 let avgEnergy = Double(entries.map { $0.energyScore }.reduce(0, +)) / Double(entries.count)
-                parts.append("## Journal\nEinträge: \(entries.count) | Ø Stimmung: \(String(format: "%.1f", avgMood))/5 | Ø Energie: \(String(format: "%.1f", avgEnergy))/5")
+                parts.append("## Journal\nEntries: \(entries.count) | Avg mood: \(String(format: "%.1f", avgMood))/5 | Avg energy: \(String(format: "%.1f", avgEnergy))/5")
             }
         }
 
@@ -575,16 +575,16 @@ struct KIGesamtberichtView: View {
             let today = WasserStore.shared.todayTotal
             let goal  = WasserStore.shared.tagesziel
             let pct   = goal > 0 ? Int(Double(today) / Double(goal) * 100) : 0
-            parts.append("## Wasser\nHeute: \(today) ml von \(goal) ml Ziel (\(pct)%)")
+            parts.append("## Water\nToday: \(today) ml of \(goal) ml goal (\(pct)%)")
         }
 
         if inclAbzeichen {
             let earned = FokusModeManager.shared.unlockedAchievementIDs.count
             let total  = FokusAchievement.all.count
-            parts.append("## Abzeichen\nFreigeschaltet: \(earned) von \(total) möglichen Abzeichen")
+            parts.append("## Badges\nUnlocked: \(earned) of \(total) possible badges")
         }
 
-        parts.append("Schreibe abschließend einen ## Empfehlungen Abschnitt mit exakt 3 konkreten, umsetzbaren Tipps basierend auf den obigen Daten.")
+        parts.append("Finally, write a ## Recommendations section with exactly 3 concrete, actionable tips based on the data above.")
 
         return parts.joined(separator: "\n\n")
     }
@@ -622,13 +622,13 @@ struct BerichtExportView: View {
                                 .font(.system(size: 11))
                                 .foregroundStyle(.white.opacity(0.7))
                         }
-                        Text("KI-Gesamtbericht")
+                        Text("AI Overall Report")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.85))
 
                         HStack(spacing: 10) {
-                            exportChip("✅ \(completedCount)", "Erledigt")
-                            exportChip("⏱ \(totalFocusMins)m", "Fokus")
+                            exportChip("✅ \(completedCount)", "Completed")
+                            exportChip("⏱ \(totalFocusMins)m", "Focus")
                             exportChip("🔥 \(habitCount)", "Habits")
                             exportChip("📖 \(journalCount)", "Journal")
                         }
@@ -660,7 +660,7 @@ struct BerichtExportView: View {
 
                 HStack {
                     Spacer()
-                    Text("Erstellt mit BeeFocus · KI-Analyse · \(date)")
+                    Text("Created with BeeFocus · AI Analysis · \(date)")
                         .font(.system(size: 10))
                         .foregroundStyle(.gray.opacity(0.45))
                 }

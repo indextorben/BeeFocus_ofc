@@ -637,11 +637,11 @@ private extension Date {
         let startOfWeek = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) ?? today
         let wed = cal.date(byAdding: .day, value: 2, to: startOfWeek) ?? startOfWeek
         let fri = cal.date(byAdding: .day, value: 4, to: startOfWeek) ?? startOfWeek
-        let work = Category(name: "Arbeit", colorHex: "#FF9500")
-        let personal = Category(name: "Persönlich", colorHex: "#007AFF")
+        let work = Category(name: "Work", colorHex: "#FF9500")
+        let personal = Category(name: "Personal", colorHex: "#007AFF")
         mockStore.todos = [
-            TodoItem(title: "Präsentation vorbereiten", isCompleted: false, dueDate: wed, category: work),
-            TodoItem(title: "Wocheneinkauf planen", isCompleted: false, dueDate: fri, category: personal)
+            TodoItem(title: "Prepare presentation", isCompleted: false, dueDate: wed, category: work),
+            TodoItem(title: "Plan weekly shopping", isCompleted: false, dueDate: fri, category: personal)
         ]
     }
     return NavigationStack { WeeklyGoalsView().environmentObject(mockStore) }

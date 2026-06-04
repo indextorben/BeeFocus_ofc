@@ -199,49 +199,49 @@ struct StatistikView: View {
 
     var storeItems: [StoreItem] {[
         // Themes
-        StoreItem(name: "Ozean",           icon: "water.waves",              kosten: 500,  farbe: .cyan,                              beschreibung: "Ruhige Wellen, tiefes Blau"),
-        StoreItem(name: "Wald",            icon: "leaf.fill",                kosten: 750,  farbe: .green,                             beschreibung: "Frische Natur, lebendiges Grün"),
-        StoreItem(name: "Eis",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0), beschreibung: "Kühle Stille, kristallklares Weiß"),
-        StoreItem(name: "Herbst",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1), beschreibung: "Warme Töne, goldenes Laub"),
-        StoreItem(name: "Nacht",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo,                            beschreibung: "Samtene Dunkelheit, funkelnde Sterne"),
-        StoreItem(name: "Lavendel",        icon: "sparkles",                 kosten: 1200, farbe: .purple,                            beschreibung: "Sanftes Violett, duftende Felder"),
-        StoreItem(name: "Solar",           icon: "sun.max.fill",             kosten: 1500, farbe: .orange,                            beschreibung: "Energie der Sonne, strahlend warm"),
-        StoreItem(name: "Sonnenuntergang", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2), beschreibung: "Glühendes Abendhimmel-Orange"),
-        StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink,                              beschreibung: "Zarte Blüten, japanisches Frühjahr"),
-        StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6), beschreibung: "Magisches Aurora-Spektakel"),
-        StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red,                               beschreibung: "Brennende Intensität, pure Kraft"),
-        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000,  farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endloses Universum, kosmische Tiefe"),
-        StoreItem(name: "Aurora",          icon: "aqi.high",                 kosten: 10000, farbe: Color(red: 0.0, green: 0.9, blue: 0.8), beschreibung: "Elektrischer Auroraschimmer · Exklusiv"),
-        StoreItem(name: "Obsidian",        icon: "crown.fill",               kosten: 15000, farbe: Color(red: 0.85, green: 0.65, blue: 0.1), beschreibung: "Edler Obsidian, reines Gold · Prestige"),
-        StoreItem(name: "Nebula",          icon: "rays",                     kosten: 20000, farbe: Color(red: 1.0, green: 0.2, blue: 0.65), beschreibung: "Kosmischer Nebel, unendliche Tiefe · Legendär"),
+        StoreItem(name: "Ozean",           icon: "water.waves",              kosten: 500,  farbe: .cyan,                              beschreibung: "Calm waves, deep blue"),
+        StoreItem(name: "Wald",            icon: "leaf.fill",                kosten: 750,  farbe: .green,                             beschreibung: "Fresh nature, vibrant green"),
+        StoreItem(name: "Eis",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0), beschreibung: "Cool silence, crystal-clear white"),
+        StoreItem(name: "Herbst",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1), beschreibung: "Warm tones, golden leaves"),
+        StoreItem(name: "Nacht",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo,                            beschreibung: "Velvety darkness, sparkling stars"),
+        StoreItem(name: "Lavendel",        icon: "sparkles",                 kosten: 1200, farbe: .purple,                            beschreibung: "Soft violet, fragrant fields"),
+        StoreItem(name: "Solar",           icon: "sun.max.fill",             kosten: 1500, farbe: .orange,                            beschreibung: "Energy of the sun, radiantly warm"),
+        StoreItem(name: "Sonnenuntergang", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2), beschreibung: "Glowing evening sky orange"),
+        StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink,                              beschreibung: "Delicate blossoms, Japanese spring"),
+        StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6), beschreibung: "Magical aurora spectacle"),
+        StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red,                               beschreibung: "Burning intensity, pure power"),
+        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000,  farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endless universe, cosmic depth"),
+        StoreItem(name: "Aurora",          icon: "aqi.high",                 kosten: 10000, farbe: Color(red: 0.0, green: 0.9, blue: 0.8), beschreibung: "Electric aurora shimmer · Exclusive"),
+        StoreItem(name: "Obsidian",        icon: "crown.fill",               kosten: 15000, farbe: Color(red: 0.85, green: 0.65, blue: 0.1), beschreibung: "Noble obsidian, pure gold · Prestige"),
+        StoreItem(name: "Nebula",          icon: "rays",                     kosten: 20000, farbe: Color(red: 1.0, green: 0.2, blue: 0.65), beschreibung: "Cosmic nebula, infinite depth · Legendary"),
 
         // Timer-Modi
         StoreItem(name: "Tiefenfokus",    icon: "brain.head.profile",        kosten: 800,  farbe: .indigo, tab: .timer,
-                  beschreibung: "90 min Fokus · 20 min Pause\nIdeal für komplexe, kreative Aufgaben"),
+                  beschreibung: "90 min focus · 20 min break\nIdeal for complex, creative tasks"),
         StoreItem(name: "52/17 Methode", icon: "clock.badge.checkmark.fill", kosten: 1000, farbe: .blue,   tab: .timer,
-                  beschreibung: "52 min Fokus · 17 min Pause\nMaximale Konzentration ohne Burnout"),
+                  beschreibung: "52 min focus · 17 min break\nMaximum concentration without burnout"),
         StoreItem(name: "Micro-Sprint",   icon: "bolt.circle.fill",          kosten: 400,  farbe: .yellow, tab: .timer,
-                  beschreibung: "10 min Fokus · 3 min Pause\nSchnelle Energie-Schübe für schwere Starts"),
+                  beschreibung: "10 min focus · 3 min break\nQuick energy bursts for tough starts"),
 
         // Features
         StoreItem(name: "Aktivitäts-Heatmap", icon: "calendar.badge.checkmark", kosten: 1500, farbe: .green,  tab: .features,
-                  beschreibung: "Jahresansicht deiner Fokusaktivität als Heatmap – sieht aus wie GitHub"),
+                  beschreibung: "Year view of your focus activity as a heatmap – looks like GitHub"),
         StoreItem(name: "Prioritäts-Emojis",  icon: "face.smiling.fill",        kosten: 600,  farbe: .pink,   tab: .features,
-                  beschreibung: "Ersetze Text-Prioritäts-Badges durch ausdrucksstarke Emojis 🔴🟡🟢"),
+                  beschreibung: "Replace text priority badges with expressive emojis 🔴🟡🟢"),
         StoreItem(name: "Konfetti-Effekt",    icon: "party.popper.fill",        kosten: 800,  farbe: .yellow, tab: .features,
-                  beschreibung: "Feiere jeden Aufgaben-Abschluss mit einem bunten Konfetti-Regen 🎉"),
+                  beschreibung: "Celebrate every task completion with colorful confetti 🎉"),
         StoreItem(name: "Fokus-Sperrmodus",   icon: "lock.shield.fill",         kosten: 1200, farbe: .indigo, tab: .features,
-                  beschreibung: "Sperrt Bearbeiten & Löschen während der Fokuszeit – keine Ablenkung"),
+                  beschreibung: "Blocks editing & deleting during focus time – no distraction"),
         StoreItem(name: "Tägliches Fokus-Ziel", icon: "target",                 kosten: 1000, farbe: .mint,   tab: .features,
-                  beschreibung: "Fortschrittsring für dein tägliches Fokus-Ziel – sieh wie nah du dran bist"),
+                  beschreibung: "Progress ring for your daily focus goal – see how close you are"),
         StoreItem(name: "Streak-Tracker",     icon: "flame.fill",               kosten: 1500, farbe: .orange, tab: .features,
-                  beschreibung: "Verfolge deine Fokus-Streak – wie viele Tage am Stück du fokussiert warst 🔥"),
+                  beschreibung: "Track your focus streak – how many days in a row you stayed focused 🔥"),
         StoreItem(name: "Fokus-Zitat",        icon: "quote.bubble.fill",        kosten: 600,  farbe: .teal,   tab: .features,
-                  beschreibung: "Zeigt ein motivierendes Zitat während des Fokusmodus – täglich neu"),
+                  beschreibung: "Shows a motivating quote during focus mode – refreshes daily"),
         StoreItem(name: "Wochenrückblick",    icon: "chart.bar.doc.horizontal", kosten: 1200, farbe: Color(red: 0.4, green: 0.6, blue: 1.0), tab: .features,
-                  beschreibung: "Vergleich dieser Woche mit der letzten – sieh deinen Fortschritt auf einen Blick"),
+                  beschreibung: "Compare this week with last – see your progress at a glance"),
         StoreItem(name: "Abzeichen-System",   icon: "medal.fill",               kosten: 2000, farbe: Color(red: 0.6, green: 0.3, blue: 0.9), tab: .features,
-                  beschreibung: "Schalte 21 Abzeichen frei & verdiene bis zu 5.675 Bonus-FP – für Fokus, Streaks, Aufgaben und mehr"),
+                  beschreibung: "Unlock 21 badges & earn up to 5,675 bonus FP – for focus, streaks, tasks and more"),
     ]}
 
     // MARK: - Gefilterter Basis-Datensatz (respektiert "Nur diesen Monat")
@@ -581,7 +581,7 @@ struct StatistikView: View {
             sectionGroup(icon: "flame.fill", label: "KI-Fokus-Strategie", color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
                 glassCard {
                     Button { showKIStrategie = true } label: {
-                        iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: "Personalisierter KI-Produktivitätsplan")
+                        iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: "Personalized AI Productivity Plan")
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 1.0, green: 0.55, blue: 0.1))
@@ -766,7 +766,7 @@ struct StatistikView: View {
                         Label("Fokuspunkte verdienen", systemImage: "bolt.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
-                        Text("Fokuspunkte werden für deine Produktivität gutgeschrieben und sinken niemals automatisch – nur Käufe im Fokus-Store reduzieren dein Guthaben.")
+                        Text("Focus points are credited for your productivity and never decrease automatically – only purchases in the Focus Store reduce your balance.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -775,19 +775,19 @@ struct StatistikView: View {
 
                     VStack(spacing: 0) {
                         fpInfoRow(icon: "checkmark.circle.fill", color: .green,
-                                  title: "Aufgabe abschließen", points: "+10 FP")
+                                  title: "Complete task", points: "+10 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "timer", color: .cyan,
-                                  title: "Fokusminute", points: "+2 FP")
+                                  title: "Focus minute", points: "+2 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "flame.fill", color: .orange,
-                                  title: "Streak-Tag", points: "+50 FP")
+                                  title: "Streak day", points: "+50 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "star.fill", color: .yellow,
-                                  title: "Favorisierte Aufgabe", points: "+5 FP")
+                                  title: "Starred task", points: "+5 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "arrow.triangle.2.circlepath", color: .teal,
-                                  title: "Wiederkehrende Aufgabe", points: "+3 FP")
+                                  title: "Recurring task", points: "+3 FP")
                     }
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
@@ -796,7 +796,7 @@ struct StatistikView: View {
                         Label("Fokus-Store", systemImage: "storefront.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
-                        Text("Im Fokus-Store kannst du Farbthemen für die Statistik-Ansicht freischalten. Jedes Theme verändert den Hintergrund-Farbverlauf dieser Seite.")
+                        Text("In the Focus Store you can unlock color themes for the statistics view. Each theme changes the background gradient of this page.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -805,22 +805,22 @@ struct StatistikView: View {
 
                     VStack(spacing: 0) {
                         fpInfoRow(icon: "lock.open.fill", color: .blue,
-                                  title: "Theme freischalten", points: "FP ausgeben")
+                                  title: "Unlock theme", points: "spend FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "checkmark.circle", color: .green,
-                                  title: "Theme aktivieren / wechseln", points: "kostenlos")
+                                  title: "Activate / switch theme", points: "free")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "arrow.uturn.left.circle", color: .orange,
-                                  title: "Theme verkaufen", points: "½ FP zurück")
+                                  title: "Sell theme", points: "½ FP back")
                     }
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Erklärung Abzeichen-System
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Abzeichen-System", systemImage: "medal.fill")
+                        Label("Badge System", systemImage: "medal.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 0.6, green: 0.3, blue: 0.9))
-                        Text("Schalte das Abzeichen-System im Store für 2.000 FP frei. Für jedes verdiente Abzeichen erhältst du einmalig Bonus-Fokuspunkte – bis zu 5.675 FP insgesamt.")
+                        Text("Unlock the badge system in the store for 2,000 FP. For each badge earned you receive one-time bonus focus points – up to 5,675 FP in total.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -829,23 +829,23 @@ struct StatistikView: View {
 
                     VStack(spacing: 0) {
                         fpInfoRow(icon: "timer",                  color: .cyan,
-                                  title: "Fokuszeit-Abzeichen",   points: "25–1200 FP")
+                                  title: "Focus time badges",   points: "25–1200 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "flame.fill",             color: .orange,
-                                  title: "Streak-Abzeichen",      points: "75–1000 FP")
+                                  title: "Streak badges",      points: "75–1000 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "checkmark.circle.fill",  color: .green,
-                                  title: "Aufgaben-Abzeichen",    points: "25–500 FP")
+                                  title: "Task badges",    points: "25–500 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "star.fill",              color: .purple,
-                                  title: "Spezial-Abzeichen",     points: "50–300 FP")
+                                  title: "Special badges",     points: "50–300 FP")
                         Divider().padding(.leading, 52)
                         fpInfoRow(icon: "crown.fill",             color: Color(red: 1.0, green: 0.75, blue: 0.0),
-                                  title: "Alle 32 Abzeichen",     points: "bis +19.100 FP")
+                                  title: "All 32 badges",     points: "up to +19,100 FP")
                     }
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    Text("Aktuell \(storeItems.count) Items verfügbar – neue kommen mit App-Updates.")
+                    Text("Currently \(storeItems.count) items available – new ones coming with app updates.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -853,11 +853,11 @@ struct StatistikView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Fokuspunkte & Store")
+            .navigationTitle("Focus Points & Store")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") { showFPInfo = false }
+                    Button("Done") { showFPInfo = false }
                         .fontWeight(.semibold)
                 }
             }
@@ -1206,19 +1206,19 @@ struct StatistikView: View {
                             }
                             if aktivePriorityStyle == "emoji" {
                                 activeStatusRow(
-                                    dot: .pink, label: "Priorität", value: "Emojis aktiv 🔴🟡🟢", farbe: .pink,
+                                    dot: .pink, label: "Priority", value: "Emojis active 🔴🟡🟢", farbe: .pink,
                                     onDeactivate: { aktivePriorityStyle = "standard" }
                                 )
                             }
                             if konfettiEnabled {
                                 activeStatusRow(
-                                    dot: .yellow, label: "Konfetti", value: "An 🎉", farbe: .yellow,
+                                    dot: .yellow, label: "Confetti", value: "On 🎉", farbe: .yellow,
                                     onDeactivate: { konfettiEnabled = false }
                                 )
                             }
                             if fokusSperrmodus {
                                 activeStatusRow(
-                                    dot: .indigo, label: "Sperrmodus", value: "Aktiv 🔒", farbe: .indigo,
+                                    dot: .indigo, label: "Lock mode", value: "Active 🔒", farbe: .indigo,
                                     onDeactivate: { fokusSperrmodus = false }
                                 )
                             }
@@ -1290,18 +1290,18 @@ struct StatistikView: View {
         }
         // Verkauf-Dialog
         .alert(
-            verkaufBestaetigung.map { "\"\($0.name)\" verkaufen?" } ?? "",
+            verkaufBestaetigung.map { "Sell \"\($0.name)\"?" } ?? "",
             isPresented: Binding(get: { verkaufBestaetigung != nil }, set: { if !$0 { verkaufBestaetigung = nil } })
         ) {
             if let item = verkaufBestaetigung {
-                Button("Verkaufen (\(item.kosten / 2) FP zurück)", role: .destructive) {
+                Button("Sell (\(item.kosten / 2) FP back)", role: .destructive) {
                     verkaufeItem(item); verkaufBestaetigung = nil
                 }
-                Button("Abbrechen", role: .cancel) { verkaufBestaetigung = nil }
+                Button("Cancel", role: .cancel) { verkaufBestaetigung = nil }
             }
         } message: {
             if let item = verkaufBestaetigung {
-                Text("Du erhältst \(item.kosten / 2) FP zurück.")
+                Text("You will receive \(item.kosten / 2) FP back.")
             }
         }
     }
@@ -1397,15 +1397,15 @@ struct StatistikView: View {
         .contextMenu {
             if istFreigeschaltet {
                 Button { if istAktiv { deaktiviereTimerModus() } else { aktiverTimerModus = item.name; applyTimerModus(item.name) } } label: {
-                    Label(istAktiv ? "Deaktivieren" : "Aktivieren", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                    Label(istAktiv ? "Deactivate" : "Activate", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
                 }
                 Divider()
                 Button(role: .destructive) { verkaufBestaetigung = item } label: {
-                    Label("Verkaufen (\(item.kosten / 2) FP zurück)", systemImage: "arrow.uturn.left.circle")
+                    Label("Sell (\(item.kosten / 2) FP back)", systemImage: "arrow.uturn.left.circle")
                 }
             } else if kannKaufen {
                 Button { kaufBestaetigung = item } label: {
-                    Label("Freischalten (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                    Label("Unlock (\(item.kosten) FP)", systemImage: "lock.open.fill")
                 }
             }
         }
@@ -1526,17 +1526,17 @@ struct StatistikView: View {
                     default: break
                     }
                 } label: {
-                    Label(istAktiv ? "Deaktivieren" : "Aktivieren", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                    Label(istAktiv ? "Deactivate" : "Activate", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
                 }
                 Divider()
             }
             if istFreigeschaltet {
                 Button(role: .destructive) { verkaufBestaetigung = item } label: {
-                    Label("Verkaufen (\(item.kosten / 2) FP zurück)", systemImage: "arrow.uturn.left.circle")
+                    Label("Sell (\(item.kosten / 2) FP back)", systemImage: "arrow.uturn.left.circle")
                 }
             } else if kannKaufen {
                 Button { kaufBestaetigung = item } label: {
-                    Label("Freischalten (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                    Label("Unlock (\(item.kosten) FP)", systemImage: "lock.open.fill")
                 }
             }
         }
@@ -1627,19 +1627,19 @@ struct StatistikView: View {
                 Button {
                     aktiviereThema(item)
                 } label: {
-                    Label(istAktiv ? "Deaktivieren" : "Aktivieren", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                    Label(istAktiv ? "Deactivate" : "Activate", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
                 }
                 Divider()
                 Button(role: .destructive) {
                     verkaufBestaetigung = item
                 } label: {
-                    Label("Verkaufen (\(item.kosten / 2) FP zurück)", systemImage: "arrow.uturn.left.circle")
+                    Label("Sell (\(item.kosten / 2) FP back)", systemImage: "arrow.uturn.left.circle")
                 }
             } else if kannKaufen {
                 Button {
                     kaufBestaetigung = item
                 } label: {
-                    Label("Freischalten (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                    Label("Unlock (\(item.kosten) FP)", systemImage: "lock.open.fill")
                 }
             }
         }

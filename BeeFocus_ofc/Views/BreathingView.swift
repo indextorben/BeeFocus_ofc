@@ -92,7 +92,7 @@ struct BreathingView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Text("Atemübung")
+                    Text("Breathing Exercise")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(.white)
                     Spacer()

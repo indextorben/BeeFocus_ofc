@@ -294,7 +294,7 @@ extension TodoStore {
                 } else if hasTime {
                     zeitLabel = String(format: "%02d:%02d", startH, startM)
                 } else {
-                    zeitLabel = "Ganztägig"
+                    zeitLabel = "All day"
                 }
                 let farbeName: String
                 switch todo.priority {

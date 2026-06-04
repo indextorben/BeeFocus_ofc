@@ -268,7 +268,7 @@ struct TodoCard: View {
                         Circle()
                             .fill(Color(red: 0.15, green: 0.75, blue: 0.45))
                             .frame(width: 6, height: 6)
-                        Text("Läuft")
+                        Text("Running")
                             .fontWeight(.bold)
                         if let remaining = todo.remainingTimeString {
                             Text("· \(remaining)")
@@ -280,7 +280,7 @@ struct TodoCard: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Color(red: 0.15, green: 0.75, blue: 0.45), in: Capsule())
                 } else if todo.isOverdue {
-                    Label("Überfällig", systemImage: "exclamationmark.clock.fill")
+                    Label("Overdue", systemImage: "exclamationmark.clock.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 3)

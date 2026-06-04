@@ -229,7 +229,7 @@ struct TodoListView: View {
                     }
                 } message: {
                     let count = duplicateTodos.count
-                    Text(count > 0 ? "\(count) doppelte Aufgabe(n) gefunden. Möchten Sie diese entfernen?" : "Keine Duplikate gefunden.")
+                    Text(count > 0 ? "\(count) duplicate task(s) found. Do you want to remove them?" : "No duplicates found.")
                 }
                 .overlay(alignment: .bottom) { successToastOverlay }
                 .navigationTitle(localizer.localizedString(forKey: "tasks_title"))
@@ -1730,7 +1730,7 @@ struct TodoListView: View {
         // 3. Überfällig
         if !overdue.isEmpty {
             groups.append(TodoFolderGroup(id: "__overdue__",
-                title: eng ? "Overdue" : "Überfällig",
+                title: "Overdue",
                 icon: "exclamationmark.circle.fill", color: .red, todos: overdue))
         }
 
@@ -1744,22 +1744,22 @@ struct TodoListView: View {
         // 5. Geplant – Dieser Monat + Später als Unterordner (wenn beides vorhanden)
         if !thisMonth.isEmpty && !later.isEmpty {
             let monthGroup = TodoFolderGroup(id: "__month__",
-                title: eng ? "This Month" : "Dieser Monat",
+                title: "This Month",
                 icon: "calendar", color: .purple, todos: thisMonth)
             let laterGroup = TodoFolderGroup(id: "__later__",
-                title: eng ? "Later" : "Später",
+                title: "Later",
                 icon: "arrow.forward.circle.fill", color: .teal, todos: later)
             groups.append(TodoFolderGroup(id: "__planned__",
-                title: eng ? "Planned" : "Geplant",
+                title: "Planned",
                 icon: "calendar.badge.plus", color: .indigo,
                 subGroups: [monthGroup, laterGroup]))
         } else if !thisMonth.isEmpty {
             groups.append(TodoFolderGroup(id: "__month__",
-                title: eng ? "This Month" : "Dieser Monat",
+                title: "This Month",
                 icon: "calendar", color: .purple, todos: thisMonth))
         } else if !later.isEmpty {
             groups.append(TodoFolderGroup(id: "__later__",
-                title: eng ? "Later" : "Später",
+                title: "Later",
                 icon: "arrow.forward.circle.fill", color: .teal, todos: later))
         }
 
@@ -1863,7 +1863,7 @@ struct TodoListView: View {
             }
             Button("Abbrechen", role: .cancel) { }
         } message: {
-            Text("Gib einen Namen für den neuen Ordner ein.")
+            Text("Enter a name for the new folder.")
         }
     }
 
@@ -2069,7 +2069,7 @@ struct TodoListView: View {
                         Image(systemName: "sun.and.horizon.fill")
                             .font(.system(size: 30))
                             .foregroundStyle(Color.orange.opacity(0.7))
-                        Text("Keine Aufgaben für heute – genieße den Tag! ☀️")
+                        Text("No tasks for today – enjoy the day! ☀️")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -2499,15 +2499,15 @@ struct CalendarImportSheet: View {
                             Task { await importer.requestAccessIfNeeded() }
                         }
                     } footer: {
-                        Text("BeeFocus benötigt Lesezugriff auf den Kalender, um Einträge zu importieren.")
+                        Text("BeeFocus needs read access to the calendar to import entries.")
                     }
                 } else {
-                    Section("Zeitraum") {
-                        DatePicker("Von", selection: $startDate, displayedComponents: [.date])
-                        DatePicker("Bis", selection: $endDate, in: startDate..., displayedComponents: [.date])
+                    Section("Time range") {
+                        DatePicker("From", selection: $startDate, displayedComponents: [.date])
+                        DatePicker("To", selection: $endDate, in: startDate..., displayedComponents: [.date])
                     }
 
-                    Section("Kalender auswählen") {
+                    Section("Select calendar") {
                         ForEach(importer.availableCalendars, id: \.calendarIdentifier) { cal in
                             let calID = cal.calendarIdentifier
                             Toggle(isOn: Binding(
@@ -2530,7 +2530,7 @@ struct CalendarImportSheet: View {
                     if let count = importer.lastImportCount {
                         Section {
                             Label(
-                                count > 0 ? "\(count) Einträge importiert" : "Keine neuen Einträge gefunden",
+                                count > 0 ? "\(count) entries imported" : "No new entries found",
                                 systemImage: count > 0 ? "checkmark.circle.fill" : "info.circle"
                             )
                             .foregroundColor(count > 0 ? .green : .secondary)
@@ -2538,11 +2538,11 @@ struct CalendarImportSheet: View {
                     }
                 }
             }
-            .navigationTitle("Aus Kalender importieren")
+            .navigationTitle("Import from Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
                 if importer.isAccessGranted {
                     ToolbarItem(placement: .confirmationAction) {

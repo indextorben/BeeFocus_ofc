@@ -32,7 +32,7 @@ struct ProfilView: View {
                 .padding(.bottom, 52)
             }
         }
-        .navigationTitle("Über den Entwickler")
+        .navigationTitle("About the Developer")
         .navigationBarTitleDisplayMode(.large)
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
     }

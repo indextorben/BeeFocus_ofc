@@ -1637,7 +1637,7 @@ private let defaultQuickSlots: [QuickSlot] = [
     QuickSlot(name: "Mittag",     icon: "sun.max.fill",         hour: 12),
     QuickSlot(name: "Nachmittag", icon: "cloud.sun.fill",       hour: 15),
     QuickSlot(name: "Abend",      icon: "moon.fill",            hour: 18),
-    QuickSlot(name: "Spätabend",  icon: "moon.stars.fill",      hour: 21),
+    QuickSlot(name: "Late evening",  icon: "moon.stars.fill",      hour: 21),
 ]
 
 private func loadQuickSlots() -> [QuickSlot] {
@@ -1805,7 +1805,7 @@ struct TagesplanQuickAddSheet: View {
 
                         VStack(spacing: 10) {
                             Button { submit() } label: {
-                                Text("Hinzufügen").font(.headline)
+                                Text("Add").font(.headline)
                                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                                     .background(
                                         title.trimmingCharacters(in: .whitespaces).isEmpty
@@ -1821,7 +1821,7 @@ struct TagesplanQuickAddSheet: View {
                             Button { onAufgabenUebersicht() } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "list.bullet").font(.system(size: 13))
-                                    Text("Aufgabenübersicht").font(.subheadline)
+                                    Text("Task overview").font(.subheadline)
                                 }
                                 .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                             }
@@ -1938,7 +1938,7 @@ struct TagesplanQuickAddSheet: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(themeC1)
-                Text("Vorschläge")
+                Text("Suggestions")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
             }
@@ -2041,11 +2041,11 @@ struct SlotEditorSheet: View {
                     slots.append(newSlot)
                     editingSlot = newSlot
                 } label: {
-                    Label("Zeitraum hinzufügen", systemImage: "plus.circle.fill")
+                    Label("Add time slot", systemImage: "plus.circle.fill")
                         .foregroundStyle(themeC1)
                 }
             }
-            .navigationTitle("Zeiträume bearbeiten")
+            .navigationTitle("Edit time slots")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -2187,9 +2187,9 @@ struct AufgabenUebersichtSheet: View {
 
     private let groups: [(id: String, title: String, icon: String, color: Color, kind: GroupKind)] = [
         ("today",   "Heute",         "sun.max.fill",               .orange, .today),
-        ("overdue", "Überfällig",    "exclamationmark.triangle.fill", .red,  .overdue),
+        ("overdue", "Overdue",    "exclamationmark.triangle.fill", .red,  .overdue),
         ("week",    "Diese Woche",   "calendar.badge.clock",       .blue,   .thisWeek),
-        ("later",   "Später",        "arrow.right.circle.fill",    .secondary, .later),
+        ("later",   "Later",        "arrow.right.circle.fill",    .secondary, .later),
         ("nodate",  "Ohne Datum",    "tray.fill",                  .secondary, .noDate),
     ]
 
@@ -2255,7 +2255,7 @@ struct AufgabenUebersichtSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
             }
         }
@@ -2490,7 +2490,7 @@ struct EinplanenSheet: View {
                             Button(role: .destructive) {
                                 showDeleteConfirm = true
                             } label: {
-                                Label("Aufgabe löschen", systemImage: "trash")
+                                Label("Delete task", systemImage: "trash")
                                     .font(.subheadline.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
@@ -2500,16 +2500,16 @@ struct EinplanenSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 14)
                                         .stroke(Color.red.opacity(0.25), lineWidth: 1))
                             }
-                            .confirmationDialog("Aufgabe löschen?",
+                            .confirmationDialog("Delete task?",
                                                isPresented: $showDeleteConfirm,
                                                titleVisibility: .visible) {
-                                Button("Löschen", role: .destructive) {
+                                Button("Delete", role: .destructive) {
                                     onDelete?()
                                     dismiss()
                                 }
-                                Button("Abbrechen", role: .cancel) {}
+                                Button("Cancel", role: .cancel) {}
                             } message: {
-                                Text("\"\(todo.title)\" wird unwiderruflich gelöscht.")
+                                Text("\"\(todo.title)\" will be permanently deleted.")
                             }
                         }
                     }

@@ -30,9 +30,9 @@ class StatisticsChart: ObservableObject {
     func loadData(from todoStore: TodoStore) {
         // Heutige Daten
         statisticsData.todayData = [
-            StatisticsData.ChartDataPoint(category: "Arbeit", value: 8, date: Date()),
-            StatisticsData.ChartDataPoint(category: "Persönlich", value: 3, date: Date()),
-            StatisticsData.ChartDataPoint(category: "Einkaufen", value: 2, date: Date())
+            StatisticsData.ChartDataPoint(category: "Work", value: 8, date: Date()),
+            StatisticsData.ChartDataPoint(category: "Personal", value: 3, date: Date()),
+            StatisticsData.ChartDataPoint(category: "Shopping", value: 2, date: Date())
         ]
         
         let calendar = Calendar.current

@@ -23,14 +23,14 @@ enum BausteinFarbe: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .blau:   return "Blau"
-        case .gruen:  return "Grün"
+        case .blau:   return "Blue"
+        case .gruen:  return "Green"
         case .orange: return "Orange"
         case .pink:   return "Pink"
-        case .lila:   return "Lila"
+        case .lila:   return "Purple"
         case .teal:   return "Teal"
-        case .rot:    return "Rot"
-        case .gelb:   return "Gelb"
+        case .rot:    return "Red"
+        case .gelb:   return "Yellow"
         case .cyan:   return "Cyan"
         case .indigo: return "Indigo"
         case .mint:   return "Mint"
@@ -57,7 +57,7 @@ struct TagesplanBaustein: Identifiable, Codable, Equatable {
     var verwendungen: Int = 0      // Wie oft eingefügt — für Smart-Ranking
 
     var zeitLabel: String {
-        guard hatStartZeit else { return "Kein fester Zeitpunkt" }
+        guard hatStartZeit else { return "No fixed time" }
         let s = String(format: "%02d:%02d", startStunde, startMinute)
         guard hatEndZeit else { return s }
         let e = String(format: "%02d:%02d", endStunde, endMinute)
@@ -65,7 +65,7 @@ struct TagesplanBaustein: Identifiable, Codable, Equatable {
     }
 
     var wochentageKurz: [String] {
-        let namen = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+        let namen = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         return wochentage.sorted().compactMap { idx in
             guard idx >= 1, idx <= 7 else { return nil }
             return namen[idx - 1]
@@ -201,8 +201,8 @@ class BausteinStore: ObservableObject {
         let presets: [TagesplanBaustein] = [
             {
                 var b = TagesplanBaustein()
-                b.titel = "Morgenroutine"
-                b.beschreibung = "Frühstück, Körperpflege, Tag starten"
+                b.titel = "Morning Routine"
+                b.beschreibung = "Breakfast, personal care, start the day"
                 b.startStunde = 7; b.startMinute = 0
                 b.endStunde   = 7; b.endMinute   = 30
                 b.wochentage  = []   // täglich
@@ -211,8 +211,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "E-Mails & Nachrichten"
-                b.beschreibung = "Postfach leeren, Slack/Teams checken"
+                b.titel = "Emails & Messages"
+                b.beschreibung = "Clear inbox, check Slack/Teams"
                 b.startStunde = 8; b.startMinute = 0
                 b.endStunde   = 8; b.endMinute   = 30
                 b.wochentage  = [1,2,3,4,5]  // Mo–Fr
@@ -221,8 +221,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Tagesplanung"
-                b.beschreibung = "Prioritäten setzen, Kalender checken"
+                b.titel = "Daily Planning"
+                b.beschreibung = "Set priorities, check calendar"
                 b.startStunde = 8; b.startMinute = 30
                 b.endStunde   = 9; b.endMinute   = 0
                 b.wochentage  = [1,2,3,4,5]
@@ -232,7 +232,7 @@ class BausteinStore: ObservableObject {
             {
                 var b = TagesplanBaustein()
                 b.titel = "Deep Work"
-                b.beschreibung = "Tiefe Konzentration, Handy weg"
+                b.beschreibung = "Deep concentration, phone away"
                 b.startStunde = 9;  b.startMinute = 0
                 b.endStunde   = 11; b.endMinute   = 0
                 b.wochentage  = [1,2,3,4,5]
@@ -242,8 +242,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Fokus-Block"
-                b.beschreibung = "Konzentrierte Arbeitseinheit"
+                b.titel = "Focus Block"
+                b.beschreibung = "Concentrated work unit"
                 b.startStunde = 14; b.startMinute = 0
                 b.endStunde   = 16; b.endMinute   = 0
                 b.wochentage  = [1,2,3,4,5]
@@ -252,8 +252,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Mittagspause"
-                b.beschreibung = "Essen, kurze Auszeit"
+                b.titel = "Lunch Break"
+                b.beschreibung = "Eat, short break"
                 b.startStunde = 12; b.startMinute = 0
                 b.endStunde   = 13; b.endMinute   = 0
                 b.wochentage  = []
@@ -262,8 +262,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Sport & Training"
-                b.beschreibung = "Gym, Laufen oder Heimtraining"
+                b.titel = "Exercise & Training"
+                b.beschreibung = "Gym, running, or home workout"
                 b.startStunde = 17; b.startMinute = 0
                 b.endStunde   = 18; b.endMinute   = 0
                 b.wochentage  = [1,3,5]  // Mo, Mi, Fr
@@ -272,8 +272,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Spaziergang"
-                b.beschreibung = "Frische Luft, Kopf freibekommen"
+                b.titel = "Walk"
+                b.beschreibung = "Fresh air, clear your head"
                 b.startStunde = 17; b.startMinute = 30
                 b.endStunde   = 18; b.endMinute   = 0
                 b.wochentage  = []
@@ -282,8 +282,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Lesen"
-                b.beschreibung = "Buch, Artikel oder Fachtext"
+                b.titel = "Reading"
+                b.beschreibung = "Book, article, or professional text"
                 b.startStunde = 20; b.startMinute = 0
                 b.endStunde   = 21; b.endMinute   = 0
                 b.wochentage  = []
@@ -292,8 +292,8 @@ class BausteinStore: ObservableObject {
             }(),
             {
                 var b = TagesplanBaustein()
-                b.titel = "Tagesreflexion"
-                b.beschreibung = "Was lief gut? Was morgen besser?"
+                b.titel = "Daily Reflection"
+                b.beschreibung = "What went well? What to improve tomorrow?"
                 b.startStunde = 21; b.startMinute = 30
                 b.endStunde   = 22; b.endMinute   = 0
                 b.wochentage  = []

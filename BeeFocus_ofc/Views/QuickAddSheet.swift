@@ -418,19 +418,19 @@ struct QuickAddSheet: View {
         let today = formatter.string(from: Date())
 
         let prompt = """
-        Heute ist \(today).
-        Extrahiere aus dem folgenden Text eine strukturierte Aufgabe.
-        Vorhandene Kategorien: \(categoryNames.isEmpty ? "keine" : categoryNames)
+        Today is \(today).
+        Extract a structured task from the following text.
+        Available categories: \(categoryNames.isEmpty ? "none" : categoryNames)
 
-        Antworte NUR mit diesem JSON-Objekt (kein Markdown, kein Text davor oder danach):
-        {"title":"...","priority":"low|medium|high","dueDate":"YYYY-MM-DDTHH:mm:ss" oder null,"category":"Kategoriename aus der Liste" oder null,"note":"" oder kurze Notiz}
+        Reply ONLY with this JSON object (no Markdown, no text before or after):
+        {"title":"...","priority":"low|medium|high","dueDate":"YYYY-MM-DDTHH:mm:ss" or null,"category":"category name from the list" or null,"note":"" or short note}
 
-        Regeln:
-        - title: kurzer, klarer Aufgabentitel
-        - priority: "high" wenn dringend/wichtig, "medium" Standard, "low" wenn optional
-        - dueDate: Datum aus relativem Text ableiten (morgen, nächste Woche, Freitag, etc.). Uhrzeit wenn angegeben, sonst null für die Zeit.
-        - category: nur aus der vorhandenen Liste wählen, sonst null
-        - note: nur wenn wirklich zusätzliche Info im Text steckt, sonst leerer String
+        Rules:
+        - title: short, clear task title
+        - priority: "high" if urgent/important, "medium" standard, "low" if optional
+        - dueDate: derive date from relative text (tomorrow, next week, Friday, etc.). Include time if specified, otherwise null for the time.
+        - category: only pick from the available list, otherwise null
+        - note: only if there is genuinely additional info in the text, otherwise empty string
 
         Text: \(trimmed)
         """
@@ -518,21 +518,21 @@ struct QuickAddSheet: View {
     private func generateSubTasks(for task: ParsedTask) async {
         isGeneratingSubTasks = true
 
-        var contextParts: [String] = ["Aufgabe: \(task.title)"]
-        if !task.note.isEmpty { contextParts.append("Beschreibung: \(task.note)") }
-        contextParts.append("Priorität: \(task.priority.displayName)")
-        if let cat = task.category { contextParts.append("Kategorie: \(cat.name)") }
+        var contextParts: [String] = ["Task: \(task.title)"]
+        if !task.note.isEmpty { contextParts.append("Description: \(task.note)") }
+        contextParts.append("Priority: \(task.priority.displayName)")
+        if let cat = task.category { contextParts.append("Category: \(cat.name)") }
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Teile diese Aufgabe in 3 bis 6 sinnvolle, konkrete Teilaufgaben auf Deutsch auf.
+        Split this task into 3 to 6 meaningful, concrete subtasks.
         \(context)
 
-        Regeln:
-        - Jede Teilaufgabe ist eine ausführbare Aktion
-        - Maximal 8 Wörter pro Teilaufgabe
-        - Eine Teilaufgabe pro Zeile, ohne Nummerierung und ohne Aufzählungszeichen
-        - Antworte NUR mit den Teilaufgaben, eine pro Zeile
+        Rules:
+        - Each subtask is an actionable step
+        - Maximum 8 words per subtask
+        - One subtask per line, no numbering, no bullet points
+        - Reply ONLY with the subtasks, one per line
         """
 
         var raw = ""
@@ -606,13 +606,9 @@ struct QuickAddSheet: View {
     }
 
     private var examplePrompts: [String] {
-        Locale.current.language.languageCode?.identifier == "en"
-            ? ["Call dentist tomorrow afternoon, important",
-               "Buy groceries on Friday",
-               "Finish project report by end of next week, high priority"]
-            : ["Zahnarzt morgen Nachmittag anrufen, wichtig",
-               "Einkaufen am Freitag",
-               "Projektbericht bis Ende nächster Woche fertig, hohe Priorität"]
+        ["Call dentist tomorrow afternoon, important",
+         "Buy groceries on Friday",
+         "Finish project report by end of next week, high priority"]
     }
 
     enum ParserError: Error { case noJSON, invalidJSON }

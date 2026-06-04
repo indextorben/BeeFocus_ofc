@@ -26,11 +26,11 @@ struct EllipsisMenuView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     if showFolderOption {
-                        sectionHeader(label: "AUSWAHL", icon: "checkmark.circle.fill", color: c1)
+                        sectionHeader(label: "SELECTION", icon: "checkmark.circle.fill", color: c1)
                         folderCard
                     }
 
-                    sectionHeader(label: "AUFGABEN", icon: "ellipsis.circle.fill", color: c1)
+                    sectionHeader(label: "TASKS", icon: "ellipsis.circle.fill", color: c1)
                         .padding(.top, showFolderOption ? 4 : 0)
                     actionsCard
                 }
@@ -79,8 +79,8 @@ struct EllipsisMenuView: View {
             row(id: "folder", index: 0,
                 icon: "folder.badge.plus",
                 gradient: [c1, c2],
-                title: "In Ordner verschieben",
-                description: "Ausgewählte Aufgaben verschieben",
+                title: "Move to Folder",
+                description: "Move selected tasks",
                 isDestructive: false
             ) { onMoveToFolder(); dismiss() }
         }
@@ -91,8 +91,8 @@ struct EllipsisMenuView: View {
             row(id: "vorlagen", index: showFolderOption ? 1 : 0,
                 icon: "rectangle.stack.fill",
                 gradient: [Color(red: 0.55, green: 0.35, blue: 1.0), Color(red: 0.35, green: 0.15, blue: 0.85)],
-                title: "Aufgaben-Vorlagen",
-                description: "Vorgefertigte Aufgaben verwenden",
+                title: "Task Templates",
+                description: "Use pre-made tasks",
                 isDestructive: false
             ) { onVorlagen(); dismiss() }
 
@@ -101,8 +101,8 @@ struct EllipsisMenuView: View {
             row(id: "bydate", index: showFolderOption ? 2 : 1,
                 icon: "calendar.badge.minus",
                 gradient: [.teal, Color(red: 0.0, green: 0.55, blue: 0.65)],
-                title: "Nach Zeitraum löschen",
-                description: "Abgeschlossene nach Datum entfernen",
+                title: "Delete by Date Range",
+                description: "Remove completed tasks by date",
                 isDestructive: false
             ) { onDeleteByDate(); dismiss() }
 
@@ -111,8 +111,8 @@ struct EllipsisMenuView: View {
             row(id: "trash", index: showFolderOption ? 3 : 2,
                 icon: "trash.fill",
                 gradient: [.red, Color(red: 0.75, green: 0.1, blue: 0.1)],
-                title: "Abgeschlossene in Papierkorb",
-                description: "Erledigte Aufgaben verschieben",
+                title: "Completed to Trash",
+                description: "Move completed tasks to trash",
                 isDestructive: true
             ) { onTrashCompleted(); dismiss() }
 
@@ -121,8 +121,8 @@ struct EllipsisMenuView: View {
             row(id: "dupes", index: showFolderOption ? 4 : 3,
                 icon: "doc.on.doc.fill",
                 gradient: [.orange, Color(red: 0.85, green: 0.4, blue: 0.0)],
-                title: "Duplikate entfernen",
-                description: "Doppelte Aufgaben löschen",
+                title: "Remove Duplicates",
+                description: "Delete duplicate tasks",
                 isDestructive: true
             ) { onRemoveDuplicates(); dismiss() }
         }

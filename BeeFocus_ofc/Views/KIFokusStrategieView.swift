@@ -56,10 +56,10 @@ struct KIFokusStrategieView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("KI-Fokus-Strategie")
+            .navigationTitle("AI Focus Strategy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fertig") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItem(placement: .principal) { providerMenu }
             }
         }
@@ -96,10 +96,10 @@ struct KIFokusStrategieView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Fokus-Strategie")
+                Text("Focus Strategy")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
-                Text("Personalisierter KI-Produktivitätsplan für dich")
+                Text("Personalized AI productivity plan for you")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -124,9 +124,9 @@ struct KIFokusStrategieView: View {
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
             profileChip("🎯", "\(dailyGoal)min", "Tagesziel",   color: accent)
             profileChip("⏱", formatMins(stats.avgFocusMins), "Ø/Tag 7d",  color: .cyan)
-            profileChip("✅", "\(stats.rate)%",  "Abschlussrate", color: Color(red: 0.3, green: 0.85, blue: 0.5))
+            profileChip("✅", "\(stats.rate)%",  "Completion", color: Color(red: 0.3, green: 0.85, blue: 0.5))
             profileChip("🔥", "\(stats.streak)d", "Streak",      color: .orange)
-            profileChip("📋", "\(stats.open)",   "Offen",        color: .secondary)
+            profileChip("📋", "\(stats.open)",   "Open",        color: .secondary)
             profileChip("⚡", aktiverTimerModus.isEmpty ? "Standard" : aktiverTimerModus, "Timer", color: .purple)
         }
     }
@@ -152,10 +152,10 @@ struct KIFokusStrategieView: View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text("KI erstellt deine persönliche Strategie…")
+                Text("AI is creating your personal strategy…")
                     .font(.subheadline).foregroundStyle(.white.opacity(0.6))
             }
-            Text("Analysiert Muster, Stärken und Verbesserungspotenzial.")
+            Text("Analyzing patterns, strengths and areas for improvement.")
                 .font(.caption).foregroundStyle(.white.opacity(0.35)).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(20)
@@ -167,7 +167,7 @@ struct KIFokusStrategieView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(accent)
-                Text("Deine Fokus-Strategie")
+                Text("Your Focus Strategy")
                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.45)).textCase(.uppercase)
                 Spacer()
                 if !isLoading {
@@ -206,11 +206,11 @@ struct KIFokusStrategieView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("KI nicht verfügbar").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text("AI unavailable").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(msg).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             Button { errorMessage = nil; Task { await generate() } } label: {
-                Label(hasKey ? "Erneut versuchen" : "API-Key hinzufügen",
+                Label(hasKey ? "Try again" : "Add API Key",
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -241,10 +241,10 @@ struct KIFokusStrategieView: View {
             }
             .padding(10).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button("Abbrechen") { showSetup = false }
+                Button("Cancel") { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button("Speichern") {
+                Button("Save") {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -293,8 +293,8 @@ struct KIFokusStrategieView: View {
                 if case .available = SystemLanguageModel.default.availability {
                     do { let s = LanguageModelSession(); for try await p in s.streamResponse(to: prompt) { generatedText = p.content }; isLoading = false; return }
                     catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence ist nicht verfügbar." }
-            } else { errorMessage = "Apple Intelligence benötigt iOS 26." }
+                } else { errorMessage = "Apple Intelligence is not available." }
+            } else { errorMessage = "Apple Intelligence requires iOS 26." }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { generatedText += c }; isLoading = false; return }
@@ -320,7 +320,7 @@ struct KIFokusStrategieView: View {
         let dayFocus = (0..<7).compactMap { offset -> String? in
             guard let day = cal.date(byAdding: .day, value: -offset, to: cal.startOfDay(for: Date())) else { return nil }
             let mins = todoStore.dailyFocusMinutes[day] ?? 0
-            let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "EEE"
+            let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "EEE"
             return "\(f.string(from: day)): \(mins)min"
         }.reversed().joined(separator: ", ")
 
@@ -334,25 +334,25 @@ struct KIFokusStrategieView: View {
         let overdue  = todos.filter { !$0.isCompleted && ($0.dueDate.map { $0 < Date() } == true) }.count
 
         return """
-        Du bist ein Elite-Produktivitäts-Coach. Erstelle auf Deutsch eine personalisierte Fokus-Strategie.
+        You are an elite productivity coach. Create a personalized focus strategy in English.
 
-        NUTZERPROFIL:
-        - Fokuszeit letzte 7 Tage: \(dayFocus)
-        - Durchschnitt: \(formatMins(stats.avgFocusMins))/Tag (Ziel: \(dailyGoal)min)
-        - Abschlussrate: \(stats.rate)%
-        - Aktueller Streak: \(stats.streak) Tage
-        - Offene Aufgaben: \(stats.open) (davon \(highPrio) dringend, \(overdue) überfällig)
-        - Timer-Modus: \(aktiverTimerModus.isEmpty ? "Standard Pomodoro 25/5" : aktiverTimerModus)
-        - Stimmungsverlauf (7 Tage): \(moods.isEmpty ? "nicht erfasst" : moods)
-        - Ø Schlaf: \(schlaf > 0 ? String(format: "%.1fh", schlaf) : "nicht erfasst")
+        USER PROFILE:
+        - Focus time last 7 days: \(dayFocus)
+        - Average: \(formatMins(stats.avgFocusMins))/day (goal: \(dailyGoal)min)
+        - Completion rate: \(stats.rate)%
+        - Current streak: \(stats.streak) days
+        - Open tasks: \(stats.open) (\(highPrio) urgent, \(overdue) overdue)
+        - Timer mode: \(aktiverTimerModus.isEmpty ? "Standard Pomodoro 25/5" : aktiverTimerModus)
+        - Mood trend (7 days): \(moods.isEmpty ? "not tracked" : moods)
+        - Avg sleep: \(schlaf > 0 ? String(format: "%.1fh", schlaf) : "not tracked")
 
-        Erstelle eine Strategie mit 4 Abschnitten:
-        1. **Dein Produktivitätsprofil** – Was zeigen die Daten über deinen Arbeitsstil? (Stärken & Schwächen)
-        2. **Optimaler Fokus-Rhythmus** – Welcher Timer-Modus, welche Tageszeiten, wie lange Blöcke passen zu dir?
-        3. **Diese Woche konkret** – 3 spezifische, umsetzbare Aktionen basierend auf deinen echten Zahlen
-        4. **Langfristige Entwicklung** – Ein Ziel für die nächsten 30 Tage mit Messbarkeit
+        Create a strategy with 4 sections:
+        1. **Your productivity profile** – What do the data show about your work style? (strengths & weaknesses)
+        2. **Optimal focus rhythm** – Which timer mode, which times of day, how long blocks suit you?
+        3. **This week in concrete terms** – 3 specific, actionable steps based on your real numbers
+        4. **Long-term development** – One goal for the next 30 days with measurability
 
-        Ton: direkt, ehrlich, motivierend. Nutze die echten Daten. Maximal 280 Wörter.
+        Tone: direct, honest, motivating. Use the real data. Maximum 280 words.
         """
     }
 

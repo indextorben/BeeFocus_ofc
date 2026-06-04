@@ -27,7 +27,7 @@ struct WebsiteSettingsView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Websites sperren")
+        .navigationTitle("Block Websites")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -49,7 +49,7 @@ struct WebsiteSettingsView: View {
 
     private var categoriesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title: "Kategorien", subtitle: "Schnell ganze Gruppen sperren")
+            sectionHeader(title: "Categories", subtitle: "Quickly block entire groups")
 
             VStack(spacing: 10) {
                 ForEach(websiteBlockCategories) { category in
@@ -91,10 +91,10 @@ struct WebsiteSettingsView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white : .primary)
                         Text(allAdded
-                             ? "Alle \(category.domains.count) gesperrt"
+                             ? "All \(category.domains.count) blocked"
                              : someAdded
-                                ? "\(addedCount) von \(category.domains.count) gesperrt"
-                                : "\(category.domains.count) Domains")
+                                ? "\(addedCount) of \(category.domains.count) blocked"
+                                : "\(category.domains.count) domains")
                             .font(.caption)
                             .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                     }
@@ -116,7 +116,7 @@ struct WebsiteSettingsView: View {
                             }
                         }
                     } label: {
-                        Text(allAdded ? "Entfernen" : "Alle")
+                        Text(allAdded ? "Remove" : "All")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
@@ -193,10 +193,10 @@ struct WebsiteSettingsView: View {
     private var manualDomainsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(
-                title: "Einzelne Domains",
+                title: "Individual Domains",
                 subtitle: manager.blockedDomains.isEmpty
-                    ? "Noch keine hinzugefügt"
-                    : "\(manager.blockedDomains.count) Domain\(manager.blockedDomains.count == 1 ? "" : "s") gesperrt"
+                    ? "None added yet"
+                    : "\(manager.blockedDomains.count) domain\(manager.blockedDomains.count == 1 ? "" : "s") blocked"
             )
 
             if manager.blockedDomains.isEmpty {
@@ -252,7 +252,7 @@ struct WebsiteSettingsView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(themeC1)
-                Text("Domain manuell hinzufügen")
+                Text("Add domain manually")
                     .font(.subheadline)
                     .foregroundStyle(isDark ? .white.opacity(0.7) : .secondary)
                 Spacer()
@@ -275,14 +275,14 @@ struct WebsiteSettingsView: View {
                 ThemeBackgroundView()
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Domain eingeben")
+                        Text("Enter domain")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
 
                         HStack {
                             Image(systemName: "globe")
                                 .foregroundStyle(themeC1)
-                            TextField("z. B. instagram.com", text: $newDomain)
+                            TextField("e.g. instagram.com", text: $newDomain)
                                 .keyboardType(.URL)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
@@ -291,7 +291,7 @@ struct WebsiteSettingsView: View {
                         .padding(14)
                         .themeGlass(cornerRadius: 12)
 
-                        Text("www. und https:// werden automatisch entfernt.")
+                        Text("www. and https:// are removed automatically.")
                             .font(.caption)
                             .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     }
@@ -299,7 +299,7 @@ struct WebsiteSettingsView: View {
                     Button {
                         submitDomain()
                     } label: {
-                        Text("Hinzufügen")
+                        Text("Add")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -318,11 +318,11 @@ struct WebsiteSettingsView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Website sperren")
+            .navigationTitle("Block Website")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { showingAddDomain = false }
+                    Button("Cancel") { showingAddDomain = false }
                 }
             }
         }

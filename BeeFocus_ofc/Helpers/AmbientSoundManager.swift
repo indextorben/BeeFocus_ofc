@@ -12,21 +12,21 @@ enum AmbientSound: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .off:           return "Stille"
-        case .whiteNoise:    return "Weißes Rauschen"
-        case .brownNoise:    return "Ozean-Wellen"
-        case .binauralFocus: return "Fokus-Beats"
-        case .binauralRelax: return "Relax-Beats"
+        case .off:           return "Silence"
+        case .whiteNoise:    return "White Noise"
+        case .brownNoise:    return "Ocean Waves"
+        case .binauralFocus: return "Focus Beats"
+        case .binauralRelax: return "Relax Beats"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .off:           return "Kein Sound"
-        case .whiteNoise:    return "Gleichmäßig, ablenkungsfrei"
-        case .brownNoise:    return "Tiefes, warmes Rauschen"
-        case .binauralFocus: return "40 Hz Gamma · Konzentration"
-        case .binauralRelax: return "6 Hz Theta · Entspannung"
+        case .off:           return "No Sound"
+        case .whiteNoise:    return "Steady, distraction-free"
+        case .brownNoise:    return "Deep, warm noise"
+        case .binauralFocus: return "40 Hz Gamma · Concentration"
+        case .binauralRelax: return "6 Hz Theta · Relaxation"
         }
     }
 

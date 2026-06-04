@@ -83,7 +83,7 @@ struct AmbientSoundView: View {
             Text("Ambient Sounds")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(.white)
-            Text("Steigere deine Konzentration mit Klang")
+            Text("Boost your focus with sound")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.55))
                 .multilineTextAlignment(.center)
@@ -252,7 +252,7 @@ struct AmbientSoundView: View {
                     .frame(width: 24)
             }
 
-            Text("Lautstärke")
+            Text("Volume")
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.35))
         }
@@ -268,7 +268,7 @@ struct AmbientSoundView: View {
             Image(systemName: "headphones")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.yellow)
-            Text("Kopfhörer verwenden für optimale Binaural-Beats")
+            Text("Use headphones for optimal binaural beats")
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.65))
         }
@@ -284,11 +284,11 @@ struct AmbientSoundView: View {
                 Image(systemName: "info.circle.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.35))
-                Text("Was sind Binaural Beats?")
+                Text("What are Binaural Beats?")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
             }
-            Text("Binaural Beats entstehen, wenn zwei leicht unterschiedliche Töne – je einer pro Ohr – gespielt werden. Das Gehirn nimmt die Differenz wahr und kann damit in bestimmte Zustände wie Fokus (40 Hz Gamma) oder Tiefenentspannung (6 Hz Theta) versetzt werden.")
+            Text("Binaural beats occur when two slightly different tones — one per ear — are played. The brain perceives the difference and can shift into specific states such as focus (40 Hz gamma) or deep relaxation (6 Hz theta).")
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.35))
                 .lineSpacing(3)

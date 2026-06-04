@@ -73,11 +73,11 @@ struct KITagesreflexionView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("KI-Tagesreflexion")
+            .navigationTitle("AI Daily Reflection")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .principal) {
                     Menu {
@@ -104,7 +104,7 @@ struct KITagesreflexionView: View {
                     GeminiKeyGuideView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Fertig") {
+                                Button("Done") {
                                     showGuide = false
                                     if hasKey { Task { await generate() } }
                                 }
@@ -129,10 +129,10 @@ struct KITagesreflexionView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Tagesreflexion")
+                Text("Daily Reflection")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
-                let f: DateFormatter = { let d = DateFormatter(); d.locale = Locale(identifier: "de_DE"); d.dateFormat = "EEEE, d. MMMM"; return d }()
+                let f: DateFormatter = { let d = DateFormatter(); d.locale = Locale.current; d.dateFormat = "EEEE, MMMM d"; return d }()
                 Text(f.string(from: Date()))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
@@ -157,10 +157,10 @@ struct KITagesreflexionView: View {
     private var dayAtGlance: some View {
         let stats = todayStats
         return HStack(spacing: 8) {
-            reflexionChip("✅", "\(stats.completed)", "Erledigt", color: Color(red: 0.3, green: 0.85, blue: 0.5))
-            reflexionChip("⏱", formatMins(stats.focusMins), "Fokus", color: Color(red: 0.3, green: 0.6, blue: 1.0))
+            reflexionChip("✅", "\(stats.completed)", "Completed", color: Color(red: 0.3, green: 0.85, blue: 0.5))
+            reflexionChip("⏱", formatMins(stats.focusMins), "Focus", color: Color(red: 0.3, green: 0.6, blue: 1.0))
             if let mood = stats.mood {
-                reflexionChip(stimmungsEmoji(mood), stimmungsLabel(mood), "Stimmung", color: stimmungsColor(mood))
+                reflexionChip(stimmungsEmoji(mood), stimmungsLabel(mood), "Mood", color: stimmungsColor(mood))
             }
             reflexionChip("🔥", "\(stats.streak)d", "Streak", color: .orange)
         }
@@ -200,11 +200,11 @@ struct KITagesreflexionView: View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text("Die KI reflektiert deinen Tag…")
+                Text("AI is reflecting on your day…")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.6))
             }
-            Text("Einen Moment – deine persönliche Reflexion wird erstellt.")
+            Text("One moment – your personal reflection is being created.")
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.35))
                 .multilineTextAlignment(.center)
@@ -221,7 +221,7 @@ struct KITagesreflexionView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(accent)
-                Text("Deine Reflexion")
+                Text("Your Reflection")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.45))
                     .textCase(.uppercase)
@@ -261,7 +261,7 @@ struct KITagesreflexionView: View {
                     UIPasteboard.general.string = generatedText
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
-                    Label("Reflexion kopieren", systemImage: "doc.on.doc")
+                    Label("Copy reflection", systemImage: "doc.on.doc")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
                 }
@@ -277,13 +277,13 @@ struct KITagesreflexionView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("KI nicht verfügbar").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text("AI unavailable").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(message).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 if hasKey {
                     Button { errorMessage = nil; Task { await generate() } } label: {
-                        Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                        Label("Try again", systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold)).foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(accent, in: Capsule())
@@ -291,7 +291,7 @@ struct KITagesreflexionView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button { showSetup = true; errorMessage = nil } label: {
-                        Label("API-Key hinzufügen", systemImage: "key.fill")
+                        Label("Add API Key", systemImage: "key.fill")
                             .font(.caption.weight(.semibold)).foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(accent, in: Capsule())
@@ -330,10 +330,10 @@ struct KITagesreflexionView: View {
             .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
 
             HStack {
-                Button("Abbrechen") { showSetup = false }
+                Button("Cancel") { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button("Speichern") {
+                Button("Save") {
                     let trimmed = keyInput.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     let kcKey: String
@@ -376,8 +376,8 @@ struct KITagesreflexionView: View {
                         for try await partial in stream { generatedText = partial.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence ist auf diesem Gerät nicht verfügbar." }
-            } else { errorMessage = "Apple Intelligence benötigt iOS 26." }
+                } else { errorMessage = "Apple Intelligence is not available on this device." }
+            } else { errorMessage = "Apple Intelligence requires iOS 26." }
 
         case "openai":
             if let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty {
@@ -427,29 +427,29 @@ struct KITagesreflexionView: View {
             .map { "- \($0.title)" }
             .joined(separator: "\n")
 
-        let moodLine = stats.mood.map { "Stimmung: \(stimmungsLabel($0)) (\(stimmungsEmoji($0)))" } ?? "Stimmung: nicht erfasst"
+        let moodLine = stats.mood.map { "Mood: \(stimmungsLabel($0)) (\(stimmungsEmoji($0)))" } ?? "Mood: not tracked"
         let focusGoalPct = dailyGoal > 0 ? Int(Double(stats.focusMins) / Double(dailyGoal) * 100) : 0
-        let f: DateFormatter = { let d = DateFormatter(); d.locale = Locale(identifier: "de_DE"); d.dateFormat = "EEEE, d. MMMM"; return d }()
+        let f: DateFormatter = { let d = DateFormatter(); d.locale = Locale.current; d.dateFormat = "EEEE, MMMM d"; return d }()
 
         return """
-        Du bist ein einfühlsamer Produktivitäts-Coach. Schreibe auf Deutsch eine persönliche, warme Tagesreflexion.
+        You are an empathetic productivity coach. Write a personal, warm daily reflection in English.
 
-        HEUTIGER TAG: \(f.string(from: Date()))
+        TODAY: \(f.string(from: Date()))
 
-        ERGEBNISSE:
-        - Erledigte Aufgaben: \(stats.completed)
+        RESULTS:
+        - Completed tasks: \(stats.completed)
         \(completedTitles.isEmpty ? "" : completedTitles + "\n")
-        - Offene heutige Aufgaben: \(openTitles.isEmpty ? "keine" : "\n" + openTitles)
-        - Fokuszeit: \(formatMins(stats.focusMins)) (Ziel: \(dailyGoal)min, \(focusGoalPct)% erreicht)
+        - Open tasks for today: \(openTitles.isEmpty ? "none" : "\n" + openTitles)
+        - Focus time: \(formatMins(stats.focusMins)) (goal: \(dailyGoal)min, \(focusGoalPct)% achieved)
         - \(moodLine)
-        - Streak: \(stats.streak) Tage in Folge
+        - Streak: \(stats.streak) days in a row
 
-        Schreibe eine Reflexion mit 3 Teilen:
-        1. **Rückblick** – Was war heute gut? Erkenne konkrete Leistungen an (bezogen auf die echten Daten).
-        2. **Erkenntnisse** – Was kann man aus dem heutigen Tag lernen? (Ehrlich, nicht übertrieben positiv)
-        3. **Ausblick** – Ein motivierender, konkreter Gedanke für morgen.
+        Write a reflection with 3 parts:
+        1. **Lookback** – What went well today? Acknowledge concrete achievements (based on the real data).
+        2. **Insights** – What can be learned from today? (Honest, not overly positive)
+        3. **Outlook** – One motivating, concrete thought for tomorrow.
 
-        Ton: warm, persönlich, direkt – wie ein guter Freund. Keine Floskeln. Maximal 200 Wörter. Nutze die echten Zahlen.
+        Tone: warm, personal, direct – like a good friend. No empty phrases. Maximum 200 words. Use the real numbers.
         """
     }
 

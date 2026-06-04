@@ -54,17 +54,17 @@ struct SubTasksView: View {
             .onAppear {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appeared = true }
             }
-            .alert("Teilaufgabe löschen?", isPresented: $showDeleteAlert) {
-                Button("Löschen", role: .destructive) {
+            .alert("Delete subtask?", isPresented: $showDeleteAlert) {
+                Button("Delete", role: .destructive) {
                     if let indexSet = pendingDeleteIndexSet {
                         subTasks.remove(atOffsets: indexSet)
                         saveChanges()
                         pendingDeleteIndexSet = nil
                     }
                 }
-                Button("Abbrechen", role: .cancel) { pendingDeleteIndexSet = nil }
+                Button("Cancel", role: .cancel) { pendingDeleteIndexSet = nil }
             } message: {
-                Text("Möchtest du diese Teilaufgabe wirklich löschen?")
+                Text("Are you sure you want to delete this subtask?")
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

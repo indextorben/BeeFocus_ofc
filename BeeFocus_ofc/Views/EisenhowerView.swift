@@ -46,9 +46,9 @@ struct EisenhowerView: View {
                         // Labels row
                         HStack {
                             Spacer()
-                            label("⚡ Dringend")
+                            label("⚡ Urgent")
                             Spacer()
-                            label("🕐 Nicht dringend")
+                            label("🕐 Not urgent")
                             Spacer()
                         }
                         .padding(.bottom, 6)
@@ -57,13 +57,13 @@ struct EisenhowerView: View {
                             // Important column label
                             VStack {
                                 Spacer()
-                                Text("Wichtig")
+                                Text("Important")
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(.white.opacity(0.35))
                                     .rotationEffect(.degrees(-90))
                                     .fixedSize()
                                 Spacer()
-                                Text("Nicht wichtig")
+                                Text("Not important")
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(.white.opacity(0.35))
                                     .rotationEffect(.degrees(-90))
@@ -123,10 +123,10 @@ struct EisenhowerView: View {
         VStack(spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Eisenhower-Matrix")
+                    Text("Eisenhower Matrix")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("Priorisiere nach Wichtigkeit & Dringlichkeit")
+                    Text("Prioritize by importance & urgency")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -148,7 +148,7 @@ struct EisenhowerView: View {
                 }
                 Spacer()
                 if !unassigned.isEmpty {
-                    Text("\(unassigned.count) nicht sortiert")
+                    Text("\(unassigned.count) unsorted")
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.4))
                 }
@@ -179,7 +179,7 @@ struct EisenhowerView: View {
             }
 
             if items.isEmpty {
-                Text("Aufgabe zuweisen →")
+                Text("Assign task →")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.2))
                     .italic()
@@ -205,7 +205,7 @@ struct EisenhowerView: View {
                         }
                     }
                     if items.count > 4 {
-                        Text("+\(items.count - 4) weitere")
+                        Text("+\(items.count - 4) more")
                             .font(.system(size: 10))
                             .foregroundStyle(.white.opacity(0.3))
                     }
@@ -229,7 +229,7 @@ struct EisenhowerView: View {
 
     private var unassignedSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Nicht kategorisiert (\(unassigned.count))")
+            Text("Uncategorized (\(unassigned.count))")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 
@@ -244,7 +244,7 @@ struct EisenhowerView: View {
                             .foregroundStyle(.white.opacity(0.85))
                             .lineLimit(1)
                         Spacer()
-                        Text("Einordnen")
+                        Text("Classify")
                             .font(.system(size: 11))
                             .foregroundStyle(accent.opacity(0.7))
                         Image(systemName: "chevron.right")
@@ -290,7 +290,7 @@ struct QuadrantPickerSheet: View {
                         .padding(.horizontal, 24)
                         .padding(.top, 8)
 
-                    Text("In welchen Quadranten gehört diese Aufgabe?")
+                    Text("Which quadrant does this task belong to?")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
 
@@ -327,12 +327,12 @@ struct QuadrantPickerSheet: View {
                 }
                 .padding(.top, 16)
             }
-            .navigationTitle("Aufgabe einordnen")
+            .navigationTitle("Classify Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button("Cancel") { dismiss() }
                         .foregroundStyle(.white.opacity(0.6))
                 }
             }

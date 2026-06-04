@@ -73,7 +73,7 @@ struct KIWochenberichtView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("KI-Wochenbericht")
+            .navigationTitle("AI Weekly Report")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarItems }
         }
@@ -83,7 +83,7 @@ struct KIWochenberichtView: View {
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Fertig") { dismiss() }
+            Button("Done") { dismiss() }
         }
         ToolbarItem(placement: .principal) {
             providerMenu
@@ -120,7 +120,7 @@ struct KIWochenberichtView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Wochenbericht")
+                Text("Weekly Report")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Text(weekRangeLabel)
@@ -146,13 +146,13 @@ struct KIWochenberichtView: View {
     private var weekOverview: some View {
         let stats = weekStats
         return HStack(spacing: 8) {
-            weekChip("✅", "\(stats.completed)", "Erledigt", color: Color(red: 0.3, green: 0.85, blue: 0.5))
-            weekChip("⏱", formatMins(stats.focusMins), "Fokus",    color: accent)
+            weekChip("✅", "\(stats.completed)", "Completed", color: Color(red: 0.3, green: 0.85, blue: 0.5))
+            weekChip("⏱", formatMins(stats.focusMins), "Focus",    color: accent)
             if let avg = stats.avgMood {
-                weekChip(stimmungsEmoji(Int(avg.rounded())), String(format: "%.1f", avg), "Stimmung", color: stimmungsColor(Int(avg.rounded())))
+                weekChip(stimmungsEmoji(Int(avg.rounded())), String(format: "%.1f", avg), "Mood", color: stimmungsColor(Int(avg.rounded())))
             }
             if !stats.bestDay.isEmpty {
-                weekChip("🏆", stats.bestDay, "Bester Tag", color: .orange)
+                weekChip("🏆", stats.bestDay, "Best Day", color: .orange)
             }
         }
     }
@@ -184,7 +184,7 @@ struct KIWochenberichtView: View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text("KI wertet deine Woche aus…").font(.subheadline).foregroundStyle(.white.opacity(0.6))
+                Text("AI is evaluating your week…").font(.subheadline).foregroundStyle(.white.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity).padding(20)
@@ -196,7 +196,7 @@ struct KIWochenberichtView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles").font(.system(size: 12, weight: .semibold)).foregroundStyle(accent)
-                Text("KI-Wochenbericht")
+                Text("AI Weekly Report")
                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.45)).textCase(.uppercase)
                 Spacer()
                 if !isLoading {
@@ -233,11 +233,11 @@ struct KIWochenberichtView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("KI nicht verfügbar").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text("AI unavailable").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(msg).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             Button { errorMessage = nil; Task { await generate() } } label: {
-                Label(hasKey ? "Erneut versuchen" : "API-Key hinzufügen",
+                Label(hasKey ? "Try again" : "Add API Key",
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -268,10 +268,10 @@ struct KIWochenberichtView: View {
             }
             .padding(10).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button("Abbrechen") { showSetup = false }
+                Button("Cancel") { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button("Speichern") {
+                Button("Save") {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -297,8 +297,8 @@ struct KIWochenberichtView: View {
                 if case .available = SystemLanguageModel.default.availability {
                     do { let s = LanguageModelSession(); for try await p in s.streamResponse(to: prompt) { generatedText = p.content }; isLoading = false; return }
                     catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence ist auf diesem Gerät nicht verfügbar." }
-            } else { errorMessage = "Apple Intelligence benötigt iOS 26." }
+                } else { errorMessage = "Apple Intelligence is not available on this device." }
+            } else { errorMessage = "Apple Intelligence requires iOS 26." }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { generatedText += c }; isLoading = false; return }
@@ -326,40 +326,40 @@ struct KIWochenberichtView: View {
             let done  = todos.filter { $0.isCompleted && ($0.completedAt.map { cal.isDate($0, inSameDayAs: day) } == true) }.count
             let focus = todoStore.dailyFocusMinutes[day] ?? 0
             let mood  = StimmungsStore.shared.eintraege.first(where: { cal.isDate($0.date, inSameDayAs: day) }).map { stimmungsLabel($0.stufe) } ?? "-"
-            dayLines.append("• \(weekdayDE(day)): \(done) Aufgaben erledigt, \(focus)min Fokus, Stimmung: \(mood)")
+            dayLines.append("• \(weekdayDE(day)): \(done) tasks completed, \(focus)min focus, mood: \(mood)")
         }
         let stats = weekStats
         return """
-        Du bist ein Produktivitäts-Analyst. Schreibe auf Deutsch einen strukturierten Wochenbericht.
+        You are a productivity analyst. Write a structured weekly report in English.
 
-        WOCHENDATEN (letzte 7 Tage):
+        WEEKLY DATA (last 7 days):
         \(dayLines.reversed().joined(separator: "\n"))
 
-        ZUSAMMENFASSUNG:
-        - Gesamt erledigt: \(stats.completed) Aufgaben
-        - Gesamt Fokuszeit: \(formatMins(stats.focusMins))
-        - Bester Tag: \(stats.bestDay.isEmpty ? "–" : stats.bestDay)
-        - Durchschnittsstimmung: \(stats.avgMood.map { String(format: "%.1f/5", $0) } ?? "nicht erfasst")
+        SUMMARY:
+        - Total completed: \(stats.completed) tasks
+        - Total focus time: \(formatMins(stats.focusMins))
+        - Best day: \(stats.bestDay.isEmpty ? "–" : stats.bestDay)
+        - Average mood: \(stats.avgMood.map { String(format: "%.1f/5", $0) } ?? "not tracked")
 
-        Schreibe einen Wochenbericht mit 4 Abschnitten:
-        1. **Wochenleistung** – Was wurde erreicht? Wie war die Fokuszeit-Verteilung?
-        2. **Höhen & Tiefen** – Welche Tage waren stark/schwach und warum vermutlich?
-        3. **Muster** – Erkennst du Trends (z.B. Fokus sinkt an bestimmten Tagen, Stimmungs-Produktivitäts-Zusammenhang)?
-        4. **Empfehlung für nächste Woche** – 2-3 konkrete, umsetzbare Maßnahmen.
+        Write a weekly report with 4 sections:
+        1. **Weekly performance** – What was achieved? How was the focus time distributed?
+        2. **Highs & lows** – Which days were strong/weak and why probably?
+        3. **Patterns** – Do you see trends (e.g. focus drops on certain days, mood-productivity correlation)?
+        4. **Recommendation for next week** – 2-3 concrete, actionable measures.
 
-        Ton: professionell, direkt, konstruktiv. Maximal 250 Wörter. Bezug auf echte Zahlen nehmen.
+        Tone: professional, direct, constructive. Maximum 250 words. Reference the real numbers.
         """
     }
 
     private var weekRangeLabel: String {
         let cal = Calendar.current
         guard let start = cal.date(byAdding: .day, value: -6, to: Date()) else { return "" }
-        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "d. MMM"
+        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "MMM d"
         return "\(f.string(from: start)) – \(f.string(from: Date()))"
     }
 
     private func weekdayDE(_ date: Date) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "EEE"
+        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "EEE"
         return f.string(from: date)
     }
 

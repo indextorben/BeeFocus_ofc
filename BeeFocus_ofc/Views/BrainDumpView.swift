@@ -453,10 +453,10 @@ struct BrainDumpView: View {
         autoTaggingIDs.insert(id)
 
         let prompt = """
-        Klassifiziere diesen Gedanken in genau eine der folgenden Kategorien: idee, aufgabe, frage, sorge, danke.
-        Antworte NUR mit dem einen Wort der Kategorie, ohne Erklärung, ohne Punkt.
+        Classify this thought into exactly one of the following categories: idee, aufgabe, frage, sorge, danke.
+        Reply ONLY with the single category word, no explanation, no period.
 
-        Gedanke: "\(entry.text)"
+        Thought: "\(entry.text)"
         """
 
         do {
@@ -484,13 +484,13 @@ struct BrainDumpView: View {
 
         let entries = store.eintraege.map { "[\($0.tag.label)] \($0.text)" }.joined(separator: "\n")
         let prompt = """
-        Analysiere diese Brain-Dump-Einträge des Nutzers und gib eine strukturierte Übersicht auf Deutsch:
-        - Erkenne Muster und wiederkehrende Themen
-        - Identifiziere, was den Nutzer am meisten beschäftigt
-        - Gib 2-3 konkrete Empfehlungen
-        Nutze maximal 200 Wörter. Keine Markdown-Formatierung.
+        Analyze these brain dump entries and provide a structured overview:
+        - Identify patterns and recurring themes
+        - Identify what is occupying the user the most
+        - Give 2-3 concrete recommendations
+        Maximum 200 words. No Markdown formatting.
 
-        Einträge:
+        Entries:
         \(entries)
         """
 
@@ -518,12 +518,12 @@ struct BrainDumpView: View {
         let entries = store.eintraege.filter { !$0.isConverted }
             .map { "- \($0.text)" }.joined(separator: "\n")
         let prompt = """
-        Extrahiere aus diesen Brain-Dump-Einträgen alle konkreten, ausführbaren Aufgaben – auch wenn sie als Sorge, Idee oder Frage formuliert sind.
-        Formuliere jede Aufgabe als klaren, aktionsfähigen deutschen Satz (z. B. "Arzttermin vereinbaren").
-        Gib NUR die Aufgaben aus, eine pro Zeile, ohne Nummerierung, ohne Erklärungen, ohne Leerzeilen.
-        Maximal 8 Aufgaben.
+        Extract all concrete, actionable tasks from these brain dump entries – even if formulated as a worry, idea or question.
+        Phrase each task as a clear, actionable sentence (e.g. "Schedule doctor's appointment").
+        Output ONLY the tasks, one per line, no numbering, no explanations, no blank lines.
+        Maximum 8 tasks.
 
-        Einträge:
+        Entries:
         \(entries)
         """
 
@@ -547,10 +547,10 @@ struct BrainDumpView: View {
         reformulatingIDs.insert(id)
 
         let prompt = """
-        Formuliere diesen rohen Gedanken in einen klaren, aktionsfähigen, positiv formulierten deutschen Satz um.
-        Antworte NUR mit dem umformulierten Satz, ohne Erklärungen, ohne Anführungszeichen.
+        Rephrase this raw thought into a clear, actionable, positively worded sentence.
+        Reply ONLY with the rephrased sentence, no explanations, no quotation marks.
 
-        Gedanke: "\(entry.text)"
+        Thought: "\(entry.text)"
         """
 
         Task {
@@ -590,14 +590,14 @@ struct BrainDumpView: View {
 
         let entries = recent.map { "[\($0.tag.label)] \($0.text)" }.joined(separator: "\n")
         let prompt = """
-        Du bist ein einfühlsamer Produktivitäts-Coach. Erstelle eine kurze Wochen-Reflexion auf Deutsch basierend auf diesen Brain-Dump-Einträgen der letzten 7 Tage:
-        - Was hat den Nutzer beschäftigt?
-        - Was wurde positiv erlebt (Dankbarkeit / Ideen)?
-        - Was sollte priorisiert werden?
-        - Ein ermutigendes Abschlussstatement
-        Maximal 180 Wörter. Keine Markdown-Formatierung.
+        You are a compassionate productivity coach. Create a short weekly reflection based on these brain dump entries from the last 7 days:
+        - What was on the user's mind?
+        - What was experienced positively (gratitude / ideas)?
+        - What should be prioritized?
+        - An encouraging closing statement
+        Maximum 180 words. No Markdown formatting.
 
-        Einträge:
+        Entries:
         \(entries)
         """
 

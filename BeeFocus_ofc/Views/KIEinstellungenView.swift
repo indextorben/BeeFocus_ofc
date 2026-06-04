@@ -444,8 +444,6 @@ struct KIEinstellungenView: View {
     }
 
     private var testPrompt: String {
-        Locale.current.language.languageCode?.identifier == "en"
-            ? "Give me one short, motivating productivity tip in 2 sentences."
-            : "Gib mir genau einen kurzen, motivierenden Produktivitätstipp in 2 Sätzen."
+        "Give me one short, motivating productivity tip in 2 sentences."
     }
 }

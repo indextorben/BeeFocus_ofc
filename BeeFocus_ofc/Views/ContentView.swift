@@ -245,7 +245,7 @@ struct ContentView: View {
             }
             Button("Abbrechen", role: .cancel) { }
         } message: {
-            Text("Alle erledigten Aufgaben werden in den Papierkorb verschoben und können dort wiederhergestellt werden.")
+            Text("All completed tasks will be moved to the trash and can be restored there.")
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {

@@ -506,7 +506,7 @@ struct CalendarView: View {
                     Text(localizer.localizedString(forKey: "Ziele"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(dark ? .white : .primary)
-                    Text("Wochenziele anzeigen")
+                    Text("View weekly goals")
                         .font(.caption)
                         .foregroundStyle(dark ? .white.opacity(0.5) : .secondary)
                 }
@@ -567,7 +567,7 @@ struct CalendarView: View {
 
     private func monthName(from date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: localizer.selectedLanguage == "Englisch" ? "en_US" : "de_DE")
+        f.locale = Locale.current
         f.dateFormat = "MMMM"
         return f.string(from: date)
     }
@@ -580,14 +580,14 @@ struct CalendarView: View {
 
     private func formattedDay(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: localizer.selectedLanguage == "Englisch" ? "en_US" : "de_DE")
+        f.locale = Locale.current
         f.dateFormat = "EEEE, d."
         return f.string(from: date)
     }
 
     private func formattedMonthYear(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: localizer.selectedLanguage == "Englisch" ? "en_US" : "de_DE")
+        f.locale = Locale.current
         f.dateFormat = "MMMM yyyy"
         return f.string(from: date)
     }
@@ -596,11 +596,11 @@ struct CalendarView: View {
 // MARK: - Calendar Import
 
 private enum ImportTimeRange: String, CaseIterable {
-    case week = "1 Woche"
-    case month = "1 Monat"
-    case year = "1 Jahr"
-    case forever = "Für immer"
-    case manual = "Manuell"
+    case week = "1 Week"
+    case month = "1 Month"
+    case year = "1 Year"
+    case forever = "Forever"
+    case manual = "Manual"
 }
 
 private enum ImportState: Equatable {
@@ -674,9 +674,9 @@ struct CalendarImportView: View {
 
     private var bannerText: String {
         switch importState {
-        case .success(let count): return "\(count) Eintrag\(count == 1 ? "" : "einträge") erfolgreich importiert"
-        case .empty: return "Keine neuen Einträge gefunden"
-        case .noCalendarsSelected: return "Bitte mindestens einen Kalender auswählen"
+        case .success(let count): return "\(count) entr\(count == 1 ? "y" : "ies") successfully imported"
+        case .empty: return "No new entries found"
+        case .noCalendarsSelected: return "Please select at least one calendar"
         default: return ""
         }
     }
@@ -687,15 +687,15 @@ struct CalendarImportView: View {
                 Form {
                     if !isAccessGranted {
                         Section {
-                            Button("Kalender-Zugriff erlauben") {
+                            Button("Allow Calendar Access") {
                                 Task { await requestAccess() }
                             }
                         } footer: {
-                            Text("BeeFocus benötigt Lesezugriff auf den Kalender, um Einträge zu importieren.")
+                            Text("BeeFocus needs read access to your calendar to import entries.")
                         }
                     } else {
-                        Section("Zeitraum") {
-                            Picker("Zeitraum", selection: $selectedRange) {
+                        Section("Time Range") {
+                            Picker("Time Range", selection: $selectedRange) {
                                 ForEach(ImportTimeRange.allCases, id: \.self) { range in
                                     Text(range.rawValue).tag(range)
                                 }
@@ -704,17 +704,17 @@ struct CalendarImportView: View {
                             .labelsHidden()
 
                             if selectedRange == .manual {
-                                DatePicker("Von", selection: $manualStart, displayedComponents: [.date])
-                                DatePicker("Bis", selection: $manualEnd, in: manualStart..., displayedComponents: [.date])
+                                DatePicker("From", selection: $manualStart, displayedComponents: [.date])
+                                DatePicker("To", selection: $manualEnd, in: manualStart..., displayedComponents: [.date])
                             }
                         }
 
-                        Section("Kalender auswählen") {
+                        Section("Select Calendars") {
                             if availableCalendars.isEmpty {
                                 HStack {
                                     ProgressView()
                                         .padding(.trailing, 6)
-                                    Text("Kalender werden geladen…")
+                                    Text("Loading calendars…")
                                         .foregroundStyle(.secondary)
                                 }
                             } else {
@@ -763,18 +763,18 @@ struct CalendarImportView: View {
                 }
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.78), value: showResultBanner)
-            .navigationTitle("Aus Kalender importieren")
+            .navigationTitle("Import from Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
                 if isAccessGranted {
                     ToolbarItem(placement: .confirmationAction) {
                         if importState == .importing {
                             ProgressView()
                         } else {
-                            Button("Importieren") {
+                            Button("Import") {
                                 performImport()
                             }
                             .fontWeight(.semibold)
@@ -846,7 +846,7 @@ struct CalendarImportView: View {
                   !existingByKey.contains(dayKey) else { continue }
 
             let todo = TodoItem(
-                title: event.title ?? "Kalendereintrag",
+                title: event.title ?? "Calendar Entry",
                 description: event.notes ?? "",
                 dueDate: event.startDate,
                 calendarEventIdentifier: event.eventIdentifier,

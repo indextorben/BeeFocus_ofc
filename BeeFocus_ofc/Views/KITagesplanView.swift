@@ -918,22 +918,19 @@ struct KITagesplanSheet: View {
                 guard let due = $0.dueDate else { return false }
                 return cal.isDate(due, inSameDayAs: selectedDate)
             }.filter { !$0.isCompleted }
-            let taskHint = dayTodos.isEmpty ? "" : "\n\nMeine Aufgaben heute: " + dayTodos.prefix(5).map { $0.title }.joined(separator: ", ") + "."
+            let taskHint = dayTodos.isEmpty ? "" : "\n\nMy tasks today: " + dayTodos.prefix(5).map { $0.title }.joined(separator: ", ") + "."
             return """
-            Antworte in 1–3 Sätzen, direkt und ohne Floskeln. Kein Markdown.
+            Respond in 1–3 sentences, direct and without filler phrases. No Markdown.
             \(trimmed)\(taskHint)
             """
         }
 
-        let isEnglish = Locale.current.language.languageCode?.identifier == "en"
-        let locale = Locale(identifier: isEnglish ? "en_US" : "de_DE")
-
         let dateFmt = DateFormatter()
-        dateFmt.locale = locale
-        dateFmt.dateFormat = "EEEE, d. MMMM yyyy"
+        dateFmt.locale = Locale.current
+        dateFmt.dateFormat = "EEEE, MMMM d, yyyy"
 
         let timeFmt = DateFormatter()
-        timeFmt.locale = locale
+        timeFmt.locale = Locale.current
         timeFmt.dateFormat = "HH:mm"
 
         let dayTodos = todos.filter {
@@ -943,35 +940,7 @@ struct KITagesplanSheet: View {
         let open = dayTodos.filter { !$0.isCompleted }
         let done  = dayTodos.filter {  $0.isCompleted }
 
-        return isEnglish
-            ? buildEnglishPrompt(dateString: dateFmt.string(from: selectedDate), tf: timeFmt, open: open, done: done)
-            : buildGermanPrompt(dateString: dateFmt.string(from: selectedDate), tf: timeFmt, open: open, done: done)
-    }
-
-    private func buildGermanPrompt(dateString: String, tf: DateFormatter,
-                                   open: [TodoItem], done: [TodoItem]) -> String {
-        var lines = ""
-        if !open.isEmpty {
-            lines += "Offene Aufgaben:\n"
-            for t in open {
-                let time = t.dueDate.map { tf.string(from: $0) } ?? "–"
-                let end  = t.endDate.map { " bis \(tf.string(from: $0))" } ?? ""
-                lines += "- \(t.title) (\(time)\(end))\n"
-            }
-        }
-        if !done.isEmpty {
-            lines += "\nBereits erledigt:\n"
-            for t in done { lines += "- \(t.title)\n" }
-        }
-        if open.isEmpty && done.isEmpty { lines = "Keine Aufgaben geplant." }
-
-        let ctx = cal.isDateInToday(selectedDate) ? "Heute" : "Am \(dateString)"
-        return """
-        Du bist ein knapper Produktivitätsassistent. Antworte auf Deutsch in maximal 3 Sätzen, direkt und ohne Floskeln. Kein Markdown.
-
-        \(ctx) (\(dateString)):
-        \(lines)
-        """
+        return buildEnglishPrompt(dateString: dateFmt.string(from: selectedDate), tf: timeFmt, open: open, done: done)
     }
 
     private func buildEnglishPrompt(dateString: String, tf: DateFormatter,
