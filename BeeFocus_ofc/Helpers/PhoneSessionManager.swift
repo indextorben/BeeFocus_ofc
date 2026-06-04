@@ -103,6 +103,23 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         }
     }
 
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any],
+                 replyHandler: @escaping ([String: Any]) -> Void) {
+        guard message["requestSnapshot"] != nil else { replyHandler([:]); return }
+        DispatchQueue.main.async {
+            // Snapshot sofort bauen und als direkte Antwort zurückschicken
+            if let store = self.todoStore {
+                store.performWidgetSnapshot()
+                let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") ?? Data()
+                replyHandler(["widgetSnapshot": data])
+            } else if let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") {
+                replyHandler(["widgetSnapshot": data])
+            } else {
+                replyHandler([:])
+            }
+        }
+    }
+
     // Aktionen + Snapshot-Anfragen via transferUserInfo (auch wenn iPhone nicht erreichbar war)
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         if userInfo["requestSnapshot"] != nil {

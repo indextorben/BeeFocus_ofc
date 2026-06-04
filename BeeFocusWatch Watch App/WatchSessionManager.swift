@@ -49,8 +49,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     func requestFreshSnapshot() {
         if WCSession.default.isReachable {
-            // sendMessage: sofort, wenn iPhone im Vordergrund/erreichbar
-            WCSession.default.sendMessage(["requestSnapshot": true], replyHandler: nil)
+            // sendMessage mit replyHandler: iPhone schickt Snapshot direkt zurück
+            WCSession.default.sendMessage(["requestSnapshot": true]) { [weak self] reply in
+                if let data = reply["widgetSnapshot"] as? Data {
+                    self?.applySnapshotData(data)
+                }
+            } errorHandler: { _ in }
         } else {
             // transferUserInfo: zugestellt sobald iPhone wieder läuft
             WCSession.default.transferUserInfo(["requestSnapshot": true])
