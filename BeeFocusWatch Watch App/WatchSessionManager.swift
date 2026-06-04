@@ -60,10 +60,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
                 if let data = reply["widgetSnapshot"] as? Data {
                     self?.applySnapshotData(data)
                 } else {
-                    print("[Watch] sendMessage reply enthält keinen widgetSnapshot")
+                    print("[Watch] sendMessage reply leer → transferUserInfo als Fallback")
+                    WCSession.default.transferUserInfo(["requestSnapshot": true])
                 }
             } errorHandler: { error in
-                print("[Watch] sendMessage errorHandler: \(error.localizedDescription)")
+                print("[Watch] sendMessage Fehler: \(error.localizedDescription) → transferUserInfo als Fallback")
+                WCSession.default.transferUserInfo(["requestSnapshot": true])
             }
         } else {
             print("[Watch] nicht erreichbar → transferUserInfo")
@@ -132,6 +134,14 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
         print("[Watch] sessionReachabilityDidChange isReachable=\(session.isReachable)")
         if session.isReachable {
             requestFreshSnapshot()
+        }
+    }
+
+    // Snapshot-Daten via transferUserInfo vom iPhone empfangen
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        print("[Watch] didReceiveUserInfo – keys=\(userInfo.keys.joined(separator: ","))")
+        if let data = userInfo["widgetSnapshot"] as? Data {
+            applySnapshotData(data)
         }
     }
 

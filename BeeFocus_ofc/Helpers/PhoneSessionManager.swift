@@ -74,6 +74,15 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         }
     }
 
+    // Sendet Snapshot über transferUserInfo (zuverlässig, auch wenn iPhone im Hintergrund)
+    func sendSnapshotViaTransferUserInfo(_ data: Data) {
+        guard WCSession.default.activationState == .activated,
+              WCSession.default.isPaired,
+              WCSession.default.isWatchAppInstalled else { return }
+        print("[Phone] sendSnapshotViaTransferUserInfo (\(data.count) Bytes)")
+        WCSession.default.transferUserInfo(["widgetSnapshot": data])
+    }
+
     // MARK: - Watch → iOS (live messages)
 
     private func completeWatchTask(id: UUID) {
@@ -132,7 +141,13 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         if userInfo["requestSnapshot"] != nil {
             print("[Phone] didReceiveUserInfo – requestSnapshot (via transferUserInfo)")
-            DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
+            DispatchQueue.main.async {
+                self.todoStore?.writeWidgetSnapshot()
+                // Snapshot auch direkt via transferUserInfo zurückschicken
+                if let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") {
+                    self.sendSnapshotViaTransferUserInfo(data)
+                }
+            }
         } else if let idString = userInfo["completeTask"] as? String, let id = UUID(uuidString: idString) {
             DispatchQueue.main.async { self.completeWatchTask(id: id) }
         } else if let ml = userInfo["addWater"] as? Int {
