@@ -138,40 +138,40 @@ struct EinstellungenView: View {
                     .position(x: geo.size.width * 0.5,
                                y: geo.size.height - geo.size.height * 0.27 * 0.5)
             }
-            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .opacity(["", "Forest", "Ice", "Northern Lights", "Galaxy", "Volcano", "Autumn", "Night", "Solar", "Cherry Blossom", "Lavender", "Sunset"].contains(aktivesThema) ? 0.0 : 1.0)
             .animation(.easeInOut(duration: 0.8), value: aktivesThema)
 
-            if aktivesThema == "Wald" {
+            if aktivesThema == "Forest" {
                 WaldDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Eis" {
+            if aktivesThema == "Ice" {
                 EisDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Nordlicht" {
+            if aktivesThema == "Northern Lights" {
                 NordlichtDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Galaxie" {
+            if aktivesThema == "Galaxy" {
                 GalaxieDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Vulkan" {
+            if aktivesThema == "Volcano" {
                 VulkanDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Herbst" {
+            if aktivesThema == "Autumn" {
                 HerbstDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Nacht" {
+            if aktivesThema == "Night" {
                 NachtDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
@@ -181,17 +181,17 @@ struct EinstellungenView: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Kirschblüte" {
+            if aktivesThema == "Cherry Blossom" {
                 KirschblueteDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Lavendel" {
+            if aktivesThema == "Lavender" {
                 LavendelDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Sonnenuntergang" {
+            if aktivesThema == "Sunset" {
                 SonnenuntergangDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
@@ -338,18 +338,18 @@ struct EinstellungenView: View {
 
     private var themeHeroIcon: String {
         switch aktivesThema {
-        case "Ozean":           return "water.waves"
-        case "Wald":            return "tree.fill"
-        case "Nacht":           return "moon.stars.fill"
+        case "Ocean":           return "water.waves"
+        case "Forest":            return "tree.fill"
+        case "Night":           return "moon.stars.fill"
         case "Solar":           return "sun.max.fill"
-        case "Kirschblüte":     return "camera.macro"
-        case "Vulkan":          return "flame.fill"
-        case "Eis":             return "snowflake"
-        case "Herbst":          return "wind"
-        case "Lavendel":        return "sparkles"
-        case "Sonnenuntergang": return "sunset.fill"
-        case "Galaxie":         return "moon.circle.fill"
-        case "Nordlicht":       return "aqi.medium"
+        case "Cherry Blossom":     return "camera.macro"
+        case "Volcano":          return "flame.fill"
+        case "Ice":             return "snowflake"
+        case "Autumn":          return "wind"
+        case "Lavender":        return "sparkles"
+        case "Sunset": return "sunset.fill"
+        case "Galaxy":         return "moon.circle.fill"
+        case "Northern Lights":       return "aqi.medium"
         default:                return "gearshape.2.fill"
         }
     }

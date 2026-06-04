@@ -146,18 +146,18 @@ struct StatistikView: View {
 
     private func themaFarben(fuer name: String) -> (Color, Color, Color) {
         switch name {
-        case "Ozean":          return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
-        case "Wald":           return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
-        case "Nacht":          return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
+        case "Ocean":          return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
+        case "Forest":           return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
+        case "Night":          return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
         case "Solar":          return (.orange, .yellow, Color(red: 1.0, green: 0.4, blue: 0.0))
-        case "Kirschblüte":    return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
-        case "Vulkan":         return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
-        case "Eis":            return (Color(red: 0.6, green: 0.9, blue: 1.0), .cyan, .white)
-        case "Herbst":         return (Color(red: 0.8, green: 0.4, blue: 0.1), Color(red: 0.6, green: 0.3, blue: 0.05), .orange)
-        case "Lavendel":       return (.purple, Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.85, green: 0.7, blue: 1.0))
-        case "Sonnenuntergang":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
-        case "Galaxie":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
-        case "Nordlicht":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
+        case "Cherry Blossom":    return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
+        case "Volcano":         return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
+        case "Ice":            return (Color(red: 0.6, green: 0.9, blue: 1.0), .cyan, .white)
+        case "Autumn":         return (Color(red: 0.8, green: 0.4, blue: 0.1), Color(red: 0.6, green: 0.3, blue: 0.05), .orange)
+        case "Lavender":       return (.purple, Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.85, green: 0.7, blue: 1.0))
+        case "Sunset":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
+        case "Galaxy":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
+        case "Northern Lights":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
         case "Aurora":         return (Color(red: 0.0, green: 0.9, blue: 0.8), Color(red: 0.5, green: 0.0, blue: 1.0), Color(red: 0.9, green: 0.0, blue: 1.0))
         case "Obsidian":       return (Color(red: 0.85, green: 0.65, blue: 0.1), Color(red: 0.6, green: 0.42, blue: 0.04), Color(red: 1.0, green: 0.85, blue: 0.3))
         case "Nebula":         return (Color(red: 1.0, green: 0.15, blue: 0.6), Color(red: 0.45, green: 0.0, blue: 0.85), Color(red: 0.1, green: 0.55, blue: 1.0))
@@ -199,18 +199,18 @@ struct StatistikView: View {
 
     var storeItems: [StoreItem] {[
         // Themes
-        StoreItem(name: "Ozean",           icon: "water.waves",              kosten: 500,  farbe: .cyan,                              beschreibung: "Calm waves, deep blue"),
-        StoreItem(name: "Wald",            icon: "leaf.fill",                kosten: 750,  farbe: .green,                             beschreibung: "Fresh nature, vibrant green"),
-        StoreItem(name: "Eis",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0), beschreibung: "Cool silence, crystal-clear white"),
-        StoreItem(name: "Herbst",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1), beschreibung: "Warm tones, golden leaves"),
-        StoreItem(name: "Nacht",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo,                            beschreibung: "Velvety darkness, sparkling stars"),
-        StoreItem(name: "Lavendel",        icon: "sparkles",                 kosten: 1200, farbe: .purple,                            beschreibung: "Soft violet, fragrant fields"),
+        StoreItem(name: "Ocean",           icon: "water.waves",              kosten: 500,  farbe: .cyan,                              beschreibung: "Calm waves, deep blue"),
+        StoreItem(name: "Forest",            icon: "leaf.fill",                kosten: 750,  farbe: .green,                             beschreibung: "Fresh nature, vibrant green"),
+        StoreItem(name: "Ice",             icon: "snowflake",                kosten: 800,  farbe: Color(red: 0.6, green: 0.9, blue: 1.0), beschreibung: "Cool silence, crystal-clear white"),
+        StoreItem(name: "Autumn",          icon: "wind",                     kosten: 900,  farbe: Color(red: 0.8, green: 0.4, blue: 0.1), beschreibung: "Warm tones, golden leaves"),
+        StoreItem(name: "Night",           icon: "moon.stars.fill",          kosten: 1000, farbe: .indigo,                            beschreibung: "Velvety darkness, sparkling stars"),
+        StoreItem(name: "Lavender",        icon: "sparkles",                 kosten: 1200, farbe: .purple,                            beschreibung: "Soft violet, fragrant fields"),
         StoreItem(name: "Solar",           icon: "sun.max.fill",             kosten: 1500, farbe: .orange,                            beschreibung: "Energy of the sun, radiantly warm"),
-        StoreItem(name: "Sonnenuntergang", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2), beschreibung: "Glowing evening sky orange"),
-        StoreItem(name: "Kirschblüte",     icon: "camera.macro",             kosten: 2000, farbe: .pink,                              beschreibung: "Delicate blossoms, Japanese spring"),
-        StoreItem(name: "Nordlicht",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6), beschreibung: "Magical aurora spectacle"),
-        StoreItem(name: "Vulkan",          icon: "flame.fill",               kosten: 3000, farbe: .red,                               beschreibung: "Burning intensity, pure power"),
-        StoreItem(name: "Galaxie",         icon: "moon.circle.fill",         kosten: 5000,  farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endless universe, cosmic depth"),
+        StoreItem(name: "Sunset", icon: "sunset.fill",              kosten: 1800, farbe: Color(red: 1.0, green: 0.4, blue: 0.2), beschreibung: "Glowing evening sky orange"),
+        StoreItem(name: "Cherry Blossom",     icon: "camera.macro",             kosten: 2000, farbe: .pink,                              beschreibung: "Delicate blossoms, Japanese spring"),
+        StoreItem(name: "Northern Lights",       icon: "aqi.medium",               kosten: 2500, farbe: Color(red: 0.0, green: 0.8, blue: 0.6), beschreibung: "Magical aurora spectacle"),
+        StoreItem(name: "Volcano",          icon: "flame.fill",               kosten: 3000, farbe: .red,                               beschreibung: "Burning intensity, pure power"),
+        StoreItem(name: "Galaxy",         icon: "moon.circle.fill",         kosten: 5000,  farbe: Color(red: 0.4, green: 0.2, blue: 1.0), beschreibung: "Endless universe, cosmic depth"),
         StoreItem(name: "Aurora",          icon: "aqi.high",                 kosten: 10000, farbe: Color(red: 0.0, green: 0.9, blue: 0.8), beschreibung: "Electric aurora shimmer · Exclusive"),
         StoreItem(name: "Obsidian",        icon: "crown.fill",               kosten: 15000, farbe: Color(red: 0.85, green: 0.65, blue: 0.1), beschreibung: "Noble obsidian, pure gold · Prestige"),
         StoreItem(name: "Nebula",          icon: "rays",                     kosten: 20000, farbe: Color(red: 1.0, green: 0.2, blue: 0.65), beschreibung: "Cosmic nebula, infinite depth · Legendary"),
@@ -927,37 +927,37 @@ struct StatistikView: View {
 
     // Theme decoration layers split out to keep backgroundGradient ZStack under the 10-child ViewBuilder limit
     @ViewBuilder private var themeDecorationLayer: some View {
-        if aktivesThema == "Wald" {
+        if aktivesThema == "Forest" {
             WaldDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Eis" {
+        } else if aktivesThema == "Ice" {
             EisDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Nordlicht" {
+        } else if aktivesThema == "Northern Lights" {
             NordlichtDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Galaxie" {
+        } else if aktivesThema == "Galaxy" {
             GalaxieDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Vulkan" {
+        } else if aktivesThema == "Volcano" {
             VulkanDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Herbst" {
+        } else if aktivesThema == "Autumn" {
             HerbstDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Nacht" {
+        } else if aktivesThema == "Night" {
             NachtDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
         } else if aktivesThema == "Solar" {
             SolarDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Kirschblüte" {
+        } else if aktivesThema == "Cherry Blossom" {
             KirschblueteDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Lavendel" {
+        } else if aktivesThema == "Lavender" {
             LavendelDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
-        } else if aktivesThema == "Sonnenuntergang" {
+        } else if aktivesThema == "Sunset" {
             SonnenuntergangDecorationLayer()
                 .transition(.opacity).animation(.easeInOut(duration: 0.8), value: aktivesThema)
         }
@@ -1011,7 +1011,7 @@ struct StatistikView: View {
                     .position(x: geo.size.width * 0.5,
                                y: geo.size.height - geo.size.height * 0.28 * 0.5)
             }
-            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .opacity(["", "Forest", "Ice", "Northern Lights", "Galaxy", "Volcano", "Autumn", "Night", "Solar", "Cherry Blossom", "Lavender", "Sunset"].contains(aktivesThema) ? 0.0 : 1.0)
             .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             themeDecorationLayer
         }
@@ -1345,7 +1345,7 @@ struct StatistikView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(istFreigeschaltet ? .primary : .secondary)
                     if istAktiv {
-                        Text("Aktiv")
+                        Text("Active")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 7).padding(.vertical, 2)
@@ -1365,7 +1365,7 @@ struct StatistikView: View {
                     if istAktiv { deaktiviereTimerModus() }
                     else { aktiverTimerModus = item.name; applyTimerModus(item.name) }
                 } label: {
-                    Text(istAktiv ? "Deaktivieren" : "Aktivieren")
+                    Text(istAktiv ? "Deactivate" : "Activate")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(istAktiv ? .secondary : item.farbe)
                         .padding(.horizontal, 12).padding(.vertical, 6)
@@ -1477,7 +1477,7 @@ struct StatistikView: View {
                             Circle()
                                 .fill(istAktiv ? item.farbe : Color.secondary.opacity(0.4))
                                 .frame(width: 6, height: 6)
-                            Text(istAktiv ? "An" : "Aus")
+                            Text(istAktiv ? "On" : "Off")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(istAktiv ? item.farbe : .secondary)
                         }
@@ -1590,12 +1590,12 @@ struct StatistikView: View {
 
                 // Status-Badge / Preis
                 if istAktiv {
-                    Text("Aktiv")
+                    Text("Active")
                         .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 2)
                         .background(item.farbe.gradient, in: Capsule())
                 } else if istFreigeschaltet {
-                    Text("Aktivieren")
+                    Text("Activate")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(item.farbe)
                         .padding(.horizontal, 8).padding(.vertical, 2)
@@ -1791,7 +1791,7 @@ struct StatistikView: View {
                 }
                 Text("Viel").font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(totalDays) aktive Tage")
+                Text("\(totalDays) active days")
                     .font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
             }
         }

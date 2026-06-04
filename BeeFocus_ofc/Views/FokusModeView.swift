@@ -205,20 +205,20 @@ struct FokusModeView: View {
                     .frame(width: geo.size.width, height: geo.size.height * 0.25)
                     .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.25 * 0.5)
             }
-            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .opacity(["", "Forest", "Ice", "Northern Lights", "Galaxy", "Volcano", "Autumn", "Night", "Solar", "Cherry Blossom", "Lavender", "Sunset"].contains(aktivesThema) ? 0.0 : 1.0)
             .animation(.easeInOut(duration: 0.8), value: aktivesThema)
 
-            if aktivesThema == "Wald" { WaldDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Eis" { EisDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Nordlicht" { NordlichtDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Galaxie" { GalaxieDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Vulkan" { VulkanDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Herbst" { HerbstDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Nacht" { NachtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Forest" { WaldDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Ice" { EisDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Northern Lights" { NordlichtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Galaxy" { GalaxieDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Volcano" { VulkanDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Autumn" { HerbstDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Night" { NachtDecorationLayer().transition(.opacity) }
             if aktivesThema == "Solar" { SolarDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Kirschblüte" { KirschblueteDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Lavendel" { LavendelDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Sonnenuntergang" { SonnenuntergangDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Cherry Blossom" { KirschblueteDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Lavender" { LavendelDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Sunset" { SonnenuntergangDecorationLayer().transition(.opacity) }
         }
         .animation(.easeInOut(duration: 0.8), value: aktivesThema)
         .ignoresSafeArea()

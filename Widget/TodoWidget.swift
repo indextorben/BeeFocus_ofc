@@ -127,18 +127,18 @@ struct TodoWidgetProvider: TimelineProvider {
 
 func themeColors(_ theme: String) -> [Color] {
     switch theme {
-    case "Ozean":           return [Color(red: 0.0,  green: 0.55, blue: 0.80), Color(red: 0.0,  green: 0.40, blue: 0.65)]
-    case "Wald":            return [Color(red: 0.15, green: 0.62, blue: 0.25), Color(red: 0.05, green: 0.42, blue: 0.15)]
-    case "Nacht":           return [Color(red: 0.18, green: 0.10, blue: 0.45), Color(red: 0.08, green: 0.04, blue: 0.28)]
+    case "Ocean":           return [Color(red: 0.0,  green: 0.55, blue: 0.80), Color(red: 0.0,  green: 0.40, blue: 0.65)]
+    case "Forest":            return [Color(red: 0.15, green: 0.62, blue: 0.25), Color(red: 0.05, green: 0.42, blue: 0.15)]
+    case "Night":           return [Color(red: 0.18, green: 0.10, blue: 0.45), Color(red: 0.08, green: 0.04, blue: 0.28)]
     case "Solar":           return [Color(red: 0.95, green: 0.55, blue: 0.0),  Color(red: 0.85, green: 0.35, blue: 0.0) ]
-    case "Kirschblüte":     return [Color(red: 0.95, green: 0.38, blue: 0.60), Color(red: 0.80, green: 0.20, blue: 0.45)]
-    case "Vulkan":          return [Color(red: 0.85, green: 0.18, blue: 0.05), Color(red: 0.65, green: 0.08, blue: 0.0) ]
-    case "Eis":             return [Color(red: 0.35, green: 0.72, blue: 0.92), Color(red: 0.18, green: 0.55, blue: 0.80)]
-    case "Herbst":          return [Color(red: 0.80, green: 0.40, blue: 0.08), Color(red: 0.60, green: 0.25, blue: 0.02)]
-    case "Lavendel":        return [Color(red: 0.58, green: 0.28, blue: 0.88), Color(red: 0.42, green: 0.15, blue: 0.72)]
-    case "Sonnenuntergang": return [Color(red: 0.95, green: 0.38, blue: 0.15), Color(red: 0.80, green: 0.22, blue: 0.45)]
-    case "Galaxie":         return [Color(red: 0.55, green: 0.25, blue: 0.92), Color(red: 0.30, green: 0.08, blue: 0.70)]
-    case "Nordlicht":       return [Color(red: 0.05, green: 0.62, blue: 0.42), Color(red: 0.02, green: 0.42, blue: 0.58)]
+    case "Cherry Blossom":     return [Color(red: 0.95, green: 0.38, blue: 0.60), Color(red: 0.80, green: 0.20, blue: 0.45)]
+    case "Volcano":          return [Color(red: 0.85, green: 0.18, blue: 0.05), Color(red: 0.65, green: 0.08, blue: 0.0) ]
+    case "Ice":             return [Color(red: 0.35, green: 0.72, blue: 0.92), Color(red: 0.18, green: 0.55, blue: 0.80)]
+    case "Autumn":          return [Color(red: 0.80, green: 0.40, blue: 0.08), Color(red: 0.60, green: 0.25, blue: 0.02)]
+    case "Lavender":        return [Color(red: 0.58, green: 0.28, blue: 0.88), Color(red: 0.42, green: 0.15, blue: 0.72)]
+    case "Sunset": return [Color(red: 0.95, green: 0.38, blue: 0.15), Color(red: 0.80, green: 0.22, blue: 0.45)]
+    case "Galaxy":         return [Color(red: 0.55, green: 0.25, blue: 0.92), Color(red: 0.30, green: 0.08, blue: 0.70)]
+    case "Northern Lights":       return [Color(red: 0.05, green: 0.62, blue: 0.42), Color(red: 0.02, green: 0.42, blue: 0.58)]
     default:                return [Color(red: 0.42, green: 0.18, blue: 0.82), Color(red: 0.25, green: 0.08, blue: 0.65)]
     }
 }

@@ -920,8 +920,8 @@ struct ThemeBackgroundView: View {
     private var c1: Color { appThemaFarben(aktivesThema).0 }
     private var c2: Color { appThemaFarben(aktivesThema).1 }
 
-    private let waveThemes: [String] = ["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan",
-                                        "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"]
+    private let waveThemes: [String] = ["", "Forest", "Ice", "Northern Lights", "Galaxy", "Volcano",
+                                        "Autumn", "Night", "Solar", "Cherry Blossom", "Lavender", "Sunset"]
 
     var body: some View {
         ZStack {
@@ -972,17 +972,17 @@ struct ThemeBackgroundView: View {
             .opacity(waveThemes.contains(aktivesThema) ? 0.0 : 1.0)
             .animation(.easeInOut(duration: 0.8), value: aktivesThema)
 
-            if aktivesThema == "Wald"           { WaldDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Eis"            { EisDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Nordlicht"      { NordlichtDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Galaxie"        { GalaxieDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Vulkan"         { VulkanDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Herbst"         { HerbstDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Nacht"          { NachtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Forest"           { WaldDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Ice"            { EisDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Northern Lights"      { NordlichtDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Galaxy"        { GalaxieDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Volcano"         { VulkanDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Autumn"         { HerbstDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Night"          { NachtDecorationLayer().transition(.opacity) }
             if aktivesThema == "Solar"          { SolarDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Kirschblüte"    { KirschblueteDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Lavendel"       { LavendelDecorationLayer().transition(.opacity) }
-            if aktivesThema == "Sonnenuntergang"{ SonnenuntergangDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Cherry Blossom"    { KirschblueteDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Lavender"       { LavendelDecorationLayer().transition(.opacity) }
+            if aktivesThema == "Sunset"{ SonnenuntergangDecorationLayer().transition(.opacity) }
             if aktivesThema == "Aurora"         { AuroraDecorationLayer().transition(.opacity) }
             if aktivesThema == "Obsidian"       { ObsidianDecorationLayer().transition(.opacity) }
             if aktivesThema == "Nebula"         { NebulaDecorationLayer().transition(.opacity) }
@@ -1046,18 +1046,18 @@ extension View {
 
 func appThemaFarben(_ name: String) -> (Color, Color, Color) {
     switch name {
-    case "Ozean":          return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
-    case "Wald":           return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
-    case "Nacht":          return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
+    case "Ocean":          return (.cyan, .teal, Color(red: 0.0, green: 0.6, blue: 0.9))
+    case "Forest":           return (.green, Color(red: 0.1, green: 0.5, blue: 0.2), .mint)
+    case "Night":          return (.indigo, Color(red: 0.1, green: 0.0, blue: 0.3), .purple)
     case "Solar":          return (.orange, .yellow, Color(red: 1.0, green: 0.4, blue: 0.0))
-    case "Kirschblüte":    return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
-    case "Vulkan":         return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
-    case "Eis":            return (Color(red: 0.6, green: 0.9, blue: 1.0), .cyan, .white)
-    case "Herbst":         return (Color(red: 0.8, green: 0.4, blue: 0.1), Color(red: 0.6, green: 0.3, blue: 0.05), .orange)
-    case "Lavendel":       return (.purple, Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.85, green: 0.7, blue: 1.0))
-    case "Sonnenuntergang":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
-    case "Galaxie":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
-    case "Nordlicht":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
+    case "Cherry Blossom":    return (.pink, Color(red: 1.0, green: 0.4, blue: 0.6), .red)
+    case "Volcano":         return (.red, Color(red: 0.8, green: 0.1, blue: 0.0), .orange)
+    case "Ice":            return (Color(red: 0.6, green: 0.9, blue: 1.0), .cyan, .white)
+    case "Autumn":         return (Color(red: 0.8, green: 0.4, blue: 0.1), Color(red: 0.6, green: 0.3, blue: 0.05), .orange)
+    case "Lavender":       return (.purple, Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.85, green: 0.7, blue: 1.0))
+    case "Sunset":return (Color(red: 1.0, green: 0.4, blue: 0.2), .pink, Color(red: 1.0, green: 0.65, blue: 0.0))
+    case "Galaxy":        return (Color(red: 0.62, green: 0.32, blue: 1.0), Color(red: 0.42, green: 0.12, blue: 0.95), Color(red: 0.80, green: 0.58, blue: 1.0))
+    case "Northern Lights":      return (.green, Color(red: 0.0, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.4, blue: 1.0))
     case "Aurora":         return (Color(red: 0.0, green: 0.9, blue: 0.8), Color(red: 0.5, green: 0.0, blue: 1.0), Color(red: 0.9, green: 0.0, blue: 1.0))
     case "Obsidian":       return (Color(red: 0.85, green: 0.65, blue: 0.1), Color(red: 0.6, green: 0.42, blue: 0.04), Color(red: 1.0, green: 0.85, blue: 0.3))
     case "Nebula":         return (Color(red: 1.0, green: 0.15, blue: 0.6), Color(red: 0.45, green: 0.0, blue: 0.85), Color(red: 0.1, green: 0.55, blue: 1.0))
@@ -1092,18 +1092,18 @@ struct TaskCardThemeDecoration: View {
 
     @ViewBuilder
     var body: some View {
-        if      theme == "Ozean"            { OzeanCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Wald"             { WaldCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Nacht"            { NachtCardDeco(isDark: isDark, isActive: isActive) }
+        if      theme == "Ocean"            { OzeanCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Forest"             { WaldCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Night"            { NachtCardDeco(isDark: isDark, isActive: isActive) }
         else if theme == "Solar"            { SolarCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Kirschblüte"      { KirschCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Vulkan"           { VulkanCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Eis"             { EisCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Herbst"           { HerbstCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Lavendel"         { LavendelCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Sonnenuntergang"  { SunsetCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Galaxie"          { GalaxieCardDeco(isDark: isDark, isActive: isActive) }
-        else if theme == "Nordlicht"        { NordlichtCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Cherry Blossom"      { KirschCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Volcano"           { VulkanCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Ice"             { EisCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Autumn"           { HerbstCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Lavender"         { LavendelCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Sunset"  { SunsetCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Galaxy"          { GalaxieCardDeco(isDark: isDark, isActive: isActive) }
+        else if theme == "Northern Lights"        { NordlichtCardDeco(isDark: isDark, isActive: isActive) }
         else if theme == "Aurora"           { AuroraCardDeco(isDark: isDark, isActive: isActive) }
         else if theme == "Obsidian"         { ObsidianCardDeco(isDark: isDark, isActive: isActive) }
         else if theme == "Nebula"           { NebulaCardDeco(isDark: isDark, isActive: isActive) }

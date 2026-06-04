@@ -9,15 +9,15 @@ import WatchKit
 
 private func themeAccent(for theme: String) -> Color {
     switch theme {
-    case "Ozean", "Eis":        return .cyan
-    case "Wald", "Nordlicht":   return .green
-    case "Nacht":               return .indigo
+    case "Ocean", "Ice":        return .cyan
+    case "Forest", "Northern Lights":   return .green
+    case "Night":               return .indigo
     case "Solar":               return .orange
-    case "Kirschblüte":         return .pink
-    case "Vulkan":              return .red
-    case "Herbst":              return Color(red: 0.9, green: 0.5, blue: 0.1)
-    case "Lavendel", "Galaxie": return .purple
-    case "Sonnenuntergang":     return Color(red: 1.0, green: 0.4, blue: 0.2)
+    case "Cherry Blossom":         return .pink
+    case "Volcano":              return .red
+    case "Autumn":              return Color(red: 0.9, green: 0.5, blue: 0.1)
+    case "Lavender", "Galaxy": return .purple
+    case "Sunset":     return Color(red: 1.0, green: 0.4, blue: 0.2)
     default:                    return Color(red: 0.5, green: 0.35, blue: 1.0)
     }
 }

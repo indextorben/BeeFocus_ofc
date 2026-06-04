@@ -122,18 +122,18 @@ struct MacSettingsView: View {
 
     private var themeHeroIcon: String {
         switch aktivesThema {
-        case "Ozean":           return "water.waves"
-        case "Wald":            return "tree.fill"
-        case "Nacht":           return "moon.stars.fill"
+        case "Ocean":           return "water.waves"
+        case "Forest":            return "tree.fill"
+        case "Night":           return "moon.stars.fill"
         case "Solar":           return "sun.max.fill"
-        case "Kirschblüte":     return "camera.macro"
-        case "Vulkan":          return "flame.fill"
-        case "Eis":             return "snowflake"
-        case "Herbst":          return "wind"
-        case "Lavendel":        return "sparkles"
-        case "Sonnenuntergang": return "sunset.fill"
-        case "Galaxie":         return "moon.circle.fill"
-        case "Nordlicht":       return "aqi.medium"
+        case "Cherry Blossom":     return "camera.macro"
+        case "Volcano":          return "flame.fill"
+        case "Ice":             return "snowflake"
+        case "Autumn":          return "wind"
+        case "Lavender":        return "sparkles"
+        case "Sunset": return "sunset.fill"
+        case "Galaxy":         return "moon.circle.fill"
+        case "Northern Lights":       return "aqi.medium"
         default:                return "gearshape.2.fill"
         }
     }

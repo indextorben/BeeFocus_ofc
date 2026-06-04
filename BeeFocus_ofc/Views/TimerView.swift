@@ -212,41 +212,41 @@ struct TimerView: View {
                     .frame(width: geo.size.width, height: geo.size.height * 0.25)
                     .position(x: geo.size.width * 0.5, y: geo.size.height - geo.size.height * 0.25 * 0.5)
             }
-            .opacity(["", "Wald", "Eis", "Nordlicht", "Galaxie", "Vulkan", "Herbst", "Nacht", "Solar", "Kirschblüte", "Lavendel", "Sonnenuntergang"].contains(aktivesThema) ? 0.0 : 1.0)
+            .opacity(["", "Forest", "Ice", "Northern Lights", "Galaxy", "Volcano", "Autumn", "Night", "Solar", "Cherry Blossom", "Lavender", "Sunset"].contains(aktivesThema) ? 0.0 : 1.0)
             .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             .animation(.easeInOut(duration: 0.6), value: timerManager.isBreak)
 
-            if aktivesThema == "Wald" && !timerManager.isBreak {
+            if aktivesThema == "Forest" && !timerManager.isBreak {
                 WaldDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Eis" {
+            if aktivesThema == "Ice" {
                 EisDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Nordlicht" {
+            if aktivesThema == "Northern Lights" {
                 NordlichtDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Galaxie" {
+            if aktivesThema == "Galaxy" {
                 GalaxieDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Vulkan" {
+            if aktivesThema == "Volcano" {
                 VulkanDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Herbst" {
+            if aktivesThema == "Autumn" {
                 HerbstDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Nacht" {
+            if aktivesThema == "Night" {
                 NachtDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
@@ -256,17 +256,17 @@ struct TimerView: View {
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Kirschblüte" {
+            if aktivesThema == "Cherry Blossom" {
                 KirschblueteDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Lavendel" {
+            if aktivesThema == "Lavender" {
                 LavendelDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
             }
-            if aktivesThema == "Sonnenuntergang" {
+            if aktivesThema == "Sunset" {
                 SonnenuntergangDecorationLayer()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.8), value: aktivesThema)
