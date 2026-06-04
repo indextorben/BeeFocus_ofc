@@ -15,23 +15,12 @@ struct BeeFocusMacApp: App {
     }
 
     var body: some Scene {
-        Window("BeeFocus", id: "main") {
-            MacMainWindowView()
-                .environmentObject(todoStore)
-                .environmentObject(timerMgr)
-                .environmentObject(subManager)
-                .environment(\.activeTheme, activeTheme)
-        }
-        .windowResizability(.contentMinSize)
-        .defaultSize(width: 980, height: 660)
-
         MenuBarExtra {
             MenuBarContentView()
                 .environmentObject(todoStore)
                 .environmentObject(timerMgr)
                 .environmentObject(subManager)
                 .environment(\.activeTheme, activeTheme)
-                .frame(width: 300)
         } label: {
             MenuBarLabel()
                 .environmentObject(timerMgr)

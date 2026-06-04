@@ -10,9 +10,9 @@ enum MacTodoPriority: String, CaseIterable, Codable {
 
     var label: String {
         switch self {
-        case .low:    return "Niedrig"
-        case .medium: return "Mittel"
-        case .high:   return "Hoch"
+        case .low:    return "Low"
+        case .medium: return "Medium"
+        case .high:   return "High"
         }
     }
 

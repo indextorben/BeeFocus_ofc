@@ -19,6 +19,14 @@ enum TimerMode: String {
         case .longBreak:  return Color(red: 0.3, green: 0.6, blue: 1.0)
         }
     }
+
+    var displayName: String {
+        switch self {
+        case .focus:       return "Focus"
+        case .shortBreak:  return "Short Break"
+        case .longBreak:   return "Long Break"
+        }
+    }
 }
 
 @MainActor
@@ -147,14 +155,14 @@ final class MacTimerManager: ObservableObject {
         content.sound    = .default
         switch mode {
         case .focus:
-            content.title = "Fokuszeit geschafft! 🎉"
-            content.body  = "Gönn dir eine kurze Pause."
+            content.title = "Focus session done! 🎉"
+            content.body  = "Time for a short break."
         case .shortBreak:
-            content.title = "Pause vorbei!"
-            content.body  = "Zeit für den nächsten Fokus-Block."
+            content.title = "Break over!"
+            content.body  = "Time for the next focus block."
         case .longBreak:
-            content.title = "Lange Pause vorbei!"
-            content.body  = "Du hast \(sessionCount) Pomodoros abgeschlossen. Weiter so!"
+            content.title = "Long break over!"
+            content.body  = "You've completed \(sessionCount) Pomodoros. Keep it up!"
         }
         let req = UNNotificationRequest(
             identifier: UUID().uuidString,
