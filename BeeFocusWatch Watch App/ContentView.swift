@@ -262,7 +262,7 @@ struct TaskRow: View {
                         .strikethrough(isDone)
                         .lineLimit(2)
 
-                    if let due = task.dueDate {
+                    if let due = task.dueDate, hasRelevantTime(due) || task.endDate != nil {
                         HStack(spacing: 4) {
                             Image(systemName: "clock").font(.system(size: 9))
                                 .foregroundStyle(task.isOverdue ? .orange : .secondary)
@@ -298,6 +298,11 @@ struct TaskRow: View {
                 .fill(rowAccent.opacity(0.08))
                 .padding(.vertical, 2)
         )
+    }
+
+    private func hasRelevantTime(_ date: Date) -> Bool {
+        let cal = Calendar.current
+        return cal.component(.hour, from: date) != 0 || cal.component(.minute, from: date) != 0
     }
 
     private func timeStr(due: Date, end: Date?) -> String {

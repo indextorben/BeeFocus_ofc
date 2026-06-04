@@ -271,25 +271,30 @@ extension TodoStore {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
+        let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
 
-        // Echte geplante Aufgaben für heute (mit Start- UND Endzeit) — wie TagesplanerView
-        let scheduled = todos.filter { todo in
-            guard !todo.isCompleted,
-                  let due = todo.dueDate,
-                  due >= today && due < tomorrow,
-                  todo.endDate != nil
-            else { return false }
-            return true
+        // Alle offenen Todos für heute — identisch zu TagesplanerView auf dem iPhone
+        let todayTodos = todos.filter { todo in
+            guard !todo.isCompleted, let due = todo.dueDate else { return false }
+            return due >= today && due < tomorrow
         }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
 
-        if !scheduled.isEmpty {
-            return scheduled.prefix(15).map { todo in
+        if !todayTodos.isEmpty {
+            return todayTodos.prefix(20).map { todo in
                 let due = todo.dueDate ?? today
                 let startH = cal.component(.hour, from: due)
                 let startM = cal.component(.minute, from: due)
-                let endH   = cal.component(.hour, from: todo.endDate ?? due)
-                let endM   = cal.component(.minute, from: todo.endDate ?? due)
-                let zeitLabel = String(format: "%02d:%02d – %02d:%02d", startH, startM, endH, endM)
+                let hasTime = startH != 0 || startM != 0
+                let zeitLabel: String
+                if let end = todo.endDate {
+                    let endH = cal.component(.hour, from: end)
+                    let endM = cal.component(.minute, from: end)
+                    zeitLabel = String(format: "%02d:%02d – %02d:%02d", startH, startM, endH, endM)
+                } else if hasTime {
+                    zeitLabel = String(format: "%02d:%02d", startH, startM)
+                } else {
+                    zeitLabel = "Ganztägig"
+                }
                 let farbeName: String
                 switch todo.priority {
                 case .high:   farbeName = "rot"
@@ -310,33 +315,6 @@ extension TodoStore {
             }
         }
 
-        // Fallback: BausteinStore-Vorlagen nach Wochentag
-        guard let data = UserDefaults.standard.data(forKey: "tagesplanBausteine"),
-              let decoded = try? JSONDecoder().decode([TagesplanBaustein].self, from: data)
-        else { return [] }
-
-        let raw = cal.component(.weekday, from: Date())
-        let wochentag = raw == 1 ? 7 : raw - 1
-
-        return decoded
-            .filter { b in b.wochentage.isEmpty || b.wochentage.contains(wochentag) }
-            .sorted { a, b in
-                if a.startStunde != b.startStunde { return a.startStunde < b.startStunde }
-                return a.startMinute < b.startMinute
-            }
-            .prefix(15)
-            .map { b in
-                WatchBaustein(
-                    id: b.id,
-                    titel: b.titel,
-                    symbol: b.symbol,
-                    farbeName: b.farbe.rawValue,
-                    zeitLabel: b.zeitLabel,
-                    beschreibung: b.beschreibung,
-                    isHighPriority: b.isHighPriority,
-                    startStunde: b.startStunde,
-                    startMinute: b.startMinute
-                )
-            }
+        return []
     }
 }
