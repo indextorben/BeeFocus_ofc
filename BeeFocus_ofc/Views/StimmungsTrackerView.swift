@@ -58,10 +58,10 @@ struct StimmungsTrackerView: View {
         VStack(spacing: 6) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Stimmungs-Tracker")
+                    Text("Mood Tracker")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("Wie fühlst du dich heute?")
+                    Text("How are you feeling today?")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -72,7 +72,7 @@ struct StimmungsTrackerView: View {
 
     private var todaySelectorCard: some View {
         VStack(spacing: 20) {
-            Text("Heute")
+            Text("Today")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -119,10 +119,10 @@ struct StimmungsTrackerView: View {
 
             // Notiz
             VStack(alignment: .leading, spacing: 8) {
-                Text("Notiz (optional)")
+                Text("Note (optional)")
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.4))
-                TextField("Was bewegt dich gerade?", text: $notiz, axis: .vertical)
+                TextField("What's on your mind?", text: $notiz, axis: .vertical)
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.85))
                     .lineLimit(3...5)
@@ -138,7 +138,7 @@ struct StimmungsTrackerView: View {
                 HStack(spacing: 8) {
                     Image(systemName: gespeichert ? "checkmark.circle.fill" : "square.and.arrow.down")
                         .font(.system(size: 15, weight: .semibold))
-                    Text(gespeichert ? "Gespeichert" : "Stimmung speichern")
+                    Text(gespeichert ? "Saved" : "Save mood")
                         .font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(.white)
@@ -161,7 +161,7 @@ struct StimmungsTrackerView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Letzte 7 Tage")
+            Text("Last 7 Days")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 
@@ -197,8 +197,8 @@ struct StimmungsTrackerView: View {
 
     private func dayLabel(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
-        f.dateFormat = "EE"
-        return String(f.string(from: date).prefix(2))
+        f.locale = Locale.current
+        f.dateFormat = "EEE"
+        return String(f.string(from: date).prefix(3))
     }
 }

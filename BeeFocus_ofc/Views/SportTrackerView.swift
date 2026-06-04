@@ -35,7 +35,7 @@ struct SportTrackerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                         .foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -47,11 +47,11 @@ struct SportTrackerView: View {
                 }
             }
             .sheet(isPresented: $showAdd) { addSheet }
-            .confirmationDialog("Eintrag löschen?", isPresented: Binding(
+            .confirmationDialog("Delete entry?", isPresented: Binding(
                 get: { showDeleteConfirm != nil },
                 set: { if !$0 { showDeleteConfirm = nil } }
             )) {
-                Button("Löschen", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     if let e = showDeleteConfirm { store.delete(e) }
                     showDeleteConfirm = nil
                 }
@@ -63,10 +63,10 @@ struct SportTrackerView: View {
         VStack(spacing: 8) {
             Text("🏃")
                 .font(.system(size: 56))
-            Text("Sport-Tracker")
+            Text("Workout Tracker")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
-            Text("Bleib aktiv und verfolge deinen Fortschritt")
+            Text("Stay active and track your progress")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.85))
         }
@@ -75,9 +75,9 @@ struct SportTrackerView: View {
 
     private var statsRow: some View {
         HStack(spacing: 16) {
-            statChip(icon: "flame.fill", value: "\(store.heutigeGesamtMinuten)", unit: "Min heute", color: .orange)
-            statChip(icon: "flame.fill", value: "\(store.streak)", unit: "Tage Streak", color: Color(red: 1.0, green: 0.5, blue: 0.2))
-            statChip(icon: "heart.fill", value: "\(store.heutigeEintraege.reduce(0) { $0 + $1.kalorien })", unit: "kcal heute", color: .pink)
+            statChip(icon: "flame.fill", value: "\(store.heutigeGesamtMinuten)", unit: "min today", color: .orange)
+            statChip(icon: "flame.fill", value: "\(store.streak)", unit: "Day Streak", color: Color(red: 1.0, green: 0.5, blue: 0.2))
+            statChip(icon: "heart.fill", value: "\(store.heutigeEintraege.reduce(0) { $0 + $1.kalorien })", unit: "kcal today", color: .pink)
         }
     }
 
@@ -94,7 +94,7 @@ struct SportTrackerView: View {
 
     private var weekChart: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Letzte 7 Tage")
+            Text("Last 7 Days")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
@@ -127,12 +127,12 @@ struct SportTrackerView: View {
 
     private var todayList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Heute")
+            Text("Today")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
             if store.heutigeEintraege.isEmpty {
-                Text("Noch keine Aktivität heute. Los geht's! 💪")
+                Text("No activity yet today. Let's go! 💪")
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(maxWidth: .infinity)
@@ -205,14 +205,14 @@ struct SportTrackerView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
             }
-            .navigationTitle("Aktivität hinzufügen")
+            .navigationTitle("Add Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") { showAdd = false }.foregroundStyle(.white)
+                    Button("Cancel") { showAdd = false }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") {
+                    Button("Save") {
                         store.add(SportEintrag(art: gewaehlteSportart, dauerMinuten: dauer, intensitaet: intensitaet, notiz: notiz))
                         showAdd = false
                     }
@@ -244,7 +244,7 @@ struct SportTrackerView: View {
 
     private var dauerSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Dauer: \(dauer) Minuten")
+            Text("Duration: \(dauer) minutes")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
             Slider(value: Binding(get: { Double(dauer) }, set: { dauer = Int($0) }), in: 5...180, step: 5)
@@ -254,7 +254,7 @@ struct SportTrackerView: View {
 
     private var intensitaetSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Intensität")
+            Text("Intensity")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
             HStack(spacing: 12) {
@@ -280,10 +280,10 @@ struct SportTrackerView: View {
 
     private var notizSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notiz (optional)")
+            Text("Note (optional)")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
-            TextField("Wie war das Training?", text: $notiz, axis: .vertical)
+            TextField("How was the workout?", text: $notiz, axis: .vertical)
                 .lineLimit(2...4)
                 .font(.system(size: 14))
                 .foregroundStyle(.white)
@@ -295,13 +295,13 @@ struct SportTrackerView: View {
 
     private func shortDay(_ date: Date) -> String {
         let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "de")
+        fmt.locale = Locale.current
         fmt.dateFormat = "EEE"
         return String(fmt.string(from: date).prefix(2))
     }
 
     private func intensitaetLabel(_ i: Int) -> String {
-        switch i { case 1: "Leicht"; case 2: "Mittel"; default: "Intensiv" }
+        switch i { case 1: "Light"; case 2: "Moderate"; default: "Intense" }
     }
     private func intensitaetEmoji(_ i: Int) -> String {
         switch i { case 1: "🚶"; case 2: "🏃"; default: "🔥" }

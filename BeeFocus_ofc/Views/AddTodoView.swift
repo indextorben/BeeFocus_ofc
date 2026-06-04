@@ -328,7 +328,7 @@ struct AddTodoView: View {
             if showQuickInput {
                 ZStack(alignment: .topLeading) {
                     if quickInputText.isEmpty {
-                        Text("z. B. Zahnarzt Mittwoch 15 Uhr, 30 Min vorher, hohe Priorität")
+                        Text("e.g. Dentist Wednesday 3pm, 30 min before, high priority")
                             .foregroundStyle(Color.secondary.opacity(0.6))
                             .font(.body)
                             .padding(.top, 8)
@@ -351,10 +351,10 @@ struct AddTodoView: View {
                     HStack(spacing: 8) {
                         if isParsingQuickInput {
                             ProgressView().scaleEffect(0.8)
-                            Text("Stopp")
+                            Text("Stop")
                         } else {
                             Image(systemName: "sparkles")
-                            Text("Felder ausfüllen")
+                            Text("Fill in fields")
                         }
                     }
                     .font(.system(size: 14, weight: .semibold))
@@ -368,10 +368,10 @@ struct AddTodoView: View {
                 .animation(.easeInOut(duration: 0.2), value: isParsingQuickInput)
             }
         } header: {
-            Text("KI-Schnelleingabe")
+            Text("AI Quick Input")
         } footer: {
             if showQuickInput {
-                Text("Die KI füllt Titel, Datum, Uhrzeit, Priorität und Erinnerung automatisch aus.")
+                Text("AI automatically fills in title, date, time, priority and reminder.")
                     .font(.footnote)
             }
         }

@@ -112,10 +112,10 @@ struct FokusJournalView: View {
     private var headerSection: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Fokus-Journal")
+                Text("Focus Journal")
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(.white)
-                Text("\(store.entries.count) Einträge gesamt")
+                Text("\(store.entries.count) entries total")
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.45))
             }
@@ -141,10 +141,10 @@ struct FokusJournalView: View {
                 Text("✍️")
                     .font(.system(size: 28))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Wie war dein Tag?")
+                    Text("How was your day?")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text("Heutigen Rückblick schreiben")
+                    Text("Write today's reflection")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.5))
                 }
@@ -178,7 +178,7 @@ struct FokusJournalView: View {
         let cal = Calendar.current
 
         return VStack(alignment: .leading, spacing: 14) {
-            Text("Diese Woche")
+            Text("This Week")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
 
@@ -222,12 +222,12 @@ struct FokusJournalView: View {
             if count > 0 {
                 Divider().background(.white.opacity(0.08))
                 HStack(spacing: 0) {
-                    weekStatItem(value: "\(count)/7", label: "Tage")
+                    weekStatItem(value: "\(count)/7", label: "Days")
                     if avgMood > 0 {
                         Divider().frame(height: 28).background(.white.opacity(0.1))
                         weekStatItem(
                             value: String(format: "%.1f", avgMood),
-                            label: "Ø Stimmung",
+                            label: "Ø Mood",
                             color: moodColor(for: avgMood)
                         )
                     }
@@ -235,7 +235,7 @@ struct FokusJournalView: View {
                         Divider().frame(height: 28).background(.white.opacity(0.1))
                         weekStatItem(
                             value: hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m",
-                            label: "Fokuszeit"
+                            label: "Focus time"
                         )
                     }
                 }
@@ -274,7 +274,7 @@ struct FokusJournalView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(sub.isPro ? accent : .gray)
                     .symbolEffect(.variableColor, isActive: isLoadingAI)
-                Text(isLoadingAI ? "Analysiere..." : "KI-Wochenanalyse")
+                Text(isLoadingAI ? "Analyzing..." : "AI Weekly Analysis")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(sub.isPro ? .white : .white.opacity(0.4))
                 Spacer()
@@ -309,10 +309,10 @@ struct FokusJournalView: View {
         VStack(spacing: 14) {
             Text("📓")
                 .font(.system(size: 48))
-            Text("Kein Eintrag bisher")
+            Text("No entries yet")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("Halte täglich fest was gut lief, was dich ablenkte und was morgen wichtig ist.")
+            Text("Daily record what went well, what distracted you and what matters tomorrow.")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.4))
                 .multilineTextAlignment(.center)
@@ -330,7 +330,7 @@ struct FokusJournalView: View {
             HStack(spacing: 10) {
                 Image(systemName: "lock.fill")
                     .foregroundStyle(accent)
-                Text("Pro freischalten für vollständigen Verlauf")
+                Text("Unlock Pro for full history")
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.7))
                 Spacer()
@@ -353,7 +353,7 @@ struct FokusJournalView: View {
                 HStack {
                     Image(systemName: "sparkles")
                         .foregroundStyle(accent)
-                    Text("KI-Wochenanalyse")
+                    Text("AI Weekly Analysis")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
                     Spacer()
@@ -418,7 +418,7 @@ struct FokusJournalView: View {
                 }
             } catch {
                 await MainActor.run {
-                    aiAnalysisText = "KI nicht verfügbar. Bitte API-Schlüssel in den Einstellungen prüfen."
+                    aiAnalysisText = "AI not available. Please check your API key in Settings."
                     isLoadingAI = false
                     showAIAnalysis = true
                 }
@@ -485,21 +485,21 @@ struct JournalEntryCard: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     if !entry.wentWell.isEmpty {
-                        journalField(label: "✅ Was lief gut", text: entry.wentWell)
+                        journalField(label: "✅ What went well", text: entry.wentWell)
                     }
                     if !entry.distraction.isEmpty {
-                        journalField(label: "⚡ Ablenkung", text: entry.distraction)
+                        journalField(label: "⚡ Distraction", text: entry.distraction)
                     }
                     if !entry.tomorrowPriority.isEmpty {
-                        journalField(label: "🎯 Morgen-Ziel", text: entry.tomorrowPriority)
+                        journalField(label: "🎯 Tomorrow's goal", text: entry.tomorrowPriority)
                     }
 
                     HStack {
-                        Button("Bearbeiten") { onEdit() }
+                        Button("Edit") { onEdit() }
                             .font(.system(size: 13))
                             .foregroundStyle(accent)
                         Spacer()
-                        Button("Löschen", role: .destructive) { onDelete() }
+                        Button("Delete", role: .destructive) { onDelete() }
                             .font(.system(size: 13))
                             .foregroundStyle(.red.opacity(0.7))
                     }

@@ -69,9 +69,9 @@ struct StatistikProView: View {
 
     private var priorityData: [(label: String, color: Color, rate: Double)] {
         let priorities: [(TodoPriority, String, Color)] = [
-            (.high, "Hoch", .red),
-            (.medium, "Mittel", .orange),
-            (.low, "Niedrig", .green)
+            (.high, "High", .red),
+            (.medium, "Medium", .orange),
+            (.low, "Low", .green)
         ]
         return priorities.compactMap { (prio, label, color) in
             let all = todoStore.todos.filter { $0.priority == prio }
@@ -105,18 +105,18 @@ struct StatistikProView: View {
                 .padding(16)
                 .padding(.bottom, 30)
             }
-            .navigationTitle("Pro Statistiken")
+            .navigationTitle("Pro Statistics")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
             }
         }
-        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIKeyAlert) {
+        .alert("AI Provider Not Configured", isPresented: $showAIKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            Text("Please set up an AI provider in Settings first.")
         }
     }
 
@@ -124,9 +124,9 @@ struct StatistikProView: View {
 
     private var summaryRow: some View {
         HStack(spacing: 12) {
-            summaryTile(value: "\(completedTodos.count)", label: "Erledigt", color: .green)
-            summaryTile(value: bestWeekday, label: "Bester Tag", color: .blue)
-            summaryTile(value: bestTimeBlock, label: "Beste Zeit", color: .orange)
+            summaryTile(value: "\(completedTodos.count)", label: "Completed", color: .green)
+            summaryTile(value: bestWeekday, label: "Best Day", color: .blue)
+            summaryTile(value: bestTimeBlock, label: "Best Time", color: .orange)
         }
     }
 
@@ -147,7 +147,7 @@ struct StatistikProView: View {
     // MARK: - Weekday Chart
 
     private var weekdayCard: some View {
-        statCard(title: "Wochentag-Produktivität", icon: "calendar.badge.checkmark", color: .blue) {
+        statCard(title: "Weekday Productivity", icon: "calendar.badge.checkmark", color: .blue) {
             barChart(data: weekdayData, color: .blue)
         }
     }
@@ -155,7 +155,7 @@ struct StatistikProView: View {
     // MARK: - Time Chart
 
     private var timeCard: some View {
-        statCard(title: "Tageszeit-Analyse", icon: "clock.fill", color: .orange) {
+        statCard(title: "Time of Day Analysis", icon: "clock.fill", color: .orange) {
             barChart(data: timeData, color: .orange)
         }
     }
@@ -163,7 +163,7 @@ struct StatistikProView: View {
     // MARK: - Category Card
 
     private var categoryCard: some View {
-        statCard(title: "Kategorie-Abschlussquote", icon: "tag.fill", color: .purple) {
+        statCard(title: "Category Completion Rate", icon: "tag.fill", color: .purple) {
             VStack(spacing: 10) {
                 ForEach(categoryData, id: \.name) { item in
                     VStack(alignment: .leading, spacing: 5) {
@@ -203,7 +203,7 @@ struct StatistikProView: View {
     // MARK: - Priority Card
 
     private var priorityCard: some View {
-        statCard(title: "Prioritäts-Abschlussquote", icon: "flag.fill", color: .red) {
+        statCard(title: "Priority Completion Rate", icon: "flag.fill", color: .red) {
             HStack(spacing: 16) {
                 ForEach(priorityData, id: \.label) { item in
                     VStack(spacing: 6) {
@@ -235,15 +235,15 @@ struct StatistikProView: View {
     // MARK: - AI Insight Card
 
     private var insightCard: some View {
-        statCard(title: "KI-Produktivitäts-Insight", icon: "sparkles", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+        statCard(title: "AI Productivity Insight", icon: "sparkles", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
             VStack(alignment: .leading, spacing: 12) {
                 if insightText.isEmpty && !isGeneratingInsight {
-                    Text("Lass die KI deine Produktivitätsmuster analysieren und einen persönlichen Insight generieren.")
+                    Text("Let the AI analyze your productivity patterns and generate a personal insight.")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text(insightText.isEmpty ? "Analysiere…" : insightText)
+                    Text(insightText.isEmpty ? "Analyzing…" : insightText)
                         .font(.system(size: 13))
                         .foregroundStyle(insightText.isEmpty ? .secondary : .primary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -261,10 +261,10 @@ struct StatistikProView: View {
                     HStack(spacing: 6) {
                         if isGeneratingInsight {
                             ProgressView().scaleEffect(0.75)
-                            Text("Stopp")
+                            Text("Stop")
                         } else {
                             Image(systemName: "sparkles")
-                            Text(insightText.isEmpty ? "Insight generieren" : "Neu generieren")
+                            Text(insightText.isEmpty ? "Generate Insight" : "Regenerate")
                         }
                     }
                     .font(.system(size: 13, weight: .semibold))
@@ -342,7 +342,7 @@ struct StatistikProView: View {
     private func generateInsight() async {
         guard completedTodos.count >= 3 else {
             await MainActor.run {
-                insightText = "Noch zu wenig Daten. Schließe mehr Aufgaben ab, um einen Insight zu erhalten."
+                insightText = "Not enough data yet. Complete more tasks to generate an insight."
             }
             return
         }
@@ -353,21 +353,21 @@ struct StatistikProView: View {
         let topTime = timeData.max(by: { $0.value < $1.value })
         let topCat = categoryData.first
 
-        var context = "Abgeschlossene Aufgaben insgesamt: \(completedTodos.count)\n"
-        if let d = topDay, d.value > 0 { context += "Produktivster Wochentag: \(d.label) (\(d.value) Aufgaben)\n" }
-        if let t = topTime, t.value > 0 { context += "Aktivste Tageszeit: \(t.label) Uhr (\(t.value) Aufgaben)\n" }
-        if let c = topCat { context += "Stärkste Kategorie: \(c.name) (\(Int(c.rate * 100))% Abschlussquote)\n" }
-        for p in priorityData { context += "Priorität \(p.label): \(Int(p.rate * 100))%\n" }
+        var context = "Total completed tasks: \(completedTodos.count)\n"
+        if let d = topDay, d.value > 0 { context += "Most productive weekday: \(d.label) (\(d.value) tasks)\n" }
+        if let t = topTime, t.value > 0 { context += "Most active time of day: \(t.label) (\(t.value) tasks)\n" }
+        if let c = topCat { context += "Strongest category: \(c.name) (\(Int(c.rate * 100))% completion rate)\n" }
+        for p in priorityData { context += "Priority \(p.label): \(Int(p.rate * 100))%\n" }
 
         let prompt = """
-        Analysiere diese Produktivitätsdaten eines App-Nutzers und gib einen kurzen, persönlichen und motivierenden Insight auf Deutsch.
+        Analyze this productivity data from an app user and provide a short, personal, and motivating insight in English.
         \(context)
-        Regeln:
-        - Maximal 3 Sätze
-        - Konkret auf die Daten eingehen
-        - Positiv und motivierend formulieren
-        - Kein Markdown, keine Aufzählung
-        - Antworte NUR mit dem Insight
+        Rules:
+        - Maximum 3 sentences
+        - Reference the data specifically
+        - Phrase it positively and motivatingly
+        - No markdown, no bullet points
+        - Reply with the insight ONLY
         """
 
         var raw = ""

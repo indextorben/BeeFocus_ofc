@@ -69,14 +69,14 @@ struct QuickAddSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "Abbrechen")) { dismiss() }
+                    Button(String(localized: "Cancel")) { dismiss() }
                 }
             }
         }
-        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAISubTaskKeyAlert) {
+        .alert("AI provider not configured", isPresented: $showAISubTaskKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            Text("Please set up an AI provider in Settings first.")
         }
         .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
     }
@@ -323,10 +323,10 @@ struct QuickAddSheet: View {
                 HStack(spacing: 6) {
                     if isGeneratingSubTasks {
                         ProgressView().scaleEffect(0.75).tint(themeC1)
-                        Text("Stopp").font(.system(size: 13, weight: .medium))
+                        Text("Stop").font(.system(size: 13, weight: .medium))
                     } else {
                         Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
-                        Text(sub.isPro ? "Mit KI in Teilaufgaben aufteilen" : "Mit KI aufteilen ✦")
+                        Text(sub.isPro ? "Split into subtasks with AI" : "Split with AI ✦")
                             .font(.system(size: 13, weight: .semibold))
                     }
                 }

@@ -37,11 +37,11 @@ struct WasserTrackerView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Wassertracker")
+        .navigationTitle("Water Tracker")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Schließen") { dismiss() }
+                Button("Close") { dismiss() }
                     .foregroundStyle(.white.opacity(0.6))
             }
             ToolbarItem(placement: .primaryAction) {
@@ -94,7 +94,7 @@ struct WasserTrackerView: View {
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                         .animation(.spring(response: 0.4), value: total)
-                    Text("ml von \(goal) ml")
+                    Text("ml of \(goal) ml")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -114,25 +114,25 @@ struct WasserTrackerView: View {
 
     private func statusLabel(_ pct: Double) -> String {
         switch pct {
-        case 1.0...: return "Tagesziel erreicht! 💧"
-        case 0.75...: return "Fast geschafft 👏"
-        case 0.5...: return "Gut unterwegs 💪"
-        case 0.25...: return "Weiter so!"
-        default:     return "Trink mehr Wasser!"
+        case 1.0...: return "Daily goal reached! 💧"
+        case 0.75...: return "Almost there 👏"
+        case 0.5...: return "On track 💪"
+        case 0.25...: return "Keep going!"
+        default:     return "Drink more water!"
         }
     }
 
     private func remainingLabel(total: Int, goal: Int) -> String {
         let rem = max(0, goal - total)
-        if rem == 0 { return "Ziel erreicht für heute" }
-        return "Noch \(rem) ml bis zum Ziel"
+        if rem == 0 { return "Goal reached for today" }
+        return "\(rem) ml until goal"
     }
 
     // MARK: - Quick Add
 
     private var quickAddRow: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Schnell hinzufügen")
+            Text("Quick Add")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.4))
 
@@ -187,7 +187,7 @@ struct WasserTrackerView: View {
         let maxML = max(days.map(\.ml).max() ?? 1, store.tagesziel)
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Letzte 7 Tage")
+            Text("Last 7 Days")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.4))
 
@@ -228,7 +228,7 @@ struct WasserTrackerView: View {
             HStack {
                 Image(systemName: "arrow.right")
                     .font(.system(size: 9))
-                Text("Tagesziel: \(store.tagesziel) ml")
+                Text("Daily goal: \(store.tagesziel) ml")
                     .font(.system(size: 10))
             }
             .foregroundStyle(cyan.opacity(0.5))
@@ -243,14 +243,14 @@ struct WasserTrackerView: View {
     private var todayLog: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Heute getrunken")
+                Text("Drunk today")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.4))
                 Spacer()
                 Button {
                     store.todayEntries.forEach { store.delete($0) }
                 } label: {
-                    Text("Zurücksetzen")
+                    Text("Reset")
                         .font(.system(size: 12))
                         .foregroundStyle(.red.opacity(0.6))
                 }
@@ -301,7 +301,7 @@ private struct CustomAmountButton: View {
     var body: some View {
         if showField {
             HStack(spacing: 10) {
-                TextField("Menge in ml", text: $text)
+                TextField("Amount in ml", text: $text)
                     .keyboardType(.numberPad)
                     .font(.system(size: 15))
                     .foregroundStyle(.white)
@@ -314,7 +314,7 @@ private struct CustomAmountButton: View {
                         showField = false
                     }
                 } label: {
-                    Text("Hinzufügen")
+                    Text("Add")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14).padding(.vertical, 10)
@@ -331,7 +331,7 @@ private struct CustomAmountButton: View {
             Button { showField = true } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
-                    Text("Eigene Menge")
+                    Text("Custom amount")
                         .font(.system(size: 13))
                 }
                 .foregroundStyle(cyan.opacity(0.7))
@@ -359,7 +359,7 @@ private struct ZielPickerSheet: View {
             ZStack {
                 Color(red: 0.07, green: 0.1, blue: 0.2).ignoresSafeArea()
                 VStack(spacing: 20) {
-                    Text("Tagesziel wählen")
+                    Text("Choose daily goal")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.5))
                         .padding(.top, 8)
@@ -373,7 +373,7 @@ private struct ZielPickerSheet: View {
                                 HStack {
                                     Image(systemName: "drop.fill")
                                         .foregroundStyle(cyan)
-                                    Text("\(ml) ml / Tag")
+                                    Text("\(ml) ml / day")
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundStyle(.white)
                                     Spacer()
@@ -395,12 +395,12 @@ private struct ZielPickerSheet: View {
                     Spacer()
                 }
             }
-            .navigationTitle("Tagesziel")
+            .navigationTitle("Daily Goal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }.foregroundStyle(.white.opacity(0.6))
+                    Button("Close") { dismiss() }.foregroundStyle(.white.opacity(0.6))
                 }
             }
             .preferredColorScheme(.dark)

@@ -35,17 +35,17 @@ struct NotizView: View {
                     if gefilterte.isEmpty { emptyState } else { noteContent }
                 }
             }
-            .navigationTitle("Notizen")
+            .navigationTitle("Notes")
             .navigationBarTitleDisplayMode(.large)
             .preferredColorScheme(.dark)
             .toolbar { toolbarItems }
             .sheet(item: $editNotiz) { n in
                 NotizEditorView(notiz: n, accent: accent, accent2: accent2, ordnerListe: store.ordnerListe)
             }
-            .alert("Neuer Ordner", isPresented: $showNeuerOrdner) {
+            .alert("New Folder", isPresented: $showNeuerOrdner) {
                 TextField("Name", text: $neuerOrdnerName)
-                Button("Erstellen") { store.addOrdner(neuerOrdnerName); neuerOrdnerName = "" }
-                Button("Abbrechen", role: .cancel) { neuerOrdnerName = "" }
+                Button("Create") { store.addOrdner(neuerOrdnerName); neuerOrdnerName = "" }
+                Button("Cancel", role: .cancel) { neuerOrdnerName = "" }
             }
         }
     }
@@ -72,7 +72,7 @@ struct NotizView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                Section("Sortierung") {
+                Section("Sort") {
                     ForEach(NotizSortierung.allCases) { s in
                         Button { sortierung = s } label: {
                             Label(s.rawValue, systemImage: s.icon)
@@ -80,9 +80,9 @@ struct NotizView: View {
                         }
                     }
                 }
-                Section("Ansicht") {
-                    Button { listModus = false } label: { Label("Raster", systemImage: "square.grid.2x2") }
-                    Button { listModus = true  } label: { Label("Liste",  systemImage: "list.bullet") }
+                Section("View") {
+                    Button { listModus = false } label: { Label("Grid", systemImage: "square.grid.2x2") }
+                    Button { listModus = true  } label: { Label("List",  systemImage: "list.bullet") }
                 }
             } label: {
                 Image(systemName: listModus ? "list.bullet" : "square.grid.2x2")
@@ -97,7 +97,7 @@ struct NotizView: View {
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(.white.opacity(0.35))
-            TextField("Suchen…", text: $suchText)
+            TextField("Search…", text: $suchText)
                 .font(.system(size: 15)).foregroundStyle(.white)
             if !suchText.isEmpty {
                 Button { suchText = "" } label: {
@@ -115,15 +115,15 @@ struct NotizView: View {
     private var ordnerBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ordnerChip(id: "__alle__",   label: "Alle",      icon: "tray.full.fill",      count: store.notizen.count)
-                ordnerChip(id: "__pinned__", label: "Angepinnt", icon: "pin.fill",             count: store.notizen.filter(\.isPinned).count)
+                ordnerChip(id: "__alle__",   label: "All",     icon: "tray.full.fill",      count: store.notizen.count)
+                ordnerChip(id: "__pinned__", label: "Pinned",  icon: "pin.fill",             count: store.notizen.filter(\.isPinned).count)
                 ForEach(store.ordnerListe, id: \.self) { o in
                     ordnerChipCustom(o)
                 }
                 Button { showNeuerOrdner = true } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "folder.badge.plus").font(.system(size: 12, weight: .semibold))
-                        Text("Ordner").font(.system(size: 12, weight: .medium))
+                        Text("Folder").font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.4))
                     .padding(.horizontal, 12).padding(.vertical, 7)
@@ -184,7 +184,7 @@ struct NotizView: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(role: .destructive) { store.deleteOrdner(name) } label: {
-                Label("Ordner löschen", systemImage: "trash")
+                Label("Delete Folder", systemImage: "trash")
             }
         }
     }
@@ -248,14 +248,14 @@ struct NotizView: View {
                     .foregroundStyle(accent.opacity(0.6))
             }
             VStack(spacing: 6) {
-                Text(suchText.isEmpty ? "Keine Notizen" : "Keine Treffer")
+                Text(suchText.isEmpty ? "No Notes" : "No Results")
                     .font(.system(size: 18, weight: .bold)).foregroundStyle(.white.opacity(0.5))
-                Text(suchText.isEmpty ? "Tippe auf das Stift-Symbol um zu beginnen." : "Versuche einen anderen Suchbegriff.")
+                Text(suchText.isEmpty ? "Tap the pencil icon to get started." : "Try a different search term.")
                     .font(.system(size: 14)).foregroundStyle(.white.opacity(0.25)).multilineTextAlignment(.center)
             }
             if suchText.isEmpty {
                 Button { editNotiz = Notiz() } label: {
-                    Label("Neue Notiz", systemImage: "square.and.pencil")
+                    Label("New Note", systemImage: "square.and.pencil")
                         .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 20).padding(.vertical, 11)
                         .background(LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing), in: Capsule())
@@ -329,7 +329,7 @@ private struct NotizKarte: View {
                             }
                         }
                         if notiz.checkItems.count > 4 {
-                            Text("+ \(notiz.checkItems.count - 4) weitere")
+                            Text("+ \(notiz.checkItems.count - 4) more")
                                 .font(.system(size: 10)).foregroundStyle(.white.opacity(0.3))
                         }
                     }
@@ -370,15 +370,15 @@ private struct NotizKarte: View {
     @ViewBuilder
     private var contextMenuItems: some View {
         Button { onEdit() } label: {
-            Label("Bearbeiten", systemImage: "pencil")
+            Label("Edit", systemImage: "pencil")
         }
         Button { onPin() } label: {
-            Label(notiz.isPinned ? "Pinning entfernen" : "Anpinnen",
+            Label(notiz.isPinned ? "Unpin" : "Pin",
                   systemImage: notiz.isPinned ? "pin.slash" : "pin.fill")
         }
         Divider()
         Button(role: .destructive) { onDelete() } label: {
-            Label("Löschen", systemImage: "trash")
+            Label("Delete", systemImage: "trash")
         }
     }
 }
@@ -409,7 +409,7 @@ private struct NotizListenZeile: View {
                         if notiz.isPinned {
                             Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(notiz.farbe)
                         }
-                        Text(notiz.titel.isEmpty ? "Ohne Titel" : notiz.titel)
+                        Text(notiz.titel.isEmpty ? "Untitled" : notiz.titel)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
                             .lineLimit(1)
@@ -421,10 +421,10 @@ private struct NotizListenZeile: View {
                     HStack(spacing: 6) {
                         if notiz.typ == .checkliste {
                             Image(systemName: "checklist").font(.system(size: 11)).foregroundStyle(notiz.farbe)
-                            Text("\(notiz.checkItemsDone)/\(notiz.checkItems.count) erledigt")
+                            Text("\(notiz.checkItemsDone)/\(notiz.checkItems.count) done")
                                 .font(.system(size: 12)).foregroundStyle(.white.opacity(0.45))
                         } else {
-                            Text(notiz.inhalt.isEmpty ? "Leer" : notiz.inhalt)
+                            Text(notiz.inhalt.isEmpty ? "Empty" : notiz.inhalt)
                                 .font(.system(size: 12)).foregroundStyle(.white.opacity(0.45))
                                 .lineLimit(1)
                         }
@@ -443,12 +443,12 @@ private struct NotizListenZeile: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive, action: onDelete) {
-                Label("Löschen", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
         }
         .swipeActions(edge: .leading) {
             Button(action: onPin) {
-                Label(notiz.isPinned ? "Lösen" : "Anpinnen",
+                Label(notiz.isPinned ? "Unpin" : "Pin",
                       systemImage: notiz.isPinned ? "pin.slash.fill" : "pin.fill")
             }
             .tint(notiz.farbe)
@@ -510,18 +510,18 @@ struct NotizEditorView: View {
             .preferredColorScheme(.dark)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { editorToolbar }
-            .alert("Notiz löschen?", isPresented: $showDeleteAlert) {
-                Button("Löschen", role: .destructive) { store.delete(notiz); dismiss() }
-                Button("Abbrechen", role: .cancel) {}
+            .alert("Delete note?", isPresented: $showDeleteAlert) {
+                Button("Delete", role: .destructive) { store.delete(notiz); dismiss() }
+                Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Diese Aktion kann nicht rückgängig gemacht werden.")
+                Text("This action cannot be undone.")
             }
-            .confirmationDialog("Änderungen verwerfen?", isPresented: $showVerwerfen, titleVisibility: .visible) {
-                Button("Verwerfen", role: .destructive) { dismiss() }
-                Button("Speichern") { store.save(notiz); dismiss() }
-                Button("Weiter bearbeiten", role: .cancel) {}
+            .confirmationDialog("Discard changes?", isPresented: $showVerwerfen, titleVisibility: .visible) {
+                Button("Discard", role: .destructive) { dismiss() }
+                Button("Save") { store.save(notiz); dismiss() }
+                Button("Keep editing", role: .cancel) {}
             } message: {
-                Text("Du hast ungespeicherte Änderungen.")
+                Text("You have unsaved changes.")
             }
         }
         .onAppear {
@@ -558,7 +558,7 @@ struct NotizEditorView: View {
             if notiz.typ == .text && !notiz.inhalt.isEmpty {
                 HStack(spacing: 4) {
                     Image(systemName: "text.alignleft").font(.system(size: 11)).foregroundStyle(.white.opacity(0.3))
-                    Text("\(notiz.wortanzahl) Wörter").font(.system(size: 12)).foregroundStyle(.white.opacity(0.3))
+                    Text("\(notiz.wortanzahl) words").font(.system(size: 12)).foregroundStyle(.white.opacity(0.3))
                 }
             }
 
@@ -567,7 +567,7 @@ struct NotizEditorView: View {
                 HStack(spacing: 4) {
                     Image(systemName: notiz.ordner.isEmpty ? "tray" : "folder.fill")
                         .font(.system(size: 11))
-                    Text(notiz.ordner.isEmpty ? "Ablage" : notiz.ordner)
+                    Text(notiz.ordner.isEmpty ? "Inbox" : notiz.ordner)
                         .font(.system(size: 12))
                 }
                 .foregroundStyle(notiz.farbe.opacity(0.85))
@@ -575,8 +575,8 @@ struct NotizEditorView: View {
                 .background(notiz.farbe.opacity(0.12), in: Capsule())
             }
             .buttonStyle(.plain)
-            .confirmationDialog("Ordner wählen", isPresented: $showOrdnerPicker) {
-                Button("Alle Notizen") { notiz.ordner = "" }
+            .confirmationDialog("Choose Folder", isPresented: $showOrdnerPicker) {
+                Button("All Notes") { notiz.ordner = "" }
                 ForEach(ordnerListe, id: \.self) { o in
                     Button(o) { notiz.ordner = o }
                 }
@@ -602,13 +602,13 @@ struct NotizEditorView: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 2) {
-                            formatBtn("**Fett**",       icon: "bold",          insert: "****",       cursorOffset: 2)
-                            formatBtn("*Kursiv*",       icon: "italic",        insert: "**",         cursorOffset: 1)
-                            formatBtn("# Titel",        icon: "h.square",      insert: "\n# ",       cursorOffset: 0)
-                            formatBtn("## Untertitel",  icon: "h.square.fill", insert: "\n## ",      cursorOffset: 0)
-                            formatBtn("• Punkt",        icon: "list.bullet",   insert: "\n• ",       cursorOffset: 0)
-                            formatBtn("→ Einzug",       icon: "arrow.right",   insert: "\n  ",       cursorOffset: 0)
-                            formatBtn("— Trennlinie",   icon: "minus",         insert: "\n---\n",    cursorOffset: 0)
+                            formatBtn("**Bold**",       icon: "bold",          insert: "****",       cursorOffset: 2)
+                            formatBtn("*Italic*",       icon: "italic",        insert: "**",         cursorOffset: 1)
+                            formatBtn("# Title",        icon: "h.square",      insert: "\n# ",       cursorOffset: 0)
+                            formatBtn("## Subtitle",    icon: "h.square.fill", insert: "\n## ",      cursorOffset: 0)
+                            formatBtn("• Bullet",       icon: "list.bullet",   insert: "\n• ",       cursorOffset: 0)
+                            formatBtn("→ Indent",       icon: "arrow.right",   insert: "\n  ",       cursorOffset: 0)
+                            formatBtn("— Divider",      icon: "minus",         insert: "\n---\n",    cursorOffset: 0)
                             Divider().frame(height: 24).padding(.horizontal, 4)
                             Button {
                                 withAnimation { notiz.typ = .checkliste }
@@ -622,7 +622,7 @@ struct NotizEditorView: View {
                         .padding(.horizontal, 4)
                     }
                     Spacer()
-                    Button("Fertig") { fokusInhalt = false; fokusTitel = false }
+                    Button("Done") { fokusInhalt = false; fokusTitel = false }
                         .font(.system(size: 14, weight: .semibold)).foregroundStyle(accent)
                 }
             }
@@ -653,7 +653,7 @@ struct NotizEditorView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 13)).foregroundStyle(.white.opacity(0.4))
-                        TextField("In Checkliste suchen…", text: $checkSuche)
+                        TextField("Search in checklist…", text: $checkSuche)
                             .font(.system(size: 15)).foregroundStyle(.white)
                         if !checkSuche.isEmpty {
                             Button { checkSuche = "" } label: {
@@ -662,7 +662,7 @@ struct NotizEditorView: View {
                         }
                         let matchCount = notiz.checkItems.filter { $0.text.localizedCaseInsensitiveContains(checkSuche) }.count
                         if !checkSuche.isEmpty {
-                            Text("\(matchCount) Treffer")
+                            Text("\(matchCount) results")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(matchCount > 0 ? notiz.farbe : .red.opacity(0.7))
                         }
@@ -686,7 +686,7 @@ struct NotizEditorView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(accent)
-                    TextField("Neuer Punkt…", text: $neuesCheckItem)
+                    TextField("New item…", text: $neuesCheckItem)
                         .font(.system(size: 16))
                         .foregroundStyle(.white)
                         .submitLabel(.done)
@@ -697,14 +697,14 @@ struct NotizEditorView: View {
                 if !done.isEmpty {
                     Divider().opacity(0.1).padding(.horizontal, 20).padding(.vertical, 8)
                     HStack {
-                        Text("\(done.count) Erledigt")
+                        Text("\(done.count) Done")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.3))
                         Spacer()
                         Button {
                             withAnimation { notiz.checkItems.removeAll { $0.isChecked } }
                         } label: {
-                            Text("Löschen")
+                            Text("Delete")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.red.opacity(0.7))
                         }
@@ -722,7 +722,7 @@ struct NotizEditorView: View {
                 Button {
                     withAnimation { notiz.typ = .text }
                 } label: {
-                    Label("Text-Modus", systemImage: "doc.text")
+                    Label("Text Mode", systemImage: "doc.text")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(accent)
                 }
@@ -794,7 +794,7 @@ struct NotizEditorView: View {
                     VStack(spacing: 3) {
                         Image(systemName: notiz.typ == .checkliste ? "doc.text" : "checklist")
                             .font(.system(size: 16, weight: .semibold))
-                        Text(notiz.typ == .checkliste ? "Text" : "Liste")
+                        Text(notiz.typ == .checkliste ? "Text" : "List")
                             .font(.system(size: 10, weight: .medium))
                     }
                     .foregroundStyle(accent)
@@ -846,7 +846,7 @@ struct NotizEditorView: View {
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Abbrechen") {
+            Button("Cancel") {
                 if hatAenderungen && kannSpeichern {
                     showVerwerfen = true
                 } else {
@@ -867,7 +867,7 @@ struct NotizEditorView: View {
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("Fertig") {
+            Button("Done") {
                 if kannSpeichern { store.save(notiz) }
                 dismiss()
             }
@@ -881,10 +881,10 @@ struct NotizEditorView: View {
     private func shortDate(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) {
-            let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.timeStyle = .short; f.dateStyle = .none
-            return "Heute, \(f.string(from: date))"
+            let f = DateFormatter(); f.locale = Locale.current; f.timeStyle = .short; f.dateStyle = .none
+            return "Today, \(f.string(from: date))"
         }
-        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateStyle = .medium; f.timeStyle = .none
+        let f = DateFormatter(); f.locale = Locale.current; f.dateStyle = .medium; f.timeStyle = .none
         return f.string(from: date)
     }
 }

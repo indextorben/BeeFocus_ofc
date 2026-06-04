@@ -20,16 +20,16 @@ struct FokusModeView: View {
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
 
     private static let zitate: [String] = [
-        "Tiefe Arbeit ist der Superkraft der Zukunft.",
-        "Fang einfach an. Der Mut kommt beim Tun.",
-        "Konzentration ist die Wurzel aller Stärke.",
-        "Eine Sache. Jetzt. Vollständig.",
-        "Dein zukünftiges Ich dankt dir.",
-        "Kein Lärm. Nur du und die Aufgabe.",
-        "Fortschritt, nicht Perfektion.",
-        "Jede Minute zählt. Diese hier auch.",
-        "Bleib dran – du bist näher als du denkst.",
-        "Großes entsteht durch kleine, fokussierte Momente.",
+        "Deep work is the superpower of the future.",
+        "Just start. Courage comes from doing.",
+        "Concentration is the root of all strength.",
+        "One thing. Now. Completely.",
+        "Your future self thanks you.",
+        "No noise. Just you and the task.",
+        "Progress, not perfection.",
+        "Every minute counts. Including this one.",
+        "Stay with it – you're closer than you think.",
+        "Great things come from small, focused moments.",
     ]
 
     private var tagesZitat: String {
@@ -80,7 +80,7 @@ struct FokusModeView: View {
                         .opacity(appeared ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.15), value: appeared)
 
-                    Text("Fokusmodus aktiv")
+                    Text("Focus mode active")
                         .font(.caption)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                         .padding(.top, 2)
@@ -280,7 +280,7 @@ struct FokusModeView: View {
 
     private var statusText: some View {
         VStack(spacing: 8) {
-            Text(manager.isFocusModeActive ? "Aktiv" : "Inaktiv")
+            Text(manager.isFocusModeActive ? "Active" : "Inactive")
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .foregroundStyle(isDark ? .white : .primary)
                 .animation(.easeInOut(duration: 0.3), value: manager.isFocusModeActive)
@@ -313,7 +313,7 @@ struct FokusModeView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Gesperrte Apps")
+                        Text("Blocked Apps")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white : .primary)
                         Text(appSelectionLabel)
@@ -356,7 +356,7 @@ struct FokusModeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: manager.isFocusModeActive ? "xmark.shield.fill" : "shield.checkered")
                             .font(.system(size: 18, weight: .semibold))
-                        Text(manager.isFocusModeActive ? "Deaktivieren" : "Jetzt aktivieren")
+                        Text(manager.isFocusModeActive ? "Deactivate" : "Activate now")
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -380,7 +380,7 @@ struct FokusModeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "person.badge.key.fill")
                             .font(.system(size: 18, weight: .semibold))
-                        Text("Bildschirmzeit-Zugriff erlauben")
+                        Text("Allow Screen Time Access")
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -433,7 +433,7 @@ struct FokusModeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Fokus-Statistik")
+                    Text("Focus Statistics")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Text(statsSubtitle)
@@ -463,7 +463,7 @@ struct FokusModeView: View {
         if manager.isFocusModeActive, let start = manager.currentSessionStart {
             secs += Int(Date().timeIntervalSince(start))
         }
-        guard secs > 0 else { return NSLocalizedString("Noch kein Fokus heute", comment: "") }
+        guard secs > 0 else { return NSLocalizedString("No focus time yet today", comment: "") }
         let h = secs / 3600
         let m = (secs % 3600) / 60
         if h > 0 && m > 0 { return String(format: NSLocalizedString("fokus.today_hours", comment: ""), h, m) }
@@ -486,7 +486,7 @@ struct FokusModeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Websites sperren")
+                    Text("Block Websites")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Text(verbatim: domainsLabel)
@@ -531,12 +531,12 @@ struct FokusModeView: View {
             let key = manager.selectedCategoryCount == 1 ? "fokus.category_count" : "fokus.categories_count"
             parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedCategoryCount))
         }
-        return parts.isEmpty ? NSLocalizedString("Noch keine ausgewählt", comment: "") : parts.joined(separator: ", ")
+        return parts.isEmpty ? NSLocalizedString("None selected yet", comment: "") : parts.joined(separator: ", ")
     }
 
     private var domainsLabel: String {
         guard !manager.blockedDomains.isEmpty else {
-            return NSLocalizedString("Kategorien & eigene Domains", comment: "")
+            return NSLocalizedString("Categories & custom domains", comment: "")
         }
         let key = manager.blockedDomains.count == 1 ? "fokus.domains_count" : "fokus.domains_count_plural"
         return String(format: NSLocalizedString(key, comment: ""), manager.blockedDomains.count)
@@ -554,7 +554,7 @@ struct FokusModeView: View {
                     Text("\(manager.currentStreak)")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(isDark ? .white : .primary)
-                    Text(manager.currentStreak == 1 ? "Tag Streak" : "Tage Streak")
+                    Text(manager.currentStreak == 1 ? "Day Streak" : "Day Streak")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -589,7 +589,7 @@ struct FokusModeView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Tagesziel")
+                        Text("Daily Goal")
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                         Text(goalDisplayLabel)
@@ -629,14 +629,14 @@ struct GoalPickerSheet: View {
     @Environment(\.dismiss) var dismiss
 
     private let options: [(String, Int)] = [
-        ("30 Minuten",   30),
-        ("45 Minuten",   45),
-        ("1 Stunde",     60),
-        ("1,5 Stunden",  90),
-        ("2 Stunden",   120),
-        ("3 Stunden",   180),
-        ("4 Stunden",   240),
-        ("6 Stunden",   360),
+        ("30 minutes",  30),
+        ("45 minutes",  45),
+        ("1 hour",      60),
+        ("1.5 hours",   90),
+        ("2 hours",    120),
+        ("3 hours",    180),
+        ("4 hours",    240),
+        ("6 hours",    360),
     ]
 
     var body: some View {
@@ -656,11 +656,11 @@ struct GoalPickerSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .navigationTitle("Tages-Fokusziel")
+            .navigationTitle("Daily Focus Goal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
         }

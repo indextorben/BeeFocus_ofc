@@ -33,7 +33,7 @@ struct LernzielView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }.foregroundStyle(.white)
+                    Button("Close") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAddZiel = true } label: {
@@ -56,8 +56,8 @@ struct LernzielView: View {
     private var headerSection: some View {
         VStack(spacing: 8) {
             Text("📚").font(.system(size: 52))
-            Text("Lernziele").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-            Text("Wissen aufbauen, Fortschritt verfolgen")
+            Text("Learning Goals").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
+            Text("Build knowledge, track progress")
                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.75))
         }
         .multilineTextAlignment(.center)
@@ -65,13 +65,13 @@ struct LernzielView: View {
 
     private var statsRow: some View {
         HStack(spacing: 16) {
-            statChip(icon: "flame.fill", value: "\(store.streak)", unit: "Tage Streak", color: .orange)
+            statChip(icon: "flame.fill", value: "\(store.streak)", unit: "Day Streak", color: .orange)
             statChip(icon: "clock.fill",
                      value: String(format: "%.1f", store.gesamtStundenHeute),
-                     unit: "Std. heute", color: Color(red: 0.4, green: 0.7, blue: 1.0))
+                     unit: "hrs today", color: Color(red: 0.4, green: 0.7, blue: 1.0))
             statChip(icon: "checkmark.circle.fill",
                      value: "\(store.ziele.filter { $0.abgeschlossen }.count)",
-                     unit: "Abgeschlossen", color: .green)
+                     unit: "Completed", color: .green)
         }
     }
 
@@ -91,12 +91,12 @@ struct LernzielView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 44)).foregroundStyle(.white.opacity(0.35))
-                    Text("Noch kein Lernziel.\nTippe auf + um eines hinzuzufügen.")
+                    Text("No learning goal yet.\nTap + to add one.")
                         .font(.system(size: 14)).foregroundStyle(.white.opacity(0.6)).multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 40)
             } else {
-                Text("Aktive Ziele")
+                Text("Active Goals")
                     .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                 ForEach(store.ziele.filter { !$0.abgeschlossen }) { ziel in
                     zielCard(ziel)
@@ -107,7 +107,7 @@ struct LernzielView: View {
 
     private var abgeschlosseneZiele: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Abgeschlossen ✓")
+            Text("Completed ✓")
                 .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
             ForEach(store.ziele.filter { $0.abgeschlossen }) { ziel in
                 zielCard(ziel, abgeschlossen: true)
@@ -138,7 +138,7 @@ struct LernzielView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(ziel.titel).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(String(format: "%.1f / %.0f Std.", erledigte, ziel.zielStunden))
+                        Text(String(format: "%.1f / %.0f hrs", erledigte, ziel.zielStunden))
                             .font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
                     }
 
@@ -176,7 +176,7 @@ struct LernzielView: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(role: .destructive) { store.deleteZiel(ziel) } label: {
-                Label("Löschen", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
         }
     }
@@ -228,14 +228,14 @@ private struct LernzielAddSheet: View {
                     .padding(.horizontal, 18).padding(.top, 20)
                 }
             }
-            .navigationTitle("Neues Lernziel")
+            .navigationTitle("New Learning Goal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white)
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .foregroundStyle(titel.trimmingCharacters(in: .whitespaces).isEmpty ? .white.opacity(0.4) : .white)
                         .fontWeight(.semibold)
                         .disabled(titel.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -246,8 +246,8 @@ private struct LernzielAddSheet: View {
 
     private var titelField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Thema / Fähigkeit").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("z.B. SwiftUI, Gitarre, Spanisch…", text: $titel)
+            Text("Topic / Skill").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField("e.g. SwiftUI, Guitar, Spanish…", text: $titel)
                 .font(.system(size: 15)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }
@@ -255,7 +255,7 @@ private struct LernzielAddSheet: View {
 
     private var stundenSlider: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Ziel: \(Int(zielStunden)) Stunden")
+            Text("Goal: \(Int(zielStunden)) hours")
                 .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             Slider(value: $zielStunden, in: 1...500, step: 1).tint(.white)
             HStack {
@@ -274,7 +274,7 @@ private struct LernzielAddSheet: View {
 
     private var symbolPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Symbol").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Icon").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 10) {
                 ForEach(symbole, id: \.self) { sym in
                     Button { symbol = sym } label: {
@@ -290,7 +290,7 @@ private struct LernzielAddSheet: View {
 
     private var farbPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Farbe").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Color").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             HStack(spacing: 12) {
                 ForEach(farben, id: \.name) { f in
                     Button { farbName = f.name } label: {
@@ -304,8 +304,8 @@ private struct LernzielAddSheet: View {
 
     private var beschreibungField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Beschreibung (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("Warum willst du das lernen?", text: $beschreibung, axis: .vertical)
+            Text("Description (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField("Why do you want to learn this?", text: $beschreibung, axis: .vertical)
                 .lineLimit(2...4).font(.system(size: 14)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }
@@ -344,14 +344,14 @@ private struct LernSessionSheet: View {
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text(ziel.titel).font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
-                            Text(String(format: "%.1f / %.0f Std.", store.erledigteStunden(fuer: ziel), ziel.zielStunden))
+                            Text(String(format: "%.1f / %.0f hrs", store.erledigteStunden(fuer: ziel), ziel.zielStunden))
                                 .font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))
                         }
                     }
                     .padding(.top, 8)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Dauer: \(dauer) Minuten")
+                        Text("Duration: \(dauer) minutes")
                             .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                         Slider(value: Binding(get: { Double(dauer) }, set: { dauer = Int($0) }), in: 5...300, step: 5).tint(.white)
                         HStack {
@@ -368,8 +368,8 @@ private struct LernSessionSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Notiz (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                        TextField("Was hast du gelernt?", text: $notiz, axis: .vertical)
+                        Text("Note (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                        TextField("What did you learn?", text: $notiz, axis: .vertical)
                             .lineLimit(2...4).font(.system(size: 14)).foregroundStyle(.white).tint(.white)
                             .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
                     }
@@ -378,14 +378,14 @@ private struct LernSessionSheet: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Lerneinheit erfassen")
+            .navigationTitle("Log Session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white)
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") {
+                    Button("Save") {
                         store.addSession(LernSession(lernzielID: ziel.id, dauerMinuten: dauer, notiz: notiz))
                         dismiss()
                     }
@@ -425,11 +425,11 @@ private struct LernzielDetailSheet: View {
                                     .frame(width: 100, height: 100).rotationEffect(.degrees(-90))
                                 VStack(spacing: 2) {
                                     Text("\(Int(progress * 100))%").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-                                    Text("Fertig").font(.system(size: 11)).foregroundStyle(.white.opacity(0.7))
+                                    Text("Done").font(.system(size: 11)).foregroundStyle(.white.opacity(0.7))
                                 }
                             }
                             Text(ziel.titel).font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-                            Text(String(format: "%.1f / %.0f Stunden", store.erledigteStunden(fuer: ziel), ziel.zielStunden))
+                            Text(String(format: "%.1f / %.0f hours", store.erledigteStunden(fuer: ziel), ziel.zielStunden))
                                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.7))
                         }
                         .padding(.top, 8)
@@ -438,7 +438,7 @@ private struct LernzielDetailSheet: View {
                         let recent = store.recenteSessions(fuer: ziel, limit: 10)
                         if !recent.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Letzte Einheiten").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                                Text("Recent Sessions").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                                 ForEach(recent) { s in
                                     HStack {
                                         Image(systemName: "clock.fill").foregroundStyle(ziel.farbe).font(.system(size: 13))
@@ -459,7 +459,7 @@ private struct LernzielDetailSheet: View {
                             dismiss()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onLogSession() }
                         } label: {
-                            Label("Lerneinheit hinzufügen", systemImage: "plus.circle.fill")
+                            Label("Add Session", systemImage: "plus.circle.fill")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.black)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -474,14 +474,14 @@ private struct LernzielDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }.foregroundStyle(.white)
+                    Button("Close") { dismiss() }.foregroundStyle(.white)
                 }
             }
         }
     }
 
     private func kurzDatum(_ date: Date) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "de"); f.dateFormat = "d. MMM"
+        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "d. MMM"
         return f.string(from: date)
     }
 }

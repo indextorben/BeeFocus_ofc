@@ -7,10 +7,10 @@ struct FinanzTrackerView: View {
     @State private var filterTyp: FinanzTyp? = nil
 
     private let currencyFmt: NumberFormatter = {
-        let f = NumberFormatter(); f.numberStyle = .currency; f.locale = Locale(identifier: "de_DE"); return f
+        let f = NumberFormatter(); f.numberStyle = .currency; f.locale = Locale.current; return f
     }()
 
-    func fmt(_ val: Double) -> String { currencyFmt.string(from: NSNumber(value: val)) ?? "0,00 €" }
+    func fmt(_ val: Double) -> String { currencyFmt.string(from: NSNumber(value: val)) ?? "0.00" }
 
     var body: some View {
         NavigationStack {
@@ -35,7 +35,7 @@ struct FinanzTrackerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }.foregroundStyle(.white)
+                    Button("Close") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAdd = true } label: {
@@ -50,8 +50,8 @@ struct FinanzTrackerView: View {
     private var headerSection: some View {
         VStack(spacing: 8) {
             Text("💰").font(.system(size: 52))
-            Text("Finanz-Tracker").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-            Text("Einnahmen & Ausgaben diesen Monat")
+            Text("Finance Tracker").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
+            Text("Income & expenses this month")
                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.75))
         }
         .multilineTextAlignment(.center)
@@ -61,7 +61,7 @@ struct FinanzTrackerView: View {
         VStack(spacing: 16) {
             // Main balance
             VStack(spacing: 4) {
-                Text("Bilanz")
+                Text("Balance")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
                     .textCase(.uppercase).tracking(0.8)
@@ -74,9 +74,9 @@ struct FinanzTrackerView: View {
 
             // Einnahmen / Ausgaben
             HStack(spacing: 0) {
-                bilanzHalf(label: "Einnahmen", value: store.einnahmenDiesenMonat, color: Color(red: 0.3, green: 0.9, blue: 0.5), icon: "arrow.down.circle.fill")
+                bilanzHalf(label: "Income", value: store.einnahmenDiesenMonat, color: Color(red: 0.3, green: 0.9, blue: 0.5), icon: "arrow.down.circle.fill")
                 Divider().frame(height: 40).background(.white.opacity(0.2))
-                bilanzHalf(label: "Ausgaben", value: store.ausgabenDiesenMonat, color: Color(red: 1.0, green: 0.45, blue: 0.45), icon: "arrow.up.circle.fill")
+                bilanzHalf(label: "Expenses", value: store.ausgabenDiesenMonat, color: Color(red: 1.0, green: 0.45, blue: 0.45), icon: "arrow.up.circle.fill")
             }
         }
         .padding(20)
@@ -98,7 +98,7 @@ struct FinanzTrackerView: View {
         if !data.isEmpty {
             let total = max(data.reduce(0) { $0 + $1.betrag }, 1)
             VStack(alignment: .leading, spacing: 12) {
-                Text("Ausgaben nach Kategorie")
+                Text("Expenses by category")
                     .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
                 VStack(spacing: 8) {
                     ForEach(data.prefix(5), id: \.name) { item in
@@ -127,9 +127,9 @@ struct FinanzTrackerView: View {
 
     private var filterBar: some View {
         HStack(spacing: 10) {
-            filterChip(label: "Alle", active: filterTyp == nil) { filterTyp = nil }
-            filterChip(label: "Einnahmen", active: filterTyp == .einnahme) { filterTyp = .einnahme }
-            filterChip(label: "Ausgaben", active: filterTyp == .ausgabe) { filterTyp = .ausgabe }
+            filterChip(label: "All", active: filterTyp == nil) { filterTyp = nil }
+            filterChip(label: "Income", active: filterTyp == .einnahme) { filterTyp = .einnahme }
+            filterChip(label: "Expenses", active: filterTyp == .ausgabe) { filterTyp = .ausgabe }
         }
     }
 
@@ -146,10 +146,10 @@ struct FinanzTrackerView: View {
     private var eintragListe: some View {
         let eintraege = store.diesenMonat.filter { filterTyp == nil || $0.typ == filterTyp }
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Diesen Monat")
+            Text("This month")
                 .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             if eintraege.isEmpty {
-                Text("Noch keine Einträge").font(.system(size: 14)).foregroundStyle(.white.opacity(0.5))
+                Text("No entries yet").font(.system(size: 14)).foregroundStyle(.white.opacity(0.5))
                     .frame(maxWidth: .infinity).padding(.vertical, 20)
             } else {
                 ForEach(eintraege) { e in
@@ -186,12 +186,12 @@ struct FinanzTrackerView: View {
         .padding(14)
         .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.08)))
         .contextMenu {
-            Button(role: .destructive) { store.delete(e) } label: { Label("Löschen", systemImage: "trash") }
+            Button(role: .destructive) { store.delete(e) } label: { Label("Delete", systemImage: "trash") }
         }
     }
 
     private func kurzDatum(_ date: Date) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "de"); f.dateFormat = "d. MMM"
+        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "d MMM"
         return f.string(from: date)
     }
 }
@@ -209,7 +209,7 @@ private struct FinanzAddSheet: View {
     @State private var datum: Date = Date()
 
     private let currencyFmt: NumberFormatter = {
-        let f = NumberFormatter(); f.numberStyle = .decimal; f.locale = Locale(identifier: "de_DE"); return f
+        let f = NumberFormatter(); f.numberStyle = .decimal; f.locale = Locale.current; return f
     }()
 
     private var betrag: Double {
@@ -239,14 +239,14 @@ private struct FinanzAddSheet: View {
                     .padding(.horizontal, 18).padding(.top, 20)
                 }
             }
-            .navigationTitle("Eintrag hinzufügen")
+            .navigationTitle("Add Entry")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white)
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .foregroundStyle(canSave ? .white : .white.opacity(0.4))
                         .fontWeight(.semibold).disabled(!canSave)
                 }
@@ -270,8 +270,8 @@ private struct FinanzAddSheet: View {
 
     private var betragField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Betrag (€)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("0,00", text: $betragText)
+            Text("Amount").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField("0.00", text: $betragText)
                 .keyboardType(.decimalPad)
                 .font(.system(size: 28, weight: .bold)).foregroundStyle(.white).tint(.white)
                 .multilineTextAlignment(.center)
@@ -281,7 +281,7 @@ private struct FinanzAddSheet: View {
 
     private var datumRow: some View {
         HStack {
-            Text("Datum").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Date").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             Spacer()
             DatePicker("", selection: $datum, displayedComponents: .date)
                 .datePickerStyle(.compact).colorScheme(.dark)
@@ -290,7 +290,7 @@ private struct FinanzAddSheet: View {
 
     private var kategorieGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Kategorie").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Category").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 10) {
                 ForEach(store.kategorien) { kat in
                     Button { gewaehlteKategorie = kat } label: {
@@ -308,8 +308,8 @@ private struct FinanzAddSheet: View {
 
     private var notizField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notiz (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("Beschreibung…", text: $notiz, axis: .vertical)
+            Text("Note (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField("Description…", text: $notiz, axis: .vertical)
                 .lineLimit(2...3).font(.system(size: 14)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }

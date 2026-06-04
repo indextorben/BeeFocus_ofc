@@ -28,7 +28,7 @@ struct CountdownView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }.foregroundStyle(.white)
+                    Button("Close") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAdd = true } label: {
@@ -45,7 +45,7 @@ struct CountdownView: View {
         VStack(spacing: 8) {
             Text("⏳").font(.system(size: 52))
             Text("Countdowns").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-            Text("Wichtige Ereignisse im Blick behalten")
+            Text("Keep track of important events")
                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.75))
         }
         .multilineTextAlignment(.center)
@@ -55,7 +55,7 @@ struct CountdownView: View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.plus")
                 .font(.system(size: 48)).foregroundStyle(.white.opacity(0.4))
-            Text("Noch keine Countdowns\nTippe auf + um einen hinzuzufügen")
+            Text("No countdowns yet\nTap + to add one")
                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
         }
@@ -89,13 +89,13 @@ struct CountdownView: View {
             // Counter
             VStack(alignment: .trailing, spacing: 2) {
                 if event.istVorbei {
-                    Text("Vorbei").font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                    Text("Past").font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
                 } else if event.istHeute {
-                    Text("Heute!").font(.system(size: 18, weight: .bold)).foregroundStyle(event.farbe)
+                    Text("Today!").font(.system(size: 18, weight: .bold)).foregroundStyle(event.farbe)
                 } else {
                     Text("\(event.tageVerbleibend)")
                         .font(.system(size: 26, weight: .bold)).foregroundStyle(event.farbe)
-                    Text("Tage").font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
+                    Text("days").font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
                 }
             }
         }
@@ -107,14 +107,14 @@ struct CountdownView: View {
         )
         .contextMenu {
             Button(role: .destructive) { store.delete(event) } label: {
-                Label("Löschen", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
         }
     }
 
     private func datumLabel(_ date: Date) -> String {
         let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "de")
+        fmt.locale = Locale.current
         fmt.dateStyle = .long
         return fmt.string(from: date)
     }
@@ -168,14 +168,14 @@ private struct CountdownAddSheet: View {
                     .padding(.horizontal, 18).padding(.top, 20)
                 }
             }
-            .navigationTitle(existing == nil ? "Neuer Countdown" : "Bearbeiten")
+            .navigationTitle(existing == nil ? "New Countdown" : "Edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white)
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? .white.opacity(0.4) : .white)
                         .fontWeight(.semibold)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -193,7 +193,7 @@ private struct CountdownAddSheet: View {
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Name").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("z.B. Urlaub, Geburtstag…", text: $name)
+            TextField("e.g. Vacation, Birthday…", text: $name)
                 .font(.system(size: 15)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }
@@ -201,7 +201,7 @@ private struct CountdownAddSheet: View {
 
     private var datumPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Datum").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Date").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             DatePicker("", selection: $datum, displayedComponents: .date)
                 .datePickerStyle(.compact).colorScheme(.dark)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
@@ -210,7 +210,7 @@ private struct CountdownAddSheet: View {
 
     private var symbolPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Symbol").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Icon").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 10) {
                 ForEach(symbole, id: \.self) { sym in
                     Button { symbol = sym } label: {
@@ -227,7 +227,7 @@ private struct CountdownAddSheet: View {
 
     private var farbPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Farbe").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text("Color").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             HStack(spacing: 12) {
                 ForEach(farben, id: \.name) { f in
                     Button { farbName = f.name } label: {
@@ -241,8 +241,8 @@ private struct CountdownAddSheet: View {
 
     private var notizField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notiz (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("Beschreibung…", text: $notiz, axis: .vertical)
+            Text("Note (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField("Description…", text: $notiz, axis: .vertical)
                 .lineLimit(2...4).font(.system(size: 14)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }

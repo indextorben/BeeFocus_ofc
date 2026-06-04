@@ -226,7 +226,7 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "globe", label: localizer.localizedString(forKey: "Sprache"), color: .green) {
                             spracheCard
                         }
-                        sectionGroup(icon: "folder.fill", label: "Ordner", color: .indigo) {
+                        sectionGroup(icon: "folder.fill", label: "Folders", color: .indigo) {
                             ordnerLinkCard
                         }
                         sectionGroup(icon: "tag.fill", label: localizer.localizedString(forKey: "Kategorien"), color: .purple) {
@@ -262,7 +262,7 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "envelope.fill", label: localizer.localizedString(forKey: "Feedback / Verbesserungen"), color: .teal) {
                             feedbackCard
                         }
-                        sectionGroup(icon: "person.fill", label: "Entwickler", color: .blue) {
+                        sectionGroup(icon: "person.fill", label: "Developer", color: .blue) {
                             profilLinkCard
                         }
 
@@ -435,10 +435,10 @@ struct EinstellungenView: View {
                 HStack(spacing: 12) {
                     iconBadge(icon: "folder.fill", color: .indigo)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Ordner verwalten")
+                        Text("Manage folders")
                             .font(.system(size: 16))
                         let customCount = todoStore.customFolders.count
-                        Text(customCount == 0 ? "Keine eigenen Ordner" : "\(customCount) eigene Ordner")
+                        Text(customCount == 0 ? "No custom folders" : "\(customCount) custom folders")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
@@ -458,7 +458,7 @@ struct EinstellungenView: View {
             cardDivider()
             iconToggleRow(icon: "clock.arrow.circlepath", color: .blue, label: localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
             cardDivider()
-            iconToggleRow(icon: "calendar", color: .orange, label: "Nur aktuellen Monat anzeigen", isOn: $filterCurrentMonthOnly)
+            iconToggleRow(icon: "calendar", color: .orange, label: "Show current month only", isOn: $filterCurrentMonthOnly)
         }
     }
 
@@ -468,7 +468,7 @@ struct EinstellungenView: View {
                 WidgetEinstellungenView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "rectangle.stack.fill", color: .blue, label: "Widget anpassen")
+                iconNavRow(icon: "rectangle.stack.fill", color: .blue, label: "Customize widget")
             }
         }
     }
@@ -479,11 +479,11 @@ struct EinstellungenView: View {
                 HStack(spacing: 12) {
                     iconBadge(icon: "bell.badge.fill", color: .red)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Benachrichtigungen")
+                        Text("Notifications")
                             .font(.system(size: 16))
                             .foregroundStyle(.primary)
                         let active = activeNotificationCount
-                        Text(active == 0 ? "Keine aktiv" : "\(active) aktiv")
+                        Text(active == 0 ? "None active" : "\(active) active")
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                     }
@@ -561,7 +561,7 @@ struct EinstellungenView: View {
             iconButtonRow(icon: "arrow.clockwise.circle.fill", color: .teal, label: "Force Full Sync") {
                 todoStore.forceFullSync()
                 bannerColor = .blue
-                showBanner(message: "Force Sync gestartet...")
+                showBanner(message: "Force sync started...")
             }
             cardDivider()
             NavigationLink {
@@ -578,26 +578,26 @@ struct EinstellungenView: View {
             iconToggleRow(
                 icon: "calendar.badge.exclamationmark",
                 color: .orange,
-                label: "Überfällige beim Import überspringen",
+                label: "Skip overdue on import",
                 isOn: $skipOverdueOnImport
             )
             cardDivider()
             iconToggleRow(
                 icon: "arrow.triangle.2.circlepath.circle.fill",
                 color: .blue,
-                label: "Kalender automatisch synchronisieren",
+                label: "Auto-sync calendar",
                 isOn: $autoCalendarSyncEnabled
             )
             if autoCalendarSyncEnabled {
                 cardDivider()
                 HStack(spacing: 12) {
                     iconBadge(icon: "clock.arrow.2.circlepath", color: .teal)
-                    Text("Synchronisationszeitraum")
+                    Text("Sync range")
                         .font(.system(size: 16))
                     Spacer()
                     Picker("", selection: $autoCalendarSyncRange) {
-                        Text("Akt. Monat").tag(1)
-                        Text("1 Jahr").tag(12)
+                        Text("Cur. month").tag(1)
+                        Text("1 Year").tag(12)
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
@@ -610,7 +610,7 @@ struct EinstellungenView: View {
                 KalenderImporteDetailView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "calendar.badge.minus", color: .red, label: "Kalender-Importe löschen")
+                iconNavRow(icon: "calendar.badge.minus", color: .red, label: "Delete calendar imports")
             }
         }
     }
@@ -685,20 +685,20 @@ struct EinstellungenView: View {
                 UeberfaelligeDetailView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "calendar.badge.minus", color: .orange, label: "Überfällige löschen")
+                iconNavRow(icon: "calendar.badge.minus", color: .orange, label: "Delete overdue")
             }
             cardDivider()
             NavigationLink {
                 DuplikateDetailView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "doc.on.doc.fill", color: .purple, label: "Duplikate löschen")
+                iconNavRow(icon: "doc.on.doc.fill", color: .purple, label: "Delete duplicates")
             }
             cardDivider()
             NavigationLink {
                 KalenderLoeschenView()
             } label: {
-                iconNavRow(icon: "calendar.badge.minus", color: .teal, label: "Kalendereinträge löschen")
+                iconNavRow(icon: "calendar.badge.minus", color: .teal, label: "Delete calendar entries")
             }
         }
     }
@@ -819,7 +819,7 @@ struct EinstellungenView: View {
                                     .background(Color(red: 0.55, green: 0.35, blue: 1.0), in: Capsule())
                             }
                         }
-                        Text(manager.isPlaying ? manager.currentSound.label : "Weißes Rauschen · Binaural Beats · mehr")
+                        Text(manager.isPlaying ? manager.currentSound.label : "White noise · Binaural beats · more")
                             .font(.system(size: 12))
                             .foregroundStyle(manager.isPlaying
                                              ? manager.currentSound.color
@@ -852,10 +852,10 @@ struct EinstellungenView: View {
                 HStack(spacing: 12) {
                     iconBadge(icon: "person.fill", color: .blue)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Mein Profil")
+                        Text("My Profile")
                             .font(.system(size: 16))
                             .foregroundStyle(.primary)
-                        Text("Instagram, E-Mail & mehr")
+                        Text("Instagram, Email & more")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
@@ -895,16 +895,16 @@ struct EinstellungenView: View {
                             .foregroundStyle(darkModeEnabled ? .white : .primary)
                         if sub.isPro {
                             if let exp = sub.expirationDate {
-                                Text("Aktiv bis \(exp.formatted(.dateTime.day().month().year()))")
+                                Text("Active until \(exp.formatted(.dateTime.day().month().year()))")
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
                             } else {
-                                Text("Aktiv – danke für deine Unterstützung!")
+                                Text("Active – thank you for your support!")
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
                             }
                         } else {
-                            Text("Alle Features freischalten")
+                            Text("Unlock all features")
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
                         }
@@ -913,7 +913,7 @@ struct EinstellungenView: View {
                     Spacer()
 
                     if !sub.isPro {
-                        Text("Jetzt")
+                        Text("Upgrade")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -939,7 +939,7 @@ struct EinstellungenView: View {
                     HStack {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 13))
-                        Text("Abo verwalten / kündigen")
+                        Text("Manage / cancel subscription")
                             .font(.system(size: 14))
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -999,7 +999,7 @@ struct EinstellungenView: View {
     private var datenschutzCard: some View {
         HStack(spacing: 20) {
             Link(destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/datenschutz.html")!) {
-                Text("Datenschutzerklärung")
+                Text("Privacy Policy")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .underline()
@@ -1008,7 +1008,7 @@ struct EinstellungenView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
             Link(destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/nutzungsbedingungen.html")!) {
-                Text("Nutzungsbedingungen")
+                Text("Terms of Use")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .underline()
@@ -1163,8 +1163,8 @@ struct EinstellungenView: View {
     // MARK: - Feedback Email
     private func sendFeedbackEmail() {
         let email = "lehneketorben@gmail.com"
-        let subject = "Feedback zur Todo-App"
-        let body = "Hallo,\n\nHier ist mein Feedback oder Verbesserungsvorschlag:\n"
+        let subject = "Feedback for BeeFocus"
+        let body = "Hello,\n\nHere is my feedback or suggestion:\n"
 
         if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
             if UIApplication.shared.canOpenURL(url) {
@@ -1231,24 +1231,24 @@ struct KategorieDedupDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Was passiert?")
+                    Text("What happens?")
                         .font(.headline)
-                    Text("Doppelt angelegte Kategorien in der CloudKit-Datenbank werden zusammengeführt. Aufgaben werden der verbleibenden Kategorie zugewiesen.")
+                    Text("Duplicate categories in the CloudKit database are merged. Tasks are assigned to the remaining category.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Duplikate Kategorien bereinigen")
+                Text("Clean up duplicate categories")
             }
 
             Section {
-                Text("Diese Funktion behebt Synchronisationsfehler, bei denen die gleiche Kategorie mehrfach in CloudKit existiert. Betroffen sind nur Kategoriedaten, keine Aufgaben werden gelöscht.")
+                Text("This function fixes sync errors where the same category exists multiple times in CloudKit. Only category data is affected; no tasks are deleted.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Wann sinnvoll?")
+                Text("When useful?")
             }
 
             Section {
@@ -1299,39 +1299,39 @@ struct KalenderImporteDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Was passiert?")
+                    Text("What happens?")
                         .font(.headline)
-                    Text("Alle Aufgaben, die aus dem Kalender importiert wurden, werden gelöscht. Sie werden beim nächsten Sync nicht erneut importiert, da ihre Kalender-IDs gespeichert bleiben.")
+                    Text("All tasks imported from the calendar will be deleted. They won't be re-imported on the next sync since their calendar IDs remain stored.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Kalender-Importe löschen")
+                Text("Delete calendar imports")
             }
 
             Section {
-                Label("\(importCount) Kalender-Aufgabe\(importCount == 1 ? "" : "n") vorhanden",
+                Label("\(importCount) calendar task\(importCount == 1 ? "" : "s") found",
                       systemImage: "calendar")
                     .foregroundStyle(importCount > 0 ? .primary : .secondary)
             } header: {
-                Text("Aktuell")
+                Text("Current")
             }
 
             Section {
-                Text("Nützlich, wenn importierte Kalendereinträge nicht mehr in der Aufgabenliste erscheinen sollen. Die ursprünglichen Kalendertermine bleiben unberührt.")
+                Text("Useful when imported calendar entries should no longer appear in the task list. The original calendar events remain untouched.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Hinweis")
+                Text("Note")
             }
 
             Section {
                 Button(role: .destructive) {
                     showConfirm = true
                 } label: {
-                    Label("Alle Kalender-Importe löschen", systemImage: "calendar.badge.minus")
+                    Label("Delete all calendar imports", systemImage: "calendar.badge.minus")
                 }
                 .disabled(importCount == 0)
             }
@@ -1343,18 +1343,18 @@ struct KalenderImporteDetailView: View {
                 }
             }
         }
-        .navigationTitle("Kalender-Importe")
+        .navigationTitle("Calendar Imports")
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog("Kalender-Importe löschen", isPresented: $showConfirm, titleVisibility: .visible) {
-            Button("Alle löschen", role: .destructive) {
+        .confirmationDialog("Delete Calendar Imports", isPresented: $showConfirm, titleVisibility: .visible) {
+            Button("Delete all", role: .destructive) {
                 let toDelete = todoStore.todos.filter { $0.calendarEventIdentifier != nil }
                 for todo in toDelete { todoStore.deleteTodo(todo) }
                 let count = toDelete.count
-                result = count > 0 ? "\(count) Kalender-Aufgabe\(count == 1 ? "" : "n") gelöscht" : "Keine Kalender-Importe gefunden"
+                result = count > 0 ? "\(count) calendar task\(count == 1 ? "" : "s") deleted" : "No calendar imports found"
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Alle aus dem Kalender importierten Aufgaben werden gelöscht und beim nächsten Sync nicht wieder importiert.")
+            Text("All tasks imported from the calendar will be deleted and won't be re-imported on the next sync.")
         }
     }
 }
@@ -1376,39 +1376,39 @@ struct UeberfaelligeDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Was passiert?")
+                    Text("What happens?")
                         .font(.headline)
-                    Text("Nicht erledigte Aufgaben, deren Fälligkeitsdatum mehr als 1 Monat in der Vergangenheit liegt, werden in den Papierkorb verschoben. Aufgaben der letzten 30 Tage bleiben erhalten.")
+                    Text("Incomplete tasks whose due date is more than 1 month in the past will be moved to the trash. Tasks from the last 30 days are kept.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Überfällige Aufgaben löschen")
+                Text("Delete overdue tasks")
             }
 
             Section {
-                Label("\(overdueCount) überfällige Aufgabe\(overdueCount == 1 ? "" : "n") betroffen",
+                Label("\(overdueCount) overdue task\(overdueCount == 1 ? "" : "s") affected",
                       systemImage: "exclamationmark.triangle")
                     .foregroundStyle(overdueCount > 0 ? .orange : .secondary)
             } header: {
-                Text("Aktuell")
+                Text("Current")
             }
 
             Section {
-                Text("Erledigte Aufgaben sind nicht betroffen. Aufgaben ohne Fälligkeitsdatum werden ebenfalls nicht gelöscht.")
+                Text("Completed tasks are not affected. Tasks without a due date will also not be deleted.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Ausnahmen")
+                Text("Exceptions")
             }
 
             Section {
                 Button(role: .destructive) {
                     showConfirm = true
                 } label: {
-                    Label("Überfällige jetzt löschen", systemImage: "trash")
+                    Label("Delete overdue now", systemImage: "trash")
                 }
                 .disabled(overdueCount == 0)
             }
@@ -1420,10 +1420,10 @@ struct UeberfaelligeDetailView: View {
                 }
             }
         }
-        .navigationTitle("Überfällige löschen")
+        .navigationTitle("Delete Overdue")
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog("Überfällige Aufgaben löschen", isPresented: $showConfirm, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) {
+        .confirmationDialog("Delete Overdue Tasks", isPresented: $showConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
                 let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
                 let toDelete = todoStore.todos.filter { todo in
                     guard !todo.isCompleted, let due = todo.dueDate else { return false }
@@ -1433,11 +1433,11 @@ struct UeberfaelligeDetailView: View {
                     todoStore.deleteTodo(todo)
                 }
                 let count = toDelete.count
-                result = count > 0 ? "\(count) überfällige Aufgabe\(count == 1 ? "" : "n") gelöscht" : "Keine überfälligen Aufgaben gefunden"
+                result = count > 0 ? "\(count) overdue task\(count == 1 ? "" : "s") deleted" : "No overdue tasks found"
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Alle nicht erledigten Aufgaben mit Fälligkeit vor mehr als 1 Monat werden gelöscht.")
+            Text("All incomplete tasks with a due date more than 1 month ago will be deleted.")
         }
     }
 }
@@ -1462,39 +1462,39 @@ struct DuplikateDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Was passiert?")
+                    Text("What happens?")
                         .font(.headline)
-                    Text("Aufgaben, die in Titel, Beschreibung, Fälligkeitsdatum, Kategorie und Priorität übereinstimmen, gelten als Duplikat. Von jedem Duplikat wird eine Kopie gelöscht, die erste bleibt erhalten.")
+                    Text("Tasks that share the same title, description, due date, category, and priority are considered duplicates. One copy of each duplicate is deleted; the first one is kept.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Duplikate löschen")
+                Text("Delete duplicates")
             }
 
             Section {
-                Label("\(duplicateCount) Duplikat\(duplicateCount == 1 ? "" : "e") gefunden",
+                Label("\(duplicateCount) duplicate\(duplicateCount == 1 ? "" : "s") found",
                       systemImage: "doc.on.doc")
                     .foregroundStyle(duplicateCount > 0 ? .purple : .secondary)
             } header: {
-                Text("Aktuell")
+                Text("Current")
             }
 
             Section {
-                Text("Duplikate entstehen häufig durch mehrfachen Kalender-Import oder Synchronisationsfehler. Die Bereinigung ist dauerhaft und kann nicht rückgängig gemacht werden.")
+                Text("Duplicates often arise from multiple calendar imports or sync errors. The cleanup is permanent and cannot be undone.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Ursache & Hinweis")
+                Text("Cause & Note")
             }
 
             Section {
                 Button(role: .destructive) {
                     showConfirm = true
                 } label: {
-                    Label("Duplikate jetzt entfernen", systemImage: "doc.on.doc.fill")
+                    Label("Remove duplicates now", systemImage: "doc.on.doc.fill")
                 }
                 .disabled(duplicateCount == 0)
             }
@@ -1506,10 +1506,10 @@ struct DuplikateDetailView: View {
                 }
             }
         }
-        .navigationTitle("Duplikate löschen")
+        .navigationTitle("Delete Duplicates")
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog("Duplikate löschen", isPresented: $showConfirm, titleVisibility: .visible) {
-            Button("Duplikate entfernen", role: .destructive) {
+        .confirmationDialog("Delete Duplicates", isPresented: $showConfirm, titleVisibility: .visible) {
+            Button("Remove duplicates", role: .destructive) {
                 var seenKeys: Set<String> = []
                 var toDelete: [TodoItem] = []
                 for todo in todoStore.todos {
@@ -1519,11 +1519,11 @@ struct DuplikateDetailView: View {
                 }
                 for todo in toDelete { todoStore.deleteTodo(todo) }
                 let count = toDelete.count
-                result = count > 0 ? "\(count) Duplikat\(count == 1 ? "" : "e") gelöscht" : "Keine Duplikate gefunden"
+                result = count > 0 ? "\(count) duplicate\(count == 1 ? "" : "s") deleted" : "No duplicates found"
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Identische Aufgaben (gleicher Titel, Beschreibung, Datum, Kategorie und Priorität) werden permanent gelöscht.")
+            Text("Identical tasks (same title, description, date, category and priority) will be permanently deleted.")
         }
     }
 }

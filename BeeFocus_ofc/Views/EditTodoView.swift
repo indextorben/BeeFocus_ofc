@@ -296,30 +296,30 @@ struct EditTodoView: View {
         } message: {
             Text(localizer.localizedString(forKey: "discard_changes_message"))
         }
-        .alert("Teilaufgabe löschen?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
-            Button("Löschen", role: .destructive) {
+        .alert("Delete subtask?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
+            Button("Delete", role: .destructive) {
                 subTasks.removeAll { $0.id == sub.id }
                 subTaskPendingDelete = nil
             }
-            Button("Abbrechen", role: .cancel) { subTaskPendingDelete = nil }
+            Button("Cancel", role: .cancel) { subTaskPendingDelete = nil }
         } message: { sub in
-            Text("Möchtest du \"\(sub.title)\" wirklich löschen?")
+            Text("Are you sure you want to delete \"\(sub.title)\"?")
         }
-        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAISubTaskKeyAlert) {
+        .alert("AI provider not configured", isPresented: $showAISubTaskKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            Text("Please set up an AI provider in Settings first.")
         }
         .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
-        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIKeyAlert) {
+        .alert("AI provider not configured", isPresented: $showAIKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            Text("Please set up an AI provider in Settings first.")
         }
-        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIReminderKeyAlert) {
+        .alert("AI provider not configured", isPresented: $showAIReminderKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            Text("Please set up an AI provider in Settings first.")
         }
         .sheet(isPresented: $showDescPaywall) { ProPaywallView() }
         .sheet(isPresented: $showReminderPaywall) { ProPaywallView() }
@@ -345,7 +345,7 @@ struct EditTodoView: View {
                         HStack(spacing: 4) {
                             if isGeneratingDescription {
                                 ProgressView().scaleEffect(0.7)
-                                Text("Stopp").font(.system(size: 11, weight: .medium))
+                                Text("Stop").font(.system(size: 11, weight: .medium))
                             } else {
                                 Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
                                 Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
@@ -421,7 +421,7 @@ struct EditTodoView: View {
                                 HStack(spacing: 4) {
                                     if isGeneratingReminder {
                                         ProgressView().scaleEffect(0.7)
-                                        Text("Stopp").font(.system(size: 11, weight: .medium))
+                                        Text("Stop").font(.system(size: 11, weight: .medium))
                                     } else {
                                         Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
                                         Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
@@ -746,24 +746,24 @@ struct EditTodoView: View {
         isGeneratingDescription = true
         description = ""
 
-        var contextParts: [String] = ["Aufgabe: \(t)"]
-        contextParts.append("Priorität: \(priority.displayName)")
-        contextParts.append("Kategorie: \(category.name)")
+        var contextParts: [String] = ["Task: \(t)"]
+        contextParts.append("Priority: \(priority.displayName)")
+        contextParts.append("Category: \(category.name)")
         if hasDueDate {
             let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .none
-            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+            contextParts.append("Due date: \(fmt.string(from: dueDate))")
         }
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Schreibe eine kurze, motivierende Beschreibung für diese Aufgabe auf Deutsch.
+        Write a short, motivating description for this task in English.
         \(context)
 
-        Regeln:
-        - Genau 1 Satz, maximal 7 Wörter
-        - Natürlich und hilfreich formulieren
-        - Kein Aufzählungszeichen, kein Markdown
-        - Antworte NUR mit der Beschreibung
+        Rules:
+        - Exactly 1 sentence, maximum 7 words
+        - Phrase it naturally and helpfully
+        - No bullet points, no Markdown
+        - Reply ONLY with the description
         """
 
         var raw = ""
@@ -824,28 +824,28 @@ struct EditTodoView: View {
         reminderTitle = ""
         reminderBody = ""
 
-        var contextParts: [String] = ["Aufgabe: \(t)"]
+        var contextParts: [String] = ["Task: \(t)"]
         if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            contextParts.append("Beschreibung: \(description)")
+            contextParts.append("Description: \(description)")
         }
-        contextParts.append("Priorität: \(priority.displayName)")
-        contextParts.append("Kategorie: \(category.name)")
+        contextParts.append("Priority: \(priority.displayName)")
+        contextParts.append("Category: \(category.name)")
         if hasDueDate {
             let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .short
-            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+            contextParts.append("Due date: \(fmt.string(from: dueDate))")
         }
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Erstelle einen Erinnerungstitel und einen Erinnerungstext für diese Aufgabe auf Deutsch.
+        Create a reminder title and reminder text for this task in English.
         \(context)
 
-        Regeln:
-        - Titel: maximal 6 Wörter, direkt und motivierend
-        - Text: maximal 2 Sätze, konkret und hilfreich
-        - Kein Markdown, keine Aufzählungszeichen
-        - Antworte NUR in diesem Format (keine weiteren Zeilen):
-        TITEL: <titel>
+        Rules:
+        - Title: maximum 6 words, direct and motivating
+        - Text: maximum 2 sentences, concrete and helpful
+        - No Markdown, no bullet points
+        - Reply ONLY in this format (no additional lines):
+        TITLE: <title>
         TEXT: <text>
         """
 
@@ -904,8 +904,8 @@ struct EditTodoView: View {
     private func parseReminderResponse(_ raw: String) {
         let lines = raw.components(separatedBy: "\n")
         for line in lines {
-            if line.hasPrefix("TITEL:") {
-                reminderTitle = line.dropFirst("TITEL:".count).trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("TITLE:") {
+                reminderTitle = line.dropFirst("TITLE:".count).trimmingCharacters(in: .whitespaces)
             } else if line.hasPrefix("TEXT:") {
                 reminderBody = line.dropFirst("TEXT:".count).trimmingCharacters(in: .whitespaces)
             }
@@ -923,23 +923,23 @@ struct EditTodoView: View {
         guard !t.isEmpty else { return }
         isGeneratingSubTasks = true
 
-        var contextParts: [String] = ["Aufgabe: \(t)"]
+        var contextParts: [String] = ["Task: \(t)"]
         if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            contextParts.append("Beschreibung: \(description)")
+            contextParts.append("Description: \(description)")
         }
-        contextParts.append("Priorität: \(priority.displayName)")
-        contextParts.append("Kategorie: \(category.name)")
+        contextParts.append("Priority: \(priority.displayName)")
+        contextParts.append("Category: \(category.name)")
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Teile diese Aufgabe in 3 bis 6 sinnvolle, konkrete Teilaufgaben auf Deutsch auf.
+        Break this task into 3 to 6 meaningful, concrete subtasks in English.
         \(context)
 
-        Regeln:
-        - Jede Teilaufgabe ist eine ausführbare Aktion
-        - Maximal 8 Wörter pro Teilaufgabe
-        - Eine Teilaufgabe pro Zeile, ohne Nummerierung und ohne Aufzählungszeichen
-        - Antworte NUR mit den Teilaufgaben, eine pro Zeile
+        Rules:
+        - Each subtask is an actionable step
+        - Maximum 8 words per subtask
+        - One subtask per line, no numbering or bullet points
+        - Reply ONLY with the subtasks, one per line
         """
 
         var raw = ""

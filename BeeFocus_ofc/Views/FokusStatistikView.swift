@@ -85,7 +85,7 @@ struct FokusStatistikView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Fokus-Statistik")
+        .navigationTitle("Focus Statistics")
         .navigationBarTitleDisplayMode(.large)
         .onReceive(ticker) { _ in
             guard manager.isFocusModeActive, let start = manager.currentSessionStart else {
@@ -101,17 +101,17 @@ struct FokusStatistikView: View {
     private var topCards: some View {
         HStack(spacing: 14) {
             statCard(
-                title: "Heute",
+                title: "Today",
                 value: formatDuration(todayTotal),
-                subtitle: manager.isFocusModeActive ? "Aktiv" : "Gesamt",
+                subtitle: manager.isFocusModeActive ? "Active" : "Total",
                 icon: "sun.max.fill",
                 color: themeC1,
                 isLive: manager.isFocusModeActive
             )
             statCard(
-                title: "Diese Woche",
+                title: "This Week",
                 value: formatDuration(weekTotal),
-                subtitle: "7 Tage",
+                subtitle: "7 Days",
                 icon: "calendar",
                 color: themeC2,
                 isLive: false
@@ -174,12 +174,12 @@ struct FokusStatistikView: View {
                 Text("\(currentStreak)")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(currentStreak > 0 ? Color.orange : (isDark ? .white.opacity(0.3) : Color.secondary))
-                Text(currentStreak == 1 ? "Tag" : "Tage")
+                Text(currentStreak == 1 ? "Day" : "Days")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                     .padding(.bottom, 2)
             }
-            Text(currentStreak == 0 ? "Fang heute an!" : currentStreak < 3 ? "Weiter so!" : currentStreak < 7 ? "Super Lauf!" : "Unaufhaltsam!")
+            Text(currentStreak == 0 ? "Start today!" : currentStreak < 3 ? "Keep it up!" : currentStreak < 7 ? "Great run!" : "Unstoppable!")
                 .font(.caption)
                 .foregroundStyle(Color.orange.opacity(0.9))
         }
@@ -194,7 +194,7 @@ struct FokusStatistikView: View {
                 Image(systemName: "target")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.mint)
-                Text("Tagesziel")
+                Text("Daily Goal")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
                 Spacer()
@@ -221,7 +221,7 @@ struct FokusStatistikView: View {
             }
             .frame(width: 60, height: 60)
             .frame(maxWidth: .infinity)
-            Text("\(manager.dailyGoalMinutes > 0 ? manager.dailyGoalMinutes : dailyGoal) min Ziel")
+            Text("\(manager.dailyGoalMinutes > 0 ? manager.dailyGoalMinutes : dailyGoal) min goal")
                 .font(.caption)
                 .foregroundStyle(Color.mint.opacity(0.9))
         }
@@ -248,7 +248,7 @@ struct FokusStatistikView: View {
                     Image(systemName: "medal.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(themeC1)
-                    Text("Abzeichen")
+                    Text("Badges")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
                     Spacer()
@@ -284,10 +284,10 @@ struct FokusStatistikView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(unlocked == 0
-                             ? "Noch keine Abzeichen"
+                             ? "No badges yet"
                              : unlocked == total
-                                ? "Alle Abzeichen freigeschaltet! 🎉"
-                                : "\(unlocked) von \(total) freigeschaltet")
+                                ? "All badges unlocked! 🎉"
+                                : "\(unlocked) of \(total) unlocked")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(isDark ? .white : .primary)
 
@@ -295,7 +295,7 @@ struct FokusStatistikView: View {
                             Image(systemName: "bolt.fill")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(themeC1)
-                            Text(bonus > 0 ? "+\(bonus) FP Bonus" : "Abzeichen verdienen = FP erhalten")
+                            Text(bonus > 0 ? "+\(bonus) FP Bonus" : "Earn badges = earn FP")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(bonus > 0 ? themeC1 : (isDark ? .white.opacity(0.4) : .secondary))
                         }
@@ -340,7 +340,7 @@ struct FokusStatistikView: View {
         let trendColor: Color = trendPositiv ? .green : .red
         let trendIcon = trendPositiv ? "arrow.up.right" : "arrow.down.right"
         let trendText = lastWeekSeconds == 0
-            ? "Erste Woche"
+            ? "First Week"
             : String(format: "%+.0f%%", weekTrend * 100)
         let blueAccent = Color(red: 0.4, green: 0.6, blue: 1.0)
 
@@ -349,7 +349,7 @@ struct FokusStatistikView: View {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(blueAccent)
-                Text("Wochenrückblick")
+                Text("Weekly Review")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Spacer()
@@ -365,14 +365,14 @@ struct FokusStatistikView: View {
             }
 
             HStack(spacing: 0) {
-                weekBar(label: "Letzte Woche", seconds: lastWeekSeconds, color: blueAccent.opacity(0.5))
+                weekBar(label: "Last Week", seconds: lastWeekSeconds, color: blueAccent.opacity(0.5))
                 Spacer().frame(width: 12)
-                weekBar(label: "Diese Woche", seconds: weekTotal, color: blueAccent)
+                weekBar(label: "This Week", seconds: weekTotal, color: blueAccent)
             }
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Letzte Woche")
+                    Text("Last Week")
                         .font(.caption2)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     Text(formatDuration(lastWeekSeconds))
@@ -381,7 +381,7 @@ struct FokusStatistikView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Diese Woche")
+                    Text("This Week")
                         .font(.caption2)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     Text(formatDuration(weekTotal))
@@ -414,11 +414,11 @@ struct FokusStatistikView: View {
     private var chartCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Letzte 7 Tage")
+                Text("Last 7 Days")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Spacer()
-                Text("in Minuten")
+                Text("in minutes")
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
             }
@@ -467,12 +467,12 @@ struct FokusStatistikView: View {
         let maxDay = manager.last7Days.max(by: { $0.seconds < $1.seconds })
 
         return VStack(spacing: 0) {
-            statRow(label: "Gesamt (alle Zeit)", value: formatDuration(total), icon: "infinity", color: themeC1)
+            statRow(label: "Total (all time)", value: formatDuration(total), icon: "infinity", color: themeC1)
             Divider().opacity(0.2).padding(.horizontal, 16)
-            statRow(label: "Aktive Tage", value: "\(sessions)", icon: "calendar.badge.checkmark", color: themeC2)
+            statRow(label: "Active Days", value: "\(sessions)", icon: "calendar.badge.checkmark", color: themeC2)
             Divider().opacity(0.2).padding(.horizontal, 16)
             statRow(
-                label: "Bester Tag (7T)",
+                label: "Best Day (7D)",
                 value: maxDay.map { formatDuration($0.seconds) } ?? "—",
                 icon: "trophy.fill",
                 color: themeC1

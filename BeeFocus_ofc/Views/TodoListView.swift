@@ -27,11 +27,11 @@ struct BlurView: UIViewRepresentable {
 }
 
 enum TodoTimeFilter: String, CaseIterable {
-    case alle        = "Alle"
-    case heute       = "Heute"
-    case morgen      = "Morgen"
-    case dieseWoche  = "Diese Woche"
-    case ueberfaellig = "Überfällig"
+    case alle        = "All"
+    case heute       = "Today"
+    case morgen      = "Tomorrow"
+    case dieseWoche  = "This Week"
+    case ueberfaellig = "Overdue"
 
     var icon: String {
         switch self {
@@ -594,7 +594,7 @@ struct TodoListView: View {
                     Text("⭐️")
                         .font(.system(size: 22))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Heutiges Highlight")
+                        Text("Today's Highlight")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.45))
                         Text(todo.title)
@@ -636,15 +636,15 @@ struct TodoListView: View {
     // MARK: - Tools Strip
 
     private let allToolDefs: [ToolDef] = [
-        ToolDef(id: "gewohnheiten",  icon: "calendar.badge.checkmark",  label: "Gewohnheiten",  r: 0.3,  g: 0.82, b: 0.5),
+        ToolDef(id: "gewohnheiten",  icon: "calendar.badge.checkmark",  label: "Habits",        r: 0.3,  g: 0.82, b: 0.5),
         ToolDef(id: "journal",       icon: "book.closed.fill",           label: "Journal",       r: 0.65, g: 0.35, b: 1.0),
         ToolDef(id: "score",         icon: "chart.line.uptrend.xyaxis",  label: "Score",         r: 0.2,  g: 0.85, b: 0.5),
         ToolDef(id: "motivation",    icon: "quote.bubble.fill",          label: "Motivation",    r: 1.0,  g: 0.5,  b: 0.8),
-        ToolDef(id: "wasser",        icon: "drop.fill",                  label: "Wasser",        r: 0.15, g: 0.75, b: 0.95),
-        ToolDef(id: "schlaf",        icon: "moon.zzz.fill",              label: "Schlaf",        r: 0.4,  g: 0.3,  b: 0.9),
-        ToolDef(id: "notizen",       icon: "note.text",                  label: "Notizen",       r: 1.0,  g: 0.75, b: 0.2),
+        ToolDef(id: "wasser",        icon: "drop.fill",                  label: "Water",         r: 0.15, g: 0.75, b: 0.95),
+        ToolDef(id: "schlaf",        icon: "moon.zzz.fill",              label: "Sleep",         r: 0.4,  g: 0.3,  b: 0.9),
+        ToolDef(id: "notizen",       icon: "note.text",                  label: "Notes",         r: 1.0,  g: 0.75, b: 0.2),
         ToolDef(id: "braindump",     icon: "brain",                      label: "Brain Dump",    r: 1.0,  g: 0.55, b: 0.15),
-        ToolDef(id: "zeiterfassung", icon: "timer.circle.fill",          label: "Zeiterfassung", r: 0.3,  g: 0.5,  b: 1.0),
+        ToolDef(id: "zeiterfassung", icon: "timer.circle.fill",          label: "Time Tracking", r: 0.3,  g: 0.5,  b: 1.0),
         ToolDef(id: "countdown",     icon: "hourglass",                  label: "Countdown",     r: 0.5,  g: 0.3,  b: 1.0),
     ]
 
@@ -756,7 +756,7 @@ struct TodoListView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "trash")
                             .foregroundColor(.white)
-                        Text("Aufgabe gelöscht – Rückgängig")
+                        Text("Task deleted – Undo")
                             .foregroundColor(.white)
                             .font(.subheadline)
                             .lineLimit(1)
@@ -764,13 +764,13 @@ struct TodoListView: View {
                         Button(action: {
                             // Cancel the auto-dismiss timer
                             snackbarDismissTask?.cancel()
-                            
+
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                 showDeleteSnackbar = false
                                 todoStore.undo()
                             }
                         }) {
-                            Text("Rückgängig")
+                            Text("Undo")
                                 .font(.subheadline).bold()
                                 .foregroundColor(.white)
                         }
@@ -807,7 +807,7 @@ struct TodoListView: View {
                         Image(systemName: "lock.shield.fill")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.indigo)
-                        Text("Fokus aktiv – Bearbeiten gesperrt")
+                        Text("Focus active – Editing locked")
                             .font(.system(size: 13, weight: .semibold))
                         Spacer()
                         Image(systemName: "timer")
@@ -853,7 +853,7 @@ struct TodoListView: View {
         var targets = todoStore.customFolders.map { name in
             FolderTarget(id: "__custom__\(name)", title: name, icon: "folder.fill", color: .indigo)
         }
-        targets.append(FolderTarget(id: "__remove__", title: "Allgemein", icon: "tray.fill", color: Color(.systemGray)))
+        targets.append(FolderTarget(id: "__remove__", title: "General", icon: "tray.fill", color: Color(.systemGray)))
         return targets
     }
 
@@ -921,7 +921,7 @@ struct TodoListView: View {
                 VStack(spacing: 20) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("In Ordner ziehen")
+                            Text("Drag to folder")
                                 .font(.title3.weight(.bold))
                             if let id = draggedTodoID,
                                let todo = todoStore.todos.first(where: { $0.id == id }) {
@@ -951,7 +951,7 @@ struct TodoListView: View {
                             Image(systemName: "folder.badge.questionmark")
                                 .font(.system(size: 34))
                                 .foregroundStyle(.secondary)
-                            Text("Noch keine eigenen Ordner vorhanden.")
+                            Text("No custom folders yet.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -995,7 +995,7 @@ struct TodoListView: View {
                 VStack(spacing: 20) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("In Ordner verschieben")
+                            Text("Move to folder")
                                 .font(.title3.weight(.bold))
                             if let id = pendingFolderTodoID,
                                let todo = todoStore.todos.first(where: { $0.id == id }) {
@@ -1004,7 +1004,7 @@ struct TodoListView: View {
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             } else {
-                                Text("\(selectedTodoIDs.count) Aufgabe(n) ausgewählt")
+                                Text("\(selectedTodoIDs.count) task(s) selected")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
@@ -1024,10 +1024,10 @@ struct TodoListView: View {
                             Image(systemName: "folder.badge.questionmark")
                                 .font(.system(size: 34))
                                 .foregroundStyle(.secondary)
-                            Text("Noch keine Ordner vorhanden.")
+                            Text("No folders yet.")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.secondary)
-                            Text("Erstelle einen Ordner mit dem Ordner-Button oben rechts.")
+                            Text("Create a folder using the folder button in the top right.")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                                 .multilineTextAlignment(.center)
@@ -1070,7 +1070,7 @@ struct TodoListView: View {
                     .padding(.horizontal, 16)
 
                     Button { dismissFolderPicker() } label: {
-                        Text("Abbrechen")
+                        Text("Cancel")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)

@@ -340,7 +340,7 @@ struct WeeklyGoalsView: View {
                         }
                     }
                     .frame(height: 8)
-                    Text("\(Int(completionRateThisWeek * 100))% dieser Woche erledigt")
+                    Text("\(Int(completionRateThisWeek * 100))% completed this week")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -553,8 +553,8 @@ private struct WeeklyTodoRow: View {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let dueDay = cal.startOfDay(for: due)
-        if dueDay < today { return ("Überfällig", .red) }
-        if cal.isDate(dueDay, inSameDayAs: today) { return ("Heute", .orange) }
+        if dueDay < today { return ("Overdue", .red) }
+        if cal.isDate(dueDay, inSameDayAs: today) { return ("Today", .orange) }
         let df = DateFormatter()
         df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
         df.dateStyle = .short; df.timeStyle = .none
@@ -610,7 +610,7 @@ private struct WeeklyTodoRow: View {
         .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button { withAnimation(.easeInOut) { todo.isCompleted = true } } label: {
-                Label("Erledigt", systemImage: "checkmark")
+                Label("Done", systemImage: "checkmark")
             }.tint(.green)
         }
     }

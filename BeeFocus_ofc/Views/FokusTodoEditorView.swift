@@ -138,17 +138,17 @@ struct FokusTodoEditorView: View {
                 .transaction { $0.animation = appeared ? $0.animation : nil }
                 .onAppear { appeared = true }
             }
-            .navigationTitle(isEditMode ? "Aufgabe bearbeiten" : "Neue Aufgabe")
+            .navigationTitle(isEditMode ? "Edit Task" : "New Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") {
+                    Button("Cancel") {
                         if hasUnsavedChanges() { showDiscardDialog = true } else { dismiss() }
                     }
                     .foregroundStyle(themeC1)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(title.isEmpty ? .secondary : themeC1)
                         .disabled(title.isEmpty)
@@ -156,63 +156,63 @@ struct FokusTodoEditorView: View {
             }
         }
         .interactiveDismissDisabled(hasUnsavedChanges())
-        .confirmationDialog("Änderungen verwerfen?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
-            Button("Verwerfen", role: .destructive) { dismiss() }
+        .confirmationDialog("Discard changes?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
+            Button("Discard", role: .destructive) { dismiss() }
             if isEditMode {
-                Button("Aufgabe löschen", role: .destructive) {
+                Button("Delete task", role: .destructive) {
                     if let t = existingTodo { todoStore.deleteTodo(t) }
                     dismiss()
                 }
             }
-            Button("Weiter bearbeiten", role: .cancel) {}
+            Button("Keep editing", role: .cancel) {}
         } message: {
-            Text("Nicht gespeicherte Änderungen gehen verloren.")
+            Text("Unsaved changes will be lost.")
         }
-        .confirmationDialog("Aufgabe löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) {
+        .confirmationDialog("Delete task?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
                 if let t = existingTodo { todoStore.deleteTodo(t) }
                 dismiss()
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("\"\(title)\" wird unwiderruflich gelöscht.")
+            Text("\"\(title)\" will be permanently deleted.")
         }
-        .alert("Neue Kategorie", isPresented: $showAddCategoryAlert) {
-            TextField("Kategoriename", text: $newCategoryName)
-            Button("Hinzufügen") { addCategory() }
-            Button("Abbrechen", role: .cancel) { newCategoryName = "" }
+        .alert("New Category", isPresented: $showAddCategoryAlert) {
+            TextField("Category name", text: $newCategoryName)
+            Button("Add") { addCategory() }
+            Button("Cancel", role: .cancel) { newCategoryName = "" }
         }
-        .alert("Kamera-Zugriff benötigt", isPresented: $showCameraPermAlert) {
-            Button("Einstellungen") {
+        .alert("Camera access required", isPresented: $showCameraPermAlert) {
+            Button("Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         }
-        .alert("Kein Kalender-Zugriff", isPresented: $calendarAccessDenied) {
-            Button("Einstellungen") {
+        .alert("No calendar access", isPresented: $calendarAccessDenied) {
+            Button("Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Bitte erlaube BeeFocus den Zugriff auf den Kalender in den Einstellungen.")
+            Text("Please allow BeeFocus to access your calendar in Settings.")
         }
-        .alert("Teilaufgabe löschen?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
-            Button("Löschen", role: .destructive) {
+        .alert("Delete subtask?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
+            Button("Delete", role: .destructive) {
                 withAnimation { subTasks.removeAll { $0.id == sub.id } }
                 subTaskPendingDelete = nil
             }
-            Button("Abbrechen", role: .cancel) { subTaskPendingDelete = nil }
+            Button("Cancel", role: .cancel) { subTaskPendingDelete = nil }
         } message: { sub in
-            Text("Möchtest du \"\(sub.title)\" wirklich löschen?")
+            Text("Are you sure you want to delete \"\(sub.title)\"?")
         }
-        .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIKeyAlert) {
+        .alert("AI provider not configured", isPresented: $showAIKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+            Text("Please set up an AI provider in Settings first.")
         }
         .sheet(isPresented: $showDescPaywall) { ProPaywallView() }
         .sheet(isPresented: $showCamera) {
@@ -228,9 +228,9 @@ struct FokusTodoEditorView: View {
     // MARK: - Titel & Beschreibung
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Titel", icon: "pencil.line")
+            sectionLabel("Title", icon: "pencil.line")
             VStack(spacing: 0) {
-                TextField("Aufgabenname", text: $title)
+                TextField("Task name", text: $title)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                     .submitLabel(.next)
@@ -250,7 +250,7 @@ struct FokusTodoEditorView: View {
                             .padding(.vertical, 6)
                             .overlay(alignment: .topLeading) {
                                 if bodyText.isEmpty {
-                                    Text("Beschreibung (optional)")
+                                    Text("Description (optional)")
                                         .font(.system(size: 15))
                                         .foregroundStyle(.secondary.opacity(0.6))
                                         .padding(.horizontal, 14)
@@ -321,25 +321,25 @@ struct FokusTodoEditorView: View {
         isGeneratingDescription = true
         bodyText = ""
 
-        var contextParts: [String] = ["Aufgabe: \(t)"]
-        contextParts.append("Priorität: \(priority.displayName)")
-        if let cat = category { contextParts.append("Kategorie: \(cat.name)") }
+        var contextParts: [String] = ["Task: \(t)"]
+        contextParts.append("Priority: \(priority.displayName)")
+        if let cat = category { contextParts.append("Category: \(cat.name)") }
         if hasDueDate {
             let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .none
-            contextParts.append("Fälligkeitsdatum: \(fmt.string(from: dueDate))")
+            contextParts.append("Due date: \(fmt.string(from: dueDate))")
         }
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Schreibe eine kurze, motivierende Beschreibung für diese Aufgabe auf Deutsch.
+        Write a short, motivating description for this task in English.
         \(context)
 
-        Regeln:
-        - Maximal 3 Sätze
-        - Konkrete Hinweise oder sinnvolle nächste Schritte nennen
-        - Natürlich und hilfreich formulieren
-        - Kein Aufzählungszeichen, kein Markdown
-        - Antworte NUR mit der Beschreibung
+        Rules:
+        - Maximum 3 sentences
+        - Mention concrete hints or useful next steps
+        - Phrase it naturally and helpfully
+        - No bullet points, no Markdown
+        - Reply ONLY with the description
         """
 
         var raw = ""
@@ -396,7 +396,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Priorität
     private var prioritySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Priorität", icon: "flag.fill")
+            sectionLabel("Priority", icon: "flag.fill")
             HStack(spacing: 10) {
                 ForEach(TodoPriority.allCases) { p in
                     priorityChip(p)
@@ -432,11 +432,11 @@ struct FokusTodoEditorView: View {
     // MARK: - Datum & Zeit
     private var dateTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Datum & Zeit", icon: "calendar.badge.clock")
+            sectionLabel("Date & Time", icon: "calendar.badge.clock")
             VStack(spacing: 0) {
                 // Datum-Toggle
                 Toggle(isOn: $hasDueDate.animation(.spring(response: 0.35))) {
-                    Label("Datum festlegen", systemImage: "calendar")
+                    Label("Set date", systemImage: "calendar")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }
@@ -458,7 +458,7 @@ struct FokusTodoEditorView: View {
                     HStack(spacing: 0) {
                         // Von
                         VStack(spacing: 6) {
-                            Text("Von")
+                            Text("From")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.secondary)
                             DatePicker("", selection: $dueDate, displayedComponents: .hourAndMinute)
@@ -481,7 +481,7 @@ struct FokusTodoEditorView: View {
                                 Image(systemName: hasEndTime ? "arrow.right" : "arrow.right")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(hasEndTime ? themeC1 : themeC1.opacity(0.35))
-                                Text(hasEndTime ? "Bis" : "kein Ende")
+                                Text(hasEndTime ? "Until" : "no end")
                                     .font(.system(size: 9, weight: .medium))
                                     .foregroundStyle(hasEndTime ? themeC1 : .secondary)
                             }
@@ -489,9 +489,9 @@ struct FokusTodoEditorView: View {
                         }
                         .buttonStyle(.plain)
 
-                        // Bis
+                        // Until
                         VStack(spacing: 6) {
-                            Text("Bis")
+                            Text("To")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(Color.secondary.opacity(hasEndTime ? 1.0 : 0.35))
                             if hasEndTime {
@@ -543,18 +543,18 @@ struct FokusTodoEditorView: View {
 
     private var reminderSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Erinnerung", icon: "bell.fill")
+            sectionLabel("Reminder", icon: "bell.fill")
             VStack(spacing: 0) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        reminderChip(-1,   label: "Keine")
-                        reminderChip(0,    label: "Zur Zeit")
+                        reminderChip(-1,   label: "None")
+                        reminderChip(0,    label: "On time")
                         reminderChip(5,    label: "5 min")
                         reminderChip(15,   label: "15 min")
                         reminderChip(30,   label: "30 min")
-                        reminderChip(60,   label: "1 Std")
-                        reminderChip(120,  label: "2 Std")
-                        reminderChip(1440, label: "1 Tag")
+                        reminderChip(60,   label: "1 hr")
+                        reminderChip(120,  label: "2 hr")
+                        reminderChip(1440, label: "1 day")
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
@@ -605,10 +605,10 @@ struct FokusTodoEditorView: View {
     // MARK: - Kalender
     private var calendarSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Systemkalender", icon: "calendar.badge.plus")
+            sectionLabel("Calendar", icon: "calendar.badge.plus")
             VStack(spacing: 0) {
                 Toggle(isOn: $addToCalendar.animation(.spring(response: 0.35))) {
-                    Label("Zum Kalender hinzufügen", systemImage: "calendar")
+                    Label("Add to calendar", systemImage: "calendar")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }
@@ -618,7 +618,7 @@ struct FokusTodoEditorView: View {
                 if addToCalendar {
                     Divider().opacity(0.15).padding(.horizontal, 14)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Kalender auswählen")
+                        Text("Choose calendar")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 14)
@@ -636,11 +636,11 @@ struct FokusTodoEditorView: View {
     // MARK: - Kategorie
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Kategorie", icon: "folder.fill")
+            sectionLabel("Category", icon: "folder.fill")
             VStack(spacing: 0) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        categoryChip(nil, name: "Keine")
+                        categoryChip(nil, name: "None")
                         ForEach(todoStore.categories) { cat in
                             categoryChip(cat, name: cat.name)
                         }
@@ -686,7 +686,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Subtasks
     private var subtasksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Teilaufgaben", icon: "checklist")
+            sectionLabel("Subtasks", icon: "checklist")
             VStack(spacing: 0) {
                 if !subTasks.isEmpty {
                     ForEach(subTasks) { sub in
@@ -750,7 +750,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Wiederholung
     private var recurrenceSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Wiederholung", icon: "arrow.clockwise")
+            sectionLabel("Repeat", icon: "arrow.clockwise")
             VStack(spacing: 0) {
                 Toggle(isOn: $recurrenceEnabled) {
                     Label("Wiederkehrend", systemImage: "repeat")
@@ -764,15 +764,15 @@ struct FokusTodoEditorView: View {
                     Divider().opacity(0.15).padding(.horizontal, 14)
                     VStack(spacing: 12) {
                         Picker("", selection: $recurrenceFreq) {
-                            Text("Täglich").tag("daily")
-                            Text("Wöchentlich").tag("weekly")
-                            Text("Monatlich").tag("monthly")
+                            Text("Daily").tag("daily")
+                            Text("Weekly").tag("weekly")
+                            Text("Monthly").tag("monthly")
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 4)
 
                         HStack {
-                            Text("Alle")
+                            Text("Every")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.secondary)
                             Stepper("\(recurrenceInterval) \(freqLabel)", value: $recurrenceInterval, in: 1...30)
@@ -793,14 +793,14 @@ struct FokusTodoEditorView: View {
 
     private var freqLabel: String {
         switch recurrenceFreq {
-        case "weekly":  return recurrenceInterval == 1 ? "Woche" : "Wochen"
-        case "monthly": return recurrenceInterval == 1 ? "Monat" : "Monate"
-        default:        return recurrenceInterval == 1 ? "Tag"   : "Tage"
+        case "weekly":  return recurrenceInterval == 1 ? "week" : "weeks"
+        case "monthly": return recurrenceInterval == 1 ? "month" : "months"
+        default:        return recurrenceInterval == 1 ? "day"   : "days"
         }
     }
 
     private var weekdayPickerRow: some View {
-        let symbols = ["Mo","Di","Mi","Do","Fr","Sa","So"]
+        let symbols = ["Mo","Tu","We","Th","Fr","Sa","Su"]
         let indices = [2, 3, 4, 5, 6, 7, 1]
         return HStack(spacing: 6) {
             ForEach(0..<7, id: \.self) { i in
@@ -827,7 +827,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Fotos
     private var photosSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Fotos", icon: "photo.fill")
+            sectionLabel("Photos", icon: "photo.fill")
             VStack(spacing: 0) {
                 if !selectedImages.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -871,7 +871,7 @@ struct FokusTodoEditorView: View {
                     Button {
                         checkCamera()
                     } label: {
-                        Label("Kamera", systemImage: "camera")
+                        Label("Camera", systemImage: "camera")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(themeC1)
                             .frame(maxWidth: .infinity)
@@ -889,7 +889,7 @@ struct FokusTodoEditorView: View {
     private var actionButtons: some View {
         VStack(spacing: 12) {
             Button { save() } label: {
-                Text("Speichern")
+                Text("Save")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -907,7 +907,7 @@ struct FokusTodoEditorView: View {
 
             if isEditMode {
                 Button { showDeleteConfirm = true } label: {
-                    Label("Aufgabe löschen", systemImage: "trash")
+                    Label("Delete task", systemImage: "trash")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity)

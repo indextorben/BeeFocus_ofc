@@ -17,13 +17,13 @@ struct OrdnerView: View {
     private var accent: Color { aktivesThema.isEmpty ? Color.indigo : c1 }
 
     private let standardFolders: [(title: String, icon: String, color: Color)] = [
-        ("Heute",                    "sun.max.fill",                   .orange),
-        ("Überfällig",               "exclamationmark.circle.fill",    .red),
-        ("Diese Woche",              "calendar.badge.clock",           .blue),
-        ("Dieser Monat",             "calendar",                       .purple),
-        ("Später",                   "arrow.forward.circle.fill",      .teal),
-        ("Allgemein",                "tray.fill",                      Color(.systemGray)),
-        ("Geburtstage & Feiertage",  "calendar.badge.exclamationmark", .pink),
+        ("Today",                    "sun.max.fill",                   .orange),
+        ("Overdue",                  "exclamationmark.circle.fill",    .red),
+        ("This Week",                "calendar.badge.clock",           .blue),
+        ("This Month",               "calendar",                       .purple),
+        ("Later",                    "arrow.forward.circle.fill",      .teal),
+        ("General",                  "tray.fill",                      Color(.systemGray)),
+        ("Birthdays & Holidays",     "calendar.badge.exclamationmark", .pink),
     ]
 
     // MARK: - Body
@@ -37,7 +37,7 @@ struct OrdnerView: View {
 
                     sectionCard(
                         icon: "folder.fill",
-                        title: "Standard-Ordner",
+                        title: "Default Folders",
                         color: accent,
                         sectionIndex: 0
                     ) {
@@ -49,7 +49,7 @@ struct OrdnerView: View {
 
                     sectionCard(
                         icon: "folder.badge.plus",
-                        title: "Eigene Ordner",
+                        title: "Custom Folders",
                         color: accent,
                         sectionIndex: 1
                     ) {
@@ -63,7 +63,7 @@ struct OrdnerView: View {
                         }
                     }
 
-                    Text("Aufgaben können über das Kontextmenü (langer Druck) in Ordner verschoben werden.")
+                    Text("Tasks can be moved to folders via the context menu (long press).")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -76,7 +76,7 @@ struct OrdnerView: View {
                 .padding(.bottom, 48)
             }
         }
-        .navigationTitle("Ordner")
+        .navigationTitle("Folders")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -92,24 +92,24 @@ struct OrdnerView: View {
                 }
             }
         }
-        .alert("Neuer Ordner", isPresented: $showingAddAlert) {
-            TextField("Ordnername", text: $newFolderName)
-            Button("Erstellen") {
+        .alert("New Folder", isPresented: $showingAddAlert) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") {
                 let name = newFolderName.trimmingCharacters(in: .whitespaces)
                 guard !name.isEmpty else { return }
                 todoStore.addCustomFolder(name)
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Gib einen Namen für den neuen Ordner ein.")
+            Text("Enter a name for the new folder.")
         }
-        .confirmationDialog("Ordner löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) {
+        .confirmationDialog("Delete Folder?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
                 if let f = folderToDelete { todoStore.removeCustomFolder(f) }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Die Aufgaben in diesem Ordner bleiben erhalten.")
+            Text("Tasks in this folder will be kept.")
         }
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.05)) {
@@ -160,7 +160,7 @@ struct OrdnerView: View {
                     .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
 
                 let count = todoStore.todos.filter { $0.customFolder == folder }.count
-                Text(count == 0 ? "Leer" : "\(count) Aufgabe\(count == 1 ? "" : "n")")
+                Text(count == 0 ? "Empty" : "\(count) task\(count == 1 ? "" : "s")")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -200,10 +200,10 @@ struct OrdnerView: View {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 36, weight: .light))
                 .foregroundStyle(accent.opacity(0.5))
-            Text("Noch keine eigenen Ordner")
+            Text("No custom folders yet")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
-            Text("Tippe oben auf das Ordner-Symbol, um einen neuen Ordner zu erstellen.")
+            Text("Tap the folder icon above to create a new folder.")
                 .font(.system(size: 13))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -349,34 +349,34 @@ struct OrdnerView: View {
         let endOfMonth   = cal.date(byAdding: .day, value: 29, to: endOfToday) ?? now
 
         switch title {
-        case "Heute":
+        case "Today":
             return todoStore.todos.filter {
                 guard let d = $0.dueDate else { return false }
                 return !$0.isCompleted && d >= startOfToday && d <= endOfToday
             }.count
-        case "Überfällig":
+        case "Overdue":
             return todoStore.todos.filter {
                 guard let d = $0.dueDate else { return false }
                 return !$0.isCompleted && d < startOfToday
             }.count
-        case "Diese Woche":
+        case "This Week":
             return todoStore.todos.filter {
                 guard let d = $0.dueDate else { return false }
                 return d > endOfToday && d <= endOfWeek
             }.count
-        case "Dieser Monat":
+        case "This Month":
             return todoStore.todos.filter {
                 guard let d = $0.dueDate else { return false }
                 return d > endOfWeek && d <= endOfMonth
             }.count
-        case "Später":
+        case "Later":
             return todoStore.todos.filter {
                 guard let d = $0.dueDate else { return false }
                 return d > endOfMonth
             }.count
-        case "Allgemein":
+        case "General":
             return todoStore.todos.filter { $0.dueDate == nil && $0.customFolder == nil }.count
-        case "Geburtstage & Feiertage":
+        case "Birthdays & Holidays":
             let keywords = ["geburtstag", "birthday", "feiertag", "holiday"]
             return todoStore.todos.filter { todo in
                 if let catName = todo.category?.name.lowercased(),

@@ -32,11 +32,11 @@ struct DankbarkeitView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                         .foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") { saveEntries() }
+                    Button("Save") { saveEntries() }
                         .foregroundStyle(.white)
                         .fontWeight(.semibold)
                 }
@@ -49,10 +49,10 @@ struct DankbarkeitView: View {
         VStack(spacing: 8) {
             Text("🙏")
                 .font(.system(size: 56))
-            Text("Dankbarkeits-Tagebuch")
+            Text("Gratitude Journal")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
-            Text("Was macht dich heute dankbar?")
+            Text("What are you grateful for today?")
                 .font(.system(size: 15))
                 .foregroundStyle(.white.opacity(0.85))
         }
@@ -61,8 +61,8 @@ struct DankbarkeitView: View {
 
     private var streakSection: some View {
         HStack(spacing: 20) {
-            streakChip(icon: "flame.fill", label: "\(store.streak)", subtitle: "Tage Streak", color: .orange)
-            streakChip(icon: "checkmark.circle.fill", label: "\(store.eintraege.count)", subtitle: "Einträge gesamt", color: Color(red: 0.3, green: 0.8, blue: 0.5))
+            streakChip(icon: "flame.fill", label: "\(store.streak)", subtitle: "day streak", color: .orange)
+            streakChip(icon: "checkmark.circle.fill", label: "\(store.eintraege.count)", subtitle: "total entries", color: Color(red: 0.3, green: 0.8, blue: 0.5))
         }
     }
 
@@ -81,7 +81,7 @@ struct DankbarkeitView: View {
 
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Heute bin ich dankbar für…")
+            Text("Today I am grateful for…")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
@@ -91,7 +91,7 @@ struct DankbarkeitView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.white.opacity(0.7))
                         .frame(width: 20)
-                    TextField("Dankbarkeit \(i + 1)…", text: $texte[i], axis: .vertical)
+                    TextField("Gratitude \(i + 1)…", text: $texte[i], axis: .vertical)
                         .focused($focusedIndex, equals: i)
                         .font(.system(size: 15))
                         .foregroundStyle(.white)
@@ -105,7 +105,7 @@ struct DankbarkeitView: View {
             if saved {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.white)
-                    Text("Gespeichert!").foregroundStyle(.white).fontWeight(.semibold)
+                    Text("Saved!").foregroundStyle(.white).fontWeight(.semibold)
                 }
                 .transition(.scale.combined(with: .opacity))
             }
@@ -114,7 +114,7 @@ struct DankbarkeitView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Letzte 7 Tage")
+            Text("Last 7 Days")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
@@ -144,7 +144,7 @@ struct DankbarkeitView: View {
 
     private func dayLabel(_ date: Date) -> String {
         let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "de")
+        fmt.locale = Locale.current
         fmt.dateFormat = "EEE"
         return String(fmt.string(from: date).prefix(2))
     }

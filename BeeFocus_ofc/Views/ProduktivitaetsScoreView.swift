@@ -66,11 +66,11 @@ struct ProduktivitaetsScoreView: View {
 
     private func scoreLabel(_ s: Int) -> String {
         switch s {
-        case 80...: return "Ausgezeichnet 🌟"
-        case 60...: return "Stark 💪"
-        case 40...: return "Solide 👍"
-        case 20...: return "Anlauf nehmen ⚡"
-        default:    return "Frischer Start 🌱"
+        case 80...: return "Excellent 🌟"
+        case 60...: return "Strong 💪"
+        case 40...: return "Solid 👍"
+        case 20...: return "Getting started ⚡"
+        default:    return "Fresh start 🌱"
         }
     }
 
@@ -147,7 +147,7 @@ struct ProduktivitaetsScoreView: View {
             }
 
             VStack(spacing: 4) {
-                Text("Produktivitäts-Score")
+                Text("Productivity Score")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.white)
                 Text(scoreLabel(s))
@@ -164,16 +164,16 @@ struct ProduktivitaetsScoreView: View {
 
     private var breakdownCard: some View {
         VStack(spacing: 0) {
-            breakRow(icon: "checkmark.circle.fill", label: "Aufgaben erledigt",
+            breakRow(icon: "checkmark.circle.fill", label: "Tasks completed",
                      value: today.tasks, max: 30, color: Color(red: 0.3, green: 0.82, blue: 0.5))
             Divider().background(.white.opacity(0.06)).padding(.horizontal, 16)
-            breakRow(icon: "timer", label: "Fokuszeit",
+            breakRow(icon: "timer", label: "Focus time",
                      value: today.focus, max: 30, color: Color(red: 0.3, green: 0.6, blue: 1.0))
             Divider().background(.white.opacity(0.06)).padding(.horizontal, 16)
-            breakRow(icon: "calendar.badge.checkmark", label: "Gewohnheiten",
+            breakRow(icon: "calendar.badge.checkmark", label: "Habits",
                      value: today.habits, max: 20, color: Color(red: 0.65, green: 0.35, blue: 1.0))
             Divider().background(.white.opacity(0.06)).padding(.horizontal, 16)
-            breakRow(icon: "book.closed.fill", label: "Fokus-Journal",
+            breakRow(icon: "book.closed.fill", label: "Focus Journal",
                      value: today.journal, max: 10, color: Color(red: 1.0, green: 0.6, blue: 0.2))
         }
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18))
@@ -215,7 +215,7 @@ struct ProduktivitaetsScoreView: View {
         let maxScore = max(scores.map(\.total).max() ?? 1, 1)
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Letzte 7 Tage")
+            Text("Last 7 Days")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 

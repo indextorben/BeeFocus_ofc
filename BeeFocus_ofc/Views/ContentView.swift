@@ -188,19 +188,17 @@ struct ContentView: View {
         .sheet(isPresented: $showingDeleteByDateSheet) {
             NavigationStack {
                 Form {
-                    Section(header: Text("Zeitraum")) {
-                        DatePicker("Von", selection: $deleteStartDate, displayedComponents: [.date])
-                        DatePicker("Bis", selection: $deleteEndDate, in: deleteStartDate...Date(), displayedComponents: [.date])
+                    Section(header: Text("Date range")) {
+                        DatePicker("From", selection: $deleteStartDate, displayedComponents: [.date])
+                        DatePicker("To", selection: $deleteEndDate, in: deleteStartDate...Date(), displayedComponents: [.date])
                     }
 
-                    Section(footer: Text("Alle Todos, deren Erstellungsdatum in diesem Zeitraum liegt, werden endgültig gelöscht.")) {
+                    Section(footer: Text("All todos whose creation date falls within this range will be permanently deleted.")) {
                         Button(role: .destructive) {
-                            // Schutz: Stelle sicher, dass Start <= Ende
                             let start = min(deleteStartDate, deleteEndDate)
                             let end = max(deleteStartDate, deleteEndDate)
                             let toDelete = todoStore.todos.filter { $0.createdAt >= start && $0.createdAt <= end }
                             for todo in toDelete {
-                                // Verschiebe in den Papierkorb (Undo/Redo möglich)
                                 todoStore.deleteTodo(todo)
                             }
                             showingDeleteByDateSheet = false
@@ -209,21 +207,21 @@ struct ContentView: View {
                                 withAnimation { showingDeletionToast = false }
                             }
                         } label: {
-                            Label("Todos im Zeitraum löschen", systemImage: "trash")
+                            Label("Delete todos in range", systemImage: "trash")
                         }
                     }
                 }
-                .navigationTitle("Vergangene Todos löschen")
+                .navigationTitle("Delete past todos")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { showingDeleteByDateSheet = false }
+                        Button("Cancel") { showingDeleteByDateSheet = false }
                     }
                 }
             }
         }
         .overlay(alignment: .bottom) {
             if showingDeletionToast {
-                Text("Löschung abgeschlossen")
+                Text("Deletion complete")
                     .font(.subheadline)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)

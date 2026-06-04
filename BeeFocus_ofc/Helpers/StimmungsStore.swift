@@ -68,11 +68,11 @@ func stimmungsEmoji(_ stufe: Int) -> String {
 
 func stimmungsLabel(_ stufe: Int) -> String {
     switch stufe {
-    case 1: return "Schlecht"
-    case 2: return "Mäßig"
-    case 3: return "Okay"
-    case 4: return "Gut"
-    case 5: return "Super"
+    case 1: return "Bad"
+    case 2: return "Okay"
+    case 3: return "Neutral"
+    case 4: return "Good"
+    case 5: return "Great"
     default: return ""
     }
 }

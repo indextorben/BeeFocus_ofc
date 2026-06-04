@@ -310,7 +310,7 @@ struct StatistikView: View {
 
     private func weekdayLabel(_ date: Date) -> String {
         let df = DateFormatter()
-        df.locale = Locale(identifier: "de_DE")
+        df.locale = Locale.current
         df.dateFormat = "EEE"
         return String(df.string(from: date).prefix(2)).capitalized
     }
@@ -390,24 +390,24 @@ struct StatistikView: View {
 
     var fokuspunkteStufe: (name: String, icon: String, farbe: Color) {
         switch fokuspunkteVerfuegbar {
-        case 0..<100:  return ("Anfänger",  "seedling",           .green)
-        case ..<300:   return ("Lernender", "book.fill",          .teal)
-        case ..<600:   return ("Fokussiert","brain.head.profile", .blue)
-        case ..<1000:  return ("Produktiv", "bolt.fill",          .indigo)
-        case ..<2000:  return ("Experte",   "star.fill",          .purple)
-        case ..<5000:  return ("Meister",   "crown.fill",         .orange)
-        default:       return ("Legende",   "flame.fill",         Color(red: 1, green: 0.3, blue: 0.1))
+        case 0..<100:  return ("Beginner",   "seedling",           .green)
+        case ..<300:   return ("Learner",    "book.fill",          .teal)
+        case ..<600:   return ("Focused",    "brain.head.profile", .blue)
+        case ..<1000:  return ("Productive", "bolt.fill",          .indigo)
+        case ..<2000:  return ("Expert",     "star.fill",          .purple)
+        case ..<5000:  return ("Master",     "crown.fill",         .orange)
+        default:       return ("Legend",     "flame.fill",         Color(red: 1, green: 0.3, blue: 0.1))
         }
     }
 
     var motivationText: String {
         switch completionRate {
-        case 0:      return "Los geht's – du schaffst das!"
-        case ..<0.25: return "Guter Start, weiter so!"
-        case ..<0.5:  return "Du bist auf dem richtigen Weg!"
-        case ..<0.75: return "Mehr als die Hälfte geschafft!"
-        case ..<1.0:  return "Fast am Ziel – stark!"
-        default:      return "Alles erledigt – fantastisch!"
+        case 0:      return "Let's go – you've got this!"
+        case ..<0.25: return "Good start, keep it up!"
+        case ..<0.5:  return "You're on the right track!"
+        case ..<0.75: return "More than halfway there!"
+        case ..<1.0:  return "Almost done – great work!"
+        default:      return "Everything done – fantastic!"
         }
     }
 
@@ -446,7 +446,7 @@ struct StatistikView: View {
     @ViewBuilder private var sectionsTop: some View {
         animatedSection(delay: 0.05) { fokuspunkteCard }
         animatedSection(delay: 0.10) {
-            sectionGroup(icon: "storefront.fill", label: "Fokus-Store", color: Color(red: 1, green: 0.55, blue: 0.0)) { storeCard }
+            sectionGroup(icon: "storefront.fill", label: "Focus Store", color: Color(red: 1, green: 0.55, blue: 0.0)) { storeCard }
         }
         animatedSection(delay: 0.15) {
             sectionGroup(icon: "chart.bar.fill", label: localizer.localizedString(forKey: "overview_title"), color: .purple) { overviewCard }
@@ -462,15 +462,15 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.30) {
-            sectionGroup(icon: "timer", label: "Fokuszeit", color: .cyan) { glassCard { focusCard } }
+            sectionGroup(icon: "timer", label: "Focus Time", color: .cyan) { glassCard { focusCard } }
         }
         if freigeschalteteItems.contains("Abzeichen-System") {
             animatedSection(delay: 0.32) {
-                sectionGroup(icon: "medal.fill", label: "Abzeichen", color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
+                sectionGroup(icon: "medal.fill", label: "Badges", color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
                     glassCard {
                         if #available(iOS 16, *) {
                             NavigationLink(destination: FokusAchievementsView()) {
-                                iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: "Alle Abzeichen ansehen")
+                                iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: "View all badges")
                             }
                         }
                     }
@@ -482,7 +482,7 @@ struct StatistikView: View {
     @ViewBuilder private var sectionsMiddle: some View {
         if freigeschalteteItems.contains("Aktivitäts-Heatmap") {
             animatedSection(delay: 0.33) {
-                sectionGroup(icon: "calendar.badge.checkmark", label: "Aktivitäts-Heatmap", color: .green) {
+                sectionGroup(icon: "calendar.badge.checkmark", label: "Activity Heatmap", color: .green) {
                     glassCard { heatmapView }
                 }
             }
@@ -508,7 +508,7 @@ struct StatistikView: View {
             sectionGroup(icon: "trophy.fill", label: "Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
                 glassCard {
                     Button { showChallenges = true } label: {
-                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "Fokus-Challenges ansehen")
+                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "View Focus Challenges")
                     }
                     .buttonStyle(.plain)
                 }
@@ -519,10 +519,10 @@ struct StatistikView: View {
     // MARK: - Pro Statistiken
     @ViewBuilder private var sectionsProStatistik: some View {
         animatedSection(delay: 0.57) {
-            sectionGroup(icon: "chart.bar.xaxis", label: "Pro Statistiken", color: Color(red: 0.2, green: 0.6, blue: 1.0)) {
+            sectionGroup(icon: "chart.bar.xaxis", label: "Pro Statistics", color: Color(red: 0.2, green: 0.6, blue: 1.0)) {
                 glassCard {
                     Button { showProStatistik = true } label: {
-                        iconNavRow(icon: "chart.bar.xaxis", color: Color(red: 0.2, green: 0.6, blue: 1.0), label: "Wochentag, Tageszeit & Kategorie-Analyse")
+                        iconNavRow(icon: "chart.bar.xaxis", color: Color(red: 0.2, green: 0.6, blue: 1.0), label: "Weekday, time of day & category analysis")
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.2, green: 0.6, blue: 1.0))
@@ -534,10 +534,10 @@ struct StatistikView: View {
     // MARK: KI-Features
     @ViewBuilder private var sectionsKI: some View {
         animatedSection(delay: 0.60) {
-            sectionGroup(icon: "brain.head.profile", label: "KI-Aufgaben-Analyse", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+            sectionGroup(icon: "brain.head.profile", label: "AI Task Analysis", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
                 glassCard {
                     Button { showKIAnalyse = true } label: {
-                        iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "KI analysiert deine Aufgaben & Prioritäten")
+                        iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "AI analyzes your tasks & priorities")
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.55, green: 0.35, blue: 1.0))
@@ -545,10 +545,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.62) {
-            sectionGroup(icon: "moon.stars.fill", label: "KI-Tagesreflexion", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
+            sectionGroup(icon: "moon.stars.fill", label: "AI Daily Reflection", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
                 glassCard {
                     Button { showKIReflexion = true } label: {
-                        iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Persönliche KI-Reflexion deines Tages")
+                        iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Personal AI reflection of your day")
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 1.0, green: 0.5, blue: 0.8))
@@ -556,10 +556,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.64) {
-            sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: "KI-Wochenbericht", color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
+            sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: "AI Weekly Report", color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
                 glassCard {
                     Button { showKIWochenbericht = true } label: {
-                        iconNavRow(icon: "chart.bar.doc.horizontal.fill", color: Color(red: 0.2, green: 0.75, blue: 1.0), label: "KI analysiert deine gesamte Woche")
+                        iconNavRow(icon: "chart.bar.doc.horizontal.fill", color: Color(red: 0.2, green: 0.75, blue: 1.0), label: "AI analyzes your entire week")
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.2, green: 0.75, blue: 1.0))
@@ -567,10 +567,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.66) {
-            sectionGroup(icon: "scissors", label: "KI-Aufgaben-Zerteiler", color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
+            sectionGroup(icon: "scissors", label: "AI Task Splitter", color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
                 glassCard {
                     Button { showKIZerteiler = true } label: {
-                        iconNavRow(icon: "scissors", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: "Komplexe Aufgaben in Schritte zerlegen")
+                        iconNavRow(icon: "scissors", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: "Break complex tasks into steps")
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.3, green: 0.85, blue: 0.5))

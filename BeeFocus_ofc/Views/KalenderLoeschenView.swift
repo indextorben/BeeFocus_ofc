@@ -29,13 +29,13 @@ struct KalenderLoeschenView: View {
                         Image(systemName: "calendar.badge.exclamationmark")
                             .font(.system(size: 44))
                             .foregroundStyle(.orange)
-                        Text("Kalenderzugriff erforderlich")
+                        Text("Calendar access required")
                             .font(.headline)
-                        Text("Gehe zu Einstellungen → Datenschutz & Sicherheit → Kalender und erlaube BeeFocus den vollen Zugriff.")
+                        Text("Go to Settings → Privacy & Security → Calendars and allow BeeFocus full access.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
-                        Button("Einstellungen öffnen") {
+                        Button("Open Settings") {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
                             }
@@ -48,17 +48,17 @@ struct KalenderLoeschenView: View {
                 .listRowBackground(Color.clear)
             } else {
                 Section {
-                    DatePicker("Von", selection: $deleteFrom, displayedComponents: .date)
-                    DatePicker("Bis", selection: $deleteTo, in: deleteFrom..., displayedComponents: .date)
+                    DatePicker("From", selection: $deleteFrom, displayedComponents: .date)
+                    DatePicker("To", selection: $deleteTo, in: deleteFrom..., displayedComponents: .date)
                 } header: {
-                    Text("Zeitraum der zu löschenden Einträge")
+                    Text("Date range of entries to delete")
                 } footer: {
-                    Text("Nur Einträge in diesem Zeitraum werden gelöscht.")
+                    Text("Only entries within this date range will be deleted.")
                 }
 
                 if sections.isEmpty {
                     Section {
-                        Label("Keine beschreibbaren Kalender gefunden", systemImage: "calendar.badge.minus")
+                        Label("No writable calendars found", systemImage: "calendar.badge.minus")
                             .foregroundStyle(.secondary)
                             .font(.footnote)
                     }
@@ -89,19 +89,19 @@ struct KalenderLoeschenView: View {
                 }
             }
         }
-        .navigationTitle("Kalendereinträge löschen")
+        .navigationTitle("Delete Calendar Events")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { requestAccess() }
         .confirmationDialog(
-            "Kalendereinträge löschen",
+            "Delete Calendar Events",
             isPresented: $showConfirm,
             titleVisibility: .visible
         ) {
-            Button("Löschen", role: .destructive) { deleteEvents() }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Delete", role: .destructive) { deleteEvents() }
+            Button("Cancel", role: .cancel) {}
         } message: {
             if let cal = selectedCalendar {
-                Text("Alle Einträge aus \"\(cal.title)\" im gewählten Zeitraum werden unwiderruflich gelöscht.")
+                Text("All events from \"\(cal.title)\" in the selected date range will be permanently deleted.")
             }
         }
         .overlay {
@@ -110,17 +110,17 @@ struct KalenderLoeschenView: View {
                     Color.black.opacity(0.35).ignoresSafeArea()
                     VStack(spacing: 14) {
                         ProgressView()
-                        Text("Wird gelöscht…").font(.subheadline)
+                        Text("Deleting…").font(.subheadline)
                     }
                     .padding(24)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
         }
-        .alert("Fertig", isPresented: $showResult) {
+        .alert("Done", isPresented: $showResult) {
             Button("OK") {}
         } message: {
-            Text("\(deletedCount) Kalendereinträge wurden gelöscht.")
+            Text("\(deletedCount) calendar events were deleted.")
         }
     }
 
@@ -148,7 +148,7 @@ struct KalenderLoeschenView: View {
 
         var dict: [String: [EKCalendar]] = [:]
         for cal in cals {
-            let key = cal.source?.title ?? "Unbekannt"
+            let key = cal.source?.title ?? "Unknown"
             dict[key, default: []].append(cal)
         }
 

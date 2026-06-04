@@ -103,7 +103,7 @@ struct BrainDumpView: View {
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }.foregroundStyle(.white.opacity(0.6))
+                    Button("Close") { dismiss() }.foregroundStyle(.white.opacity(0.6))
                 }
                 if !store.eintraege.isEmpty {
                     ToolbarItem(placement: .primaryAction) {
@@ -114,15 +114,15 @@ struct BrainDumpView: View {
                     }
                 }
             }
-            .confirmationDialog("Alle Einträge löschen?", isPresented: $showClearConfirm, titleVisibility: .visible) {
-                Button("Alles löschen", role: .destructive) {
+            .confirmationDialog("Delete all entries?", isPresented: $showClearConfirm, titleVisibility: .visible) {
+                Button("Delete all", role: .destructive) {
                     withAnimation { store.clearAll() }
                 }
             }
-            .alert("Kein KI-Anbieter", isPresented: $showNoKeyAlert) {
+            .alert("No AI Provider", isPresented: $showNoKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Bitte richte einen KI-Anbieter in den Einstellungen ein.")
+                Text("Please set up an AI provider in settings.")
             }
             .sheet(isPresented: $showAnalyse) { analyseSheet }
             .sheet(isPresented: $showExtract) { extractSheet }
@@ -156,7 +156,7 @@ struct BrainDumpView: View {
             .horizontallyScrollable()
 
             HStack(spacing: 10) {
-                TextField("Gedanken, Ideen, Aufgaben...", text: $inputText, axis: .vertical)
+                TextField("Thoughts, ideas, tasks...", text: $inputText, axis: .vertical)
                     .font(.system(size: 15))
                     .foregroundStyle(.white)
                     .lineLimit(1...4)
@@ -194,7 +194,7 @@ struct BrainDumpView: View {
     private var tagFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterChip(nil, label: "Alle", count: store.eintraege.count)
+                filterChip(nil, label: "All", count: store.eintraege.count)
                 ForEach(BrainDumpTag.allCases, id: \.self) { tag in
                     let count = store.eintraege.filter { $0.tag == tag }.count
                     if count > 0 {
@@ -229,9 +229,9 @@ struct BrainDumpView: View {
     private var aiActionsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                aiChip(label: "Aufräumen", icon: "sparkles") { analyseEntries() }
-                aiChip(label: "Aufgaben", icon: "list.clipboard") { extrahiereAufgaben() }
-                aiChip(label: "Reflexion", icon: "calendar.badge.clock") { wochenReflexion() }
+                aiChip(label: "Organize", icon: "sparkles") { analyseEntries() }
+                aiChip(label: "Tasks", icon: "list.clipboard") { extrahiereAufgaben() }
+                aiChip(label: "Reflection", icon: "calendar.badge.clock") { wochenReflexion() }
             }
         }
     }
@@ -258,10 +258,10 @@ struct BrainDumpView: View {
             Image(systemName: "brain")
                 .font(.system(size: 48))
                 .foregroundStyle(.white.opacity(0.12))
-            Text("Kopf leeren")
+            Text("Clear your head")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.4))
-            Text("Schreib alles auf, was dir durch den Kopf geht – Ideen, Aufgaben, Fragen.")
+            Text("Write down everything on your mind – ideas, tasks, questions.")
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.25))
                 .multilineTextAlignment(.center)
@@ -283,7 +283,7 @@ struct BrainDumpView: View {
                                 Spacer()
                                 VStack(spacing: 12) {
                                     ProgressView().tint(accent)
-                                    Text("Analysiere deine Gedanken...")
+                                    Text("Analyzing your thoughts...")
                                         .font(.system(size: 14))
                                         .foregroundStyle(.white.opacity(0.5))
                                 }
@@ -301,12 +301,12 @@ struct BrainDumpView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Gedanken aufräumen")
+            .navigationTitle("Organize Thoughts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { showAnalyse = false }.foregroundStyle(.white.opacity(0.6))
+                    Button("Done") { showAnalyse = false }.foregroundStyle(.white.opacity(0.6))
                 }
             }
             .preferredColorScheme(.dark)
@@ -321,7 +321,7 @@ struct BrainDumpView: View {
                     if extractLoading {
                         VStack(spacing: 12) {
                             ProgressView().tint(accent)
-                            Text("Suche nach Aufgaben...")
+                            Text("Looking for tasks...")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.white.opacity(0.5))
                         }
@@ -330,7 +330,7 @@ struct BrainDumpView: View {
                             Image(systemName: "checkmark.circle")
                                 .font(.system(size: 40))
                                 .foregroundStyle(.white.opacity(0.15))
-                            Text("Keine Aufgaben gefunden")
+                            Text("No tasks found")
                                 .font(.system(size: 15))
                                 .foregroundStyle(.white.opacity(0.4))
                         }
@@ -368,12 +368,12 @@ struct BrainDumpView: View {
                     }
                 }
             }
-            .navigationTitle("Aufgaben extrahieren")
+            .navigationTitle("Extract Tasks")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") {
+                    Button("Done") {
                         showExtract = false
                         addedExtractTasks = []
                     }.foregroundStyle(.white.opacity(0.6))
@@ -394,7 +394,7 @@ struct BrainDumpView: View {
                                 Spacer()
                                 VStack(spacing: 12) {
                                     ProgressView().tint(accent)
-                                    Text("Erstelle deine Wochen-Reflexion...")
+                                    Text("Creating your weekly reflection...")
                                         .font(.system(size: 14))
                                         .foregroundStyle(.white.opacity(0.5))
                                 }
@@ -412,12 +412,12 @@ struct BrainDumpView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Wochen-Reflexion")
+            .navigationTitle("Weekly Reflection")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { showReflexion = false }.foregroundStyle(.white.opacity(0.6))
+                    Button("Done") { showReflexion = false }.foregroundStyle(.white.opacity(0.6))
                 }
             }
             .preferredColorScheme(.dark)
@@ -583,7 +583,7 @@ struct BrainDumpView: View {
         let recent = store.eintraege.filter { $0.date >= sevenDaysAgo }
 
         guard !recent.isEmpty else {
-            reflexionText = "Keine Einträge der letzten 7 Tage gefunden."
+            reflexionText = "No entries from the last 7 days found."
             reflexionLoading = false
             return
         }
@@ -658,7 +658,7 @@ struct BrainDumpCard: View {
                 if isReformulating {
                     HStack(spacing: 6) {
                         ProgressView().scaleEffect(0.6).tint(.white.opacity(0.5))
-                        Text("Wird umformuliert...")
+                        Text("Reformulating...")
                             .font(.system(size: 13))
                             .foregroundStyle(.white.opacity(0.4))
                             .italic()
@@ -684,12 +684,12 @@ struct BrainDumpCard: View {
                     Spacer()
 
                     if entry.isConverted {
-                        Label("Aufgabe erstellt", systemImage: "checkmark.circle.fill")
+                        Label("Task created", systemImage: "checkmark.circle.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.green.opacity(0.6))
                     } else if entry.tag == .aufgabe {
                         Button(action: onConvert) {
-                            Label("Zu Aufgabe", systemImage: "plus.circle")
+                            Label("Add as task", systemImage: "plus.circle")
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(accent)
                         }
@@ -713,7 +713,7 @@ struct BrainDumpCard: View {
         .contextMenu {
             if !entry.isConverted && !isReformulating {
                 Button { onReformulate() } label: {
-                    Label("Umformulieren", systemImage: "sparkles")
+                    Label("Reformat", systemImage: "sparkles")
                 }
             }
         }

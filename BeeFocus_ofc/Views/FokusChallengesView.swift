@@ -105,40 +105,40 @@ struct FokusChallengesView: View {
     private var challenges: [FokusChallenge] {
         [
             FokusChallenge(
-                id: "daily_tasks", title: "Produktiver Tag",
-                description: "Erledige heute 5 Aufgaben",
+                id: "daily_tasks", title: "Productive Day",
+                description: "Complete 5 tasks today",
                 icon: "checkmark.circle.fill", color: Color(red: 0.3, green: 0.82, blue: 0.5),
-                period: .daily, target: 5, unit: "Aufgaben"
+                period: .daily, target: 5, unit: "tasks"
             ),
             FokusChallenge(
-                id: "daily_focus", title: "Fokus-Block",
-                description: "Sammle 30 Minuten Fokuszeit heute",
+                id: "daily_focus", title: "Focus Block",
+                description: "Accumulate 30 minutes of focus time today",
                 icon: "timer", color: Color(red: 0.3, green: 0.6, blue: 1.0),
-                period: .daily, target: 30, unit: "Minuten"
+                period: .daily, target: 30, unit: "minutes"
             ),
             FokusChallenge(
-                id: "daily_journal", title: "Tagesrückblick",
-                description: "Schreibe deinen heutigen Journal-Eintrag",
+                id: "daily_journal", title: "Daily Review",
+                description: "Write your journal entry for today",
                 icon: "book.closed.fill", color: Color(red: 0.65, green: 0.35, blue: 1.0),
-                period: .daily, target: 1, unit: "Eintrag"
+                period: .daily, target: 1, unit: "entry"
             ),
             FokusChallenge(
-                id: "weekly_tasks", title: "Aufgaben-Woche",
-                description: "Erledige diese Woche 25 Aufgaben",
+                id: "weekly_tasks", title: "Task Week",
+                description: "Complete 25 tasks this week",
                 icon: "list.bullet.clipboard.fill", color: Color(red: 1.0, green: 0.6, blue: 0.2),
-                period: .weekly, target: 25, unit: "Aufgaben"
+                period: .weekly, target: 25, unit: "tasks"
             ),
             FokusChallenge(
                 id: "weekly_focus", title: "Deep Worker",
-                description: "Akkumuliere diese Woche 5 Stunden Fokuszeit",
+                description: "Accumulate 5 hours of focus time this week",
                 icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0),
-                period: .weekly, target: 5, unit: "Stunden"
+                period: .weekly, target: 5, unit: "hours"
             ),
             FokusChallenge(
-                id: "weekly_habit", title: "Gewohnheits-Streak",
-                description: "Halte eine Gewohnheit 7 Tage am Stück",
+                id: "weekly_habit", title: "Habit Streak",
+                description: "Keep a habit going for 7 consecutive days",
                 icon: "flame.fill", color: Color(red: 1.0, green: 0.4, blue: 0.2),
-                period: .weekly, target: 7, unit: "Tage"
+                period: .weekly, target: 7, unit: "days"
             ),
         ]
     }
@@ -153,7 +153,7 @@ struct FokusChallengesView: View {
                         .padding(.top, 24)
                         .padding(.horizontal, 20)
 
-                    sectionHeader("Tägliche Challenges")
+                    sectionHeader("Daily Challenges")
                         .padding(.horizontal, 20)
 
                     ForEach(challenges.filter { $0.period == .daily }) { c in
@@ -165,7 +165,7 @@ struct FokusChallengesView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    sectionHeader("Wöchentliche Challenges")
+                    sectionHeader("Weekly Challenges")
                         .padding(.horizontal, 20)
                         .padding(.top, 4)
 
@@ -208,10 +208,10 @@ struct FokusChallengesView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Fokus-Challenges")
+                    Text("Focus Challenges")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("\(done) von \(challenges.count) abgeschlossen")
+                    Text("\(done) of \(challenges.count) completed")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -306,7 +306,7 @@ struct ChallengeCard: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "star.fill")
-                        Text("Challenge abschließen!")
+                        Text("Complete Challenge!")
                             .fontWeight(.semibold)
                     }
                     .font(.system(size: 14))
@@ -325,7 +325,7 @@ struct ChallengeCard: View {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(challenge.color)
-                    Text("Abgeschlossen")
+                    Text("Completed")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.5))
                     Spacer()
@@ -352,7 +352,7 @@ struct ChallengeCard: View {
     }
 
     private var periodBadge: some View {
-        Text(challenge.period == .daily ? "Täglich" : "Woche")
+        Text(challenge.period == .daily ? "Daily" : "Weekly")
             .font(.system(size: 9, weight: .bold))
             .foregroundStyle(.white.opacity(0.6))
             .padding(.horizontal, 7).padding(.vertical, 2)

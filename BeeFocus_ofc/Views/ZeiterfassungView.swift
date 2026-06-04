@@ -28,7 +28,7 @@ struct ZeiterfassungView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                         .foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -40,11 +40,11 @@ struct ZeiterfassungView: View {
                 }
             }
             .sheet(isPresented: $showAdd) { addSheet }
-            .confirmationDialog("Eintrag löschen?", isPresented: Binding(
+            .confirmationDialog("Delete entry?", isPresented: Binding(
                 get: { showDeleteEintrag != nil },
                 set: { if !$0 { showDeleteEintrag = nil } }
             )) {
-                Button("Löschen", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     if let e = showDeleteEintrag { store.delete(e) }
                     showDeleteEintrag = nil
                 }
@@ -56,10 +56,10 @@ struct ZeiterfassungView: View {
         VStack(spacing: 8) {
             Text("⏱️")
                 .font(.system(size: 56))
-            Text("Zeiterfassung")
+            Text("Time Tracker")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
-            Text("Verfolge, wofür du deine Zeit verwendest")
+            Text("Track where you spend your time")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.85))
         }
@@ -73,19 +73,19 @@ struct ZeiterfassungView: View {
             statChip(
                 icon: "clock.fill",
                 value: h > 0 ? "\(h)h \(m)m" : "\(m)m",
-                unit: "Heute",
+                unit: "Today",
                 color: .cyan
             )
             statChip(
                 icon: "folder.fill",
                 value: "\(store.projekte.count)",
-                unit: "Projekte",
+                unit: "Projects",
                 color: Color(red: 0.8, green: 0.6, blue: 1.0)
             )
             statChip(
                 icon: "calendar",
                 value: "\(store.eintraege.filter { Calendar.current.isDateInToday($0.datum) }.count)",
-                unit: "Einträge heute",
+                unit: "Entries today",
                 color: Color(red: 0.4, green: 0.9, blue: 0.6)
             )
         }
@@ -107,7 +107,7 @@ struct ZeiterfassungView: View {
         let data = store.minutenProProjekt7Tage()
         if !data.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Projekte (7 Tage)")
+                Text("Projects (7 days)")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
 
@@ -144,7 +144,7 @@ struct ZeiterfassungView: View {
 
     private var tagesChart: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Tagesübersicht (7 Tage)")
+            Text("Daily Overview (7 days)")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
@@ -182,12 +182,12 @@ struct ZeiterfassungView: View {
             .sorted { $0.datum > $1.datum }
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Heutige Einträge")
+            Text("Today's Entries")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
             if heute.isEmpty {
-                Text("Noch keine Einträge heute. Starte die Zeiterfassung! ⏱️")
+                Text("No entries yet today. Start tracking! ⏱️")
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(maxWidth: .infinity)
@@ -240,7 +240,7 @@ struct ZeiterfassungView: View {
 
     private func shortDay(_ date: Date) -> String {
         let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "de")
+        fmt.locale = Locale.current
         fmt.dateFormat = "EEE"
         return String(fmt.string(from: date).prefix(2))
     }
@@ -281,14 +281,14 @@ private struct ZeiterfassungAddSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
             }
-            .navigationTitle("Zeit erfassen")
+            .navigationTitle("Log Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white)
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .foregroundStyle(canSave ? .white : .white.opacity(0.4))
                         .fontWeight(.semibold)
                         .disabled(!canSave)
@@ -305,7 +305,7 @@ private struct ZeiterfassungAddSheet: View {
 
     private var projektSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Projekt")
+            Text("Project")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
 
@@ -323,7 +323,7 @@ private struct ZeiterfassungAddSheet: View {
                             }
                         }
                         Button { showNeuesProjekt = true } label: {
-                            Label("Neu", systemImage: "plus")
+                            Label("New", systemImage: "plus")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 14)
@@ -333,7 +333,7 @@ private struct ZeiterfassungAddSheet: View {
                     }
                 }
             } else {
-                TextField("Projektname", text: $neuesProjekt)
+                TextField("Project name", text: $neuesProjekt)
                     .font(.system(size: 15))
                     .foregroundStyle(.white)
                     .tint(.white)
@@ -345,7 +345,7 @@ private struct ZeiterfassungAddSheet: View {
 
     private var dauerSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Dauer: \(dauer) Minuten")
+            Text("Duration: \(dauer) minutes")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
             Slider(value: Binding(get: { Double(dauer) }, set: { dauer = Int($0) }), in: 5...480, step: 5)
@@ -367,7 +367,7 @@ private struct ZeiterfassungAddSheet: View {
 
     private var farbeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Farbe")
+            Text("Color")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
             HStack(spacing: 12) {
@@ -389,10 +389,10 @@ private struct ZeiterfassungAddSheet: View {
 
     private var notizSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notiz (optional)")
+            Text("Note (optional)")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
-            TextField("Was hast du gemacht?", text: $notiz, axis: .vertical)
+            TextField("What did you work on?", text: $notiz, axis: .vertical)
                 .lineLimit(2...3)
                 .font(.system(size: 14))
                 .foregroundStyle(.white)

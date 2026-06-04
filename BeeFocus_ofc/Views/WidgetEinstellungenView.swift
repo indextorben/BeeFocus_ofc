@@ -18,57 +18,57 @@ struct WidgetEinstellungenView: View {
     var body: some View {
         List {
             Section {
-                Picker("Angezeigte Aufgaben", selection: $taskFilter) {
-                    Label("Heute fällig", systemImage: "sun.max.fill").tag("today")
-                    Label("Hohe Priorität", systemImage: "exclamationmark.2").tag("priority")
-                    Label("Alle offenen", systemImage: "list.bullet").tag("all")
+                Picker("Displayed tasks", selection: $taskFilter) {
+                    Label("Due today", systemImage: "sun.max.fill").tag("today")
+                    Label("High priority", systemImage: "exclamationmark.2").tag("priority")
+                    Label("All open", systemImage: "list.bullet").tag("all")
                 }
                 .pickerStyle(.navigationLink)
 
-                Picker("Max. Aufgaben", selection: $maxTasks) {
-                    Text("3 Aufgaben").tag(3)
-                    Text("5 Aufgaben").tag(5)
-                    Text("8 Aufgaben").tag(8)
+                Picker("Max. tasks", selection: $maxTasks) {
+                    Text("3 tasks").tag(3)
+                    Text("5 tasks").tag(5)
+                    Text("8 tasks").tag(8)
                 }
                 .pickerStyle(.navigationLink)
             } header: {
-                Label("Aufgaben", systemImage: "checklist")
+                Label("Tasks", systemImage: "checklist")
             } footer: {
-                Text("Bestimmt, welche Aufgaben im mittleren und großen Widget erscheinen.")
+                Text("Determines which tasks appear in the medium and large widget.")
             }
 
             Section {
                 Toggle(isOn: $showFocusMinutes) {
-                    Label("Fokuszeit anzeigen", systemImage: "timer")
+                    Label("Show focus time", systemImage: "timer")
                 }
                 Toggle(isOn: $showOverdue) {
-                    Label("Überfällige anzeigen", systemImage: "exclamationmark.circle")
+                    Label("Show overdue", systemImage: "exclamationmark.circle")
                 }
                 Toggle(isOn: $showWater) {
-                    Label("Wasserstand anzeigen", systemImage: "drop.fill")
+                    Label("Show water level", systemImage: "drop.fill")
                 }
             } header: {
-                Label("Anzeige", systemImage: "eye")
+                Label("Display", systemImage: "eye")
             } footer: {
-                Text("Gilt für das mittlere und große Widget.")
+                Text("Applies to the medium and large widget.")
             }
 
             Section {
                 HStack(spacing: 14) {
-                    widgetPreview(size: "Klein", icon: "s.square.fill")
-                    widgetPreview(size: "Mittel", icon: "m.square.fill")
-                    widgetPreview(size: "Groß", icon: "l.square.fill")
+                    widgetPreview(size: "Small", icon: "s.square.fill")
+                    widgetPreview(size: "Medium", icon: "m.square.fill")
+                    widgetPreview(size: "Large", icon: "l.square.fill")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .listRowBackground(Color.clear)
             } header: {
-                Label("Vorschau", systemImage: "rectangle.on.rectangle")
+                Label("Preview", systemImage: "rectangle.on.rectangle")
             } footer: {
-                Text("Änderungen werden sofort auf dem Homescreen übernommen.")
+                Text("Changes are applied to the home screen immediately.")
             }
         }
-        .navigationTitle("Widget-Einstellungen")
+        .navigationTitle("Widget Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: taskFilter)      { _, _ in save() }
         .onChange(of: maxTasks)        { _, _ in save() }

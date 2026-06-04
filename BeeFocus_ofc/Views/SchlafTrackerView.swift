@@ -63,10 +63,10 @@ struct SchlafTrackerView: View {
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Schlaf-Tracker")
+                Text("Sleep Tracker")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
-                Text("Daten aus Apple Health")
+                Text("Data from Apple Health")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.45))
             }
@@ -82,7 +82,7 @@ struct SchlafTrackerView: View {
     private var loadingCard: some View {
         HStack(spacing: 12) {
             ProgressView().tint(accent)
-            Text("Schlafdaten werden geladen…")
+            Text("Loading sleep data…")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.6))
         }
@@ -96,17 +96,17 @@ struct SchlafTrackerView: View {
             Image(systemName: "heart.text.square")
                 .font(.system(size: 44))
                 .foregroundStyle(accent)
-            Text("Zugriff auf Apple Health")
+            Text("Access to Apple Health")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
-            Text("BeeFocus benötigt Zugriff auf deine Schlafdaten in Apple Health.")
+            Text("BeeFocus needs access to your sleep data in Apple Health.")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
             Button {
                 requestAndLoad()
             } label: {
-                Label("Zugriff erlauben", systemImage: "heart.fill")
+                Label("Allow Access", systemImage: "heart.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -149,19 +149,19 @@ struct SchlafTrackerView: View {
                     Text(heutigeStunden > 0 ? formatH(heutigeStunden) : "--")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("von \(formatH(zielStunden))")
+                    Text("of \(formatH(zielStunden))")
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.45))
                 }
             }
 
             HStack(spacing: 16) {
-                statChip("Ø 7 Tage", value: schnitt7Tage > 0 ? formatH(schnitt7Tage) : "--", color: accent)
-                statChip("Ziel", value: formatH(zielStunden), color: Color(red: 0.5, green: 0.3, blue: 1.0))
+                statChip("Ø 7 days", value: schnitt7Tage > 0 ? formatH(schnitt7Tage) : "--", color: accent)
+                statChip("Goal", value: formatH(zielStunden), color: Color(red: 0.5, green: 0.3, blue: 1.0))
             }
 
             Button { showZielPicker = true } label: {
-                Text("Schlafziel ändern")
+                Text("Change sleep goal")
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.4))
             }
@@ -171,7 +171,7 @@ struct SchlafTrackerView: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.3))
-                Text("Daten kommen direkt aus Apple Health")
+                Text("Data comes directly from Apple Health")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.3))
             }
@@ -186,7 +186,7 @@ struct SchlafTrackerView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Letzte 7 Tage")
+            Text("Last 7 Days")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 
@@ -256,12 +256,12 @@ struct SchlafTrackerView: View {
                 }
                 .padding(.top, 20)
             }
-            .navigationTitle("Schlafziel")
+            .navigationTitle("Sleep Goal")
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(.dark)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { showZielPicker = false }
+                    Button("Done") { showZielPicker = false }
                 }
             }
         }
@@ -280,7 +280,7 @@ struct SchlafTrackerView: View {
     }
 
     private func dayLabel(_ date: Date) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateFormat = "EE"
+        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "EE"
         return String(f.string(from: date).prefix(2))
     }
 

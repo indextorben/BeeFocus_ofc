@@ -33,7 +33,7 @@ struct LangzeitZieleView: View {
                                 if !store.archiviertZiele.isEmpty {
                                     Button { showArchiv.toggle() } label: {
                                         HStack {
-                                            Text(showArchiv ? "Archiv verbergen" : "Archiv anzeigen (\(store.archiviertZiele.count))")
+                                            Text(showArchiv ? "Hide archive" : "Show archive (\(store.archiviertZiele.count))")
                                                 .font(.system(size: 13))
                                                 .foregroundStyle(.white.opacity(0.35))
                                             Spacer()
@@ -62,12 +62,12 @@ struct LangzeitZieleView: View {
                     }
                 }
             }
-            .navigationTitle("Langzeit-Ziele")
+            .navigationTitle("Long-Term Goals")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -93,16 +93,16 @@ struct LangzeitZieleView: View {
             Image(systemName: "target")
                 .font(.system(size: 52))
                 .foregroundStyle(.white.opacity(0.15))
-            Text("Noch keine Ziele")
+            Text("No goals yet")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
-            Text("Setze dir große Ziele und verfolge deinen Fortschritt.")
+            Text("Set big goals and track your progress.")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.3))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
             Button { showAddSheet = true } label: {
-                Label("Erstes Ziel erstellen", systemImage: "plus")
+                Label("Create first goal", systemImage: "plus")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(accent)
                     .padding(.horizontal, 24).padding(.vertical, 12)
@@ -145,11 +145,11 @@ struct ZielCard: View {
                         .foregroundStyle(dimmed ? .white.opacity(0.4) : .white)
                         .lineLimit(1)
                     if let days = ziel.daysLeft {
-                        Text(days == 0 ? "Heute fällig" : "Noch \(days) Tage")
+                        Text(days == 0 ? "Due today" : "\(days) days left")
                             .font(.system(size: 11))
                             .foregroundStyle(days < 7 ? .orange : .white.opacity(0.4))
                     } else {
-                        Text("\(ziel.meilensteine.filter { $0.isCompleted }.count)/\(ziel.meilensteine.count) Meilensteine")
+                        Text("\(ziel.meilensteine.filter { $0.isCompleted }.count)/\(ziel.meilensteine.count) milestones")
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.4))
                     }
@@ -220,14 +220,14 @@ struct ZielCard: View {
                             .buttonStyle(.plain)
                         }
                     } else {
-                        Text("Keine Meilensteine")
+                        Text("No milestones")
                             .font(.system(size: 12))
                             .foregroundStyle(.white.opacity(0.25))
                     }
 
                     HStack(spacing: 10) {
                         Button(action: onEdit) {
-                            Label("Bearbeiten", systemImage: "pencil")
+                            Label("Edit", systemImage: "pencil")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 14).padding(.vertical, 8)
@@ -240,7 +240,7 @@ struct ZielCard: View {
                             updated.isArchived = !ziel.isArchived
                             store.save(updated)
                         } label: {
-                            Label(ziel.isArchived ? "Wiederherstellen" : "Archivieren",
+                            Label(ziel.isArchived ? "Restore" : "Archive",
                                   systemImage: ziel.isArchived ? "arrow.uturn.left" : "archivebox")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.5))
@@ -290,8 +290,8 @@ struct ZielEditSheet: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         // Title
-                        field("Ziel") {
-                            TextField("z.B. Buch schreiben", text: $title)
+                        field("Goal") {
+                            TextField("e.g. Write a book", text: $title)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.white)
                                 .padding(12)
@@ -299,8 +299,8 @@ struct ZielEditSheet: View {
                         }
 
                         // Description
-                        field("Beschreibung (optional)") {
-                            TextField("Warum ist dieses Ziel wichtig?", text: $beschreibung, axis: .vertical)
+                        field("Description (optional)") {
+                            TextField("Why is this goal important?", text: $beschreibung, axis: .vertical)
                                 .font(.system(size: 14))
                                 .foregroundStyle(.white)
                                 .lineLimit(3...5)
@@ -309,7 +309,7 @@ struct ZielEditSheet: View {
                         }
 
                         // Icon
-                        field("Symbol") {
+                        field("Icon") {
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 8) {
                                 ForEach(LangzeitZiel.availableIcons, id: \.self) { icon in
                                     let col = colorValue(selectedColor)
@@ -328,7 +328,7 @@ struct ZielEditSheet: View {
                         }
 
                         // Color
-                        field("Farbe") {
+                        field("Color") {
                             HStack(spacing: 10) {
                                 ForEach(colors, id: \.self) { c in
                                     let col = colorValue(c)
@@ -346,7 +346,7 @@ struct ZielEditSheet: View {
                         // Deadline
                         field("Deadline") {
                             VStack(spacing: 10) {
-                                Toggle("Deadline setzen", isOn: $hasDeadline)
+                                Toggle("Set deadline", isOn: $hasDeadline)
                                     .tint(accent)
                                     .foregroundStyle(.white)
                                 if hasDeadline {
@@ -361,11 +361,11 @@ struct ZielEditSheet: View {
                         }
 
                         // Milestones
-                        field("Meilensteine") {
+                        field("Milestones") {
                             VStack(spacing: 8) {
                                 ForEach(meilensteine.indices, id: \.self) { i in
                                     HStack(spacing: 8) {
-                                        TextField("Meilenstein \(i + 1)", text: $meilensteine[i])
+                                        TextField("Milestone \(i + 1)", text: $meilensteine[i])
                                             .font(.system(size: 14))
                                             .foregroundStyle(.white)
                                             .padding(10)
@@ -379,7 +379,7 @@ struct ZielEditSheet: View {
                                     }
                                 }
                                 Button { meilensteine.append("") } label: {
-                                    Label("Meilenstein hinzufügen", systemImage: "plus")
+                                    Label("Add milestone", systemImage: "plus")
                                         .font(.system(size: 13))
                                         .foregroundStyle(accent)
                                 }
@@ -389,15 +389,15 @@ struct ZielEditSheet: View {
 
                         if ziel != nil {
                             Button(role: .destructive) { showDeleteConfirm = true } label: {
-                                Label("Ziel löschen", systemImage: "trash")
+                                Label("Delete goal", systemImage: "trash")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(.red)
                                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                                     .background(.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(.red.opacity(0.25), lineWidth: 1))
                             }
-                            .confirmationDialog("Ziel löschen?", isPresented: $showDeleteConfirm) {
-                                Button("Löschen", role: .destructive) {
+                            .confirmationDialog("Delete goal?", isPresented: $showDeleteConfirm) {
+                                Button("Delete", role: .destructive) {
                                     if let z = ziel { store.delete(z) }
                                     dismiss()
                                 }
@@ -407,15 +407,15 @@ struct ZielEditSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(ziel == nil ? "Neues Ziel" : "Ziel bearbeiten")
+            .navigationTitle(ziel == nil ? "New Goal" : "Edit Goal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white.opacity(0.6))
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white.opacity(0.6))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(title.isEmpty ? .gray : accent)
                         .disabled(title.isEmpty)

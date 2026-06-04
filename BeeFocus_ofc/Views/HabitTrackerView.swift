@@ -92,10 +92,10 @@ struct HabitTrackerView: View {
         return VStack(spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Gewohnheiten")
+                    Text("Habits")
                         .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("Heute, \(Date().formatted(date: .abbreviated, time: .omitted))")
+                    Text("Today, \(Date().formatted(date: .abbreviated, time: .omitted))")
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.5))
                 }
@@ -153,10 +153,10 @@ struct HabitTrackerView: View {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.system(size: 48))
                 .foregroundStyle(accent.opacity(0.6))
-            Text("Keine Gewohnheiten")
+            Text("No Habits")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("Füge deine erste tägliche Gewohnheit hinzu und beobachte wie sie zur Routine wird.")
+            Text("Add your first daily habit and watch it become a routine.")
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.4))
                 .multilineTextAlignment(.center)
@@ -181,7 +181,7 @@ struct HabitTrackerView: View {
             HStack(spacing: 10) {
                 Image(systemName: atLimit ? "lock.fill" : "plus.circle.fill")
                     .font(.system(size: 16, weight: .semibold))
-                Text(atLimit ? "Pro für mehr Gewohnheiten" : "Gewohnheit hinzufügen")
+                Text(atLimit ? "Pro for more habits" : "Add habit")
                     .font(.system(size: 15, weight: .semibold))
             }
             .foregroundStyle(.white)
@@ -286,7 +286,7 @@ struct HabitCard: View {
                     Text("\(habit.totalCompletions)")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white.opacity(0.4))
-                    Text("Gesamt")
+                    Text("Total")
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.3))
                 }
@@ -342,7 +342,7 @@ struct HabitAddSheet: View {
                         // Name
                         VStack(alignment: .leading, spacing: 8) {
                             label("Name")
-                            TextField("z.B. Jeden Tag lesen", text: $name)
+                            TextField("e.g. Read every day", text: $name)
                                 .font(.system(size: 16))
                                 .padding(14)
                                 .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
@@ -351,7 +351,7 @@ struct HabitAddSheet: View {
 
                         // Icon Picker
                         VStack(alignment: .leading, spacing: 10) {
-                            label("Symbol")
+                            label("Icon")
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
                                 ForEach(Habit.availableIcons.filter { !$0.contains("🧘") }, id: \.self) { icon in
                                     Button {
@@ -377,7 +377,7 @@ struct HabitAddSheet: View {
 
                         // Color Picker
                         VStack(alignment: .leading, spacing: 10) {
-                            label("Farbe")
+                            label("Color")
                             HStack(spacing: 12) {
                                 ForEach(Habit.availableColors, id: \.name) { c in
                                     let col = colorFor(c.name)
@@ -399,16 +399,16 @@ struct HabitAddSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(existing == nil ? "Gewohnheit hinzufügen" : "Bearbeiten")
+            .navigationTitle(existing == nil ? "Add Habit" : "Edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button("Cancel") { dismiss() }
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") { save() }
+                    Button("Save") { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(name.isEmpty ? .gray : habitColor)
                         .disabled(name.isEmpty)

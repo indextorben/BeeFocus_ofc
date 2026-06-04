@@ -26,10 +26,10 @@ struct TaskTemplatesView: View {
                                 .font(.system(size: 36))
                                 .foregroundStyle(accent)
                                 .padding(.top, 8)
-                            Text("Aufgaben-Vorlagen")
+                            Text("Task Templates")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundStyle(.white)
-                            Text("Wähle eine Vorlage und erstelle alle Aufgaben auf einmal")
+                            Text("Choose a template and create all tasks at once")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.white.opacity(0.45))
                                 .multilineTextAlignment(.center)
@@ -40,7 +40,7 @@ struct TaskTemplatesView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
-                                Text("Aufgaben wurden erstellt!")
+                                Text("Tasks created!")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(.white)
                             }
@@ -50,7 +50,7 @@ struct TaskTemplatesView: View {
                         }
 
                         // Built-in templates
-                        sectionHeader("Vorlagen")
+                        sectionHeader("Templates")
                         ForEach(TaskTemplate.builtIn) { template in
                             TemplateCard(template: template, accent: accent) {
                                 applyTemplate(template)
@@ -60,7 +60,7 @@ struct TaskTemplatesView: View {
 
                         // Custom templates
                         if !store.customTemplates.isEmpty {
-                            sectionHeader("Eigene Vorlagen")
+                            sectionHeader("Custom Templates")
                                 .padding(.top, 4)
                             ForEach(store.customTemplates) { template in
                                 TemplateCard(template: template, accent: accent, canDelete: true) {
@@ -77,7 +77,7 @@ struct TaskTemplatesView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 16))
-                                Text("Eigene Vorlage erstellen")
+                                Text("Create custom template")
                                     .font(.system(size: 15, weight: .semibold))
                             }
                             .foregroundStyle(accent)
@@ -92,12 +92,12 @@ struct TaskTemplatesView: View {
                     }
                 }
             }
-            .navigationTitle("Vorlagen")
+            .navigationTitle("Templates")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("Close") { dismiss() }
                         .foregroundStyle(.white.opacity(0.6))
                 }
             }
@@ -157,7 +157,7 @@ struct TemplateCard: View {
                     Text(template.name)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("\(template.tasks.count) Aufgaben")
+                    Text("\(template.tasks.count) tasks")
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.4))
                 }
@@ -191,7 +191,7 @@ struct TemplateCard: View {
                         Button(action: onApply) {
                             HStack(spacing: 6) {
                                 Image(systemName: "plus.circle.fill")
-                                Text("Aufgaben erstellen")
+                                Text("Create tasks")
                                     .fontWeight(.semibold)
                             }
                             .font(.system(size: 13))
@@ -255,7 +255,7 @@ struct CreateTemplateSheet: View {
                     VStack(spacing: 22) {
                         // Name
                         field("Name") {
-                            TextField("z.B. Abendprogramm", text: $name)
+                            TextField("e.g. Evening routine", text: $name)
                                 .font(.system(size: 16))
                                 .padding(12)
                                 .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
@@ -263,7 +263,7 @@ struct CreateTemplateSheet: View {
                         }
 
                         // Icon
-                        field("Symbol") {
+                        field("Icon") {
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
                                 ForEach(icons, id: \.self) { icon in
                                     Button { selectedIcon = icon } label: {
@@ -283,7 +283,7 @@ struct CreateTemplateSheet: View {
                         }
 
                         // Color
-                        field("Farbe") {
+                        field("Color") {
                             HStack(spacing: 12) {
                                 ForEach(["purple","blue","green","orange","red","yellow","cyan","teal"], id: \.self) { c in
                                     let col = colorFor(c)
@@ -299,11 +299,11 @@ struct CreateTemplateSheet: View {
                         }
 
                         // Tasks
-                        field("Aufgaben") {
+                        field("Tasks") {
                             VStack(spacing: 8) {
                                 ForEach(tasks.indices, id: \.self) { i in
                                     HStack(spacing: 8) {
-                                        TextField("Aufgabe \(i + 1)", text: $tasks[i])
+                                        TextField("Task \(i + 1)", text: $tasks[i])
                                             .font(.system(size: 14))
                                             .padding(10)
                                             .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
@@ -319,7 +319,7 @@ struct CreateTemplateSheet: View {
                                 Button {
                                     tasks.append("")
                                 } label: {
-                                    Label("Aufgabe hinzufügen", systemImage: "plus")
+                                    Label("Add task", systemImage: "plus")
                                         .font(.system(size: 13))
                                         .foregroundStyle(accent)
                                 }
@@ -330,15 +330,15 @@ struct CreateTemplateSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Vorlage erstellen")
+            .navigationTitle("Create Template")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }.foregroundStyle(.white.opacity(0.6))
+                    Button("Cancel") { dismiss() }.foregroundStyle(.white.opacity(0.6))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") { saveTemplate() }
+                    Button("Save") { saveTemplate() }
                         .fontWeight(.semibold)
                         .foregroundStyle(name.isEmpty ? .gray : accent)
                         .disabled(name.isEmpty)

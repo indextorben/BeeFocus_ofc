@@ -78,8 +78,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// isBreak == false → Pause gerade beendet, Fokus beginnt
     func sendCompletionNotification(isBreak: Bool) {
         let content = UNMutableNotificationContent()
-        content.title = isBreak ? "Fokuszeit geschafft! 🎉" : "Pause vorbei!"
-        content.body  = isBreak ? "Goenn dir eine kurze Pause." : "Zeit fuer den naechsten Fokus-Block."
+        content.title = isBreak ? "Focus time done! 🎉" : "Break's over!"
+        content.body  = isBreak ? "Take a short break." : "Time for the next focus block."
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -215,8 +215,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         var index = 0
         while hour <= 20 && index < 13 {
             let content = UNMutableNotificationContent()
-            content.title = "✅ Gewohnheiten-Check"
-            content.body  = "Hast du heute deine Gewohnheiten gepflegt?"
+            content.title = "✅ Habit Check"
+            content.body  = "Have you kept up with your habits today?"
             content.sound = .default
             var comps = DateComponents(); comps.hour = hour; comps.minute = 0
             let request = UNNotificationRequest(
@@ -246,8 +246,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         var index = 0
         while hour <= 20 && index < 13 {
             let content = UNMutableNotificationContent()
-            content.title = "💧 Zeit zu trinken"
-            content.body  = "Trink ein Glas Wasser – dein Körper dankt es dir!"
+            content.title = "💧 Time to drink"
+            content.body  = "Drink a glass of water – your body will thank you!"
             content.sound = .default
             var comps = DateComponents(); comps.hour = hour; comps.minute = 0
             let request = UNNotificationRequest(
@@ -271,8 +271,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleOverdueAlert(hour: Int, minute: Int) {
         cancelOverdueAlert()
         let content = UNMutableNotificationContent()
-        content.title = "⚠️ Offene Aufgaben"
-        content.body  = "Du hast noch überfällige Aufgaben – ein guter Moment, sie zu erledigen."
+        content.title = "⚠️ Open Tasks"
+        content.body  = "You still have overdue tasks – a good moment to get them done."
         content.sound = .default
         var comps = DateComponents(); comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -294,8 +294,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleWeeklyReview(weekday: Int = 1, hour: Int, minute: Int) {
         cancelWeeklyReview()
         let content = UNMutableNotificationContent()
-        content.title = "📋 Wochenrückblick"
-        content.body  = "Nimm dir einen Moment und überprüfe deine Wochenziele."
+        content.title = "📋 Weekly Review"
+        content.body  = "Take a moment and review your weekly goals."
         content.sound = .default
         var comps = DateComponents(); comps.weekday = weekday; comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -316,8 +316,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleMoodReminder(hour: Int, minute: Int) {
         cancelMoodReminder()
         let content = UNMutableNotificationContent()
-        content.title = "😊 Stimmungs-Check"
-        content.body  = "Wie fühlst du dich heute? Trag deine Stimmung ein."
+        content.title = "😊 Mood Check"
+        content.body  = "How are you feeling today? Log your mood."
         content.sound = .default
         var comps = DateComponents(); comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -338,8 +338,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleEveningReminder(hour: Int, minute: Int) {
         cancelEveningReminder()
         let content = UNMutableNotificationContent()
-        content.title = "🌙 Abendreflexion"
-        content.body  = "Nimm dir 5 Minuten für dein Tagesjournal oder Dankbarkeits-Eintrag."
+        content.title = "🌙 Evening Reflection"
+        content.body  = "Take 5 minutes for your daily journal or gratitude entry."
         content.sound = .default
         var comps = DateComponents(); comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -357,8 +357,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     func sendTestNotification() {
         let content = UNMutableNotificationContent()
-        content.title = "Test-Benachrichtigung"
-        content.body  = "Benachrichtigungen funktionieren korrekt."
+        content.title = "Test Notification"
+        content.body  = "Notifications are working correctly."
         content.sound = .default
 
         let request = UNNotificationRequest(

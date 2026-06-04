@@ -131,12 +131,12 @@ struct TagesplanerView: View {
                     Button {
                         if let url = buildDayPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Tag als PDF", systemImage: "doc.fill")
+                        Label("Day as PDF", systemImage: "doc.fill")
                     }
                     Button {
                         if let url = buildWeekPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Woche als PDF", systemImage: "doc.on.doc.fill")
+                        Label("Week as PDF", systemImage: "doc.on.doc.fill")
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -230,10 +230,10 @@ struct TagesplanerView: View {
     // MARK: - Selected date label
 
     private var selectedDateString: String {
-        if isToday { return "Heute" }
+        if isToday { return "Today" }
         let f = DateFormatter()
-        f.dateFormat = "EEEE, d. MMM"
-        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEEE, MMM d"
+        f.locale = Locale.current
         return f.string(from: selectedDate)
     }
 
@@ -323,10 +323,10 @@ struct TagesplanerView: View {
 
     private func shortWeekday(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
+        f.locale = Locale.current
         f.dateFormat = "EEE"
         let s = f.string(from: date)
-        return String(s.prefix(2))
+        return String(s.prefix(3))
     }
 
     // MARK: - Progress Card
@@ -361,8 +361,8 @@ struct TagesplanerView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Text(total == 0
-                     ? "Keine Aufgaben eingeplant"
-                     : "\(done) von \(total) erledigt")
+                     ? "No tasks scheduled"
+                     : "\(done) of \(total) completed")
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
             }
@@ -375,7 +375,7 @@ struct TagesplanerView: View {
                             selectedDate = cal.startOfDay(for: Date())
                         }
                     } label: {
-                        Text("Heute")
+                        Text("Today")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(themeC1)
                             .padding(.horizontal, 10).padding(.vertical, 5)
@@ -402,12 +402,12 @@ struct TagesplanerView: View {
     private var headerLabel: String {
         if isToday {
             let h = cal.component(.hour, from: Date())
-            if h < 12 { return "Guten Morgen" }
-            if h < 18 { return "Guten Mittag" }
-            return "Guten Abend"
+            if h < 12 { return "Good Morning" }
+            if h < 18 { return "Good Afternoon" }
+            return "Good Evening"
         }
         let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
+        f.locale = Locale.current
         f.dateFormat = "EEEE"
         return f.string(from: selectedDate)
     }
@@ -431,9 +431,9 @@ struct TagesplanerView: View {
         let spanToEvening = (morningTasks + middayTasks).last(where: { $0.endDate.map { $0 > eveStart } == true })
 
         return VStack(spacing: 0) {
-            treeSection(label: "Morgen", icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
-            treeSection(label: "Mittag", icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
-            treeSection(label: "Abend",  icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
+            treeSection(label: "Morning",   icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
+            treeSection(label: "Afternoon", icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
+            treeSection(label: "Evening",   icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
         }
         .padding(.horizontal, 4)
     }
@@ -779,8 +779,8 @@ struct TagesplanerView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus").font(.system(size: 9, weight: .bold))
                         Text(minutes >= 60
-                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") frei"
-                             : "\(Int(minutes))min frei")
+                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") free"
+                             : "\(Int(minutes))min free")
                             .font(.system(size: 10))
                     }
                     .foregroundStyle(isDark ? .white.opacity(0.22) : Color.secondary.opacity(0.5))
@@ -836,11 +836,11 @@ struct TagesplanerView: View {
                         HStack(spacing: 4) {
                             if isActive {
                                 Circle().fill(themeC1).frame(width: 5, height: 5)
-                                Text("läuft")
+                                Text("running")
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundStyle(themeC1)
                             }
-                            Text("bis \(timeFmt.string(from: endDate))")
+                            Text("until \(timeFmt.string(from: endDate))")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             if isActive {
@@ -862,7 +862,7 @@ struct TagesplanerView: View {
                                 Image(systemName: "clock")
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(.secondary)
-                                Text("startet in \(startingInLabel(from: due))")
+                                Text("starts in \(startingInLabel(from: due))")
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
@@ -1049,7 +1049,7 @@ struct TagesplanerView: View {
     private func startingInLabel(from dueDate: Date) -> String {
         let secs = max(0, dueDate.timeIntervalSince(now))
         let mins = Int(secs / 60)
-        if mins < 15 { return "gleich" }
+        if mins < 15 { return "soon" }
         if mins < 60 { return "\(mins)min" }
         let h = mins / 60; let m = mins % 60
         return m == 0 ? "\(h)h" : "\(h)h \(m)min"
@@ -1067,15 +1067,15 @@ struct TagesplanerView: View {
 
     private var alleAufgabenContent: some View {
         VStack(spacing: 12) {
-            aufgabenGroup(id: "today", title: "Heute", icon: "sun.max.fill",
+            aufgabenGroup(id: "today", title: "Today", icon: "sun.max.fill",
                           color: themeC1, todos: groupedTodos(.today))
-            aufgabenGroup(id: "overdue", title: "Überfällig", icon: "exclamationmark.triangle.fill",
+            aufgabenGroup(id: "overdue", title: "Overdue", icon: "exclamationmark.triangle.fill",
                           color: .red, todos: groupedTodos(.overdue))
-            aufgabenGroup(id: "week", title: "Diese Woche", icon: "calendar.badge.clock",
+            aufgabenGroup(id: "week", title: "This Week", icon: "calendar.badge.clock",
                           color: themeC2, todos: groupedTodos(.thisWeek))
-            aufgabenGroup(id: "later", title: "Später", icon: "arrow.right.circle.fill",
+            aufgabenGroup(id: "later", title: "Later", icon: "arrow.right.circle.fill",
                           color: .secondary, todos: groupedTodos(.later))
-            aufgabenGroup(id: "nodate", title: "Ohne Datum", icon: "tray.fill",
+            aufgabenGroup(id: "nodate", title: "No Date", icon: "tray.fill",
                           color: .secondary, todos: groupedTodos(.noDate))
         }
     }
@@ -1207,7 +1207,7 @@ struct TagesplanerView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.badge.plus")
                             .font(.system(size: 11, weight: .semibold))
-                        Text("Einplanen")
+                        Text("Schedule")
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundStyle(themeC1)

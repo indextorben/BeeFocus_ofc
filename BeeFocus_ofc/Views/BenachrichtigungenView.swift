@@ -45,21 +45,21 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Master
-                    sectionCard(header: "Allgemein", icon: "bell.fill", color: accent) {
+                    sectionCard(header: "General", icon: "bell.fill", color: accent) {
                         notifItem(
                             icon: "bell.badge.fill", color: accent,
-                            label: "Benachrichtigungen aktiv", id: "master",
+                            label: "Notifications active", id: "master",
                             isOn: $notificationsEnabled,
                             onEnable: { requestPermission() },
-                            onDisable: { showBanner("Benachrichtigungen deaktiviert", color: .red) }
+                            onDisable: { showBanner("Notifications disabled", color: .red) }
                         ) { EmptyView() }
                     }
 
                     // Tagesstruktur
-                    sectionCard(header: "Tagesstruktur", icon: "sun.max.fill", color: .orange) {
+                    sectionCard(header: "Daily Structure", icon: "sun.max.fill", color: .orange) {
                         notifItem(
                             icon: "sun.max.fill", color: .orange,
-                            label: "Morgen-Übersicht", id: "morning",
+                            label: "Morning Overview", id: "morning",
                             isOn: $morningSummaryEnabled,
                             onEnable: { scheduleMorningSummary() },
                             onDisable: { NotificationManager.shared.cancelDailyMorningSummary() }
@@ -70,7 +70,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "exclamationmark.circle.fill", color: .red.opacity(0.9),
-                            label: "Überfällige Aufgaben", id: "overdue",
+                            label: "Overdue tasks", id: "overdue",
                             isOn: $overdueAlertEnabled,
                             onEnable: { scheduleOverdueAlert() },
                             onDisable: { NotificationManager.shared.cancelOverdueAlert() }
@@ -81,7 +81,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "calendar.badge.clock", color: .indigo,
-                            label: "Wochenrückblick (Sonntags)", id: "weekly",
+                            label: "Weekly review (Sundays)", id: "weekly",
                             isOn: $weeklyReviewEnabled,
                             onEnable: { scheduleWeeklyReview() },
                             onDisable: { NotificationManager.shared.cancelWeeklyReview() }
@@ -91,10 +91,10 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Wohlbefinden
-                    sectionCard(header: "Wohlbefinden", icon: "heart.fill", color: .pink) {
+                    sectionCard(header: "Wellbeing", icon: "heart.fill", color: .pink) {
                         notifItem(
                             icon: "drop.fill", color: .cyan,
-                            label: "Wasser-Erinnerung", id: "water",
+                            label: "Water reminder", id: "water",
                             isOn: $waterReminderEnabled,
                             onEnable: { NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval) },
                             onDisable: { NotificationManager.shared.cancelWaterReminders() }
@@ -110,7 +110,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "face.smiling", color: .yellow,
-                            label: "Stimmungs-Check", id: "mood",
+                            label: "Mood check", id: "mood",
                             isOn: $moodReminderEnabled,
                             onEnable: { scheduleMoodReminder() },
                             onDisable: { NotificationManager.shared.cancelMoodReminder() }
@@ -121,7 +121,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "moon.stars.fill", color: .purple,
-                            label: "Abendreflexion", id: "evening",
+                            label: "Evening reflection", id: "evening",
                             isOn: $eveningReminderEnabled,
                             onEnable: { scheduleEveningReminder() },
                             onDisable: { NotificationManager.shared.cancelEveningReminder() }
@@ -131,10 +131,10 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Gewohnheiten
-                    sectionCard(header: "Gewohnheiten", icon: "calendar.badge.checkmark", color: .green) {
+                    sectionCard(header: "Habits", icon: "calendar.badge.checkmark", color: .green) {
                         notifItem(
                             icon: "calendar.badge.checkmark", color: .green,
-                            label: "Gewohnheiten-Erinnerung", id: "habit",
+                            label: "Habit reminder", id: "habit",
                             isOn: $habitReminderEnabled,
                             onEnable: { NotificationManager.shared.scheduleHabitReminders(intervalHours: habitReminderInterval) },
                             onDisable: { NotificationManager.shared.cancelHabitReminder() }
@@ -152,11 +152,11 @@ struct BenachrichtigungenView: View {
                     sectionCard(header: "Test", icon: "paperplane.fill", color: .teal) {
                         Button {
                             NotificationManager.shared.sendTestNotification()
-                            showBanner("Test-Benachrichtigung gesendet")
+                            showBanner("Test notification sent")
                         } label: {
                             HStack(spacing: 12) {
                                 iconBadge(icon: "paperplane.fill", color: .teal)
-                                Text("Jetzt testen")
+                                Text("Test now")
                                     .font(.system(size: 16))
                                     .foregroundStyle(.primary)
                                 Spacer()
@@ -191,7 +191,7 @@ struct BenachrichtigungenView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.75), value: showBannerView)
             }
         }
-        .navigationTitle("Benachrichtigungen")
+        .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.large)
         .onAppear { checkAuthStatus() }
     }
@@ -254,7 +254,7 @@ struct BenachrichtigungenView: View {
             divider()
             HStack(spacing: 12) {
                 iconBadge(icon: "clock.fill", color: .teal)
-                Text("Uhrzeit").font(.system(size: 16))
+                Text("Time").font(.system(size: 16))
                 Spacer()
                 DatePicker("", selection: Binding<Date>(
                     get: { Calendar.current.startOfDay(for: Date()).addingTimeInterval(time.wrappedValue) },
@@ -282,10 +282,10 @@ struct BenachrichtigungenView: View {
                 Text("Interval").font(.system(size: 16))
                 Spacer()
                 Picker("", selection: selection) {
-                    Text("1 Std").tag(1)
-                    Text("2 Std").tag(2)
-                    Text("3 Std").tag(3)
-                    Text("4 Std").tag(4)
+                    Text("1 hr").tag(1)
+                    Text("2 hrs").tag(2)
+                    Text("3 hrs").tag(3)
+                    Text("4 hrs").tag(4)
                 }
                 .pickerStyle(.menu)
                 .onChange(of: selection.wrappedValue) { _ in onChange() }
@@ -307,10 +307,10 @@ struct BenachrichtigungenView: View {
                     .font(.system(size: 18))
                     .foregroundStyle(.red)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Benachrichtigungen blockiert")
+                    Text("Notifications blocked")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.primary)
-                    Text("In den Systemeinstellungen aktivieren")
+                    Text("Enable in System Settings")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
