@@ -578,7 +578,7 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.68) {
-            sectionGroup(icon: "flame.fill", label: "KI-Fokus-Strategie", color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
+            sectionGroup(icon: "flame.fill", label: "AI Focus Strategy", color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
                 glassCard {
                     Button { showKIStrategie = true } label: {
                         iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: "Personalized AI Productivity Plan")
@@ -594,7 +594,7 @@ struct StatistikView: View {
 
     @ViewBuilder private var sectionsGesamtbericht: some View {
         animatedSection(delay: 0.75) {
-            sectionGroup(icon: "doc.text.magnifyingglass", label: "KI-Gesamtbericht", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+            sectionGroup(icon: "doc.text.magnifyingglass", label: "AI Overall Report", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
                 glassCard {
                     Button { showKIGesamtbericht = true } label: {
                         iconNavRow(icon: "doc.text.magnifyingglass", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "Alle App-Daten analysiert & exportierbar")
@@ -763,7 +763,7 @@ struct StatistikView: View {
 
                     // Erklärung Fokuspunkte
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Fokuspunkte verdienen", systemImage: "bolt.fill")
+                        Label("Earn Focus Points", systemImage: "bolt.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
                         Text("Focus points are credited for your productivity and never decrease automatically – only purchases in the Focus Store reduce your balance.")
@@ -793,7 +793,7 @@ struct StatistikView: View {
 
                     // Erklärung Fokus-Store
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Fokus-Store", systemImage: "storefront.fill")
+                        Label("Focus Store", systemImage: "storefront.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
                         Text("In the Focus Store you can unlock color themes for the statistics view. Each theme changes the background gradient of this page.")

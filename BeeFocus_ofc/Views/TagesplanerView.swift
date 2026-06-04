@@ -332,12 +332,11 @@ struct TagesplanerView: View {
     // MARK: - Progress Card
 
     private var progressCard: some View {
-        let done = todoStore.todos.filter {
-            $0.isCompleted && ($0.completedAt.map { cal.isDate($0, inSameDayAs: selectedDate) } == true)
-        }.count
-        let total = todoStore.todos.filter {
+        let dayTasks = todoStore.todos.filter {
             $0.dueDate.map { cal.isDate($0, inSameDayAs: selectedDate) } == true
-        }.count
+        }
+        let done = dayTasks.filter { $0.isCompleted }.count
+        let total = dayTasks.count
         let prog = total > 0 ? Double(done) / Double(total) : 0.0
 
         return HStack(spacing: 14) {
