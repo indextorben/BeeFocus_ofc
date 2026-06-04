@@ -251,8 +251,10 @@ struct MediumWidgetView: View {
                 Spacer()
 
                 statBlock(value: snap.dueTodayCount, label: "Heute", icon: "sun.max.fill")
-                statBlock(value: snap.overdueCount, label: "Überf.", icon: "exclamationmark.circle.fill",
-                          accent: snap.overdueCount > 0 ? Color(red: 1.0, green: 0.55, blue: 0.3) : .white)
+                if widgetShowOverdue {
+                    statBlock(value: snap.overdueCount, label: "Überf.", icon: "exclamationmark.circle.fill",
+                              accent: snap.overdueCount > 0 ? Color(red: 1.0, green: 0.55, blue: 0.3) : .white)
+                }
                 statBlock(value: snap.completedTodayCount, label: "Erledigt", icon: "checkmark.circle.fill")
             }
             .frame(width: 110)
@@ -317,6 +319,15 @@ struct MediumWidgetView: View {
 }
 
 // MARK: - Large Widget
+
+private let widgetGroupDefaults = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFocus-ofc")
+
+private var widgetShowFocusMinutes: Bool {
+    widgetGroupDefaults?.object(forKey: "widgetShowFocusMinutes") as? Bool ?? true
+}
+private var widgetShowOverdue: Bool {
+    widgetGroupDefaults?.object(forKey: "widgetShowOverdue") as? Bool ?? true
+}
 
 struct LargeWidgetView: View {
     let snap: WidgetSnapshot
@@ -421,15 +432,19 @@ struct LargeWidgetView: View {
                 .padding(.horizontal, 16)
 
             HStack(spacing: 16) {
-                Label("\(snap.overdueCount) überf.", systemImage: "exclamationmark.circle")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(snap.overdueCount > 0
-                                     ? Color(red: 1.0, green: 0.65, blue: 0.35)
-                                     : Color.white.opacity(0.55))
+                if widgetShowOverdue {
+                    Label("\(snap.overdueCount) überf.", systemImage: "exclamationmark.circle")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(snap.overdueCount > 0
+                                         ? Color(red: 1.0, green: 0.65, blue: 0.35)
+                                         : Color.white.opacity(0.55))
+                }
                 Spacer()
-                Label("\(snap.focusMinutesToday) Min Fokus", systemImage: "timer")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.7))
+                if widgetShowFocusMinutes {
+                    Label("\(snap.focusMinutesToday) Min Fokus", systemImage: "timer")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

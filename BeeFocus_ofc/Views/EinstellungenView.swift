@@ -217,6 +217,9 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "paintbrush.fill", label: localizer.localizedString(forKey: "Displaymodus"), color: .indigo) {
                             darstellungCard
                         }
+                        sectionGroup(icon: "rectangle.stack.fill", label: "Widget", color: .blue) {
+                            widgetCard
+                        }
                         sectionGroup(icon: "bell.badge.fill", label: localizer.localizedString(forKey: "Benachrichtigungen"), color: .red) {
                             benachrichtigungenLinkCard
                         }
@@ -456,6 +459,17 @@ struct EinstellungenView: View {
             iconToggleRow(icon: "clock.arrow.circlepath", color: .blue, label: localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
             cardDivider()
             iconToggleRow(icon: "calendar", color: .orange, label: "Nur aktuellen Monat anzeigen", isOn: $filterCurrentMonthOnly)
+        }
+    }
+
+    private var widgetCard: some View {
+        glassCard {
+            NavigationLink {
+                WidgetEinstellungenView()
+                    .environmentObject(todoStore)
+            } label: {
+                iconNavRow(icon: "rectangle.stack.fill", color: .blue, label: "Widget anpassen")
+            }
         }
     }
 

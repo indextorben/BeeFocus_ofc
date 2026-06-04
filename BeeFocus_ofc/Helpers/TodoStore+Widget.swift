@@ -101,6 +101,13 @@ extension TodoStore {
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
 
         let filterMonthOnly = UserDefaults.standard.bool(forKey: "filterCurrentMonthOnly")
+
+        let widgetDefaults = UserDefaults(suiteName: beeFocusAppGroup)
+        let widgetTaskFilter = widgetDefaults?.string(forKey: "widgetTaskFilter") ?? "today"
+        let widgetMaxTasks: Int = {
+            let v = widgetDefaults?.integer(forKey: "widgetMaxTasks") ?? 0
+            return v == 0 ? 5 : v
+        }()
         let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? today
         let monthEnd   = cal.date(byAdding: DateComponents(month: 1, second: -1), to: monthStart) ?? today
 
@@ -157,7 +164,18 @@ extension TodoStore {
         let focusToday = dailyFocusMinutes[today] ?? 0
         let activeTheme = UserDefaults.standard.string(forKey: "aktivesStatistikThema") ?? ""
 
-        let topTasks = Array(todayTodos.prefix(15)).map { makeWidgetTask($0, today: today) }
+        let filteredForWidget: [TodoItem]
+        switch widgetTaskFilter {
+        case "priority":
+            filteredForWidget = todos
+                .filter { !$0.isCompleted && $0.priority == .high }
+                .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        case "all":
+            filteredForWidget = allOpenSorted
+        default:
+            filteredForWidget = todayTodos
+        }
+        let topTasks = Array(filteredForWidget.prefix(widgetMaxTasks)).map { makeWidgetTask($0, today: today) }
 
         // planTasks für Watch "Alle": immer aktueller Monat + datumlose (kein Overdue aus Vorjahren)
         let planFiltered = allOpenSorted.filter { todo in
