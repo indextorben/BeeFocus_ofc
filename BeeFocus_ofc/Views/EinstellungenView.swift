@@ -551,7 +551,7 @@ struct EinstellungenView: View {
 
     private var synchronisationCard: some View {
         glassCard {
-            iconButtonRow(icon: "arrow.triangle.2.circlepath", color: .blue, label: localizer.localizedString(forKey: "Jetzt synchronisieren")) {
+            iconButtonRow(icon: "arrow.triangle.2.circlepath", color: .blue, label: "Sync now") {
                 CloudKitManager.shared.syncNow(todoStore: todoStore) { todosChanged, dailyChanged, focusChanged in
                     bannerColor = .green
                     showBanner(message: String(format: localizer.localizedString(forKey: "Sync: %d Todos, %d Tage, %d Fokus-Tage aktualisiert"), todosChanged, dailyChanged, focusChanged))
