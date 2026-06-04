@@ -21,7 +21,7 @@ let websiteBlockCategories: [WebsiteBlockCategory] = [
         ]
     ),
     WebsiteBlockCategory(
-        name: "Unterhaltung",
+        name: "Entertainment",
         icon: "play.rectangle.fill",
         color: .red,
         domains: [
@@ -43,7 +43,7 @@ let websiteBlockCategories: [WebsiteBlockCategory] = [
         ]
     ),
     WebsiteBlockCategory(
-        name: "Nachrichten",
+        name: "News",
         icon: "newspaper.fill",
         color: .blue,
         domains: [
@@ -65,7 +65,7 @@ let websiteBlockCategories: [WebsiteBlockCategory] = [
         ]
     ),
     WebsiteBlockCategory(
-        name: "Musik & Podcasts",
+        name: "Music & Podcasts",
         icon: "music.note",
         color: .purple,
         domains: [
@@ -75,7 +75,7 @@ let websiteBlockCategories: [WebsiteBlockCategory] = [
         ]
     ),
     WebsiteBlockCategory(
-        name: "Erwachsene",
+        name: "Adult",
         icon: "eye.slash.fill",
         color: .gray,
         domains: [

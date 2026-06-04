@@ -54,11 +54,11 @@ enum BreathPhase {
 
     var label: String {
         switch self {
-        case .idle:   return "Bereit?"
-        case .inhale: return "Einatmen"
-        case .hold1:  return "Halten"
-        case .exhale: return "Ausatmen"
-        case .hold2:  return "Halten"
+        case .idle:   return "Ready?"
+        case .inhale: return "Inhale"
+        case .hold1:  return "Hold"
+        case .exhale: return "Exhale"
+        case .hold2:  return "Hold"
         }
     }
 }
@@ -150,7 +150,7 @@ struct BreathingView: View {
                                 .foregroundStyle(.white.opacity(0.9))
                                 .contentTransition(.numericText())
                         } else if !isRunning {
-                            Text("Tippe zum Starten")
+                            Text("Tap to start")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.white.opacity(0.4))
                         }
