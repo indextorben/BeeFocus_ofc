@@ -1673,7 +1673,7 @@ struct StatistikView: View {
     }
 
     private var heatmapView: some View {
-        let weekdayLabels = ["Mo", "", "Mi", "", "Fr", "", "So"]
+        let weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"]
         let weekdayColW: CGFloat = 24
         let cSpacing: CGFloat = 3
 

@@ -323,7 +323,7 @@ struct TagesplanerView: View {
 
     private func shortWeekday(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale.current
+        f.locale = Locale(identifier: "en_US")
         f.dateFormat = "EEE"
         let s = f.string(from: date)
         return String(s.prefix(3))
@@ -2644,8 +2644,8 @@ struct TagesplanExportView: View {
 
     private var dateString: String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
-        f.dateFormat = "EEEE, d. MMMM yyyy"
+        f.locale = Locale(identifier: "en_US")
+        f.dateFormat = "EEEE, MMMM d, yyyy"
         return f.string(from: date)
     }
 
@@ -2654,7 +2654,7 @@ struct TagesplanExportView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Tagesplan")
+                    Text("Daily Plan")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(themeC1)
                     Text(dateString)
@@ -2711,8 +2711,8 @@ struct TagesplanWocheExportView: View {
 
     private let dayFmt: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
-        f.dateFormat = "EEE d. MMM"
+        f.locale = Locale(identifier: "en_US")
+        f.dateFormat = "EEE MMM d"
         return f
     }()
 

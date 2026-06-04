@@ -413,9 +413,9 @@ struct FokusModeView: View {
             }
             return String(format: NSLocalizedString("fokus.selection.active", comment: ""), parts.joined(separator: " & "))
         } else if manager.hasSelection {
-            return NSLocalizedString("fokus.selection.ready", comment: "")
+            return "Ready – tap Activate to start"
         }
-        return NSLocalizedString("fokus.selection.choose", comment: "")
+        return "Choose apps to block"
     }
 
     // MARK: - Stats Button

@@ -62,7 +62,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .tabItem {
-                Label("Tag", systemImage: "calendar.day.timeline.left")
+                Label("Day", systemImage: "calendar.day.timeline.left")
             }
             .tag(1)
             

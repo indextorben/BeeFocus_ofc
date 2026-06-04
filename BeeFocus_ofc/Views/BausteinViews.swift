@@ -493,7 +493,7 @@ struct BausteinEditSheet: View {
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
-    private let wochentageNamen = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    private let wochentageNamen = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let symbole = [
         "square.fill", "circle.fill", "star.fill", "bolt.fill", "flame.fill",
         "brain.head.profile", "book.fill", "dumbbell.fill", "fork.knife",
