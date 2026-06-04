@@ -348,6 +348,7 @@ struct TagView: View {
         }
         .listStyle(.plain)
         .refreshable { session.requestFreshSnapshot() }
+        .onAppear { session.requestFreshSnapshot() }
     }
 }
 
