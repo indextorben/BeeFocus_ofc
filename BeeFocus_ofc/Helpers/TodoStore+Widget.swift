@@ -268,13 +268,55 @@ extension TodoStore {
     }
 
     private func buildTodayBausteine() -> [WatchBaustein] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
+
+        // Echte geplante Aufgaben für heute (mit Start- UND Endzeit) — wie TagesplanerView
+        let scheduled = todos.filter { todo in
+            guard !todo.isCompleted,
+                  let due = todo.dueDate,
+                  due >= today && due < tomorrow,
+                  todo.endDate != nil
+            else { return false }
+            return true
+        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+
+        if !scheduled.isEmpty {
+            return scheduled.prefix(15).map { todo in
+                let due = todo.dueDate ?? today
+                let startH = cal.component(.hour, from: due)
+                let startM = cal.component(.minute, from: due)
+                let endH   = cal.component(.hour, from: todo.endDate ?? due)
+                let endM   = cal.component(.minute, from: todo.endDate ?? due)
+                let zeitLabel = String(format: "%02d:%02d – %02d:%02d", startH, startM, endH, endM)
+                let farbeName: String
+                switch todo.priority {
+                case .high:   farbeName = "rot"
+                case .medium: farbeName = "blau"
+                case .low:    farbeName = "gruen"
+                }
+                return WatchBaustein(
+                    id: todo.id,
+                    titel: todo.title,
+                    symbol: todo.category != nil ? "tag.fill" : "checklist",
+                    farbeName: farbeName,
+                    zeitLabel: zeitLabel,
+                    beschreibung: todo.description,
+                    isHighPriority: todo.priority == .high,
+                    startStunde: startH,
+                    startMinute: startM
+                )
+            }
+        }
+
+        // Fallback: BausteinStore-Vorlagen nach Wochentag
         guard let data = UserDefaults.standard.data(forKey: "tagesplanBausteine"),
               let decoded = try? JSONDecoder().decode([TagesplanBaustein].self, from: data)
         else { return [] }
 
-        let cal = Calendar.current
         let raw = cal.component(.weekday, from: Date())
-        let wochentag = raw == 1 ? 7 : raw - 1  // 1=Mo…7=So
+        let wochentag = raw == 1 ? 7 : raw - 1
 
         return decoded
             .filter { b in b.wochentage.isEmpty || b.wochentage.contains(wochentag) }
