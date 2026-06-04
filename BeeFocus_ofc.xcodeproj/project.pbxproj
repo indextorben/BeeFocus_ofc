@@ -1589,8 +1589,8 @@
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "BeeFocus benötigt Zugriff auf deinen Kalender, um Aufgaben zu planen.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "BeeFocus benötigt Kamerazugriff, um Fotos für deine Aufgaben aufzunehmen.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BeeFocus speichert deine Fokus-Aktivität in der Gesundheits-App.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "BeeFocus liest Gesundheitsdaten, um deine Aktivität anzuzeigen.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BeeFocus speichert deine Fokus-Aktivität in der Gesundheits-App.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1636,8 +1636,8 @@
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "BeeFocus benötigt Zugriff auf deinen Kalender, um Aufgaben zu planen.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "BeeFocus benötigt Kamerazugriff, um Fotos für deine Aufgaben aufzunehmen.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BeeFocus speichert deine Fokus-Aktivität in der Gesundheits-App.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "BeeFocus liest Gesundheitsdaten, um deine Aktivität anzuzeigen.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "BeeFocus speichert deine Fokus-Aktivität in der Gesundheits-App.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
