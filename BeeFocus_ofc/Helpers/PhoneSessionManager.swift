@@ -107,16 +107,14 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
                  replyHandler: @escaping ([String: Any]) -> Void) {
         guard message["requestSnapshot"] != nil else { replyHandler([:]); return }
         DispatchQueue.main.async {
-            // Snapshot sofort bauen und als direkte Antwort zurückschicken
-            if let store = self.todoStore {
-                store.performWidgetSnapshot()
-                let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") ?? Data()
-                replyHandler(["widgetSnapshot": data])
-            } else if let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") {
+            // Gecachten Snapshot sofort zurückschicken (todos sind zu diesem Zeitpunkt ggf. noch nicht bereit)
+            if let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") {
                 replyHandler(["widgetSnapshot": data])
             } else {
                 replyHandler([:])
             }
+            // Frischen Snapshot bauen und kurz danach via updateApplicationContext nachliefern
+            self.todoStore?.writeWidgetSnapshot()
         }
     }
 
