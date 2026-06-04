@@ -31,7 +31,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     private func applySnapshotData(_ data: Data) {
-        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else { return }
+        print("[Watch] applySnapshotData: \(data.count) Bytes")
+        guard let snap = try? JSONDecoder().decode(WatchSnapshot.self, from: data) else {
+            print("[Watch] applySnapshotData: Dekodierung fehlgeschlagen")
+            return
+        }
+        print("[Watch] Snapshot decoded – planTasks=\(snap.planTasks.count) todayBausteine=\(snap.todayBausteine.count) monthTasks=\(snap.monthTasks.count)")
         saveLocalSnapshot(data)
         DispatchQueue.main.async {
             self.snapshot = snap
@@ -48,15 +53,20 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     func requestFreshSnapshot() {
+        print("[Watch] requestFreshSnapshot – isReachable=\(WCSession.default.isReachable)")
         if WCSession.default.isReachable {
-            // sendMessage mit replyHandler: iPhone schickt Snapshot direkt zurück
             WCSession.default.sendMessage(["requestSnapshot": true]) { [weak self] reply in
+                print("[Watch] sendMessage reply erhalten – keys=\(reply.keys.joined(separator: ","))")
                 if let data = reply["widgetSnapshot"] as? Data {
                     self?.applySnapshotData(data)
+                } else {
+                    print("[Watch] sendMessage reply enthält keinen widgetSnapshot")
                 }
-            } errorHandler: { _ in }
+            } errorHandler: { error in
+                print("[Watch] sendMessage errorHandler: \(error.localizedDescription)")
+            }
         } else {
-            // transferUserInfo: zugestellt sobald iPhone wieder läuft
+            print("[Watch] nicht erreichbar → transferUserInfo")
             WCSession.default.transferUserInfo(["requestSnapshot": true])
         }
     }
@@ -98,6 +108,7 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
     // Neuer Snapshot vom iPhone empfangen
     func session(_ session: WCSession,
                  didReceiveApplicationContext applicationContext: [String: Any]) {
+        print("[Watch] didReceiveApplicationContext – keys=\(applicationContext.keys.joined(separator: ","))")
         guard let data = applicationContext["widgetSnapshot"] as? Data else { return }
         applySnapshotData(data)
     }
@@ -106,8 +117,11 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
+        print("[Watch] activationDidCompleteWith state=\(activationState.rawValue) error=\(error?.localizedDescription ?? "nil")")
         guard activationState == .activated else { return }
-        if let data = WCSession.default.receivedApplicationContext["widgetSnapshot"] as? Data {
+        let ctx = WCSession.default.receivedApplicationContext
+        print("[Watch] receivedApplicationContext keys=\(ctx.keys.joined(separator: ","))")
+        if let data = ctx["widgetSnapshot"] as? Data {
             applySnapshotData(data)
         }
         requestFreshSnapshot()
@@ -115,6 +129,7 @@ extension WatchSessionManager: @preconcurrency WCSessionDelegate {
 
     // iPhone wird erreichbar → sofort frischen Snapshot anfordern
     func sessionReachabilityDidChange(_ session: WCSession) {
+        print("[Watch] sessionReachabilityDidChange isReachable=\(session.isReachable)")
         if session.isReachable {
             requestFreshSnapshot()
         }

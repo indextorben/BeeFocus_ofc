@@ -62,8 +62,16 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     func sendSnapshotData(_ data: Data) {
         guard WCSession.default.activationState == .activated,
               WCSession.default.isPaired,
-              WCSession.default.isWatchAppInstalled else { return }
-        try? WCSession.default.updateApplicationContext(["widgetSnapshot": data])
+              WCSession.default.isWatchAppInstalled else {
+            print("[Phone] sendSnapshotData: Guard fehlgeschlagen – activated=\(WCSession.default.activationState.rawValue) paired=\(WCSession.default.isPaired) watchInstalled=\(WCSession.default.isWatchAppInstalled)")
+            return
+        }
+        do {
+            try WCSession.default.updateApplicationContext(["widgetSnapshot": data])
+            print("[Phone] sendSnapshotData: updateApplicationContext OK (\(data.count) Bytes)")
+        } catch {
+            print("[Phone] sendSnapshotData: updateApplicationContext FEHLER: \(error)")
+        }
     }
 
     // MARK: - Watch → iOS (live messages)
@@ -93,6 +101,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         if message["requestSnapshot"] != nil {
+            print("[Phone] didReceiveMessage – requestSnapshot (kein replyHandler)")
             DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
         } else if let idString = message["completeTask"] as? String, let id = UUID(uuidString: idString) {
             DispatchQueue.main.async { self.completeWatchTask(id: id) }
@@ -106,14 +115,15 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     func session(_ session: WCSession, didReceiveMessage message: [String: Any],
                  replyHandler: @escaping ([String: Any]) -> Void) {
         guard message["requestSnapshot"] != nil else { replyHandler([:]); return }
+        print("[Phone] didReceiveMessage(replyHandler) – requestSnapshot empfangen")
         DispatchQueue.main.async {
-            // Gecachten Snapshot sofort zurückschicken (todos sind zu diesem Zeitpunkt ggf. noch nicht bereit)
-            if let data = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot") {
+            let cachedData = UserDefaults(suiteName: beeFocusAppGroup)?.data(forKey: "widgetSnapshot")
+            print("[Phone] gecachter Snapshot: \(cachedData.map { "\($0.count) Bytes" } ?? "nil")")
+            if let data = cachedData {
                 replyHandler(["widgetSnapshot": data])
             } else {
                 replyHandler([:])
             }
-            // Frischen Snapshot bauen und kurz danach via updateApplicationContext nachliefern
             self.todoStore?.writeWidgetSnapshot()
         }
     }
@@ -121,6 +131,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     // Aktionen + Snapshot-Anfragen via transferUserInfo (auch wenn iPhone nicht erreichbar war)
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         if userInfo["requestSnapshot"] != nil {
+            print("[Phone] didReceiveUserInfo – requestSnapshot (via transferUserInfo)")
             DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
         } else if let idString = userInfo["completeTask"] as? String, let id = UUID(uuidString: idString) {
             DispatchQueue.main.async { self.completeWatchTask(id: id) }

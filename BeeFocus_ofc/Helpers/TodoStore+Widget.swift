@@ -96,6 +96,7 @@ let beeFocusAppGroup = "group.com.TorbenLehneke.BeeFocus-ofc"
 
 extension TodoStore {
     func performWidgetSnapshot() {
+        print("[Phone] performWidgetSnapshot – todos=\(todos.count) (offen=\(todos.filter { !$0.isCompleted }.count))")
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let tomorrow = cal.date(byAdding: .day, value: 1, to: today)!
