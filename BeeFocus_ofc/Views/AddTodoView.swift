@@ -237,22 +237,22 @@ struct AddTodoView: View {
             } message: {
                 Text(localizer.localizedString(forKey: "category_missing_message"))
             }
-            .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAISubTaskKeyAlert) {
+            .alert("AI provider not configured", isPresented: $showAISubTaskKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+                Text("Please set up an AI provider in Settings first.")
             }
             .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
-            .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIQuickKeyAlert) {
+            .alert("AI provider not configured", isPresented: $showAIQuickKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+                Text("Please set up an AI provider in Settings first.")
             }
             .sheet(isPresented: $showQuickInputPaywall) { ProPaywallView() }
-            .alert("KI-Anbieter nicht konfiguriert", isPresented: $showAIReminderKeyAlert) {
+            .alert("AI provider not configured", isPresented: $showAIReminderKeyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Bitte richte zuerst einen KI-Anbieter in den Einstellungen ein.")
+                Text("Please set up an AI provider in Settings first.")
             }
             .sheet(isPresented: $showReminderPaywall) { ProPaywallView() }
             .onAppear {
@@ -261,7 +261,7 @@ struct AddTodoView: View {
                     if let first = todoStore.categories.first {
                         category = first
                     } else {
-                        let defaultCategory = Category(name: "Allgemein", colorHex: "#007AFF")
+                        let defaultCategory = Category(name: "General", colorHex: "#007AFF")
                         todoStore.addCategory(defaultCategory)
                         category = defaultCategory
                     }
@@ -310,7 +310,7 @@ struct AddTodoView: View {
         Section {
             Toggle(isOn: $showQuickInput) {
                 Label {
-                    Text(sub.isPro ? "Schnelleingabe mit KI" : "Schnelleingabe mit KI ✦")
+                    Text(sub.isPro ? "Quick input with AI" : "Quick input with AI ✦")
                         .foregroundStyle(sub.isPro ? .primary : .secondary)
                 } icon: {
                     Image(systemName: "sparkles")
@@ -462,7 +462,7 @@ struct AddTodoView: View {
                                 HStack(spacing: 4) {
                                     if isGeneratingReminder {
                                         ProgressView().scaleEffect(0.7)
-                                        Text("Stopp").font(.system(size: 11, weight: .medium))
+                                        Text("Stop").font(.system(size: 11, weight: .medium))
                                     } else {
                                         Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
                                         Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
@@ -492,23 +492,23 @@ struct AddTodoView: View {
     }
 
     private var recurrenceSection: some View {
-        Section(header: Text(localizer.localizedString(forKey: "recurrence_section_header"))) {
-            Toggle(localizer.localizedString(forKey: "recurrence_enabled_toggle"), isOn: $recurrenceEnabled)
+        Section(header: Text("Recurrence")) {
+            Toggle("Repeat", isOn: $recurrenceEnabled)
             if recurrenceEnabled {
-                Picker(localizer.localizedString(forKey: "recurrence_frequency_picker"), selection: $recurrenceFrequency) {
-                    Text(localizer.localizedString(forKey: "recurrence_daily")).tag("daily")
-                    Text(localizer.localizedString(forKey: "recurrence_weekly")).tag("weekly")
-                    Text(localizer.localizedString(forKey: "recurrence_monthly")).tag("monthly")
+                Picker("Frequency", selection: $recurrenceFrequency) {
+                    Text("Daily").tag("daily")
+                    Text("Weekly").tag("weekly")
+                    Text("Monthly").tag("monthly")
                 }
                 .pickerStyle(.segmented)
 
                 Stepper(value: $recurrenceInterval, in: 1...100) {
-                    Text("\(localizer.localizedString(forKey: "recurrence_interval")): \(recurrenceInterval)")
+                    Text("Interval: \(recurrenceInterval)")
                 }
 
                 if recurrenceFrequency == "weekly" {
                     VStack(alignment: .leading) {
-                        Text(localizer.localizedString(forKey: "recurrence_weekdays_label"))
+                        Text("Weekdays")
                         HStack {
                             ForEach(orderedWeekdays, id: \.self) { day in
                                 let dayShort = shortWeekdaySymbol(day)
@@ -538,7 +538,7 @@ struct AddTodoView: View {
     private func shortWeekdaySymbol(_ weekday: Int) -> String {
         // weekday: 1=Sunday ... 7=Saturday
         let df = DateFormatter()
-        df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
+        df.locale = Locale(identifier: "en_US")
         // Some SDKs expose optional weekday symbol arrays. Safely unwrap and fall back to veryShort symbols if empty.
         let primary: [String] = df.shortWeekdaySymbols ?? []
         let fallback: [String] = df.veryShortWeekdaySymbols ?? []
@@ -659,7 +659,7 @@ struct AddTodoView: View {
                     HStack(spacing: 4) {
                         if isGeneratingSubTasks {
                             ProgressView().scaleEffect(0.65)
-                            Text("Stopp").font(.system(size: 11, weight: .medium))
+                            Text("Stop").font(.system(size: 11, weight: .medium))
                         } else {
                             Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
                             Text(sub.isPro ? "KI aufteilen" : "KI aufteilen ✦")
@@ -1166,7 +1166,7 @@ struct AddTodoView: View {
             if let first = todoStore.categories.first {
                 category = first
             } else {
-                let defaultCategory = Category(name: "Allgemein", colorHex: "#007AFF")
+                let defaultCategory = Category(name: "General", colorHex: "#007AFF")
                 todoStore.addCategory(defaultCategory)
                 category = defaultCategory
             }

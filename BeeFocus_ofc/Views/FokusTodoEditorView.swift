@@ -753,7 +753,7 @@ struct FokusTodoEditorView: View {
             sectionLabel("Repeat", icon: "arrow.clockwise")
             VStack(spacing: 0) {
                 Toggle(isOn: $recurrenceEnabled) {
-                    Label("Wiederkehrend", systemImage: "repeat")
+                    Label("Repeat", systemImage: "repeat")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }

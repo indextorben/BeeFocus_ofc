@@ -448,23 +448,23 @@ struct EditTodoView: View {
     }
     
     private var recurrenceSection: some View {
-        Section(header: Text(localizer.localizedString(forKey: "recurrence_section_header"))) {
-            Toggle(localizer.localizedString(forKey: "recurrence_enabled_toggle"), isOn: $recurrenceEnabled)
-            
+        Section(header: Text("Recurrence")) {
+            Toggle("Repeat", isOn: $recurrenceEnabled)
+
             if recurrenceEnabled {
-                Picker(localizer.localizedString(forKey: "recurrence_frequency_picker"), selection: $recurrenceFrequency) {
-                    Text(localizer.localizedString(forKey: "recurrence_daily")).tag("daily")
-                    Text(localizer.localizedString(forKey: "recurrence_weekly")).tag("weekly")
-                    Text(localizer.localizedString(forKey: "recurrence_monthly")).tag("monthly")
+                Picker("Frequency", selection: $recurrenceFrequency) {
+                    Text("Daily").tag("daily")
+                    Text("Weekly").tag("weekly")
+                    Text("Monthly").tag("monthly")
                 }
                 .pickerStyle(.segmented)
-                
+
                 Stepper(value: $recurrenceInterval, in: 1...30) {
-                    Text("\(localizer.localizedString(forKey: "recurrence_interval")): \(recurrenceInterval)")
+                    Text("Interval: \(recurrenceInterval)")
                 }
                 if recurrenceFrequency == "weekly" {
                     VStack(alignment: .leading) {
-                        Text(localizer.localizedString(forKey: "recurrence_weekdays_label"))
+                        Text("Weekdays")
                         WeekdayPicker(selectedWeekdays: $weeklyWeekdays, localizer: localizer)
                     }
                 }
@@ -1126,7 +1126,7 @@ private struct WeekdayPicker: View {
     
     private var weekdaySymbols: [String] {
         let df = DateFormatter()
-        df.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
+        df.locale = Locale(identifier: "en_US")
         return df.shortWeekdaySymbols // Sunday-first
     }
     private let weekdayOrder: [Int] = [2, 3, 4, 5, 6, 7, 1] // Monday-first order (1=Sun..7=Sat)
