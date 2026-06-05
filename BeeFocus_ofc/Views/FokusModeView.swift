@@ -19,22 +19,13 @@ struct FokusModeView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
 
-    private static let zitate: [String] = [
-        "Deep work is the superpower of the future.",
-        "Just start. Courage comes from doing.",
-        "Concentration is the root of all strength.",
-        "One thing. Now. Completely.",
-        "Your future self thanks you.",
-        "No noise. Just you and the task.",
-        "Progress, not perfection.",
-        "Every minute counts. Including this one.",
-        "Stay with it – you're closer than you think.",
-        "Great things come from small, focused moments.",
-    ]
+    private var zitate: [String] {
+        (0..<10).map { i in NSLocalizedString("fmv_quote_\(i)", comment: "") }
+    }
 
     private var tagesZitat: String {
         let dayIndex = Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0
-        return Self.zitate[dayIndex % Self.zitate.count]
+        return zitate[dayIndex % zitate.count]
     }
 
     var isDark: Bool { colorScheme == .dark }
@@ -80,7 +71,7 @@ struct FokusModeView: View {
                         .opacity(appeared ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.15), value: appeared)
 
-                    Text("Focus mode active")
+                    Text(String(localized: "fmv_active_label"))
                         .font(.caption)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                         .padding(.top, 2)
@@ -280,7 +271,7 @@ struct FokusModeView: View {
 
     private var statusText: some View {
         VStack(spacing: 8) {
-            Text(manager.isFocusModeActive ? "Active" : "Inactive")
+            Text(manager.isFocusModeActive ? String(localized: "fmv_status_active") : String(localized: "fmv_status_inactive"))
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .foregroundStyle(isDark ? .white : .primary)
                 .animation(.easeInOut(duration: 0.3), value: manager.isFocusModeActive)
@@ -313,7 +304,7 @@ struct FokusModeView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Blocked Apps")
+                        Text(String(localized: "fmv_blocked_apps"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white : .primary)
                         Text(appSelectionLabel)
@@ -356,7 +347,7 @@ struct FokusModeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: manager.isFocusModeActive ? "xmark.shield.fill" : "shield.checkered")
                             .font(.system(size: 18, weight: .semibold))
-                        Text(manager.isFocusModeActive ? "Deactivate" : "Activate now")
+                        Text(manager.isFocusModeActive ? String(localized: "fmv_btn_deactivate") : String(localized: "fmv_btn_activate"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -380,7 +371,7 @@ struct FokusModeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "person.badge.key.fill")
                             .font(.system(size: 18, weight: .semibold))
-                        Text("Allow Screen Time Access")
+                        Text(String(localized: "fmv_btn_allow_screen_time"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -413,9 +404,9 @@ struct FokusModeView: View {
             }
             return String(format: NSLocalizedString("fokus.selection.active", comment: ""), parts.joined(separator: " & "))
         } else if manager.hasSelection {
-            return "Ready – tap Activate to start"
+            return NSLocalizedString("fmv_ready", comment: "")
         }
-        return "Choose apps to block"
+        return NSLocalizedString("fmv_choose_apps", comment: "")
     }
 
     // MARK: - Stats Button
@@ -433,7 +424,7 @@ struct FokusModeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Focus Statistics")
+                    Text(String(localized: "fmv_stats_title"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Text(statsSubtitle)
@@ -463,7 +454,7 @@ struct FokusModeView: View {
         if manager.isFocusModeActive, let start = manager.currentSessionStart {
             secs += Int(Date().timeIntervalSince(start))
         }
-        guard secs > 0 else { return NSLocalizedString("No focus time yet today", comment: "") }
+        guard secs > 0 else { return NSLocalizedString("fmv_no_focus_today", comment: "") }
         let h = secs / 3600
         let m = (secs % 3600) / 60
         if h > 0 && m > 0 { return String(format: NSLocalizedString("fokus.today_hours", comment: ""), h, m) }
@@ -486,7 +477,7 @@ struct FokusModeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Block Websites")
+                    Text(String(localized: "fmv_block_websites"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Text(verbatim: domainsLabel)
@@ -531,12 +522,12 @@ struct FokusModeView: View {
             let key = manager.selectedCategoryCount == 1 ? "fokus.category_count" : "fokus.categories_count"
             parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedCategoryCount))
         }
-        return parts.isEmpty ? NSLocalizedString("None selected yet", comment: "") : parts.joined(separator: ", ")
+        return parts.isEmpty ? NSLocalizedString("fmv_none_selected", comment: "") : parts.joined(separator: ", ")
     }
 
     private var domainsLabel: String {
         guard !manager.blockedDomains.isEmpty else {
-            return NSLocalizedString("Categories & custom domains", comment: "")
+            return NSLocalizedString("fmv_domains_label", comment: "")
         }
         let key = manager.blockedDomains.count == 1 ? "fokus.domains_count" : "fokus.domains_count_plural"
         return String(format: NSLocalizedString(key, comment: ""), manager.blockedDomains.count)
@@ -554,7 +545,7 @@ struct FokusModeView: View {
                     Text("\(manager.currentStreak)")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(isDark ? .white : .primary)
-                    Text(manager.currentStreak == 1 ? "Day Streak" : "Day Streak")
+                    Text(String(localized: "fmv_day_streak"))
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -589,7 +580,7 @@ struct FokusModeView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Daily Goal")
+                        Text(String(localized: "fmv_daily_goal"))
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                         Text(goalDisplayLabel)
@@ -628,39 +619,39 @@ struct GoalPickerSheet: View {
 
     @Environment(\.dismiss) var dismiss
 
-    private let options: [(String, Int)] = [
-        ("30 minutes",  30),
-        ("45 minutes",  45),
-        ("1 hour",      60),
-        ("1.5 hours",   90),
-        ("2 hours",    120),
-        ("3 hours",    180),
-        ("4 hours",    240),
-        ("6 hours",    360),
+    private let options: [(key: String, mins: Int)] = [
+        ("fmv_goal_30min",  30),
+        ("fmv_goal_45min",  45),
+        ("fmv_goal_1h",     60),
+        ("fmv_goal_1_5h",   90),
+        ("fmv_goal_2h",    120),
+        ("fmv_goal_3h",    180),
+        ("fmv_goal_4h",    240),
+        ("fmv_goal_6h",    360),
     ]
 
     var body: some View {
         NavigationStack {
-            List(options, id: \.1) { label, mins in
+            List(options, id: \.mins) { option in
                 Button {
-                    onSelect(mins)
+                    onSelect(option.mins)
                     dismiss()
                 } label: {
                     HStack {
-                        Text(label).foregroundStyle(.primary)
+                        Text(NSLocalizedString(option.key, comment: "")).foregroundStyle(.primary)
                         Spacer()
-                        if currentMinutes == mins {
+                        if currentMinutes == option.mins {
                             Image(systemName: "checkmark").foregroundStyle(themeC1)
                         }
                     }
                 }
                 .buttonStyle(.plain)
             }
-            .navigationTitle("Daily Focus Goal")
+            .navigationTitle(String(localized: "fmv_goal_picker_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(String(localized: "ki_done")) { dismiss() }
                 }
             }
         }
