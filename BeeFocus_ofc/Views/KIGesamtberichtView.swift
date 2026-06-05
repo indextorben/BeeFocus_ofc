@@ -63,11 +63,11 @@ struct KIGesamtberichtView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("AI Overall Report")
+            .navigationTitle(String(localized: "ki_overall_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button(String(localized: "ki_done")) { dismiss() }
                 }
                 ToolbarItem(placement: .principal) { providerMenu }
                 if !generatedText.isEmpty {
@@ -101,10 +101,10 @@ struct KIGesamtberichtView: View {
                         .foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("AI Overall Report")
+                    Text(String(localized: "ki_overall_header"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("All app data analyzed & summarized")
+                    Text(String(localized: "ki_overall_header_subtitle"))
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.5))
                 }
@@ -112,10 +112,10 @@ struct KIGesamtberichtView: View {
             }
 
             HStack(spacing: 8) {
-                quickStat("✅", "\(completedCount)", "Completed")
-                quickStat("⏱", "\(totalFocusMins)m", "Focus")
-                quickStat("🔥", "\(habitCount)", "Habits")
-                quickStat("📖", "\(journalCount)", "Journal")
+                quickStat("✅", "\(completedCount)", String(localized: "ki_overall_stat_completed"))
+                quickStat("⏱", "\(totalFocusMins)m", String(localized: "ki_overall_stat_focus"))
+                quickStat("🔥", "\(habitCount)", String(localized: "ki_overall_stat_habits"))
+                quickStat("📖", "\(journalCount)", String(localized: "ki_overall_stat_journal"))
             }
         }
         .padding(16)
@@ -138,19 +138,19 @@ struct KIGesamtberichtView: View {
 
     private var sectionPicker: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("What should be included?")
+            Text(String(localized: "ki_overall_picker_title"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.45))
                 .textCase(.uppercase)
                 .tracking(0.8)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                toggle("checkmark.circle.fill", "Tasks",        Color(red: 0.3,  green: 0.8,  blue: 0.5),  $inclAufgaben)
-                toggle("timer",                "Focus time",   Color(red: 0.3,  green: 0.6,  blue: 1.0),  $inclFokuszeit)
-                toggle("calendar.badge.checkmark", "Habits",   Color(red: 0.3, green: 0.82, blue: 0.5), $inclGewohnheiten)
-                toggle("book.closed.fill",     "Journal",      Color(red: 0.65, green: 0.35, blue: 1.0),  $inclJournal)
-                toggle("drop.fill",            "Water",        Color(red: 0.15, green: 0.75, blue: 0.95), $inclWasser)
-                toggle("medal.fill",           "Badges",       Color(red: 0.6,  green: 0.3,  blue: 0.9),  $inclAbzeichen)
+                toggle("checkmark.circle.fill", String(localized: "ki_overall_toggle_tasks"),   Color(red: 0.3,  green: 0.8,  blue: 0.5),  $inclAufgaben)
+                toggle("timer",                String(localized: "ki_overall_toggle_focus"),   Color(red: 0.3,  green: 0.6,  blue: 1.0),  $inclFokuszeit)
+                toggle("calendar.badge.checkmark", String(localized: "ki_overall_toggle_habits"), Color(red: 0.3, green: 0.82, blue: 0.5), $inclGewohnheiten)
+                toggle("book.closed.fill",     String(localized: "ki_overall_toggle_journal"), Color(red: 0.65, green: 0.35, blue: 1.0),  $inclJournal)
+                toggle("drop.fill",            String(localized: "ki_overall_toggle_water"),   Color(red: 0.15, green: 0.75, blue: 0.95), $inclWasser)
+                toggle("medal.fill",           String(localized: "ki_overall_toggle_badges"),  Color(red: 0.6,  green: 0.3,  blue: 0.9),  $inclAbzeichen)
             }
 
             Button { Task { await generate() } } label: {
@@ -160,7 +160,7 @@ struct KIGesamtberichtView: View {
                     } else {
                         Image(systemName: "sparkles")
                     }
-                    Text(generatedText.isEmpty ? "Generate report" : "Regenerate")
+                    Text(generatedText.isEmpty ? String(localized: "ki_overall_btn_generate") : String(localized: "ki_overall_btn_regenerate"))
                         .font(.system(size: 16, weight: .semibold))
                 }
                 .foregroundStyle(.white)
@@ -216,9 +216,9 @@ struct KIGesamtberichtView: View {
                     .symbolEffect(.variableColor.iterative, options: .repeating)
             }
             VStack(spacing: 6) {
-                Text("AI is analyzing all your data…")
+                Text(String(localized: "ki_overall_loading"))
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
-                Text("This may take a moment")
+                Text(String(localized: "ki_overall_loading_detail"))
                     .font(.system(size: 13)).foregroundStyle(.white.opacity(0.4))
             }
         }
@@ -235,7 +235,7 @@ struct KIGesamtberichtView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles").font(.system(size: 11)).foregroundStyle(accent)
-                        Text("AI OVERALL REPORT")
+                        Text(String(localized: "ki_overall_result_title"))
                             .font(.system(size: 10, weight: .semibold)).foregroundStyle(.white.opacity(0.4)).tracking(1.5)
                     }
                     Text(formattedDate).font(.system(size: 13)).foregroundStyle(.white.opacity(0.55))
@@ -308,14 +308,14 @@ struct KIGesamtberichtView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("AI unavailable").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(msg).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             Button {
                 errorMessage = nil
                 if hasKey { Task { await generate() } } else { showSetup = true }
             } label: {
-                Label(hasKey ? "Try again" : "Add API Key",
+                Label(hasKey ? String(localized: "ki_error_try_again") : String(localized: "ki_error_add_key"),
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -331,12 +331,12 @@ struct KIGesamtberichtView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? "OpenAI API Key" : aiProvider == "groq" ? "Groq API Key" : "Gemini API Key")
+            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField("API Key…", text: $keyInput) }
-                    else          { SecureField("API Key…", text: $keyInput) }
+                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced)).foregroundStyle(.white)
                 .autocorrectionDisabled().textInputAutocapitalization(.never)
@@ -346,10 +346,10 @@ struct KIGesamtberichtView: View {
             }
             .padding(10).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button("Cancel") { showSetup = false }
+                Button(String(localized: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button("Save") {
+                Button(String(localized: "ki_save")) {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -450,7 +450,7 @@ struct KIGesamtberichtView: View {
         flush()
 
         if sections.isEmpty && !generatedText.isEmpty {
-            return [BerichtSection(title: "AI Analysis", body: generatedText, icon: "sparkles",
+            return [BerichtSection(title: String(localized: "ki_overall_result_fallback"), body: generatedText, icon: "sparkles",
                                    color: Color(red: 0.55, green: 0.35, blue: 1.0))]
         }
         return sections
@@ -500,8 +500,8 @@ struct KIGesamtberichtView: View {
                         for try await p in s.streamResponse(to: prompt) { generatedText = p.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence is not available on this device." }
-            } else { errorMessage = "Apple Intelligence requires iOS 26." }
+                } else { errorMessage = String(localized: "ki_apple_not_available") }
+            } else { errorMessage = String(localized: "ki_apple_requires_ios26") }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { generatedText += c }; isLoading = false; return }

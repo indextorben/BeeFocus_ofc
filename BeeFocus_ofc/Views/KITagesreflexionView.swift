@@ -73,11 +73,11 @@ struct KITagesreflexionView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("AI Daily Reflection")
+            .navigationTitle(String(localized: "ki_reflection_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button(String(localized: "ki_done")) { dismiss() }
                 }
                 ToolbarItem(placement: .principal) {
                     Menu {
@@ -104,7 +104,7 @@ struct KITagesreflexionView: View {
                     GeminiKeyGuideView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") {
+                                Button(String(localized: "ki_done")) {
                                     showGuide = false
                                     if hasKey { Task { await generate() } }
                                 }
@@ -129,7 +129,7 @@ struct KITagesreflexionView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Daily Reflection")
+                Text(String(localized: "ki_reflection_header"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 let f: DateFormatter = { let d = DateFormatter(); d.locale = Locale.current; d.dateFormat = "EEEE, MMMM d"; return d }()
@@ -157,12 +157,12 @@ struct KITagesreflexionView: View {
     private var dayAtGlance: some View {
         let stats = todayStats
         return HStack(spacing: 8) {
-            reflexionChip("✅", "\(stats.completed)", "Completed", color: Color(red: 0.3, green: 0.85, blue: 0.5))
-            reflexionChip("⏱", formatMins(stats.focusMins), "Focus", color: Color(red: 0.3, green: 0.6, blue: 1.0))
+            reflexionChip("✅", "\(stats.completed)", String(localized: "ki_reflection_stat_completed"), color: Color(red: 0.3, green: 0.85, blue: 0.5))
+            reflexionChip("⏱", formatMins(stats.focusMins), String(localized: "ki_reflection_stat_focus"), color: Color(red: 0.3, green: 0.6, blue: 1.0))
             if let mood = stats.mood {
-                reflexionChip(stimmungsEmoji(mood), stimmungsLabel(mood), "Mood", color: stimmungsColor(mood))
+                reflexionChip(stimmungsEmoji(mood), stimmungsLabel(mood), String(localized: "ki_reflection_stat_mood"), color: stimmungsColor(mood))
             }
-            reflexionChip("🔥", "\(stats.streak)d", "Streak", color: .orange)
+            reflexionChip("🔥", "\(stats.streak)d", String(localized: "ki_reflection_stat_streak"), color: .orange)
         }
     }
 
@@ -200,11 +200,11 @@ struct KITagesreflexionView: View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text("AI is reflecting on your day…")
+                Text(String(localized: "ki_reflection_loading"))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.6))
             }
-            Text("One moment – your personal reflection is being created.")
+            Text(String(localized: "ki_reflection_loading_detail"))
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.35))
                 .multilineTextAlignment(.center)
@@ -221,7 +221,7 @@ struct KITagesreflexionView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(accent)
-                Text("Your Reflection")
+                Text(String(localized: "ki_reflection_result_title"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.45))
                     .textCase(.uppercase)
@@ -261,7 +261,7 @@ struct KITagesreflexionView: View {
                     UIPasteboard.general.string = generatedText
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
-                    Label("Copy reflection", systemImage: "doc.on.doc")
+                    Label(String(localized: "ki_reflection_copy"), systemImage: "doc.on.doc")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
                 }
@@ -277,13 +277,13 @@ struct KITagesreflexionView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("AI unavailable").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(message).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 if hasKey {
                     Button { errorMessage = nil; Task { await generate() } } label: {
-                        Label("Try again", systemImage: "arrow.clockwise")
+                        Label(String(localized: "ki_error_try_again"), systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold)).foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(accent, in: Capsule())
@@ -291,7 +291,7 @@ struct KITagesreflexionView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button { showSetup = true; errorMessage = nil } label: {
-                        Label("Add API Key", systemImage: "key.fill")
+                        Label(String(localized: "ki_error_add_key"), systemImage: "key.fill")
                             .font(.caption.weight(.semibold)).foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(accent, in: Capsule())
@@ -310,13 +310,13 @@ struct KITagesreflexionView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? "OpenAI API Key" : aiProvider == "groq" ? "Groq API Key" : "Gemini API Key")
+            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
 
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField("API Key…", text: $keyInput) }
-                    else          { SecureField("API Key…", text: $keyInput) }
+                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .foregroundStyle(.white)
@@ -330,10 +330,10 @@ struct KITagesreflexionView: View {
             .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
 
             HStack {
-                Button("Cancel") { showSetup = false }
+                Button(String(localized: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button("Save") {
+                Button(String(localized: "ki_save")) {
                     let trimmed = keyInput.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     let kcKey: String
@@ -376,8 +376,8 @@ struct KITagesreflexionView: View {
                         for try await partial in stream { generatedText = partial.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence is not available on this device." }
-            } else { errorMessage = "Apple Intelligence requires iOS 26." }
+                } else { errorMessage = String(localized: "ki_apple_not_available") }
+            } else { errorMessage = String(localized: "ki_apple_requires_ios26") }
 
         case "openai":
             if let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty {

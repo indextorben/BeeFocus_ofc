@@ -64,10 +64,10 @@ struct KIAufgabenZerteilerView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("AI Task Splitter")
+            .navigationTitle(String(localized: "ki_splitter_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(String(localized: "ki_done")) { dismiss() } }
                 ToolbarItem(placement: .principal) { providerMenu }
             }
         }
@@ -107,10 +107,10 @@ struct KIAufgabenZerteilerView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Task Splitter")
+                Text(String(localized: "ki_splitter_header"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
-                Text("AI breaks down complex tasks into concrete steps")
+                Text(String(localized: "ki_splitter_header_subtitle"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -124,8 +124,8 @@ struct KIAufgabenZerteilerView: View {
     // MARK: - Input
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Task").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            TextField("e.g. Website redesign, write book, presentation…", text: $aufgabenTitel, axis: .vertical)
+            Text(String(localized: "ki_splitter_input_task_label")).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            TextField(String(localized: "ki_splitter_input_task_placeholder"), text: $aufgabenTitel, axis: .vertical)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isDark ? .white : .primary)
                 .lineLimit(1...3)
@@ -133,8 +133,8 @@ struct KIAufgabenZerteilerView: View {
                 .padding(12)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
-            Text("Context (optional)").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            TextField("Deadline, tools, goal, special notes…", text: $kontext, axis: .vertical)
+            Text(String(localized: "ki_splitter_input_context_label")).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            TextField(String(localized: "ki_splitter_input_context_placeholder"), text: $kontext, axis: .vertical)
                 .font(.system(size: 14))
                 .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
                 .lineLimit(2...4)
@@ -149,7 +149,7 @@ struct KIAufgabenZerteilerView: View {
                 HStack(spacing: 8) {
                     if isLoading { ProgressView().scaleEffect(0.85).tint(.white) }
                     else { Image(systemName: "scissors") }
-                    Text(isLoading ? "Analyzing…" : "Split into subtasks")
+                    Text(isLoading ? String(localized: "ki_splitter_btn_analyzing") : String(localized: "ki_splitter_btn_split"))
                 }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
@@ -172,7 +172,7 @@ struct KIAufgabenZerteilerView: View {
     private var loadingCard: some View {
         HStack(spacing: 10) {
             ProgressView().tint(accent)
-            Text("AI is splitting your task…").font(.subheadline).foregroundStyle(.secondary)
+            Text(String(localized: "ki_splitter_loading")).font(.subheadline).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading).padding(16)
         .themeGlass(cornerRadius: 16)
@@ -183,7 +183,7 @@ struct KIAufgabenZerteilerView: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(accent)
-                    Text("\(subtasks.count) subtasks identified")
+                    Text(String(format: String(localized: "ki_splitter_result_count"), subtasks.count))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                 }
@@ -191,7 +191,7 @@ struct KIAufgabenZerteilerView: View {
                 Button {
                     addAsOneTask()
                 } label: {
-                    Label(taskAdded ? "Added" : "Save as task",
+                    Label(taskAdded ? String(localized: "ki_splitter_added") : String(localized: "ki_splitter_save"),
                           systemImage: taskAdded ? "checkmark.circle.fill" : "plus.circle.fill")
                         .font(.caption.weight(.semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 10).padding(.vertical, 5)
@@ -274,11 +274,11 @@ struct KIAufgabenZerteilerView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("AI unavailable").font(.subheadline.weight(.semibold))
+                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold))
             }
             Text(msg).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button { errorMessage = nil; Task { await generate() } } label: {
-                Label(hasKey ? "Try again" : "Add API Key",
+                Label(hasKey ? String(localized: "ki_error_try_again") : String(localized: "ki_error_add_key"),
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -293,12 +293,12 @@ struct KIAufgabenZerteilerView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? "OpenAI API Key" : aiProvider == "groq" ? "Groq API Key" : "Gemini API Key")
+            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold))
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField("API Key…", text: $keyInput) }
-                    else          { SecureField("API Key…", text: $keyInput) }
+                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced)).autocorrectionDisabled().textInputAutocapitalization(.never)
                 Button { keyVisible.toggle() } label: {
@@ -307,10 +307,10 @@ struct KIAufgabenZerteilerView: View {
             }
             .padding(10).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button("Cancel") { showSetup = false }
+                Button(String(localized: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.secondary).buttonStyle(.plain)
                 Spacer()
-                Button("Save") {
+                Button(String(localized: "ki_save")) {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -335,8 +335,8 @@ struct KIAufgabenZerteilerView: View {
                 if case .available = SystemLanguageModel.default.availability {
                     do { let s = LanguageModelSession(); for try await p in s.streamResponse(to: prompt) { raw = p.content }; generatedText = raw }
                     catch { errorMessage = error.localizedDescription; isLoading = false; return }
-                } else { errorMessage = "Apple Intelligence is not available."; isLoading = false; return }
-            } else { errorMessage = "Apple Intelligence requires iOS 26."; isLoading = false; return }
+                } else { errorMessage = String(localized: "ki_apple_not_available"); isLoading = false; return }
+            } else { errorMessage = String(localized: "ki_apple_requires_ios26"); isLoading = false; return }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { raw += c; generatedText = raw } }

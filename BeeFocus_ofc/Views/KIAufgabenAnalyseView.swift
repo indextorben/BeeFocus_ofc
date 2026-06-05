@@ -49,11 +49,11 @@ struct KIAufgabenAnalyseView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("AI Task Analysis")
+            .navigationTitle(String(localized: "ki_analyse_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button(String(localized: "ki_done")) { dismiss() }
                 }
                 ToolbarItem(placement: .principal) {
                     Menu {
@@ -82,7 +82,7 @@ struct KIAufgabenAnalyseView: View {
                     GeminiKeyGuideView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") {
+                                Button(String(localized: "ki_done")) {
                                     showGuide = false
                                     if hasKey { Task { await generate() } }
                                 }
@@ -107,10 +107,10 @@ struct KIAufgabenAnalyseView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("Task Analysis")
+                Text(String(localized: "ki_analyse_header"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
-                Text("\(providerLabel) is analyzing your \(todos.count) tasks")
+                Text(String(format: String(localized: "ki_analyse_header_subtitle"), providerLabel, todos.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -137,10 +137,10 @@ struct KIAufgabenAnalyseView: View {
         let noDate   = todos.filter { !$0.isCompleted && $0.dueDate == nil }.count
 
         return HStack(spacing: 8) {
-            analyseChip("\(open)", "Open",         color: accent)
-            analyseChip("\(overdue)", "Overdue", color: .red)
-            analyseChip("\(high)", "Urgent",      color: .orange)
-            analyseChip("\(noDate)", "No Date",  color: .secondary)
+            analyseChip("\(open)", String(localized: "ki_analyse_stat_open"),    color: accent)
+            analyseChip("\(overdue)", String(localized: "ki_analyse_stat_overdue"), color: .red)
+            analyseChip("\(high)", String(localized: "ki_analyse_stat_urgent"),    color: .orange)
+            analyseChip("\(noDate)", String(localized: "ki_analyse_stat_no_date"), color: .secondary)
         }
     }
 
@@ -175,11 +175,11 @@ struct KIAufgabenAnalyseView: View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text("Analyzing your tasks…")
+                Text(String(localized: "ki_analyse_loading"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Text("AI is checking priorities, deadlines and patterns in your task list.")
+            Text(String(localized: "ki_analyse_loading_detail"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -195,7 +195,7 @@ struct KIAufgabenAnalyseView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(accent)
-                Text("AI Analysis")
+                Text(String(localized: "ki_analyse_result_title"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -237,7 +237,7 @@ struct KIAufgabenAnalyseView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("AI unavailable").font(.subheadline.weight(.semibold))
+                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold))
             }
             Text(message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
@@ -245,7 +245,7 @@ struct KIAufgabenAnalyseView: View {
                     Button {
                         errorMessage = nil; Task { await generate() }
                     } label: {
-                        Label("Try again", systemImage: "arrow.clockwise")
+                        Label(String(localized: "ki_error_try_again"), systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -254,7 +254,7 @@ struct KIAufgabenAnalyseView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button { showSetup = true; errorMessage = nil } label: {
-                        Label("Add API Key", systemImage: "key.fill")
+                        Label(String(localized: "ki_error_add_key"), systemImage: "key.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -273,14 +273,14 @@ struct KIAufgabenAnalyseView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? "OpenAI API Key" : aiProvider == "groq" ? "Groq API Key" : "Gemini API Key")
+            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isDark ? .white : .primary)
 
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField("API Key…", text: $keyInput) }
-                    else          { SecureField("API Key…", text: $keyInput) }
+                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .autocorrectionDisabled()
@@ -294,10 +294,10 @@ struct KIAufgabenAnalyseView: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
 
             HStack {
-                Button("Cancel") { showSetup = false }
+                Button(String(localized: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.secondary).buttonStyle(.plain)
                 Spacer()
-                Button("Save & Analyze") {
+                Button(String(localized: "ki_save_analyze")) {
                     let trimmed = keyInput.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     let kcKey: String
@@ -341,8 +341,8 @@ struct KIAufgabenAnalyseView: View {
                         for try await partial in stream { generatedText = partial.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = "Apple Intelligence is not available on this device." }
-            } else { errorMessage = "Apple Intelligence requires iOS 26." }
+                } else { errorMessage = String(localized: "ki_apple_not_available") }
+            } else { errorMessage = String(localized: "ki_apple_requires_ios26") }
 
         case "openai":
             if let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty {
