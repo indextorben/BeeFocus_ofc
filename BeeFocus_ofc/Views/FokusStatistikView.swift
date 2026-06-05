@@ -85,7 +85,7 @@ struct FokusStatistikView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Focus Statistics")
+        .navigationTitle(String(localized: "fst_nav_title"))
         .navigationBarTitleDisplayMode(.large)
         .onReceive(ticker) { _ in
             guard manager.isFocusModeActive, let start = manager.currentSessionStart else {
@@ -101,17 +101,17 @@ struct FokusStatistikView: View {
     private var topCards: some View {
         HStack(spacing: 14) {
             statCard(
-                title: "Today",
+                title: String(localized: "fst_today"),
                 value: formatDuration(todayTotal),
-                subtitle: manager.isFocusModeActive ? "Active" : "Total",
+                subtitle: manager.isFocusModeActive ? String(localized: "fst_active_label") : String(localized: "fst_total"),
                 icon: "sun.max.fill",
                 color: themeC1,
                 isLive: manager.isFocusModeActive
             )
             statCard(
-                title: "This Week",
+                title: String(localized: "fst_this_week"),
                 value: formatDuration(weekTotal),
-                subtitle: "7 Days",
+                subtitle: String(localized: "fst_7_days"),
                 icon: "calendar",
                 color: themeC2,
                 isLive: false
@@ -165,7 +165,7 @@ struct FokusStatistikView: View {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.orange)
-                Text("Streak")
+                Text(String(localized: "fst_streak"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
                 Spacer()
@@ -174,12 +174,12 @@ struct FokusStatistikView: View {
                 Text("\(currentStreak)")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(currentStreak > 0 ? Color.orange : (isDark ? .white.opacity(0.3) : Color.secondary))
-                Text(currentStreak == 1 ? "Day" : "Days")
+                Text(currentStreak == 1 ? String(localized: "fst_day") : String(localized: "fst_days"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                     .padding(.bottom, 2)
             }
-            Text(currentStreak == 0 ? "Start today!" : currentStreak < 3 ? "Keep it up!" : currentStreak < 7 ? "Great run!" : "Unstoppable!")
+            Text(currentStreak == 0 ? String(localized: "fst_streak_0") : currentStreak < 3 ? String(localized: "fst_streak_low") : currentStreak < 7 ? String(localized: "fst_streak_mid") : String(localized: "fst_streak_high"))
                 .font(.caption)
                 .foregroundStyle(Color.orange.opacity(0.9))
         }
@@ -194,7 +194,7 @@ struct FokusStatistikView: View {
                 Image(systemName: "target")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.mint)
-                Text("Daily Goal")
+                Text(String(localized: "fmv_daily_goal"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
                 Spacer()
@@ -221,7 +221,7 @@ struct FokusStatistikView: View {
             }
             .frame(width: 60, height: 60)
             .frame(maxWidth: .infinity)
-            Text("\(manager.dailyGoalMinutes > 0 ? manager.dailyGoalMinutes : dailyGoal) min goal")
+            Text(String(format: String(localized: "fst_min_goal"), manager.dailyGoalMinutes > 0 ? manager.dailyGoalMinutes : dailyGoal))
                 .font(.caption)
                 .foregroundStyle(Color.mint.opacity(0.9))
         }
@@ -248,7 +248,7 @@ struct FokusStatistikView: View {
                     Image(systemName: "medal.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(themeC1)
-                    Text("Badges")
+                    Text(String(localized: "fst_badges"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
                     Spacer()
@@ -284,10 +284,10 @@ struct FokusStatistikView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(unlocked == 0
-                             ? "No badges yet"
+                             ? String(localized: "fst_badges_none")
                              : unlocked == total
-                                ? "All badges unlocked! 🎉"
-                                : "\(unlocked) of \(total) unlocked")
+                                ? String(localized: "fst_badges_all")
+                                : String(format: String(localized: "fst_badges_count"), unlocked, total))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(isDark ? .white : .primary)
 
@@ -295,7 +295,7 @@ struct FokusStatistikView: View {
                             Image(systemName: "bolt.fill")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(themeC1)
-                            Text(bonus > 0 ? "+\(bonus) FP Bonus" : "Earn badges = earn FP")
+                            Text(bonus > 0 ? String(format: String(localized: "fst_fp_bonus"), bonus) : String(localized: "fst_fp_earn"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(bonus > 0 ? themeC1 : (isDark ? .white.opacity(0.4) : .secondary))
                         }
@@ -340,7 +340,7 @@ struct FokusStatistikView: View {
         let trendColor: Color = trendPositiv ? .green : .red
         let trendIcon = trendPositiv ? "arrow.up.right" : "arrow.down.right"
         let trendText = lastWeekSeconds == 0
-            ? "First Week"
+            ? String(localized: "fst_first_week")
             : String(format: "%+.0f%%", weekTrend * 100)
         let blueAccent = Color(red: 0.4, green: 0.6, blue: 1.0)
 
@@ -349,7 +349,7 @@ struct FokusStatistikView: View {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(blueAccent)
-                Text("Weekly Review")
+                Text(String(localized: "fst_weekly_review"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Spacer()
@@ -365,14 +365,14 @@ struct FokusStatistikView: View {
             }
 
             HStack(spacing: 0) {
-                weekBar(label: "Last Week", seconds: lastWeekSeconds, color: blueAccent.opacity(0.5))
+                weekBar(label: String(localized: "fst_last_week"), seconds: lastWeekSeconds, color: blueAccent.opacity(0.5))
                 Spacer().frame(width: 12)
-                weekBar(label: "This Week", seconds: weekTotal, color: blueAccent)
+                weekBar(label: String(localized: "fst_this_week"), seconds: weekTotal, color: blueAccent)
             }
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Last Week")
+                    Text(String(localized: "fst_last_week"))
                         .font(.caption2)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     Text(formatDuration(lastWeekSeconds))
@@ -381,7 +381,7 @@ struct FokusStatistikView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("This Week")
+                    Text(String(localized: "fst_this_week"))
                         .font(.caption2)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     Text(formatDuration(weekTotal))
@@ -414,11 +414,11 @@ struct FokusStatistikView: View {
     private var chartCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Last 7 Days")
+                Text(String(localized: "fst_last_7_days"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Spacer()
-                Text("in minutes")
+                Text(String(localized: "fst_in_minutes"))
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
             }
@@ -467,12 +467,12 @@ struct FokusStatistikView: View {
         let maxDay = manager.last7Days.max(by: { $0.seconds < $1.seconds })
 
         return VStack(spacing: 0) {
-            statRow(label: "Total (all time)", value: formatDuration(total), icon: "infinity", color: themeC1)
+            statRow(label: String(localized: "fst_total_all_time"), value: formatDuration(total), icon: "infinity", color: themeC1)
             Divider().opacity(0.2).padding(.horizontal, 16)
-            statRow(label: "Active Days", value: "\(sessions)", icon: "calendar.badge.checkmark", color: themeC2)
+            statRow(label: String(localized: "fst_active_days"), value: "\(sessions)", icon: "calendar.badge.checkmark", color: themeC2)
             Divider().opacity(0.2).padding(.horizontal, 16)
             statRow(
-                label: "Best Day (7D)",
+                label: String(localized: "fst_best_day_7d"),
                 value: maxDay.map { formatDuration($0.seconds) } ?? "—",
                 icon: "trophy.fill",
                 color: themeC1

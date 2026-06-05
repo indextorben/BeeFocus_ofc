@@ -27,7 +27,7 @@ struct WebsiteSettingsView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Block Websites")
+        .navigationTitle(String(localized: "wsv_nav_title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -49,7 +49,7 @@ struct WebsiteSettingsView: View {
 
     private var categoriesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title: "Categories", subtitle: "Quickly block entire groups")
+            sectionHeader(title: String(localized: "wsv_categories_title"), subtitle: String(localized: "wsv_categories_subtitle"))
 
             VStack(spacing: 10) {
                 ForEach(websiteBlockCategories) { category in
@@ -91,10 +91,10 @@ struct WebsiteSettingsView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white : .primary)
                         Text(allAdded
-                             ? "All \(category.domains.count) blocked"
+                             ? String(format: String(localized: "wsv_cat_all_blocked"), category.domains.count)
                              : someAdded
-                                ? "\(addedCount) of \(category.domains.count) blocked"
-                                : "\(category.domains.count) domains")
+                                ? String(format: String(localized: "wsv_cat_some_blocked"), addedCount, category.domains.count)
+                                : String(format: String(localized: "wsv_cat_domain_count"), category.domains.count))
                             .font(.caption)
                             .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                     }
@@ -116,7 +116,7 @@ struct WebsiteSettingsView: View {
                             }
                         }
                     } label: {
-                        Text(allAdded ? "Remove" : "All")
+                        Text(allAdded ? String(localized: "wsv_remove") : String(localized: "wsv_all"))
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
@@ -193,10 +193,12 @@ struct WebsiteSettingsView: View {
     private var manualDomainsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(
-                title: "Individual Domains",
+                title: String(localized: "wsv_individual_title"),
                 subtitle: manager.blockedDomains.isEmpty
-                    ? "None added yet"
-                    : "\(manager.blockedDomains.count) domain\(manager.blockedDomains.count == 1 ? "" : "s") blocked"
+                    ? String(localized: "wsv_individual_none")
+                    : manager.blockedDomains.count == 1
+                        ? String(localized: "wsv_individual_count_one")
+                        : String(format: String(localized: "wsv_individual_count_many"), manager.blockedDomains.count)
             )
 
             if manager.blockedDomains.isEmpty {
@@ -252,7 +254,7 @@ struct WebsiteSettingsView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(themeC1)
-                Text("Add domain manually")
+                Text(String(localized: "wsv_add_manually"))
                     .font(.subheadline)
                     .foregroundStyle(isDark ? .white.opacity(0.7) : .secondary)
                 Spacer()
@@ -275,14 +277,14 @@ struct WebsiteSettingsView: View {
                 ThemeBackgroundView()
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Enter domain")
+                        Text(String(localized: "wsv_enter_domain"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
 
                         HStack {
                             Image(systemName: "globe")
                                 .foregroundStyle(themeC1)
-                            TextField("e.g. instagram.com", text: $newDomain)
+                            TextField(String(localized: "wsv_domain_placeholder"), text: $newDomain)
                                 .keyboardType(.URL)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
@@ -291,7 +293,7 @@ struct WebsiteSettingsView: View {
                         .padding(14)
                         .themeGlass(cornerRadius: 12)
 
-                        Text("www. and https:// are removed automatically.")
+                        Text(String(localized: "wsv_domain_hint"))
                             .font(.caption)
                             .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     }
@@ -299,7 +301,7 @@ struct WebsiteSettingsView: View {
                     Button {
                         submitDomain()
                     } label: {
-                        Text("Add")
+                        Text(String(localized: "wsv_add"))
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -318,11 +320,11 @@ struct WebsiteSettingsView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Block Website")
+            .navigationTitle(String(localized: "wsv_sheet_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showingAddDomain = false }
+                    Button(String(localized: "ki_cancel")) { showingAddDomain = false }
                 }
             }
         }
