@@ -314,6 +314,11 @@ struct KIFokusStrategieView: View {
         isLoading = false
     }
 
+    private var promptLanguage: String {
+        let code = Locale.current.languageCode ?? "en"
+        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+    }
+
     private func buildPrompt() -> String {
         let stats = computeStats()
         let cal = Calendar.current
@@ -334,7 +339,7 @@ struct KIFokusStrategieView: View {
         let overdue  = todos.filter { !$0.isCompleted && ($0.dueDate.map { $0 < Date() } == true) }.count
 
         return """
-        You are an elite productivity coach. Create a personalized focus strategy in English.
+        You are an elite productivity coach. Create a personalized focus strategy in \(promptLanguage).
 
         USER PROFILE:
         - Focus time last 7 days: \(dayFocus)

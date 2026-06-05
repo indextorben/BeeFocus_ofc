@@ -375,6 +375,11 @@ struct KIAufgabenAnalyseView: View {
         isLoading = false
     }
 
+    private var promptLanguage: String {
+        let code = Locale.current.languageCode ?? "en"
+        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+    }
+
     private func buildPrompt() -> String {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
@@ -400,7 +405,7 @@ struct KIAufgabenAnalyseView: View {
         }.joined(separator: "\n")
 
         return """
-        You are a productive assistant. Analyze this task list and provide a structured, honest analysis in English.
+        You are a productive assistant. Analyze this task list and provide a structured, honest analysis in \(promptLanguage).
 
         TASKS (\(open.count) open):
         \(taskLines)

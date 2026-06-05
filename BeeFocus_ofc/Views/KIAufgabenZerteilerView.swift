@@ -357,6 +357,11 @@ struct KIAufgabenZerteilerView: View {
         parseSubtasks(from: raw)
     }
 
+    private var promptLanguage: String {
+        let code = Locale.current.languageCode ?? "en"
+        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+    }
+
     private func buildPrompt() -> String {
         let kontextZeile = kontext.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\nContext: \(kontext)"
         return """
@@ -370,7 +375,7 @@ struct KIAufgabenZerteilerView: View {
         - 5–10 subtasks, logically ordered
         - Each subtask is independently executable and clearly formulated
         - Time estimate should be realistic
-        - In English
+        - In \(promptLanguage)
         """
     }
 

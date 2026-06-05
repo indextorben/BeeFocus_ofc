@@ -522,10 +522,15 @@ struct KIGesamtberichtView: View {
         isLoading = false
     }
 
+    private var promptLanguage: String {
+        let code = Locale.current.languageCode ?? "en"
+        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+    }
+
     private func buildPrompt() -> String {
         var parts: [String] = ["""
         Create a professional, personal and motivating AI overall report for a BeeFocus user.
-        Respond exclusively in English.
+        Respond exclusively in \(promptLanguage).
         Structure the report with ## headings. ALWAYS begin with ## Overall Assessment.
         Write concretely, constructively positive and address the user directly (you-form).
         Avoid Markdown except ## headings. No asterisks, no bullet lists.

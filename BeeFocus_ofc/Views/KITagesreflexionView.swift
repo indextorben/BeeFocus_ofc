@@ -410,6 +410,11 @@ struct KITagesreflexionView: View {
         isLoading = false
     }
 
+    private var promptLanguage: String {
+        let code = Locale.current.languageCode ?? "en"
+        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+    }
+
     private func buildPrompt() -> String {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
@@ -432,7 +437,7 @@ struct KITagesreflexionView: View {
         let f: DateFormatter = { let d = DateFormatter(); d.locale = Locale.current; d.dateFormat = "EEEE, MMMM d"; return d }()
 
         return """
-        You are an empathetic productivity coach. Write a personal, warm daily reflection in English.
+        You are an empathetic productivity coach. Write a personal, warm daily reflection in \(promptLanguage).
 
         TODAY: \(f.string(from: Date()))
 

@@ -318,6 +318,11 @@ struct KIWochenberichtView: View {
         isLoading = false
     }
 
+    private var promptLanguage: String {
+        let code = Locale.current.languageCode ?? "en"
+        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+    }
+
     private func buildPrompt() -> String {
         let cal = Calendar.current
         var dayLines: [String] = []
@@ -330,7 +335,7 @@ struct KIWochenberichtView: View {
         }
         let stats = weekStats
         return """
-        You are a productivity analyst. Write a structured weekly report in English.
+        You are a productivity analyst. Write a structured weekly report in \(promptLanguage).
 
         WEEKLY DATA (last 7 days):
         \(dayLines.reversed().joined(separator: "\n"))
