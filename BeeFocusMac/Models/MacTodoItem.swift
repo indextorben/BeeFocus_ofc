@@ -25,6 +25,63 @@ enum MacTodoPriority: String, CaseIterable, Codable {
     }
 }
 
+// MARK: - MacSubTask
+
+struct MacSubTask: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var title: String
+    var isCompleted: Bool = false
+}
+
+// MARK: - MacRecurrenceRule
+
+enum MacRecurrenceRule: Codable, Equatable {
+    case none
+    case daily(interval: Int)
+    case weekly(interval: Int, weekdays: [Int]?)
+    case monthly(interval: Int)
+
+    var isNone: Bool { if case .none = self { return true }; return false }
+
+    var label: String {
+        switch self {
+        case .none:              return "Keine"
+        case .daily(let i):     return i == 1 ? "Täglich" : "Alle \(i) Tage"
+        case .weekly(let i, _): return i == 1 ? "Wöchentlich" : "Alle \(i) Wochen"
+        case .monthly(let i):   return i == 1 ? "Monatlich" : "Alle \(i) Monate"
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey { case type, interval, weekdays }
+    private enum RType: String, Codable { case none, daily, weekly, monthly }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        switch try c.decode(RType.self, forKey: .type) {
+        case .none:    self = .none
+        case .daily:   self = .daily(interval: try c.decode(Int.self, forKey: .interval))
+        case .weekly:  self = .weekly(interval: try c.decode(Int.self, forKey: .interval),
+                                      weekdays: try c.decodeIfPresent([Int].self, forKey: .weekdays))
+        case .monthly: self = .monthly(interval: try c.decode(Int.self, forKey: .interval))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .none:
+            try c.encode(RType.none, forKey: .type)
+        case .daily(let i):
+            try c.encode(RType.daily, forKey: .type); try c.encode(i, forKey: .interval)
+        case .weekly(let i, let wd):
+            try c.encode(RType.weekly, forKey: .type); try c.encode(i, forKey: .interval)
+            try c.encodeIfPresent(wd, forKey: .weekdays)
+        case .monthly(let i):
+            try c.encode(RType.monthly, forKey: .type); try c.encode(i, forKey: .interval)
+        }
+    }
+}
+
 // MARK: - MacTodoItem
 
 struct MacTodoItem: Identifiable, Codable, Equatable {
@@ -38,6 +95,12 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
     var updatedAt: Date
     var isFavorite: Bool
 
+    // Extended fields
+    var subTasks: [MacSubTask]
+    var reminderOffsetMinutes: Int?          // nil = no reminder, 0 = at due time, >0 = minutes before
+    var recurrenceEnabled: Bool
+    var recurrenceRule: MacRecurrenceRule
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -47,17 +110,25 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         priority: MacTodoPriority = .medium,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        subTasks: [MacSubTask] = [],
+        reminderOffsetMinutes: Int? = nil,
+        recurrenceEnabled: Bool = false,
+        recurrenceRule: MacRecurrenceRule = .none
     ) {
-        self.id          = id
-        self.title       = title
-        self.description = description
-        self.isCompleted = isCompleted
-        self.dueDate     = dueDate
-        self.priority    = priority
-        self.createdAt   = createdAt
-        self.updatedAt   = updatedAt
-        self.isFavorite  = isFavorite
+        self.id                    = id
+        self.title                 = title
+        self.description           = description
+        self.isCompleted           = isCompleted
+        self.dueDate               = dueDate
+        self.priority              = priority
+        self.createdAt             = createdAt
+        self.updatedAt             = updatedAt
+        self.isFavorite            = isFavorite
+        self.subTasks              = subTasks
+        self.reminderOffsetMinutes = reminderOffsetMinutes
+        self.recurrenceEnabled     = recurrenceEnabled
+        self.recurrenceRule        = recurrenceRule
     }
 
     // MARK: - CloudKit Mapping
@@ -77,9 +148,29 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.createdAt   = record["createdAt"] as? Date ?? Date()
         self.updatedAt   = record["updatedAt"] as? Date ?? Date()
         self.isFavorite  = record["isFavorite"] as? Bool ?? false
+        self.priority    = MacTodoPriority(rawValue: record["priority"] as? String ?? "medium") ?? .medium
+        self.reminderOffsetMinutes = record["reminderOffsetMinutes"] as? Int
+        self.recurrenceEnabled     = record["recurrenceEnabled"] as? Bool ?? false
 
-        let rawPriority  = record["priority"] as? String ?? "medium"
-        self.priority    = MacTodoPriority(rawValue: rawPriority) ?? .medium
+        // Primary: iOS-compatible Data field; fallback: legacy Mac String field
+        if let data = record["subTasks"] as? Data, data.count > 0,
+           let decoded = try? JSONDecoder().decode([MacSubTask].self, from: data) {
+            self.subTasks = decoded
+        } else if let jsonStr = record["subTasksJSON"] as? String,
+                  let data = jsonStr.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode([MacSubTask].self, from: data) {
+            self.subTasks = decoded
+        } else {
+            self.subTasks = []
+        }
+
+        if let jsonStr = record["recurrenceRuleJSON"] as? String,
+           let data = jsonStr.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode(MacRecurrenceRule.self, from: data) {
+            self.recurrenceRule = decoded
+        } else {
+            self.recurrenceRule = .none
+        }
     }
 
     func toRecord(existingRecord: CKRecord? = nil) -> CKRecord {
@@ -92,7 +183,16 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         record["createdAt"]   = createdAt as CKRecordValue
         record["updatedAt"]   = Date() as CKRecordValue
         record["isFavorite"]  = isFavorite as CKRecordValue
+        record["recurrenceEnabled"] = recurrenceEnabled as CKRecordValue
         if let due = dueDate { record["dueDate"] = due as CKRecordValue }
+        if let rem = reminderOffsetMinutes { record["reminderOffsetMinutes"] = rem as CKRecordValue }
+        if let data = try? JSONEncoder().encode(subTasks) {
+            record["subTasks"] = data as CKRecordValue
+        }
+        if let data = try? JSONEncoder().encode(recurrenceRule),
+           let str = String(data: data, encoding: .utf8) {
+            record["recurrenceRuleJSON"] = str as CKRecordValue
+        }
         return record
     }
 

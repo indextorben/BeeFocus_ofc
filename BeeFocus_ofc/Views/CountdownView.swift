@@ -5,6 +5,7 @@ struct CountdownView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAdd = false
     @State private var editEvent: CountdownEvent? = nil
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     var body: some View {
         NavigationStack {
@@ -28,7 +29,7 @@ struct CountdownView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") { dismiss() }.foregroundStyle(.white)
+                    Button(localizer.localizedString(forKey: "countdown_close")) { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAdd = true } label: {
@@ -44,8 +45,8 @@ struct CountdownView: View {
     private var headerSection: some View {
         VStack(spacing: 8) {
             Text("⏳").font(.system(size: 52))
-            Text("Countdowns").font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-            Text("Keep track of important events")
+            Text(localizer.localizedString(forKey: "countdown_title")).font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
+            Text(localizer.localizedString(forKey: "countdown_subtitle"))
                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.75))
         }
         .multilineTextAlignment(.center)
@@ -55,7 +56,7 @@ struct CountdownView: View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.plus")
                 .font(.system(size: 48)).foregroundStyle(.white.opacity(0.4))
-            Text("No countdowns yet\nTap + to add one")
+            Text(localizer.localizedString(forKey: "countdown_empty"))
                 .font(.system(size: 14)).foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
         }
@@ -89,13 +90,13 @@ struct CountdownView: View {
             // Counter
             VStack(alignment: .trailing, spacing: 2) {
                 if event.istVorbei {
-                    Text("Past").font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                    Text(localizer.localizedString(forKey: "countdown_past")).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
                 } else if event.istHeute {
-                    Text("Today!").font(.system(size: 18, weight: .bold)).foregroundStyle(event.farbe)
+                    Text(localizer.localizedString(forKey: "countdown_today")).font(.system(size: 18, weight: .bold)).foregroundStyle(event.farbe)
                 } else {
                     Text("\(event.tageVerbleibend)")
                         .font(.system(size: 26, weight: .bold)).foregroundStyle(event.farbe)
-                    Text("days").font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
+                    Text(localizer.localizedString(forKey: "countdown_days")).font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
                 }
             }
         }
@@ -107,7 +108,7 @@ struct CountdownView: View {
         )
         .contextMenu {
             Button(role: .destructive) { store.delete(event) } label: {
-                Label("Delete", systemImage: "trash")
+                Label(LocalizationManager.shared.localizedString(forKey: "countdown_delete"), systemImage: "trash")
             }
         }
     }
@@ -126,6 +127,7 @@ private struct CountdownAddSheet: View {
     @ObservedObject var store: CountdownStore
     var existing: CountdownEvent? = nil
     let dismiss: () -> Void
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var name: String = ""
     @State private var datum: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
@@ -168,14 +170,14 @@ private struct CountdownAddSheet: View {
                     .padding(.horizontal, 18).padding(.top, 20)
                 }
             }
-            .navigationTitle(existing == nil ? "New Countdown" : "Edit")
+            .navigationTitle(existing == nil ? localizer.localizedString(forKey: "countdown_sheet_new_title") : localizer.localizedString(forKey: "countdown_sheet_edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }.foregroundStyle(.white)
+                    Button(localizer.localizedString(forKey: "countdown_sheet_cancel")) { dismiss() }.foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") { save() }
+                    Button(localizer.localizedString(forKey: "countdown_sheet_save")) { save() }
                         .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? .white.opacity(0.4) : .white)
                         .fontWeight(.semibold)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -192,8 +194,8 @@ private struct CountdownAddSheet: View {
 
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Name").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("e.g. Vacation, Birthday…", text: $name)
+            Text(localizer.localizedString(forKey: "countdown_sheet_name_label")).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField(localizer.localizedString(forKey: "countdown_sheet_name_placeholder"), text: $name)
                 .font(.system(size: 15)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }
@@ -201,7 +203,7 @@ private struct CountdownAddSheet: View {
 
     private var datumPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Date").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text(localizer.localizedString(forKey: "countdown_sheet_date_label")).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             DatePicker("", selection: $datum, displayedComponents: .date)
                 .datePickerStyle(.compact).colorScheme(.dark)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
@@ -210,7 +212,7 @@ private struct CountdownAddSheet: View {
 
     private var symbolPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Icon").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text(localizer.localizedString(forKey: "countdown_sheet_icon_label")).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 10) {
                 ForEach(symbole, id: \.self) { sym in
                     Button { symbol = sym } label: {
@@ -227,7 +229,7 @@ private struct CountdownAddSheet: View {
 
     private var farbPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Color").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            Text(localizer.localizedString(forKey: "countdown_sheet_color_label")).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
             HStack(spacing: 12) {
                 ForEach(farben, id: \.name) { f in
                     Button { farbName = f.name } label: {
@@ -241,8 +243,8 @@ private struct CountdownAddSheet: View {
 
     private var notizField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Note (optional)").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-            TextField("Description…", text: $notiz, axis: .vertical)
+            Text(localizer.localizedString(forKey: "countdown_sheet_note_label")).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+            TextField(localizer.localizedString(forKey: "countdown_sheet_note_placeholder"), text: $notiz, axis: .vertical)
                 .lineLimit(2...4).font(.system(size: 14)).foregroundStyle(.white).tint(.white)
                 .padding(12).background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
         }

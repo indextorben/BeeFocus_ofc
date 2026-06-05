@@ -17,6 +17,7 @@ struct ProduktivitaetsScoreView: View {
     private var accent: Color {
         aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : appThemaFarben(aktivesThema).0
     }
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var today: DayScore { score(for: Date()) }
 
@@ -66,11 +67,11 @@ struct ProduktivitaetsScoreView: View {
 
     private func scoreLabel(_ s: Int) -> String {
         switch s {
-        case 80...: return "Excellent 🌟"
-        case 60...: return "Strong 💪"
-        case 40...: return "Solid 👍"
-        case 20...: return "Getting started ⚡"
-        default:    return "Fresh start 🌱"
+        case 80...: return localizer.localizedString(forKey: "score_label_excellent")
+        case 60...: return localizer.localizedString(forKey: "score_label_strong")
+        case 40...: return localizer.localizedString(forKey: "score_label_solid")
+        case 20...: return localizer.localizedString(forKey: "score_label_getting_started")
+        default:    return localizer.localizedString(forKey: "score_label_fresh_start")
         }
     }
 
@@ -147,7 +148,7 @@ struct ProduktivitaetsScoreView: View {
             }
 
             VStack(spacing: 4) {
-                Text("Productivity Score")
+                Text(localizer.localizedString(forKey: "score_title"))
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.white)
                 Text(scoreLabel(s))
@@ -164,16 +165,16 @@ struct ProduktivitaetsScoreView: View {
 
     private var breakdownCard: some View {
         VStack(spacing: 0) {
-            breakRow(icon: "checkmark.circle.fill", label: "Tasks completed",
+            breakRow(icon: "checkmark.circle.fill", label: localizer.localizedString(forKey: "score_break_tasks"),
                      value: today.tasks, max: 30, color: Color(red: 0.3, green: 0.82, blue: 0.5))
             Divider().background(.white.opacity(0.06)).padding(.horizontal, 16)
-            breakRow(icon: "timer", label: "Focus time",
+            breakRow(icon: "timer", label: localizer.localizedString(forKey: "score_break_focus"),
                      value: today.focus, max: 30, color: Color(red: 0.3, green: 0.6, blue: 1.0))
             Divider().background(.white.opacity(0.06)).padding(.horizontal, 16)
-            breakRow(icon: "calendar.badge.checkmark", label: "Habits",
+            breakRow(icon: "calendar.badge.checkmark", label: localizer.localizedString(forKey: "score_break_habits"),
                      value: today.habits, max: 20, color: Color(red: 0.65, green: 0.35, blue: 1.0))
             Divider().background(.white.opacity(0.06)).padding(.horizontal, 16)
-            breakRow(icon: "book.closed.fill", label: "Focus Journal",
+            breakRow(icon: "book.closed.fill", label: localizer.localizedString(forKey: "score_break_journal"),
                      value: today.journal, max: 10, color: Color(red: 1.0, green: 0.6, blue: 0.2))
         }
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18))
@@ -215,7 +216,7 @@ struct ProduktivitaetsScoreView: View {
         let maxScore = max(scores.map(\.total).max() ?? 1, 1)
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Last 7 Days")
+            Text(localizer.localizedString(forKey: "score_last7days"))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 

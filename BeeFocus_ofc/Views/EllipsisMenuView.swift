@@ -12,6 +12,7 @@ struct EllipsisMenuView: View {
     let onTrashCompleted: () -> Void
     let onRemoveDuplicates: () -> Void
 
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var appeared = false
     @State private var pressedRow: String? = nil
 
@@ -26,11 +27,11 @@ struct EllipsisMenuView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     if showFolderOption {
-                        sectionHeader(label: "SELECTION", icon: "checkmark.circle.fill", color: c1)
+                        sectionHeader(label: localizer.localizedString(forKey: "ellipsis_section_selection"), icon: "checkmark.circle.fill", color: c1)
                         folderCard
                     }
 
-                    sectionHeader(label: "TASKS", icon: "ellipsis.circle.fill", color: c1)
+                    sectionHeader(label: localizer.localizedString(forKey: "ellipsis_section_tasks"), icon: "ellipsis.circle.fill", color: c1)
                         .padding(.top, showFolderOption ? 4 : 0)
                     actionsCard
                 }
@@ -79,8 +80,8 @@ struct EllipsisMenuView: View {
             row(id: "folder", index: 0,
                 icon: "folder.badge.plus",
                 gradient: [c1, c2],
-                title: "Move to Folder",
-                description: "Move selected tasks",
+                title: localizer.localizedString(forKey: "ellipsis_move_folder_title"),
+                description: localizer.localizedString(forKey: "ellipsis_move_folder_desc"),
                 isDestructive: false
             ) { onMoveToFolder(); dismiss() }
         }
@@ -91,8 +92,8 @@ struct EllipsisMenuView: View {
             row(id: "vorlagen", index: showFolderOption ? 1 : 0,
                 icon: "rectangle.stack.fill",
                 gradient: [Color(red: 0.55, green: 0.35, blue: 1.0), Color(red: 0.35, green: 0.15, blue: 0.85)],
-                title: "Task Templates",
-                description: "Use pre-made tasks",
+                title: localizer.localizedString(forKey: "ellipsis_templates_title"),
+                description: localizer.localizedString(forKey: "ellipsis_templates_desc"),
                 isDestructive: false
             ) { onVorlagen(); dismiss() }
 
@@ -101,8 +102,8 @@ struct EllipsisMenuView: View {
             row(id: "bydate", index: showFolderOption ? 2 : 1,
                 icon: "calendar.badge.minus",
                 gradient: [.teal, Color(red: 0.0, green: 0.55, blue: 0.65)],
-                title: "Delete by Date Range",
-                description: "Remove completed tasks by date",
+                title: localizer.localizedString(forKey: "ellipsis_delete_date_title"),
+                description: localizer.localizedString(forKey: "ellipsis_delete_date_desc"),
                 isDestructive: false
             ) { onDeleteByDate(); dismiss() }
 
@@ -111,8 +112,8 @@ struct EllipsisMenuView: View {
             row(id: "trash", index: showFolderOption ? 3 : 2,
                 icon: "trash.fill",
                 gradient: [.red, Color(red: 0.75, green: 0.1, blue: 0.1)],
-                title: "Completed to Trash",
-                description: "Move completed tasks to trash",
+                title: localizer.localizedString(forKey: "ellipsis_trash_title"),
+                description: localizer.localizedString(forKey: "ellipsis_trash_desc"),
                 isDestructive: true
             ) { onTrashCompleted(); dismiss() }
 
@@ -121,8 +122,8 @@ struct EllipsisMenuView: View {
             row(id: "dupes", index: showFolderOption ? 4 : 3,
                 icon: "doc.on.doc.fill",
                 gradient: [.orange, Color(red: 0.85, green: 0.4, blue: 0.0)],
-                title: "Remove Duplicates",
-                description: "Delete duplicate tasks",
+                title: localizer.localizedString(forKey: "ellipsis_dupes_title"),
+                description: localizer.localizedString(forKey: "ellipsis_dupes_desc"),
                 isDestructive: true
             ) { onRemoveDuplicates(); dismiss() }
         }

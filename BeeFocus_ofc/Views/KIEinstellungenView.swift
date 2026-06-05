@@ -7,6 +7,7 @@ struct KIEinstellungenView: View {
     @AppStorage("darkModeEnabled")       private var darkModeEnabled = false
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("aiProvider")            private var aiProvider: String = "gemini"
+    @ObservedObject private var localizer = LocalizationManager.shared
     @AppStorage("floatingAIEnabled")     private var floatingAIEnabled: Bool = true
     @AppStorage("focusCoachEnabled")     private var focusCoachEnabled: Bool = true
     @AppStorage("aiAutoSpeak")           private var aiAutoSpeak: Bool = false
@@ -51,17 +52,17 @@ struct KIEinstellungenView: View {
                 VStack(spacing: 20) {
 
                     // General
-                    sectionCard(header: String(localized: "ki_section_general"), icon: "gearshape.fill", color: accentColor) {
+                    sectionCard(header: localizer.localizedString(forKey: "ki_section_general"), icon: "gearshape.fill", color: accentColor) {
                         toggleRow(icon: "sparkles", color: accentColor,
-                                  label: String(localized: "ki_floating_button"),
+                                  label: localizer.localizedString(forKey: "ki_floating_button"),
                                   isOn: $floatingAIEnabled)
                         divider()
                         toggleRow(icon: "brain.head.profile", color: .indigo,
-                                  label: String(localized: "ki_focus_coach"),
+                                  label: localizer.localizedString(forKey: "ki_focus_coach"),
                                   isOn: $focusCoachEnabled)
                         divider()
                         toggleRow(icon: "speaker.wave.2.fill", color: .teal,
-                                  label: String(localized: "ki_auto_speak"),
+                                  label: localizer.localizedString(forKey: "ki_auto_speak"),
                                   isOn: $aiAutoSpeak)
                         divider()
                         providerPicker
@@ -87,7 +88,7 @@ struct KIEinstellungenView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle(String(localized: "ki_settings_title"))
+        .navigationTitle(localizer.localizedString(forKey: "ki_settings_title"))
         .navigationBarTitleDisplayMode(.large)
     }
 
@@ -95,7 +96,7 @@ struct KIEinstellungenView: View {
 
     private var providerPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "ki_active_provider"))
+            Text(localizer.localizedString(forKey: "ki_active_provider"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
@@ -116,8 +117,8 @@ struct KIEinstellungenView: View {
         VStack(alignment: .leading, spacing: 0) {
             NavigationLink(destination: GeminiKeyGuideView()) {
                 guideRow(icon: "sparkles", color: .purple,
-                         title: String(localized: "gemini_guide_title"),
-                         sub: String(localized: "ki_gemini_info_short"))
+                         title: localizer.localizedString(forKey: "gemini_guide_title"),
+                         sub: localizer.localizedString(forKey: "ki_gemini_info_short"))
             }
             .buttonStyle(.plain)
             divider()
@@ -145,7 +146,7 @@ struct KIEinstellungenView: View {
             Link(destination: URL(string: "https://platform.openai.com/api-keys")!) {
                 guideRow(icon: "cpu.fill", color: .green,
                          title: "OpenAI API Key",
-                         sub: String(localized: "openai_key_info"))
+                         sub: localizer.localizedString(forKey: "openai_key_info"))
             }
             .buttonStyle(.plain)
             divider()
@@ -173,7 +174,7 @@ struct KIEinstellungenView: View {
             Link(destination: URL(string: "https://console.groq.com/keys")!) {
                 guideRow(icon: "bolt.fill", color: .orange,
                          title: "Groq API Key",
-                         sub: String(localized: "groq_setup_desc"))
+                         sub: localizer.localizedString(forKey: "groq_setup_desc"))
             }
             .buttonStyle(.plain)
             divider()
@@ -218,7 +219,7 @@ struct KIEinstellungenView: View {
         Group {
             if key.wrappedValue.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(String(localized: "ki_api_key_label"))
+                    Text(localizer.localizedString(forKey: "ki_api_key_label"))
                         .font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary)
                         .padding(.horizontal, 16)
 
@@ -245,7 +246,7 @@ struct KIEinstellungenView: View {
 
                     HStack {
                         Spacer()
-                        Button(String(localized: "ki_key_save")) {
+                        Button(localizer.localizedString(forKey: "ki_key_save")) {
                             let trimmed = key.wrappedValue.trimmingCharacters(in: .whitespaces)
                             guard !trimmed.isEmpty else { return }
                             KeychainHelper.save(trimmed, for: keychainKey)
@@ -282,7 +283,7 @@ struct KIEinstellungenView: View {
                     } else if status.wrappedValue == .invalid {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
                     }
-                    Button(String(localized: "ki_key_delete")) {
+                    Button(localizer.localizedString(forKey: "ki_key_delete")) {
                         key.wrappedValue = ""
                         status.wrappedValue = .unknown
                         KeychainHelper.delete(for: keychainKey)
@@ -298,7 +299,7 @@ struct KIEinstellungenView: View {
 
     private func modelPicker(selection: Binding<String>, models: [String]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(String(localized: "ki_model_label"))
+            Text(localizer.localizedString(forKey: "ki_model_label"))
                 .font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
             Picker("", selection: selection) {
@@ -322,7 +323,7 @@ struct KIEinstellungenView: View {
             } label: {
                 HStack(spacing: 8) {
                     if testLoading { ProgressView().scaleEffect(0.75) }
-                    Text(testLoading ? String(localized: "ki_analyzing") : String(localized: "ki_test_button"))
+                    Text(testLoading ? localizer.localizedString(forKey: "ki_analyzing") : localizer.localizedString(forKey: "ki_test_button"))
                         .font(.system(size: 14, weight: .semibold))
                 }
                 .foregroundStyle(accentColor)

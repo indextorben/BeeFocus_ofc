@@ -2,6 +2,7 @@ import Foundation
 import CloudKit
 import Combine
 import AppKit
+import UserNotifications
 
 @MainActor
 final class MacTodoStore: ObservableObject {
@@ -14,6 +15,8 @@ final class MacTodoStore: ObservableObject {
 
     // Map from todo.id → CKRecord.ID for updates/deletes
     private var recordIDMap: [UUID: CKRecord.ID] = [:]
+    // UUIDs currently being saved by addTodo() — prevents saveToCloudKit creating duplicates
+    private var pendingAdds: Set<UUID> = []
 
     private var syncTimer: Task<Void, Never>?
 
@@ -49,21 +52,48 @@ final class MacTodoStore: ObservableObject {
             query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
 
             let (results, _) = try await db.records(matching: query, resultsLimit: 200)
-            var fetched: [MacTodoItem] = []
+
+            // Deduplicate by UUID — keeps newest updatedAt, schedules CK cleanup for extras
+            var byID: [UUID: (MacTodoItem, CKRecord.ID)] = [:]
+            var duplicatesToDelete: [CKRecord.ID] = []
+
             for (recordID, result) in results {
                 switch result {
                 case .success(let record):
                     if let item = MacTodoItem(record: record) {
-                        fetched.append(item)
-                        recordIDMap[item.id] = recordID
+                        if let existing = byID[item.id] {
+                            if item.updatedAt > existing.0.updatedAt {
+                                duplicatesToDelete.append(existing.1)
+                                byID[item.id] = (item, recordID)
+                            } else {
+                                duplicatesToDelete.append(recordID)
+                            }
+                        } else {
+                            byID[item.id] = (item, recordID)
+                        }
                     }
                 case .failure:
                     break
                 }
             }
+
+            var fetched: [MacTodoItem] = []
+            for (id, (item, recordID)) in byID {
+                fetched.append(item)
+                recordIDMap[id] = recordID
+            }
+
             todos = fetched.sorted {
                 if $0.isCompleted != $1.isCompleted { return !$0.isCompleted }
                 return ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture)
+            }
+
+            if !duplicatesToDelete.isEmpty {
+                Task {
+                    for ckID in duplicatesToDelete {
+                        try? await db.deleteRecord(withID: ckID)
+                    }
+                }
             }
         } catch {
             lastSyncError = error.localizedDescription
@@ -75,6 +105,8 @@ final class MacTodoStore: ObservableObject {
 
     func addTodo(_ item: MacTodoItem) {
         todos.insert(item, at: 0)
+        scheduleReminder(for: item)
+        pendingAdds.insert(item.id)
         Task {
             do {
                 let record = item.toRecord()
@@ -83,7 +115,28 @@ final class MacTodoStore: ObservableObject {
             } catch {
                 lastSyncError = error.localizedDescription
             }
+            pendingAdds.remove(item.id)
         }
+    }
+
+    // MARK: - Reminder Scheduling
+
+    func scheduleReminder(for item: MacTodoItem) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["reminder-\(item.id)"])
+        guard let due = item.dueDate,
+              let offset = item.reminderOffsetMinutes,
+              !item.isCompleted else { return }
+        let fireDate = due.addingTimeInterval(-Double(offset) * 60)
+        guard fireDate > Date() else { return }
+        let content       = UNMutableNotificationContent()
+        content.title     = item.title
+        content.body      = offset == 0 ? "Jetzt fällig" : "Fällig in \(offset) Minute\(offset == 1 ? "" : "n")"
+        content.sound     = .default
+        let comps         = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let trigger       = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        let request       = UNNotificationRequest(identifier: "reminder-\(item.id)", content: content, trigger: trigger)
+        center.add(request)
     }
 
     // MARK: - Toggle Completion
@@ -130,6 +183,7 @@ final class MacTodoStore: ObservableObject {
     func update(_ item: MacTodoItem) {
         guard let idx = todos.firstIndex(where: { $0.id == item.id }) else { return }
         todos[idx] = item
+        scheduleReminder(for: item)
         Task { await saveToCloudKit(item) }
     }
 
@@ -140,10 +194,10 @@ final class MacTodoStore: ObservableObject {
     }
 
     private func saveToCloudKit(_ item: MacTodoItem) async {
+        // If addTodo() is still in flight for this id, skip — it will save the latest state
+        guard !pendingAdds.contains(item.id) else { return }
         do {
-            let existing = recordIDMap[item.id].map { CKRecord(recordType: "Todo", recordID: $0) }
             if let ckID = recordIDMap[item.id] {
-                // fetch then update
                 let record = try await db.record(for: ckID)
                 let _ = item.toRecord(existingRecord: record)
                 try await db.save(record)
@@ -152,7 +206,6 @@ final class MacTodoStore: ObservableObject {
                 let saved  = try await db.save(record)
                 recordIDMap[item.id] = saved.recordID
             }
-            _ = existing
         } catch {
             lastSyncError = error.localizedDescription
         }

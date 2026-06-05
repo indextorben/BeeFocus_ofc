@@ -5,6 +5,7 @@ struct TagesMotivationView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @State private var appeared = false
     @State private var nextQuote = false
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var accent: Color {
         aktivesThema.isEmpty ? Color(red: 1.0, green: 0.5, blue: 0.8) : appThemaFarben(aktivesThema).0
@@ -116,7 +117,7 @@ struct TagesMotivationView: View {
 
                     // Quote card
                     VStack(spacing: 20) {
-                        Text("Quote of the Day")
+                        Text(localizer.localizedString(forKey: "motivation_quote_of_day"))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.4))
                             .tracking(1.5)
@@ -167,7 +168,7 @@ struct TagesMotivationView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "square.and.arrow.up")
-                        Text("Share quote")
+                        Text(localizer.localizedString(forKey: "motivation_share_button"))
                             .fontWeight(.semibold)
                     }
                     .font(.system(size: 15))

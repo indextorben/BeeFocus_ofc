@@ -1,45 +1,136 @@
 import SwiftUI
+import AppKit
 
-private enum MenuBarTab: CaseIterable {
-    case timer, tasks, planner, stats
+// MARK: - Window helper
 
-    var icon: String {
-        switch self {
-        case .timer:   return "timer"
-        case .tasks:   return "checklist"
-        case .planner: return "calendar.day.timeline.left"
-        case .stats:   return "chart.bar.fill"
+private struct WindowResizer: NSViewRepresentable {
+    func makeNSView(context: Context) -> ResizeHelperView { ResizeHelperView() }
+    func updateNSView(_ nsView: ResizeHelperView, context: Context) {}
+
+    class ResizeHelperView: NSView {
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            window.styleMask.insert(.resizable)
+            window.minSize = NSSize(width: 320, height: 440)
         }
     }
 }
 
+// MARK: - Tab enum
+
+private enum MenuBarTab: CaseIterable {
+    case tasks, planner, timer, stats
+
+    var icon: String {
+        switch self {
+        case .tasks:   return "checklist"
+        case .planner: return "calendar.day.timeline.left"
+        case .timer:   return "timer"
+        case .stats:   return "chart.bar.fill"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .tasks:   return "Aufgaben"
+        case .planner: return "Tag"
+        case .timer:   return "Timer"
+        case .stats:   return "Statistik"
+        }
+    }
+}
+
+// MARK: - Main View
+
 struct MenuBarContentView: View {
     @EnvironmentObject var todoStore: MacTodoStore
     @EnvironmentObject var timerMgr:  MacTimerManager
-    @Environment(\.activeTheme)  private var activeTheme
-    @State private var activeTab: MenuBarTab = .timer
+    @Environment(\.activeTheme) private var activeTheme
+    @State private var activeTab:   MenuBarTab = .tasks
     @Namespace private var tabNS
+
+    // Inline add form
+    @State private var showingAddForm  = false
+    @State private var newTitle        = ""
+    @State private var newPriority     = MacTodoPriority.medium
+    @State private var newHasDueDate   = false
+    @State private var newDueDate      = Date()
+    @State private var newReminderOffset: Int? = nil
+
+    // AI quick input
+    @State private var smartInputText  = ""
+    @State private var isParsing       = false
+    @State private var parseError: String? = nil
+    @State private var aiDidFill       = false
+    @AppStorage("mac_ai_provider") private var aiProviderRaw: String = MacAIProvider.groq.rawValue
+    private var aiProvider: MacAIProvider { MacAIProvider(rawValue: aiProviderRaw) ?? .groq }
+
+    // Settings panel
+    @State private var showingSettings = false
+
+    // Subtask expansion
+    @State private var expandedTaskID: UUID? = nil
+
+    // Inline form subtasks
+    @State private var newSubTasks: [MacSubTask] = []
+    @State private var newSubTaskInput: String = ""
+
+    // Tasks filters
+    @State private var searchText      = ""
+    @State private var priorityFilter: MacTodoPriority? = nil
+    @State private var showCompleted   = false
+
+    // Timer task picker
+    @State private var showTimerTaskPicker = false
 
     private var accent: Color { activeTheme.isEmpty ? .orange : activeTheme.themeAccent }
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider().opacity(0.2)
-            ZStack {
-                switch activeTab {
-                case .timer:   timerTab
-                case .tasks:   tasksTab
-                case .planner: plannerTab
-                case .stats:   statsTab
+            if showingAddForm {
+                inlineAddFormHeader
+                Divider().opacity(0.2)
+                ScrollView(.vertical, showsIndicators: false) { inlineAddForm }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if showingSettings {
+                settingsHeader
+                Divider().opacity(0.2)
+                ScrollView(.vertical, showsIndicators: false) { settingsPanel }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                header
+                Divider().opacity(0.2)
+                ScrollView(.vertical, showsIndicators: false) {
+                    switch activeTab {
+                    case .tasks:   tasksTab
+                    case .planner: plannerTab
+                    case .timer:   timerTab
+                    case .stats:   statsTab
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Divider().opacity(0.2)
+                bottomTabBar
             }
-            .frame(minHeight: 230)
-            Divider().opacity(0.2)
-            bottomTabBar
         }
         .background(.ultraThinMaterial)
-        .frame(width: 360)
+        .background(WindowResizer())
+        .frame(width: 360, height: 500)
+        .background(
+            // ⌘N → neue Aufgabe (unsichtbarer Button als Shortcut-Träger)
+            Button("") {
+                guard !showingAddForm && !showingSettings else { return }
+                withAnimation(.spring(response: 0.3)) {
+                    activeTab = .tasks
+                    showingAddForm = true
+                }
+            }
+            .keyboardShortcut("n", modifiers: .command)
+            .opacity(0)
+        )
     }
 
     // MARK: - Header
@@ -48,28 +139,30 @@ struct MenuBarContentView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [accent.opacity(0.25), accent.opacity(0.10)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(LinearGradient(colors: [accent.opacity(0.25), accent.opacity(0.10)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 32, height: 32)
                 Image(systemName: "hexagon.fill")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(accent)
             }
-
             VStack(alignment: .leading, spacing: 1) {
                 Text("BeeFocus")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.primary)
                 Text(todayHeaderString)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
             }
-
             Spacer()
+            Button { withAnimation(.spring(response: 0.28)) { showingSettings = true } } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 26, height: 26)
+                    .background(Color.primary.opacity(0.07), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .help("Einstellungen")
 
             Button { NSApp.terminate(nil) } label: {
                 Image(systemName: "power")
@@ -79,7 +172,7 @@ struct MenuBarContentView: View {
                     .background(Color.primary.opacity(0.07), in: Circle())
             }
             .buttonStyle(.plain)
-            .help("Quit BeeFocus")
+            .help("BeeFocus beenden")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
@@ -87,9 +180,498 @@ struct MenuBarContentView: View {
 
     private var todayHeaderString: String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
-        f.dateFormat = "EEEE, MMM d"
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEEE, d. MMM"
         return f.string(from: Date())
+    }
+
+    // MARK: - Settings Panel
+
+    private var settingsHeader: some View {
+        HStack {
+            Button { withAnimation(.spring(response: 0.28)) { showingSettings = false } } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
+                    Text("Zurück").font(.system(size: 13))
+                }
+                .foregroundStyle(accent)
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            Text("Einstellungen").font(.system(size: 14, weight: .semibold))
+            Spacer()
+            // Balance spacer
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
+                Text("Zurück").font(.system(size: 13))
+            }
+            .opacity(0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+
+    private var settingsPanel: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Timer settings
+            settingsSectionLabel("Timer-Zeiten", icon: "timer")
+            VStack(spacing: 0) {
+                timerSettingRow("Fokuszeit", value: $timerMgr.focusDuration, range: 1...90, unit: "min")
+                Divider().opacity(0.12).padding(.leading, 14)
+                timerSettingRow("Kurze Pause", value: $timerMgr.shortBreak, range: 1...30, unit: "min")
+                Divider().opacity(0.12).padding(.leading, 14)
+                timerSettingRow("Lange Pause", value: $timerMgr.longBreak, range: 1...60, unit: "min")
+                Divider().opacity(0.12).padding(.leading, 14)
+                timerSettingRow("Sessions bis Pause", value: $timerMgr.sessionsUntilLong, range: 1...10, unit: "")
+            }
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+
+            // Behaviour toggles
+            settingsSectionLabel("Verhalten", icon: "slider.horizontal.3")
+            VStack(spacing: 0) {
+                settingsToggleRow("Auto-Start (Pause/Fokus)", icon: "play.circle", binding: $timerMgr.autoStart)
+                Divider().opacity(0.12).padding(.leading, 14)
+                settingsToggleRow("Sound & Benachrichtigungen", icon: "bell.fill", binding: $timerMgr.soundEnabled)
+            }
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+
+            // AI settings
+            settingsSectionLabel("KI Quick Input", icon: "sparkles")
+            aiSettingsPanel
+
+            // Apply button
+            Button {
+                timerMgr.applySettings()
+                withAnimation(.spring(response: 0.28)) { showingSettings = false }
+            } label: {
+                Text("Übernehmen")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(accent, in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 8)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 16)
+    }
+
+    private func timerSettingRow(_ label: String, value: Binding<Int>, range: ClosedRange<Int>, unit: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+            Spacer()
+            HStack(spacing: 8) {
+                Button {
+                    if value.wrappedValue > range.lowerBound { value.wrappedValue -= 1 }
+                } label: {
+                    Image(systemName: "minus").font(.system(size: 11, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                        .background(Color.primary.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                Text(unit.isEmpty ? "\(value.wrappedValue)" : "\(value.wrappedValue) \(unit)")
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .frame(minWidth: 52, alignment: .center)
+                Button {
+                    if value.wrappedValue < range.upperBound { value.wrappedValue += 1 }
+                } label: {
+                    Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                        .background(Color.primary.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+    }
+
+    private func settingsToggleRow(_ label: String, icon: String, binding: Binding<Bool>) -> some View {
+        HStack {
+            Label(label, systemImage: icon)
+                .font(.system(size: 13, weight: .medium))
+            Spacer()
+            Toggle("", isOn: binding)
+                .toggleStyle(.switch)
+                .tint(accent)
+                .labelsHidden()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - AI Settings Panel
+
+    @State private var aiKeyInput: String = ""
+    @State private var aiKeyVisible: Bool = false
+    @State private var aiKeySaved: Bool   = false
+
+    private var aiSettingsPanel: some View {
+        VStack(spacing: 0) {
+            // Provider picker
+            HStack {
+                Text("Anbieter").font(.system(size: 13, weight: .medium))
+                Spacer()
+                Picker("", selection: $aiProviderRaw) {
+                    ForEach(MacAIProvider.allCases, id: \.rawValue) { p in
+                        Text(p.label).tag(p.rawValue)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 160)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 11)
+
+            Divider().opacity(0.12).padding(.leading, 14)
+
+            // API Key input
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Group {
+                        if aiKeyVisible {
+                            TextField("API Key", text: $aiKeyInput)
+                        } else {
+                            SecureField("API Key", text: $aiKeyInput)
+                        }
+                    }
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13, design: .monospaced))
+                    .onAppear {
+                        aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? ""
+                    }
+                    .onChange(of: aiProviderRaw) { _ in
+                        aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? ""
+                        aiKeySaved = false
+                    }
+
+                    Button {
+                        aiKeyVisible.toggle()
+                    } label: {
+                        Image(systemName: aiKeyVisible ? "eye.slash" : "eye")
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        MacKeychain.save(aiKeyInput.trimmingCharacters(in: .whitespaces), for: aiProvider.keychainKey)
+                        aiKeySaved = true
+                    } label: {
+                        Text(aiKeySaved ? "✓" : "Speichern")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(aiKeySaved ? .green : accent)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(aiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 11)
+
+                // Hint
+                Text(aiProvider == .groq
+                    ? "Groq: kostenlos unter console.groq.com → API Keys"
+                    : "OpenAI: platform.openai.com → API Keys")
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 14).padding(.bottom, 10)
+            }
+        }
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+    }
+
+    private func settingsSectionLabel(_ text: String, icon: String) -> some View {
+        Label(text, systemImage: icon)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(accent.opacity(0.85))
+            .textCase(.uppercase)
+            .tracking(0.4)
+    }
+
+    // MARK: - Inline Add Form Header
+
+    private var inlineAddFormHeader: some View {
+        HStack {
+            Button { dismissAddForm() } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
+                    Text("Zurück").font(.system(size: 13))
+                }
+                .foregroundStyle(accent)
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            Text("Neue Aufgabe").font(.system(size: 14, weight: .semibold))
+            Spacer()
+            Button("Speichern") { saveInlineTask() }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(newTitle.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : accent)
+                .buttonStyle(.plain)
+                .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+
+    // MARK: - Inline Add Form Body
+
+    private var inlineAddForm: some View {
+        VStack(alignment: .leading, spacing: 14) {
+
+            // Smart AI Input
+            smartInputSection
+
+            VStack(alignment: .leading, spacing: 6) {
+                formLabel("Titel", icon: "pencil.line")
+                TextField("Aufgabenname", text: $newTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 15, weight: .medium))
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                formLabel("Priorität", icon: "flag.fill")
+                HStack(spacing: 8) {
+                    ForEach(MacTodoPriority.allCases, id: \.self) { inlinePriorityChip($0) }
+                }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                formLabel("Fälligkeitsdatum", icon: "calendar")
+                VStack(spacing: 0) {
+                    Toggle(isOn: $newHasDueDate.animation(.spring(response: 0.3))) {
+                        Text("Datum festlegen").font(.system(size: 13, weight: .medium))
+                    }
+                    .tint(accent)
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    if newHasDueDate {
+                        Divider().opacity(0.15).padding(.horizontal, 12)
+                        DatePicker("", selection: $newDueDate, displayedComponents: [.date, .hourAndMinute])
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                            .tint(accent)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                    }
+                }
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            }
+            // Subtasks
+            VStack(alignment: .leading, spacing: 6) {
+                formLabel("Teilaufgaben", icon: "checklist")
+                VStack(spacing: 0) {
+                    ForEach($newSubTasks) { $sub in
+                        HStack(spacing: 8) {
+                            Button { withAnimation { sub.isCompleted.toggle() } } label: {
+                                ZStack {
+                                    Circle().stroke(sub.isCompleted ? Color.green : Color.secondary.opacity(0.4), lineWidth: 1.5).frame(width: 16, height: 16)
+                                    if sub.isCompleted {
+                                        Circle().fill(Color.green).frame(width: 16, height: 16)
+                                        Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)).foregroundStyle(.white)
+                                    }
+                                }
+                            }.buttonStyle(.plain)
+                            TextField("Teilaufgabe", text: $sub.title)
+                                .textFieldStyle(.plain).font(.system(size: 13))
+                                .strikethrough(sub.isCompleted, color: .secondary)
+                            Spacer()
+                            Button { withAnimation { newSubTasks.removeAll { $0.id == sub.id } } } label: {
+                                Image(systemName: "minus.circle.fill").font(.system(size: 14)).foregroundStyle(Color.red.opacity(0.5))
+                            }.buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                        if sub.id != newSubTasks.last?.id { Divider().opacity(0.1).padding(.leading, 10) }
+                    }
+                    if !newSubTasks.isEmpty { Divider().opacity(0.1) }
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle").font(.system(size: 14)).foregroundStyle(accent)
+                        TextField("Neue Teilaufgabe…", text: $newSubTaskInput, onCommit: addInlineSubTask)
+                            .textFieldStyle(.plain).font(.system(size: 13))
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 8)
+                }
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            }
+
+            // Button zum vollständigen Formular
+            Button {
+                dismissAddForm()
+                MacAddTodoWindow.open(todoStore: todoStore)
+            } label: {
+                HStack {
+                    Image(systemName: "slider.horizontal.3").font(.system(size: 12))
+                    Text("Alle Optionen (Teilaufgaben, Wiederholung…)")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Image(systemName: "arrow.up.right").font(.system(size: 11))
+                }
+                .foregroundStyle(accent.opacity(0.8))
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.2), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 8)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 16)
+    }
+
+    // MARK: - Smart AI Input
+
+    private var smartInputSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            formLabel("KI Quick Input", icon: "sparkles")
+
+            HStack(spacing: 8) {
+                TextField("z.B. Zahnarzt Mittwoch 15 Uhr hohe Prio", text: $smartInputText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .onSubmit { runSmartParse() }
+
+                Button {
+                    if isParsing { return }
+                    runSmartParse()
+                } label: {
+                    Group {
+                        if isParsing {
+                            ProgressView().controlSize(.small).frame(width: 18, height: 18)
+                        } else {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(smartInputText.isEmpty ? Color.secondary : accent)
+                        }
+                    }
+                    .frame(width: 32, height: 32)
+                    .background(accent.opacity(smartInputText.isEmpty ? 0.06 : 0.14), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(smartInputText.trimmingCharacters(in: .whitespaces).isEmpty || isParsing)
+                .help("Mit KI ausfüllen (Return)")
+            }
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(aiDidFill ? accent.opacity(0.5) : Color.primary.opacity(0.08), lineWidth: aiDidFill ? 1.5 : 1)
+            )
+
+            if let err = parseError {
+                Label(err, systemImage: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11)).foregroundStyle(.orange)
+            }
+            if aiDidFill {
+                Label("Felder automatisch ausgefüllt", systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 11)).foregroundStyle(accent)
+            }
+
+            // Kein Key konfiguriert
+            if MacKeychain.load(for: aiProvider.keychainKey) == nil {
+                Button {
+                    withAnimation { showingAddForm = false; showingSettings = true }
+                } label: {
+                    Label("API-Key in Einstellungen hinterlegen →", systemImage: "key.fill")
+                        .font(.system(size: 11)).foregroundStyle(accent.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func runSmartParse() {
+        let input = smartInputText.trimmingCharacters(in: .whitespaces)
+        guard !input.isEmpty else { return }
+        parseError = nil
+        aiDidFill  = false
+        isParsing  = true
+        Task {
+            do {
+                let result = try await MacAIQuickInputService.parse(input: input, provider: aiProvider)
+                await MainActor.run {
+                    if !result.title.isEmpty       { newTitle    = result.title }
+                    if !result.description.isEmpty { /* description not in inline form */ }
+                    newPriority = result.priority
+                    if let date = result.date      { newDueDate = date; newHasDueDate = true }
+                    if let rem = result.reminderOffset { newReminderOffset = rem }
+                    aiDidFill = true
+                    isParsing = false
+                }
+            } catch {
+                await MainActor.run {
+                    parseError = error.localizedDescription
+                    isParsing  = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Priority chips
+
+    private func inlinePriorityChip(_ p: MacTodoPriority) -> some View {
+        let rgb = p.color
+        let color = Color(red: rgb.0, green: rgb.1, blue: rgb.2)
+        let selected = newPriority == p
+        return Button {
+            withAnimation(.spring(response: 0.25)) { newPriority = p }
+        } label: {
+            HStack(spacing: 5) {
+                Circle().fill(color).frame(width: 7, height: 7)
+                Text(p.label)
+                    .font(.system(size: 12, weight: selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? color : Color.secondary)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(selected ? color.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(selected ? color.opacity(0.4) : Color.clear, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func formLabel(_ text: String, icon: String) -> some View {
+        Label(text, systemImage: icon)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(accent.opacity(0.85))
+            .textCase(.uppercase)
+            .tracking(0.4)
+    }
+
+    private func saveInlineTask() {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        // Flush any unconfirmed subtask input
+        let pendingTitle = newSubTaskInput.trimmingCharacters(in: .whitespaces)
+        var subTasks = newSubTasks
+        if !pendingTitle.isEmpty { subTasks.append(MacSubTask(title: pendingTitle)) }
+        todoStore.addTodo(MacTodoItem(
+            title:                 trimmed,
+            dueDate:               newHasDueDate ? newDueDate : nil,
+            priority:              newPriority,
+            subTasks:              subTasks,
+            reminderOffsetMinutes: newReminderOffset
+        ))
+        dismissAddForm()
+    }
+
+    private func addInlineSubTask() {
+        let t = newSubTaskInput.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        withAnimation { newSubTasks.append(MacSubTask(title: t)) }
+        newSubTaskInput = ""
+    }
+
+    private func dismissAddForm() {
+        withAnimation(.spring(response: 0.3)) { showingAddForm = false }
+        newTitle = ""; newPriority = .medium; newHasDueDate = false; newDueDate = Date()
+        newReminderOffset = nil; smartInputText = ""; aiDidFill = false; parseError = nil
+        newSubTasks = []; newSubTaskInput = ""
     }
 
     // MARK: - Timer Tab
@@ -105,25 +687,16 @@ struct MenuBarContentView: View {
 
             Spacer(minLength: 14)
 
-            // Circular ring
             ZStack {
-                Circle()
-                    .stroke(timerMgr.mode.color.opacity(0.10), lineWidth: 9)
-
+                Circle().stroke(timerMgr.mode.color.opacity(0.10), lineWidth: 9)
                 Circle()
                     .trim(from: 0, to: 1 - timerMgr.progress)
-                    .stroke(
-                        timerMgr.mode.color,
-                        style: StrokeStyle(lineWidth: 9, lineCap: .round)
-                    )
+                    .stroke(timerMgr.mode.color, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: timerMgr.progress)
-
                 VStack(spacing: 5) {
                     Text(timerMgr.timeString)
                         .font(.system(size: 38, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.primary)
-
                     HStack(spacing: 5) {
                         ForEach(0..<4, id: \.self) { i in
                             let filled = i < (timerMgr.sessionCount % 4 == 0 && timerMgr.sessionCount > 0 ? 4 : timerMgr.sessionCount % 4)
@@ -141,27 +714,18 @@ struct MenuBarContentView: View {
 
             HStack(spacing: 22) {
                 Button { timerMgr.reset() } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 40, height: 40)
+                    Image(systemName: "arrow.counterclockwise").font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary).frame(width: 40, height: 40)
                         .background(Color.primary.opacity(0.07), in: Circle())
                 }
-                .buttonStyle(.plain)
-                .help("Reset")
+                .buttonStyle(.plain).help("Zurücksetzen")
 
                 Button { timerMgr.startPause() } label: {
                     Image(systemName: timerMgr.isRunning ? "pause.fill" : "play.fill")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
                         .frame(width: 58, height: 58)
-                        .background(
-                            LinearGradient(
-                                colors: [timerMgr.mode.color, timerMgr.mode.color.opacity(0.75)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ),
-                            in: Circle()
-                        )
+                        .background(LinearGradient(colors: [timerMgr.mode.color, timerMgr.mode.color.opacity(0.75)],
+                                                   startPoint: .topLeading, endPoint: .bottomTrailing), in: Circle())
                         .shadow(color: timerMgr.mode.color.opacity(0.5), radius: 12, y: 5)
                 }
                 .buttonStyle(.plain)
@@ -169,56 +733,188 @@ struct MenuBarContentView: View {
                 .help(timerMgr.isRunning ? "Pause" : "Start")
 
                 Button { timerMgr.skipToNext() } label: {
-                    Image(systemName: "forward.end.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 40, height: 40)
+                    Image(systemName: "forward.end.fill").font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary).frame(width: 40, height: 40)
                         .background(Color.primary.opacity(0.07), in: Circle())
                 }
-                .buttonStyle(.plain)
-                .help("Skip to next")
+                .buttonStyle(.plain).help("Überspringen")
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 10)
 
-            Text("\(timerMgr.sessionCount) session\(timerMgr.sessionCount == 1 ? "" : "s") completed")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+            Text("\(timerMgr.sessionCount) Session\(timerMgr.sessionCount == 1 ? "" : "s") abgeschlossen")
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+
+            Spacer(minLength: 10)
+
+            // Linked task section
+            timerLinkedTask
 
             Spacer(minLength: 14)
         }
         .frame(maxWidth: .infinity)
     }
 
+    private var timerLinkedTask: some View {
+        VStack(spacing: 6) {
+            if let taskID = timerMgr.linkedTaskID,
+               let task = todoStore.activeTodos.first(where: { $0.id == taskID }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "link").font(.system(size: 11)).foregroundStyle(accent)
+                    Text(task.title).font(.system(size: 12, weight: .medium)).lineLimit(1).foregroundStyle(.primary)
+                    Spacer()
+                    Button { timerMgr.linkedTaskID = nil } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14)).foregroundStyle(Color.secondary.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 16)
+            } else {
+                Button { withAnimation(.spring(response: 0.25)) { showTimerTaskPicker.toggle() } } label: {
+                    Label("Fokusaufgabe verknüpfen", systemImage: "link")
+                        .font(.system(size: 12)).foregroundStyle(accent.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if showTimerTaskPicker {
+                VStack(spacing: 0) {
+                    ForEach(todoStore.activeTodos.prefix(5)) { task in
+                        Button {
+                            timerMgr.linkedTaskID = task.id
+                            withAnimation { showTimerTaskPicker = false }
+                        } label: {
+                            HStack {
+                                Text(task.title).font(.system(size: 12)).lineLimit(1).foregroundStyle(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if task.id != todoStore.activeTodos.prefix(5).last?.id {
+                            Divider().opacity(0.1).padding(.leading, 12)
+                        }
+                    }
+                    if todoStore.activeTodos.isEmpty {
+                        Text("Keine offenen Aufgaben").font(.system(size: 12))
+                            .foregroundStyle(.secondary).padding(12)
+                    }
+                }
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
     // MARK: - Tasks Tab
 
+    private var filteredTasks: [MacTodoItem] {
+        var tasks = thisMonthActiveTodos
+        if let pf = priorityFilter { tasks = tasks.filter { $0.priority == pf } }
+        if !searchText.isEmpty { tasks = tasks.filter { $0.title.localizedCaseInsensitiveContains(searchText) } }
+        return tasks
+    }
+
+    private var filteredCompletedTasks: [MacTodoItem] {
+        let cal = Calendar.current
+        let now = Date()
+        var tasks = todoStore.todos.filter {
+            $0.isCompleted &&
+            (($0.dueDate == nil) || $0.dueDate.map { cal.isDate($0, equalTo: now, toGranularity: .month) } == true)
+        }
+        if let pf = priorityFilter { tasks = tasks.filter { $0.priority == pf } }
+        if !searchText.isEmpty { tasks = tasks.filter { $0.title.localizedCaseInsensitiveContains(searchText) } }
+        return tasks.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
     private var tasksTab: some View {
-        let today = todoStore.todayTodos
-        let open  = today.filter { !$0.isCompleted }.count
-        return VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header row
             HStack {
-                Text("Today")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                Text(currentMonthLabel)
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
-                if open > 0 {
-                    Text("\(open) open")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(accent)
+                if filteredTasks.count > 0 {
+                    Text("\(filteredTasks.count) offen")
+                        .font(.system(size: 11, weight: .medium)).foregroundStyle(accent)
                         .padding(.horizontal, 8).padding(.vertical, 2)
                         .background(accent.opacity(0.12), in: Capsule())
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+                Button {
+                    withAnimation(.spring(response: 0.25)) { showCompleted.toggle() }
+                } label: {
+                    Image(systemName: showCompleted ? "checkmark.circle.fill" : "checkmark.circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(showCompleted ? accent : Color.secondary.opacity(0.6))
+                }
+                .buttonStyle(.plain).help("Erledigte anzeigen")
 
-            if today.isEmpty {
-                emptyState(icon: "checkmark.circle.fill", text: "Nothing due today")
+                Button {
+                    withAnimation(.spring(response: 0.3)) { showingAddForm = true }
+                } label: {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 18)).foregroundStyle(accent)
+                }
+                .buttonStyle(.plain).help("Neue Aufgabe (⌘N)")
+            }
+            .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
+
+            // Search bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(.secondary)
+                TextField("Suchen…", text: $searchText)
+                    .textFieldStyle(.plain).font(.system(size: 13))
+                if !searchText.isEmpty {
+                    Button { searchText = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12)).foregroundStyle(Color.secondary.opacity(0.5))
+                    }.buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            .padding(.horizontal, 16).padding(.bottom, 8)
+
+            // Priority filter chips
+            HStack(spacing: 6) {
+                priorityChip(nil, label: "Alle")
+                ForEach(MacTodoPriority.allCases, id: \.self) { p in
+                    let rgb = p.color
+                    let c = Color(red: rgb.0, green: rgb.1, blue: rgb.2)
+                    priorityChip(p, label: p.label, color: c)
+                }
+            }
+            .padding(.horizontal, 16).padding(.bottom, 10)
+
+            // Task list
+            if filteredTasks.isEmpty && !showCompleted {
+                emptyState(icon: "checkmark.circle.fill",
+                           text: searchText.isEmpty ? "Keine offenen Aufgaben diesen Monat" : "Keine Treffer")
             } else {
                 VStack(spacing: 0) {
-                    ForEach(today.prefix(7)) { todo in
-                        taskRow(todo)
+                    ForEach(filteredTasks) { taskRow($0) }
+                }
+
+                if showCompleted {
+                    if !filteredTasks.isEmpty {
+                        HStack {
+                            Rectangle().fill(Color.primary.opacity(0.1)).frame(height: 1)
+                            Text("Erledigt").font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.secondary).fixedSize()
+                            Rectangle().fill(Color.primary.opacity(0.1)).frame(height: 1)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 6)
+                    }
+                    if filteredCompletedTasks.isEmpty {
+                        emptyState(icon: "tray", text: "Keine erledigten Aufgaben")
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(filteredCompletedTasks) { taskRow($0) }
+                        }
                     }
                 }
             }
@@ -227,43 +923,141 @@ struct MenuBarContentView: View {
         }
     }
 
+    private func priorityChip(_ priority: MacTodoPriority?, label: String, color: Color = .secondary) -> some View {
+        let selected = priorityFilter == priority
+        return Button {
+            withAnimation(.spring(response: 0.22)) { priorityFilter = priority }
+        } label: {
+            HStack(spacing: 4) {
+                if let p = priority {
+                    let rgb = p.color
+                    Circle().fill(Color(red: rgb.0, green: rgb.1, blue: rgb.2)).frame(width: 6, height: 6)
+                }
+                Text(label).font(.system(size: 11, weight: selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? (priority == nil ? accent : color) : Color.secondary)
+            }
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(
+                selected ? (priority == nil ? accent : color).opacity(0.14) : Color.primary.opacity(0.05),
+                in: Capsule()
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func taskRow(_ todo: MacTodoItem) -> some View {
-        HStack(spacing: 10) {
-            Button { todoStore.toggle(todo) } label: {
-                ZStack {
-                    Circle()
-                        .stroke(todo.isCompleted ? Color.green : Color.secondary.opacity(0.4), lineWidth: 1.5)
-                        .frame(width: 18, height: 18)
-                    if todo.isCompleted {
-                        Circle().fill(Color.green).frame(width: 18, height: 18)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.white)
+        let isExpanded = expandedTaskID == todo.id
+        let doneCount  = todo.subTasks.filter(\.isCompleted).count
+        let totalCount = todo.subTasks.count
+
+        return VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                // Main checkmark
+                Button { todoStore.toggle(todo) } label: {
+                    ZStack {
+                        Circle()
+                            .stroke(todo.isCompleted ? Color.green : Color.secondary.opacity(0.4), lineWidth: 1.5)
+                            .frame(width: 18, height: 18)
+                        if todo.isCompleted {
+                            Circle().fill(Color.green).frame(width: 18, height: 18)
+                            Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                        }
                     }
                 }
+                .buttonStyle(.plain)
+
+                // Title + subtask pill — tapping expands
+                Button {
+                    guard totalCount > 0 else { return }
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                        expandedTaskID = isExpanded ? nil : todo.id
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(todo.title)
+                            .font(.system(size: 13))
+                            .strikethrough(todo.isCompleted, color: .secondary)
+                            .foregroundStyle(todo.isCompleted ? Color.secondary.opacity(0.5) : Color.primary)
+                            .lineLimit(1)
+
+                        if totalCount > 0 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "checklist").font(.system(size: 9))
+                                Text("\(doneCount)/\(totalCount)")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundStyle(doneCount == totalCount ? Color.green : accent)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background((doneCount == totalCount ? Color.green : accent).opacity(0.13), in: Capsule())
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 0)
+
+                if totalCount > 0 {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.secondary.opacity(0.5))
+                }
+
+                if todo.priority == .high && !todo.isCompleted {
+                    RoundedRectangle(cornerRadius: 3).fill(Color.orange).frame(width: 3, height: 14)
+                }
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Color.primary.opacity(0.001).contentShape(Rectangle()))
 
-            Text(todo.title)
-                .font(.system(size: 13))
-                .strikethrough(todo.isCompleted, color: .secondary)
-                .foregroundStyle(todo.isCompleted ? Color.secondary.opacity(0.5) : Color.primary)
-                .lineLimit(1)
+            // Expanded subtask list
+            if isExpanded && totalCount > 0 {
+                VStack(spacing: 0) {
+                    ForEach(todo.subTasks) { sub in
+                        HStack(spacing: 8) {
+                            // Indent
+                            Rectangle().fill(Color.clear).frame(width: 28)
 
-            Spacer()
+                            Button {
+                                var updated = todo
+                                if let idx = updated.subTasks.firstIndex(where: { $0.id == sub.id }) {
+                                    updated.subTasks[idx].isCompleted.toggle()
+                                    todoStore.update(updated)
+                                }
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .stroke(sub.isCompleted ? Color.green : Color.secondary.opacity(0.35), lineWidth: 1.5)
+                                        .frame(width: 15, height: 15)
+                                    if sub.isCompleted {
+                                        Circle().fill(Color.green).frame(width: 15, height: 15)
+                                        Image(systemName: "checkmark").font(.system(size: 7, weight: .bold)).foregroundStyle(.white)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
 
-            if todo.priority == .high && !todo.isCompleted {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.orange)
-                    .frame(width: 3, height: 14)
+                            Text(sub.title)
+                                .font(.system(size: 12))
+                                .strikethrough(sub.isCompleted, color: .secondary)
+                                .foregroundStyle(sub.isCompleted ? Color.secondary.opacity(0.45) : Color.primary.opacity(0.8))
+                                .lineLimit(1)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 5)
+                        .background(Color.primary.opacity(0.001).contentShape(Rectangle()))
+
+                        if sub.id != todo.subTasks.last?.id {
+                            Divider().opacity(0.08).padding(.leading, 56)
+                        }
+                    }
+                }
+                .background(Color.primary.opacity(0.03))
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(
-            Color.primary.opacity(0.001)
-                .contentShape(Rectangle())
-        )
     }
 
     // MARK: - Planner Tab
@@ -273,22 +1067,18 @@ struct MenuBarContentView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(shortDateString)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(today.count) task\(today.count == 1 ? "" : "s")")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                Text("\(today.count) Aufgabe\(today.count == 1 ? "" : "n")")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
 
             if today.isEmpty {
-                emptyState(icon: "calendar.badge.checkmark", text: "Nothing scheduled")
+                emptyState(icon: "calendar.badge.checkmark", text: "Nichts für heute geplant")
             } else {
                 VStack(spacing: 0) {
-                    ForEach(today.prefix(6)) { todo in
+                    ForEach(today) { todo in
                         HStack(spacing: 10) {
                             Button { todoStore.toggle(todo) } label: {
                                 ZStack {
@@ -297,14 +1087,11 @@ struct MenuBarContentView: View {
                                         .frame(width: 18, height: 18)
                                     if todo.isCompleted {
                                         Circle().fill(Color.green).frame(width: 18, height: 18)
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .foregroundStyle(.white)
+                                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
                                     }
                                 }
                             }
                             .buttonStyle(.plain)
-
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(todo.title)
                                     .font(.system(size: 12, weight: .medium))
@@ -313,18 +1100,15 @@ struct MenuBarContentView: View {
                                     .lineLimit(1)
                                 if let due = todo.dueDate {
                                     Text(timeString(due))
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(accent.opacity(0.8))
+                                        .font(.system(size: 10)).foregroundStyle(accent.opacity(0.8))
                                 }
                             }
                             Spacer()
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 16).padding(.vertical, 6)
                     }
                 }
             }
-
             Spacer(minLength: 10)
         }
     }
@@ -332,114 +1116,123 @@ struct MenuBarContentView: View {
     // MARK: - Stats Tab
 
     private var statsTab: some View {
-        let cal = Calendar.current
-        let completedToday = todoStore.todos.filter {
-            $0.isCompleted && cal.isDateInToday($0.updatedAt)
-        }.count
-
-        return VStack(spacing: 10) {
+        VStack(spacing: 10) {
             HStack(spacing: 10) {
-                statCard(label: "Done today",   value: "\(completedToday)",                 color: .green,              icon: "checkmark.circle.fill")
-                statCard(label: "Overdue",      value: "\(todoStore.overdueTodos.count)",    color: .red,                icon: "exclamationmark.circle.fill")
+                statCard(label: "Erledigt",   value: "\(completedThisMonth)",        color: .green,              icon: "checkmark.circle.fill")
+                statCard(label: "Überfällig", value: "\(thisMonthOverdueTodos.count)", color: .red,              icon: "exclamationmark.circle.fill")
             }
             HStack(spacing: 10) {
-                statCard(label: "Open tasks",   value: "\(todoStore.activeTodos.count)",     color: accent,              icon: "circle.dotted")
-                statCard(label: "Sessions",     value: "\(timerMgr.sessionCount)",           color: timerMgr.mode.color, icon: "timer")
+                statCard(label: "Offen",      value: "\(thisMonthActiveTodos.count)", color: accent,             icon: "circle.dotted")
+                statCard(label: "Sessions",   value: "\(timerMgr.sessionCount)",      color: timerMgr.mode.color, icon: "timer")
             }
+            Text(currentMonthLabel)
+                .font(.system(size: 10)).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 14).padding(.vertical, 14)
     }
 
     private func statCard(label: String, value: String, color: Color, icon: String) -> some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(color.opacity(0.13))
-                    .frame(width: 36, height: 36)
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(color)
+                RoundedRectangle(cornerRadius: 9).fill(color.opacity(0.13)).frame(width: 36, height: 36)
+                Image(systemName: icon).font(.system(size: 16, weight: .semibold)).foregroundStyle(color)
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(color)
-                Text(label)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                Text(value).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(color)
+                Text(label).font(.system(size: 10)).foregroundStyle(.secondary)
             }
             Spacer()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12).padding(.vertical, 10)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(color.opacity(0.18), lineWidth: 1)
-        )
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.18), lineWidth: 1))
         .frame(maxWidth: .infinity)
     }
 
     // MARK: - Bottom Tab Bar
 
     private var bottomTabBar: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 0) {
             ForEach(MenuBarTab.allCases, id: \.self) { tab in
                 Button {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
-                        activeTab = tab
-                    }
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) { activeTab = tab }
                 } label: {
-                    ZStack {
+                    VStack(spacing: 2) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 12, weight: activeTab == tab ? .semibold : .regular))
+                            .foregroundStyle(activeTab == tab ? accent : Color.secondary.opacity(0.6))
+                        Text(tab.label)
+                            .font(.system(size: 9, weight: activeTab == tab ? .semibold : .regular))
+                            .foregroundStyle(activeTab == tab ? accent : Color.secondary.opacity(0.6))
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Group {
                         if activeTab == tab {
-                            RoundedRectangle(cornerRadius: 9)
-                                .fill(accent.opacity(0.14))
+                            RoundedRectangle(cornerRadius: 7).fill(accent.opacity(0.14))
                                 .matchedGeometryEffect(id: "tabBG", in: tabNS)
                         }
-                        VStack(spacing: 3) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 14, weight: activeTab == tab ? .semibold : .regular))
-                                .foregroundStyle(activeTab == tab ? accent : Color.secondary.opacity(0.6))
-                            if activeTab == tab {
-                                Circle()
-                                    .fill(accent)
-                                    .frame(width: 3, height: 3)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
-                        }
-                        .frame(height: 38)
-                    }
+                    })
                     .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 8).padding(.vertical, 5)
     }
 
     // MARK: - Empty State
 
     private func emptyState(icon: String, text: String) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 26))
-                .foregroundStyle(accent.opacity(0.45))
-            Text(text)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+            Image(systemName: icon).font(.system(size: 26)).foregroundStyle(accent.opacity(0.45))
+            Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity).padding(.vertical, 28)
+    }
+
+    // MARK: - Month filter helpers
+
+    private var thisMonthActiveTodos: [MacTodoItem] {
+        let cal = Calendar.current
+        let now = Date()
+        return todoStore.activeTodos.filter { todo in
+            guard let due = todo.dueDate else { return true }
+            return cal.isDate(due, equalTo: now, toGranularity: .month)
+        }
+    }
+
+    private var thisMonthOverdueTodos: [MacTodoItem] {
+        let cal = Calendar.current
+        let now = Date()
+        return todoStore.overdueTodos.filter { todo in
+            guard let due = todo.dueDate else { return false }
+            return cal.isDate(due, equalTo: now, toGranularity: .month)
+        }
+    }
+
+    private var completedThisMonth: Int {
+        let cal = Calendar.current
+        let now = Date()
+        return todoStore.todos.filter {
+            $0.isCompleted && cal.isDate($0.updatedAt, equalTo: now, toGranularity: .month)
+        }.count
+    }
+
+    private var currentMonthLabel: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "MMMM"
+        return f.string(from: Date())
     }
 
     // MARK: - Helpers
 
     private var shortDateString: String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
-        f.dateFormat = "EEE, MMM d"
+        f.locale = Locale(identifier: "de_DE")
+        f.dateFormat = "EEE, d. MMM"
         return f.string(from: Date())
     }
 

@@ -12,6 +12,7 @@ struct FokusJournalView: View {
     @State private var showAIAnalysis = false
     @State private var aiAnalysisText = ""
     @State private var isLoadingAI = false
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var last7Days: [Date] {
         let cal = Calendar.current
@@ -112,10 +113,10 @@ struct FokusJournalView: View {
     private var headerSection: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Focus Journal")
+                Text(localizer.localizedString(forKey: "journal_title"))
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(.white)
-                Text("\(store.entries.count) entries total")
+                Text(String(format: localizer.localizedString(forKey: "journal_entries_total"), store.entries.count))
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.45))
             }
@@ -141,10 +142,10 @@ struct FokusJournalView: View {
                 Text("✍️")
                     .font(.system(size: 28))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("How was your day?")
+                    Text(localizer.localizedString(forKey: "journal_today_prompt_title"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text("Write today's reflection")
+                    Text(localizer.localizedString(forKey: "journal_today_prompt_subtitle"))
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.5))
                 }
@@ -178,7 +179,7 @@ struct FokusJournalView: View {
         let cal = Calendar.current
 
         return VStack(alignment: .leading, spacing: 14) {
-            Text("This Week")
+            Text(localizer.localizedString(forKey: "journal_this_week"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
 
@@ -222,12 +223,12 @@ struct FokusJournalView: View {
             if count > 0 {
                 Divider().background(.white.opacity(0.08))
                 HStack(spacing: 0) {
-                    weekStatItem(value: "\(count)/7", label: "Days")
+                    weekStatItem(value: "\(count)/7", label: localizer.localizedString(forKey: "journal_days_label"))
                     if avgMood > 0 {
                         Divider().frame(height: 28).background(.white.opacity(0.1))
                         weekStatItem(
                             value: String(format: "%.1f", avgMood),
-                            label: "Ø Mood",
+                            label: localizer.localizedString(forKey: "journal_mood_avg_label"),
                             color: moodColor(for: avgMood)
                         )
                     }
@@ -235,7 +236,7 @@ struct FokusJournalView: View {
                         Divider().frame(height: 28).background(.white.opacity(0.1))
                         weekStatItem(
                             value: hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m",
-                            label: "Focus time"
+                            label: localizer.localizedString(forKey: "journal_focus_time_label")
                         )
                     }
                 }
@@ -274,7 +275,7 @@ struct FokusJournalView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(sub.isPro ? accent : .gray)
                     .symbolEffect(.variableColor, isActive: isLoadingAI)
-                Text(isLoadingAI ? "Analyzing..." : "AI Weekly Analysis")
+                Text(isLoadingAI ? localizer.localizedString(forKey: "journal_ai_analyzing") : localizer.localizedString(forKey: "journal_ai_weekly_analysis"))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(sub.isPro ? .white : .white.opacity(0.4))
                 Spacer()
@@ -309,10 +310,10 @@ struct FokusJournalView: View {
         VStack(spacing: 14) {
             Text("📓")
                 .font(.system(size: 48))
-            Text("No entries yet")
+            Text(localizer.localizedString(forKey: "journal_empty_title"))
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("Daily record what went well, what distracted you and what matters tomorrow.")
+            Text(localizer.localizedString(forKey: "journal_empty_subtitle"))
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.4))
                 .multilineTextAlignment(.center)
@@ -330,7 +331,7 @@ struct FokusJournalView: View {
             HStack(spacing: 10) {
                 Image(systemName: "lock.fill")
                     .foregroundStyle(accent)
-                Text("Unlock Pro for full history")
+                Text(localizer.localizedString(forKey: "journal_pro_unlock"))
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.7))
                 Spacer()
@@ -353,7 +354,7 @@ struct FokusJournalView: View {
                 HStack {
                     Image(systemName: "sparkles")
                         .foregroundStyle(accent)
-                    Text("AI Weekly Analysis")
+                    Text(localizer.localizedString(forKey: "journal_ai_weekly_analysis"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
                     Spacer()
@@ -418,7 +419,7 @@ struct FokusJournalView: View {
                 }
             } catch {
                 await MainActor.run {
-                    aiAnalysisText = "AI not available. Please check your API key in Settings."
+                    aiAnalysisText = LocalizationManager.shared.localizedString(forKey: "journal_ai_unavailable")
                     isLoadingAI = false
                     showAIAnalysis = true
                 }
@@ -434,6 +435,7 @@ struct JournalEntryCard: View {
     let accent: Color
     let onEdit: () -> Void
     let onDelete: () -> Void
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var isExpanded = false
 
@@ -485,21 +487,21 @@ struct JournalEntryCard: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     if !entry.wentWell.isEmpty {
-                        journalField(label: "✅ What went well", text: entry.wentWell)
+                        journalField(label: localizer.localizedString(forKey: "journal_card_went_well"), text: entry.wentWell)
                     }
                     if !entry.distraction.isEmpty {
-                        journalField(label: "⚡ Distraction", text: entry.distraction)
+                        journalField(label: localizer.localizedString(forKey: "journal_card_distraction"), text: entry.distraction)
                     }
                     if !entry.tomorrowPriority.isEmpty {
-                        journalField(label: "🎯 Tomorrow's goal", text: entry.tomorrowPriority)
+                        journalField(label: localizer.localizedString(forKey: "journal_card_tomorrow"), text: entry.tomorrowPriority)
                     }
 
                     HStack {
-                        Button("Edit") { onEdit() }
+                        Button(localizer.localizedString(forKey: "journal_card_edit")) { onEdit() }
                             .font(.system(size: 13))
                             .foregroundStyle(accent)
                         Spacer()
-                        Button("Delete", role: .destructive) { onDelete() }
+                        Button(localizer.localizedString(forKey: "journal_card_delete"), role: .destructive) { onDelete() }
                             .font(.system(size: 13))
                             .foregroundStyle(.red.opacity(0.7))
                     }
@@ -540,6 +542,7 @@ struct JournalEntrySheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = JournalStore.shared
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var selectedDate: Date = Date()
     @State private var moodScore: Int = 3
@@ -562,7 +565,7 @@ struct JournalEntrySheet: View {
                     VStack(spacing: 24) {
                         // Mood selector
                         VStack(spacing: 12) {
-                            Text("Wie war dein Tag?")
+                            Text(localizer.localizedString(forKey: "journal_mood_question"))
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(.white)
 
@@ -597,7 +600,7 @@ struct JournalEntrySheet: View {
                             HStack {
                                 Image(systemName: "calendar")
                                     .foregroundStyle(accent)
-                                Text("Datum")
+                                Text(localizer.localizedString(forKey: "journal_date_label"))
                                     .font(.system(size: 15))
                                     .foregroundStyle(.white)
                                 Spacer()
@@ -619,7 +622,7 @@ struct JournalEntrySheet: View {
                         HStack {
                             Image(systemName: "timer")
                                 .foregroundStyle(accent)
-                            Text("Heute fokussiert")
+                            Text(localizer.localizedString(forKey: "journal_focus_today_label"))
                                 .font(.system(size: 15))
                                 .foregroundStyle(.white)
                             Spacer()
@@ -634,20 +637,20 @@ struct JournalEntrySheet: View {
                         // Text fields
                         journalField(
                             emoji: "✅",
-                            label: "Was lief heute gut?",
-                            placeholder: "Erfolgserlebnisse, Fortschritte...",
+                            label: localizer.localizedString(forKey: "journal_went_well_label"),
+                            placeholder: localizer.localizedString(forKey: "journal_went_well_placeholder"),
                             text: $wentWell
                         )
                         journalField(
                             emoji: "⚡",
-                            label: "What distracted me?",
-                            placeholder: "Disruptions, energy drains...",
+                            label: localizer.localizedString(forKey: "journal_distraction_label"),
+                            placeholder: localizer.localizedString(forKey: "journal_distraction_placeholder"),
                             text: $distraction
                         )
                         journalField(
                             emoji: "🎯",
-                            label: "My most important goal for tomorrow",
-                            placeholder: "The one task that counts...",
+                            label: localizer.localizedString(forKey: "journal_tomorrow_label"),
+                            placeholder: localizer.localizedString(forKey: "journal_tomorrow_placeholder"),
                             text: $tomorrowPriority
                         )
                     }
@@ -655,16 +658,16 @@ struct JournalEntrySheet: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle(existing == nil ? "Daily Review" : "Edit Entry")
+            .navigationTitle(existing == nil ? localizer.localizedString(forKey: "journal_entry_sheet_new_title") : localizer.localizedString(forKey: "journal_entry_sheet_edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(localizer.localizedString(forKey: "journal_cancel")) { dismiss() }
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") { save() }
+                    Button(localizer.localizedString(forKey: "journal_save")) { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(accent)
                 }

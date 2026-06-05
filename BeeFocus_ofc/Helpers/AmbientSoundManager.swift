@@ -11,22 +11,24 @@ enum AmbientSound: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var label: String {
+        let l = LocalizationManager.shared
         switch self {
-        case .off:           return "Silence"
-        case .whiteNoise:    return "White Noise"
-        case .brownNoise:    return "Ocean Waves"
-        case .binauralFocus: return "Focus Beats"
-        case .binauralRelax: return "Relax Beats"
+        case .off:           return l.localizedString(forKey: "ambient_sound_off")
+        case .whiteNoise:    return l.localizedString(forKey: "ambient_sound_white_noise")
+        case .brownNoise:    return l.localizedString(forKey: "ambient_sound_brown_noise")
+        case .binauralFocus: return l.localizedString(forKey: "ambient_sound_binaural_focus")
+        case .binauralRelax: return l.localizedString(forKey: "ambient_sound_binaural_relax")
         }
     }
 
     var subtitle: String {
+        let l = LocalizationManager.shared
         switch self {
-        case .off:           return "No Sound"
-        case .whiteNoise:    return "Steady, distraction-free"
-        case .brownNoise:    return "Deep, warm noise"
-        case .binauralFocus: return "40 Hz Gamma · Concentration"
-        case .binauralRelax: return "6 Hz Theta · Relaxation"
+        case .off:           return l.localizedString(forKey: "ambient_sub_off")
+        case .whiteNoise:    return l.localizedString(forKey: "ambient_sub_white")
+        case .brownNoise:    return l.localizedString(forKey: "ambient_sub_brown")
+        case .binauralFocus: return l.localizedString(forKey: "ambient_sub_focus")
+        case .binauralRelax: return l.localizedString(forKey: "ambient_sub_relax")
         }
     }
 

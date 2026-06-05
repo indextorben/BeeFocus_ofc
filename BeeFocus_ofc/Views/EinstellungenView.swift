@@ -226,7 +226,7 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "globe", label: localizer.localizedString(forKey: "Sprache"), color: .green) {
                             spracheCard
                         }
-                        sectionGroup(icon: "folder.fill", label: "Folders", color: .indigo) {
+                        sectionGroup(icon: "folder.fill", label: localizer.localizedString(forKey: "folders_section"), color: .indigo) {
                             ordnerLinkCard
                         }
                         sectionGroup(icon: "tag.fill", label: localizer.localizedString(forKey: "Kategorien"), color: .purple) {
@@ -256,7 +256,7 @@ struct EinstellungenView: View {
                         sectionGroup(icon: "sparkles", label: String(localized: "ki_settings_title"), color: .purple) {
                             kiCard
                         }
-                        sectionGroup(icon: "headphones", label: "Ambient Sounds", color: Color(red: 0.4, green: 0.6, blue: 1.0)) {
+                        sectionGroup(icon: "headphones", label: "Ambient Sounds", color: Color(red: 0.4, green: 0.6, blue: 1.0)) { // name stays as-is (brand)
                             ambientSoundsCard
                         }
                         sectionGroup(icon: "envelope.fill", label: localizer.localizedString(forKey: "Feedback / Verbesserungen"), color: .teal) {
@@ -435,10 +435,12 @@ struct EinstellungenView: View {
                 HStack(spacing: 12) {
                     iconBadge(icon: "folder.fill", color: .indigo)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Manage folders")
+                        Text(localizer.localizedString(forKey: "manage_folders"))
                             .font(.system(size: 16))
                         let customCount = todoStore.customFolders.count
-                        Text(customCount == 0 ? "No custom folders" : "\(customCount) custom folders")
+                        Text(customCount == 0
+                             ? localizer.localizedString(forKey: "no_custom_folders")
+                             : String(format: localizer.localizedString(forKey: "custom_folders_count"), customCount))
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
@@ -458,7 +460,7 @@ struct EinstellungenView: View {
             cardDivider()
             iconToggleRow(icon: "clock.arrow.circlepath", color: .blue, label: localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
             cardDivider()
-            iconToggleRow(icon: "calendar", color: .orange, label: "Show current month only", isOn: $filterCurrentMonthOnly)
+            iconToggleRow(icon: "calendar", color: .orange, label: localizer.localizedString(forKey: "show_current_month_only"), isOn: $filterCurrentMonthOnly)
         }
     }
 
@@ -468,7 +470,7 @@ struct EinstellungenView: View {
                 WidgetEinstellungenView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "rectangle.stack.fill", color: .blue, label: "Customize widget")
+                iconNavRow(icon: "rectangle.stack.fill", color: .blue, label: localizer.localizedString(forKey: "customize_widget"))
             }
         }
     }
@@ -479,11 +481,13 @@ struct EinstellungenView: View {
                 HStack(spacing: 12) {
                     iconBadge(icon: "bell.badge.fill", color: .red)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Notifications")
+                        Text(localizer.localizedString(forKey: "Benachrichtigungen"))
                             .font(.system(size: 16))
                             .foregroundStyle(.primary)
                         let active = activeNotificationCount
-                        Text(active == 0 ? "None active" : "\(active) active")
+                        Text(active == 0
+                             ? localizer.localizedString(forKey: "notifications_none_active")
+                             : String(format: localizer.localizedString(forKey: "notifications_active_count"), active))
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                     }
@@ -551,17 +555,17 @@ struct EinstellungenView: View {
 
     private var synchronisationCard: some View {
         glassCard {
-            iconButtonRow(icon: "arrow.triangle.2.circlepath", color: .blue, label: "Sync now") {
+            iconButtonRow(icon: "arrow.triangle.2.circlepath", color: .blue, label: localizer.localizedString(forKey: "sync_now")) {
                 CloudKitManager.shared.syncNow(todoStore: todoStore) { todosChanged, dailyChanged, focusChanged in
                     bannerColor = .green
                     showBanner(message: String(format: localizer.localizedString(forKey: "Sync: %d Todos, %d Tage, %d Fokus-Tage aktualisiert"), todosChanged, dailyChanged, focusChanged))
                 }
             }
             cardDivider()
-            iconButtonRow(icon: "arrow.clockwise.circle.fill", color: .teal, label: "Force Full Sync") {
+            iconButtonRow(icon: "arrow.clockwise.circle.fill", color: .teal, label: localizer.localizedString(forKey: "force_full_sync")) {
                 todoStore.forceFullSync()
                 bannerColor = .blue
-                showBanner(message: "Force sync started...")
+                showBanner(message: localizer.localizedString(forKey: "force_sync_started"))
             }
             cardDivider()
             NavigationLink {
@@ -578,26 +582,26 @@ struct EinstellungenView: View {
             iconToggleRow(
                 icon: "calendar.badge.exclamationmark",
                 color: .orange,
-                label: "Skip overdue on import",
+                label: localizer.localizedString(forKey: "skip_overdue_on_import"),
                 isOn: $skipOverdueOnImport
             )
             cardDivider()
             iconToggleRow(
                 icon: "arrow.triangle.2.circlepath.circle.fill",
                 color: .blue,
-                label: "Auto-sync calendar",
+                label: localizer.localizedString(forKey: "auto_sync_calendar"),
                 isOn: $autoCalendarSyncEnabled
             )
             if autoCalendarSyncEnabled {
                 cardDivider()
                 HStack(spacing: 12) {
                     iconBadge(icon: "clock.arrow.2.circlepath", color: .teal)
-                    Text("Sync range")
+                    Text(localizer.localizedString(forKey: "sync_range"))
                         .font(.system(size: 16))
                     Spacer()
                     Picker("", selection: $autoCalendarSyncRange) {
-                        Text("Cur. month").tag(1)
-                        Text("1 Year").tag(12)
+                        Text(localizer.localizedString(forKey: "sync_range_cur_month")).tag(1)
+                        Text(localizer.localizedString(forKey: "sync_range_1_year")).tag(12)
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
@@ -610,7 +614,7 @@ struct EinstellungenView: View {
                 KalenderImporteDetailView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "calendar.badge.minus", color: .red, label: "Delete calendar imports")
+                iconNavRow(icon: "calendar.badge.minus", color: .red, label: localizer.localizedString(forKey: "delete_calendar_imports_label"))
             }
         }
     }
@@ -685,20 +689,20 @@ struct EinstellungenView: View {
                 UeberfaelligeDetailView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "calendar.badge.minus", color: .orange, label: "Delete overdue")
+                iconNavRow(icon: "calendar.badge.minus", color: .orange, label: localizer.localizedString(forKey: "delete_overdue_label"))
             }
             cardDivider()
             NavigationLink {
                 DuplikateDetailView()
                     .environmentObject(todoStore)
             } label: {
-                iconNavRow(icon: "doc.on.doc.fill", color: .purple, label: "Delete duplicates")
+                iconNavRow(icon: "doc.on.doc.fill", color: .purple, label: localizer.localizedString(forKey: "delete_duplicates_label"))
             }
             cardDivider()
             NavigationLink {
                 KalenderLoeschenView()
             } label: {
-                iconNavRow(icon: "calendar.badge.minus", color: .teal, label: "Delete calendar entries")
+                iconNavRow(icon: "calendar.badge.minus", color: .teal, label: localizer.localizedString(forKey: "delete_calendar_entries_label"))
             }
         }
     }
@@ -819,7 +823,7 @@ struct EinstellungenView: View {
                                     .background(Color(red: 0.55, green: 0.35, blue: 1.0), in: Capsule())
                             }
                         }
-                        Text(manager.isPlaying ? manager.currentSound.label : "White noise · Binaural beats · more")
+                        Text(manager.isPlaying ? manager.currentSound.label : localizer.localizedString(forKey: "ambient_sounds_subtitle"))
                             .font(.system(size: 12))
                             .foregroundStyle(manager.isPlaying
                                              ? manager.currentSound.color
@@ -852,10 +856,10 @@ struct EinstellungenView: View {
                 HStack(spacing: 12) {
                     iconBadge(icon: "person.fill", color: .blue)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("My Profile")
+                        Text(localizer.localizedString(forKey: "my_profile"))
                             .font(.system(size: 16))
                             .foregroundStyle(.primary)
-                        Text("Instagram, Email & more")
+                        Text(localizer.localizedString(forKey: "profile_subtitle"))
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
@@ -895,16 +899,16 @@ struct EinstellungenView: View {
                             .foregroundStyle(darkModeEnabled ? .white : .primary)
                         if sub.isPro {
                             if let exp = sub.expirationDate {
-                                Text("Active until \(exp.formatted(.dateTime.day().month().year()))")
+                                Text(String(format: localizer.localizedString(forKey: "pro_active_until"), exp.formatted(.dateTime.day().month().year())))
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
                             } else {
-                                Text("Active – thank you for your support!")
+                                Text(localizer.localizedString(forKey: "pro_active_lifetime"))
                                     .font(.system(size: 12))
                                     .foregroundStyle(.secondary)
                             }
                         } else {
-                            Text("Unlock all features")
+                            Text(localizer.localizedString(forKey: "pro_unlock_features"))
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
                         }
@@ -913,7 +917,7 @@ struct EinstellungenView: View {
                     Spacer()
 
                     if !sub.isPro {
-                        Text("Upgrade")
+                        Text(localizer.localizedString(forKey: "pro_upgrade"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -939,7 +943,7 @@ struct EinstellungenView: View {
                     HStack {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 13))
-                        Text("Manage / cancel subscription")
+                        Text(localizer.localizedString(forKey: "pro_manage_subscription"))
                             .font(.system(size: 14))
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -999,7 +1003,7 @@ struct EinstellungenView: View {
     private var datenschutzCard: some View {
         HStack(spacing: 20) {
             Link(destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/datenschutz.html")!) {
-                Text("Privacy Policy")
+                Text(localizer.localizedString(forKey: "privacy_policy"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .underline()
@@ -1008,7 +1012,7 @@ struct EinstellungenView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
             Link(destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/nutzungsbedingungen.html")!) {
-                Text("Terms of Use")
+                Text(localizer.localizedString(forKey: "terms_of_use"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .underline()
@@ -1163,8 +1167,8 @@ struct EinstellungenView: View {
     // MARK: - Feedback Email
     private func sendFeedbackEmail() {
         let email = "lehneketorben@gmail.com"
-        let subject = "Feedback for BeeFocus"
-        let body = "Hello,\n\nHere is my feedback or suggestion:\n"
+        let subject = localizer.localizedString(forKey: "feedback_email_subject")
+        let body = localizer.localizedString(forKey: "feedback_email_body")
 
         if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
             if UIApplication.shared.canOpenURL(url) {
@@ -1231,24 +1235,24 @@ struct KategorieDedupDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("What happens?")
+                    Text(localizer.localizedString(forKey: "dedup_what_happens_title"))
                         .font(.headline)
-                    Text("Duplicate categories in the CloudKit database are merged. Tasks are assigned to the remaining category.")
+                    Text(localizer.localizedString(forKey: "dedup_what_happens_text"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Clean up duplicate categories")
+                Text(localizer.localizedString(forKey: "dedup_cleanup_header"))
             }
 
             Section {
-                Text("This function fixes sync errors where the same category exists multiple times in CloudKit. Only category data is affected; no tasks are deleted.")
+                Text(localizer.localizedString(forKey: "dedup_when_useful_text"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("When useful?")
+                Text(localizer.localizedString(forKey: "dedup_when_useful_title"))
             }
 
             Section {
@@ -1288,6 +1292,7 @@ struct KategorieDedupDetailView: View {
 
 struct KalenderImporteDetailView: View {
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var showConfirm = false
     @State private var result: String? = nil
 
@@ -1299,39 +1304,39 @@ struct KalenderImporteDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("What happens?")
+                    Text(localizer.localizedString(forKey: "cal_import_what_happens_title"))
                         .font(.headline)
-                    Text("All tasks imported from the calendar will be deleted. They won't be re-imported on the next sync since their calendar IDs remain stored.")
+                    Text(localizer.localizedString(forKey: "cal_import_what_happens_text"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Delete calendar imports")
+                Text(localizer.localizedString(forKey: "cal_import_section_header"))
             }
 
             Section {
-                Label("\(importCount) calendar task\(importCount == 1 ? "" : "s") found",
+                Label(String(format: localizer.localizedString(forKey: "cal_import_found"), importCount),
                       systemImage: "calendar")
                     .foregroundStyle(importCount > 0 ? .primary : .secondary)
             } header: {
-                Text("Current")
+                Text(localizer.localizedString(forKey: "cal_import_current"))
             }
 
             Section {
-                Text("Useful when imported calendar entries should no longer appear in the task list. The original calendar events remain untouched.")
+                Text(localizer.localizedString(forKey: "cal_import_note_text"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Note")
+                Text(localizer.localizedString(forKey: "cal_import_note_header"))
             }
 
             Section {
                 Button(role: .destructive) {
                     showConfirm = true
                 } label: {
-                    Label("Delete all calendar imports", systemImage: "calendar.badge.minus")
+                    Label(localizer.localizedString(forKey: "cal_import_delete_all_btn"), systemImage: "calendar.badge.minus")
                 }
                 .disabled(importCount == 0)
             }
@@ -1343,24 +1348,27 @@ struct KalenderImporteDetailView: View {
                 }
             }
         }
-        .navigationTitle("Calendar Imports")
+        .navigationTitle(localizer.localizedString(forKey: "cal_import_nav_title"))
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog("Delete Calendar Imports", isPresented: $showConfirm, titleVisibility: .visible) {
-            Button("Delete all", role: .destructive) {
+        .confirmationDialog(localizer.localizedString(forKey: "cal_import_confirm_title"), isPresented: $showConfirm, titleVisibility: .visible) {
+            Button(localizer.localizedString(forKey: "cal_import_confirm_delete"), role: .destructive) {
                 let toDelete = todoStore.todos.filter { $0.calendarEventIdentifier != nil }
                 for todo in toDelete { todoStore.deleteTodo(todo) }
                 let count = toDelete.count
-                result = count > 0 ? "\(count) calendar task\(count == 1 ? "" : "s") deleted" : "No calendar imports found"
+                result = count > 0
+                    ? String(format: localizer.localizedString(forKey: "cal_import_result_deleted"), count)
+                    : localizer.localizedString(forKey: "cal_import_result_none")
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
         } message: {
-            Text("All tasks imported from the calendar will be deleted and won't be re-imported on the next sync.")
+            Text(localizer.localizedString(forKey: "cal_import_confirm_msg"))
         }
     }
 }
 
 struct UeberfaelligeDetailView: View {
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var showConfirm = false
     @State private var result: String? = nil
 
@@ -1376,39 +1384,39 @@ struct UeberfaelligeDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("What happens?")
+                    Text(localizer.localizedString(forKey: "overdue_del_what_happens_title"))
                         .font(.headline)
-                    Text("Incomplete tasks whose due date is more than 1 month in the past will be moved to the trash. Tasks from the last 30 days are kept.")
+                    Text(localizer.localizedString(forKey: "overdue_del_what_happens_text"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Delete overdue tasks")
+                Text(localizer.localizedString(forKey: "overdue_del_header"))
             }
 
             Section {
-                Label("\(overdueCount) overdue task\(overdueCount == 1 ? "" : "s") affected",
+                Label(String(format: localizer.localizedString(forKey: "overdue_del_count"), overdueCount),
                       systemImage: "exclamationmark.triangle")
                     .foregroundStyle(overdueCount > 0 ? .orange : .secondary)
             } header: {
-                Text("Current")
+                Text(localizer.localizedString(forKey: "overdue_del_current"))
             }
 
             Section {
-                Text("Completed tasks are not affected. Tasks without a due date will also not be deleted.")
+                Text(localizer.localizedString(forKey: "overdue_del_exceptions_text"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Exceptions")
+                Text(localizer.localizedString(forKey: "overdue_del_exceptions"))
             }
 
             Section {
                 Button(role: .destructive) {
                     showConfirm = true
                 } label: {
-                    Label("Delete overdue now", systemImage: "trash")
+                    Label(localizer.localizedString(forKey: "overdue_del_btn"), systemImage: "trash")
                 }
                 .disabled(overdueCount == 0)
             }
@@ -1420,30 +1428,31 @@ struct UeberfaelligeDetailView: View {
                 }
             }
         }
-        .navigationTitle("Delete Overdue")
+        .navigationTitle(localizer.localizedString(forKey: "overdue_del_nav_title"))
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog("Delete Overdue Tasks", isPresented: $showConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
+        .confirmationDialog(localizer.localizedString(forKey: "overdue_del_confirm_title"), isPresented: $showConfirm, titleVisibility: .visible) {
+            Button(localizer.localizedString(forKey: "overdue_del_confirm_delete"), role: .destructive) {
                 let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
                 let toDelete = todoStore.todos.filter { todo in
                     guard !todo.isCompleted, let due = todo.dueDate else { return false }
                     return due < oneMonthAgo
                 }
-                for todo in toDelete {
-                    todoStore.deleteTodo(todo)
-                }
+                for todo in toDelete { todoStore.deleteTodo(todo) }
                 let count = toDelete.count
-                result = count > 0 ? "\(count) overdue task\(count == 1 ? "" : "s") deleted" : "No overdue tasks found"
+                result = count > 0
+                    ? String(format: localizer.localizedString(forKey: "overdue_del_result_deleted"), count)
+                    : localizer.localizedString(forKey: "overdue_del_result_none")
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
         } message: {
-            Text("All incomplete tasks with a due date more than 1 month ago will be deleted.")
+            Text(localizer.localizedString(forKey: "overdue_del_confirm_msg"))
         }
     }
 }
 
 struct DuplikateDetailView: View {
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var showConfirm = false
     @State private var result: String? = nil
 
@@ -1462,39 +1471,39 @@ struct DuplikateDetailView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("What happens?")
+                    Text(localizer.localizedString(forKey: "dup_del_what_happens_title"))
                         .font(.headline)
-                    Text("Tasks that share the same title, description, due date, category, and priority are considered duplicates. One copy of each duplicate is deleted; the first one is kept.")
+                    Text(localizer.localizedString(forKey: "dup_del_what_happens_text"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
-                Text("Delete duplicates")
+                Text(localizer.localizedString(forKey: "dup_del_header"))
             }
 
             Section {
-                Label("\(duplicateCount) duplicate\(duplicateCount == 1 ? "" : "s") found",
+                Label(String(format: localizer.localizedString(forKey: "dup_del_count"), duplicateCount),
                       systemImage: "doc.on.doc")
                     .foregroundStyle(duplicateCount > 0 ? .purple : .secondary)
             } header: {
-                Text("Current")
+                Text(localizer.localizedString(forKey: "dup_del_current"))
             }
 
             Section {
-                Text("Duplicates often arise from multiple calendar imports or sync errors. The cleanup is permanent and cannot be undone.")
+                Text(localizer.localizedString(forKey: "dup_del_cause_text"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 2)
             } header: {
-                Text("Cause & Note")
+                Text(localizer.localizedString(forKey: "dup_del_cause"))
             }
 
             Section {
                 Button(role: .destructive) {
                     showConfirm = true
                 } label: {
-                    Label("Remove duplicates now", systemImage: "doc.on.doc.fill")
+                    Label(localizer.localizedString(forKey: "dup_del_btn"), systemImage: "doc.on.doc.fill")
                 }
                 .disabled(duplicateCount == 0)
             }
@@ -1506,10 +1515,10 @@ struct DuplikateDetailView: View {
                 }
             }
         }
-        .navigationTitle("Delete Duplicates")
+        .navigationTitle(localizer.localizedString(forKey: "dup_del_nav_title"))
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog("Delete Duplicates", isPresented: $showConfirm, titleVisibility: .visible) {
-            Button("Remove duplicates", role: .destructive) {
+        .confirmationDialog(localizer.localizedString(forKey: "dup_del_confirm_title"), isPresented: $showConfirm, titleVisibility: .visible) {
+            Button(localizer.localizedString(forKey: "dup_del_confirm_remove"), role: .destructive) {
                 var seenKeys: Set<String> = []
                 var toDelete: [TodoItem] = []
                 for todo in todoStore.todos {
@@ -1519,11 +1528,13 @@ struct DuplikateDetailView: View {
                 }
                 for todo in toDelete { todoStore.deleteTodo(todo) }
                 let count = toDelete.count
-                result = count > 0 ? "\(count) duplicate\(count == 1 ? "" : "s") deleted" : "No duplicates found"
+                result = count > 0
+                    ? String(format: localizer.localizedString(forKey: "dup_del_result_deleted"), count)
+                    : localizer.localizedString(forKey: "dup_del_result_none")
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
         } message: {
-            Text("Identical tasks (same title, description, date, category and priority) will be permanently deleted.")
+            Text(localizer.localizedString(forKey: "dup_del_confirm_msg"))
         }
     }
 }

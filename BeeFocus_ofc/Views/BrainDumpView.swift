@@ -28,6 +28,7 @@ struct BrainDumpView: View {
     @State private var showReflexion = false
     @State private var reflexionText = ""
     @State private var reflexionLoading = false
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var accent: Color {
         aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : appThemaFarben(aktivesThema).0
@@ -98,12 +99,12 @@ struct BrainDumpView: View {
                     }
                 }
             }
-            .navigationTitle("Brain Dump")
+            .navigationTitle(localizer.localizedString(forKey: "brain_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }.foregroundStyle(.white.opacity(0.6))
+                    Button(localizer.localizedString(forKey: "brain_close")) { dismiss() }.foregroundStyle(.white.opacity(0.6))
                 }
                 if !store.eintraege.isEmpty {
                     ToolbarItem(placement: .primaryAction) {
@@ -114,15 +115,15 @@ struct BrainDumpView: View {
                     }
                 }
             }
-            .confirmationDialog("Delete all entries?", isPresented: $showClearConfirm, titleVisibility: .visible) {
-                Button("Delete all", role: .destructive) {
+            .confirmationDialog(localizer.localizedString(forKey: "brain_delete_all_title"), isPresented: $showClearConfirm, titleVisibility: .visible) {
+                Button(localizer.localizedString(forKey: "brain_delete_all_button"), role: .destructive) {
                     withAnimation { store.clearAll() }
                 }
             }
-            .alert("No AI Provider", isPresented: $showNoKeyAlert) {
-                Button("OK", role: .cancel) {}
+            .alert(localizer.localizedString(forKey: "brain_no_key_title"), isPresented: $showNoKeyAlert) {
+                Button(localizer.localizedString(forKey: "brain_no_key_ok"), role: .cancel) {}
             } message: {
-                Text("Please set up an AI provider in settings.")
+                Text(localizer.localizedString(forKey: "brain_no_key_message"))
             }
             .sheet(isPresented: $showAnalyse) { analyseSheet }
             .sheet(isPresented: $showExtract) { extractSheet }
@@ -156,7 +157,7 @@ struct BrainDumpView: View {
             .horizontallyScrollable()
 
             HStack(spacing: 10) {
-                TextField("Thoughts, ideas, tasks...", text: $inputText, axis: .vertical)
+                TextField(localizer.localizedString(forKey: "brain_input_placeholder"), text: $inputText, axis: .vertical)
                     .font(.system(size: 15))
                     .foregroundStyle(.white)
                     .lineLimit(1...4)
@@ -194,7 +195,7 @@ struct BrainDumpView: View {
     private var tagFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterChip(nil, label: "All", count: store.eintraege.count)
+                filterChip(nil, label: localizer.localizedString(forKey: "brain_filter_all"), count: store.eintraege.count)
                 ForEach(BrainDumpTag.allCases, id: \.self) { tag in
                     let count = store.eintraege.filter { $0.tag == tag }.count
                     if count > 0 {
@@ -229,9 +230,9 @@ struct BrainDumpView: View {
     private var aiActionsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                aiChip(label: "Organize", icon: "sparkles") { analyseEntries() }
-                aiChip(label: "Tasks", icon: "list.clipboard") { extrahiereAufgaben() }
-                aiChip(label: "Reflection", icon: "calendar.badge.clock") { wochenReflexion() }
+                aiChip(label: localizer.localizedString(forKey: "brain_ai_organize"), icon: "sparkles") { analyseEntries() }
+                aiChip(label: localizer.localizedString(forKey: "brain_ai_tasks"), icon: "list.clipboard") { extrahiereAufgaben() }
+                aiChip(label: localizer.localizedString(forKey: "brain_ai_reflection"), icon: "calendar.badge.clock") { wochenReflexion() }
             }
         }
     }
@@ -258,10 +259,10 @@ struct BrainDumpView: View {
             Image(systemName: "brain")
                 .font(.system(size: 48))
                 .foregroundStyle(.white.opacity(0.12))
-            Text("Clear your head")
+            Text(localizer.localizedString(forKey: "brain_empty_title"))
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.4))
-            Text("Write down everything on your mind – ideas, tasks, questions.")
+            Text(localizer.localizedString(forKey: "brain_empty_subtitle"))
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.25))
                 .multilineTextAlignment(.center)
@@ -283,14 +284,14 @@ struct BrainDumpView: View {
                                 Spacer()
                                 VStack(spacing: 12) {
                                     ProgressView().tint(accent)
-                                    Text("Analyzing your thoughts...")
+                                    Text(localizer.localizedString(forKey: "brain_analyse_loading"))
                                         .font(.system(size: 14))
                                         .foregroundStyle(.white.opacity(0.5))
                                 }
                                 Spacer()
                             }
                             .padding(.top, 60)
-                        } else {
+                        } else if !analyseText.isEmpty {
                             Text(analyseText)
                                 .font(.system(size: 15))
                                 .foregroundStyle(.white.opacity(0.9))
@@ -301,12 +302,12 @@ struct BrainDumpView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Organize Thoughts")
+            .navigationTitle(localizer.localizedString(forKey: "brain_analyse_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { showAnalyse = false }.foregroundStyle(.white.opacity(0.6))
+                    Button(localizer.localizedString(forKey: "brain_analyse_done")) { showAnalyse = false }.foregroundStyle(.white.opacity(0.6))
                 }
             }
             .preferredColorScheme(.dark)
@@ -321,7 +322,7 @@ struct BrainDumpView: View {
                     if extractLoading {
                         VStack(spacing: 12) {
                             ProgressView().tint(accent)
-                            Text("Looking for tasks...")
+                            Text(localizer.localizedString(forKey: "brain_extract_loading"))
                                 .font(.system(size: 14))
                                 .foregroundStyle(.white.opacity(0.5))
                         }
@@ -330,7 +331,7 @@ struct BrainDumpView: View {
                             Image(systemName: "checkmark.circle")
                                 .font(.system(size: 40))
                                 .foregroundStyle(.white.opacity(0.15))
-                            Text("No tasks found")
+                            Text(localizer.localizedString(forKey: "brain_extract_no_tasks"))
                                 .font(.system(size: 15))
                                 .foregroundStyle(.white.opacity(0.4))
                         }
@@ -368,12 +369,12 @@ struct BrainDumpView: View {
                     }
                 }
             }
-            .navigationTitle("Extract Tasks")
+            .navigationTitle(localizer.localizedString(forKey: "brain_extract_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
+                    Button(localizer.localizedString(forKey: "brain_extract_done")) {
                         showExtract = false
                         addedExtractTasks = []
                     }.foregroundStyle(.white.opacity(0.6))
@@ -394,7 +395,7 @@ struct BrainDumpView: View {
                                 Spacer()
                                 VStack(spacing: 12) {
                                     ProgressView().tint(accent)
-                                    Text("Creating your weekly reflection...")
+                                    Text(localizer.localizedString(forKey: "brain_reflexion_loading"))
                                         .font(.system(size: 14))
                                         .foregroundStyle(.white.opacity(0.5))
                                 }
@@ -412,12 +413,12 @@ struct BrainDumpView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Weekly Reflection")
+            .navigationTitle(localizer.localizedString(forKey: "brain_reflexion_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { showReflexion = false }.foregroundStyle(.white.opacity(0.6))
+                    Button(localizer.localizedString(forKey: "brain_reflexion_done")) { showReflexion = false }.foregroundStyle(.white.opacity(0.6))
                 }
             }
             .preferredColorScheme(.dark)
@@ -583,7 +584,7 @@ struct BrainDumpView: View {
         let recent = store.eintraege.filter { $0.date >= sevenDaysAgo }
 
         guard !recent.isEmpty else {
-            reflexionText = "No entries from the last 7 days found."
+            reflexionText = localizer.localizedString(forKey: "brain_no_entries_7days")
             reflexionLoading = false
             return
         }
@@ -634,6 +635,7 @@ struct BrainDumpCard: View {
     let onConvert: () -> Void
     let onDelete: () -> Void
     let onReformulate: () -> Void
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -658,7 +660,7 @@ struct BrainDumpCard: View {
                 if isReformulating {
                     HStack(spacing: 6) {
                         ProgressView().scaleEffect(0.6).tint(.white.opacity(0.5))
-                        Text("Reformulating...")
+                        Text(localizer.localizedString(forKey: "brain_card_reformulating"))
                             .font(.system(size: 13))
                             .foregroundStyle(.white.opacity(0.4))
                             .italic()
@@ -684,12 +686,12 @@ struct BrainDumpCard: View {
                     Spacer()
 
                     if entry.isConverted {
-                        Label("Task created", systemImage: "checkmark.circle.fill")
+                        Label(localizer.localizedString(forKey: "brain_card_task_created"), systemImage: "checkmark.circle.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.green.opacity(0.6))
                     } else if entry.tag == .aufgabe {
                         Button(action: onConvert) {
-                            Label("Add as task", systemImage: "plus.circle")
+                            Label(localizer.localizedString(forKey: "brain_card_add_as_task"), systemImage: "plus.circle")
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(accent)
                         }
@@ -713,7 +715,7 @@ struct BrainDumpCard: View {
         .contextMenu {
             if !entry.isConverted && !isReformulating {
                 Button { onReformulate() } label: {
-                    Label("Reformat", systemImage: "sparkles")
+                    Label(localizer.localizedString(forKey: "brain_card_reformat"), systemImage: "sparkles")
                 }
             }
         }

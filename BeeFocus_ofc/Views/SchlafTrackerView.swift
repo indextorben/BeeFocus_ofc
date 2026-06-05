@@ -12,6 +12,7 @@ struct SchlafTrackerView: View {
     @State private var schnitt7Tage: Double = 0
     @State private var wocheDaten: [(date: Date, stunden: Double)] = []
     @State private var showZielPicker = false
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private let hkStore = HKHealthStore()
     private let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
@@ -63,10 +64,10 @@ struct SchlafTrackerView: View {
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Sleep Tracker")
+                Text(localizer.localizedString(forKey: "sleep_title"))
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
-                Text("Data from Apple Health")
+                Text(localizer.localizedString(forKey: "sleep_health_source"))
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.45))
             }
@@ -82,7 +83,7 @@ struct SchlafTrackerView: View {
     private var loadingCard: some View {
         HStack(spacing: 12) {
             ProgressView().tint(accent)
-            Text("Loading sleep data…")
+            Text(localizer.localizedString(forKey: "sleep_loading"))
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.6))
         }
@@ -96,17 +97,17 @@ struct SchlafTrackerView: View {
             Image(systemName: "heart.text.square")
                 .font(.system(size: 44))
                 .foregroundStyle(accent)
-            Text("Access to Apple Health")
+            Text(localizer.localizedString(forKey: "sleep_permission_title"))
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
-            Text("BeeFocus needs access to your sleep data in Apple Health.")
+            Text(localizer.localizedString(forKey: "sleep_permission_body"))
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
             Button {
                 requestAndLoad()
             } label: {
-                Label("Allow Access", systemImage: "heart.fill")
+                Label(localizer.localizedString(forKey: "sleep_permission_button"), systemImage: "heart.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -149,19 +150,19 @@ struct SchlafTrackerView: View {
                     Text(heutigeStunden > 0 ? formatH(heutigeStunden) : "--")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("of \(formatH(zielStunden))")
+                    Text(String(format: localizer.localizedString(forKey: "sleep_of_goal"), formatH(zielStunden)))
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.45))
                 }
             }
 
             HStack(spacing: 16) {
-                statChip("Ø 7 days", value: schnitt7Tage > 0 ? formatH(schnitt7Tage) : "--", color: accent)
-                statChip("Goal", value: formatH(zielStunden), color: Color(red: 0.5, green: 0.3, blue: 1.0))
+                statChip(localizer.localizedString(forKey: "sleep_avg_7days"), value: schnitt7Tage > 0 ? formatH(schnitt7Tage) : "--", color: accent)
+                statChip(localizer.localizedString(forKey: "sleep_goal_label"), value: formatH(zielStunden), color: Color(red: 0.5, green: 0.3, blue: 1.0))
             }
 
             Button { showZielPicker = true } label: {
-                Text("Change sleep goal")
+                Text(localizer.localizedString(forKey: "sleep_change_goal"))
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.4))
             }
@@ -171,7 +172,7 @@ struct SchlafTrackerView: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.3))
-                Text("Data comes directly from Apple Health")
+                Text(localizer.localizedString(forKey: "sleep_health_note"))
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.3))
             }
@@ -186,7 +187,7 @@ struct SchlafTrackerView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Last 7 Days")
+            Text(localizer.localizedString(forKey: "sleep_last7days"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
 
@@ -256,12 +257,12 @@ struct SchlafTrackerView: View {
                 }
                 .padding(.top, 20)
             }
-            .navigationTitle("Sleep Goal")
+            .navigationTitle(localizer.localizedString(forKey: "sleep_goal_sheet_title"))
             .navigationBarTitleDisplayMode(.inline)
             .preferredColorScheme(.dark)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { showZielPicker = false }
+                    Button(localizer.localizedString(forKey: "sleep_goal_sheet_done")) { showZielPicker = false }
                 }
             }
         }

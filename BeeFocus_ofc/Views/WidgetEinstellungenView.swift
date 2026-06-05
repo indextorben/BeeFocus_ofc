@@ -5,6 +5,7 @@ private let widgetStore = UserDefaults(suiteName: "group.com.TorbenLehneke.BeeFo
 
 struct WidgetEinstellungenView: View {
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var taskFilter: String = widgetStore?.string(forKey: "widgetTaskFilter") ?? "today"
     @State private var maxTasks: Int = {
@@ -18,57 +19,57 @@ struct WidgetEinstellungenView: View {
     var body: some View {
         List {
             Section {
-                Picker("Displayed tasks", selection: $taskFilter) {
-                    Label("Due today", systemImage: "sun.max.fill").tag("today")
-                    Label("High priority", systemImage: "exclamationmark.2").tag("priority")
-                    Label("All open", systemImage: "list.bullet").tag("all")
+                Picker(localizer.localizedString(forKey: "widget_displayed_tasks"), selection: $taskFilter) {
+                    Label(localizer.localizedString(forKey: "widget_due_today"), systemImage: "sun.max.fill").tag("today")
+                    Label(localizer.localizedString(forKey: "widget_high_priority"), systemImage: "exclamationmark.2").tag("priority")
+                    Label(localizer.localizedString(forKey: "widget_all_open"), systemImage: "list.bullet").tag("all")
                 }
                 .pickerStyle(.navigationLink)
 
-                Picker("Max. tasks", selection: $maxTasks) {
-                    Text("3 tasks").tag(3)
-                    Text("5 tasks").tag(5)
-                    Text("8 tasks").tag(8)
+                Picker(localizer.localizedString(forKey: "widget_max_tasks"), selection: $maxTasks) {
+                    Text(localizer.localizedString(forKey: "widget_tasks_3")).tag(3)
+                    Text(localizer.localizedString(forKey: "widget_tasks_5")).tag(5)
+                    Text(localizer.localizedString(forKey: "widget_tasks_8")).tag(8)
                 }
                 .pickerStyle(.navigationLink)
             } header: {
-                Label("Tasks", systemImage: "checklist")
+                Label(localizer.localizedString(forKey: "widget_tasks_header"), systemImage: "checklist")
             } footer: {
-                Text("Determines which tasks appear in the medium and large widget.")
+                Text(localizer.localizedString(forKey: "widget_tasks_footer"))
             }
 
             Section {
                 Toggle(isOn: $showFocusMinutes) {
-                    Label("Show focus time", systemImage: "timer")
+                    Label(localizer.localizedString(forKey: "widget_show_focus"), systemImage: "timer")
                 }
                 Toggle(isOn: $showOverdue) {
-                    Label("Show overdue", systemImage: "exclamationmark.circle")
+                    Label(localizer.localizedString(forKey: "widget_show_overdue"), systemImage: "exclamationmark.circle")
                 }
                 Toggle(isOn: $showWater) {
-                    Label("Show water level", systemImage: "drop.fill")
+                    Label(localizer.localizedString(forKey: "widget_show_water"), systemImage: "drop.fill")
                 }
             } header: {
-                Label("Display", systemImage: "eye")
+                Label(localizer.localizedString(forKey: "widget_display_header"), systemImage: "eye")
             } footer: {
-                Text("Applies to the medium and large widget.")
+                Text(localizer.localizedString(forKey: "widget_display_footer"))
             }
 
             Section {
                 HStack(spacing: 14) {
-                    widgetPreview(size: "Small", icon: "s.square.fill")
-                    widgetPreview(size: "Medium", icon: "m.square.fill")
-                    widgetPreview(size: "Large", icon: "l.square.fill")
+                    widgetPreview(locKey: "widget_small", icon: "s.square.fill")
+                    widgetPreview(locKey: "widget_medium", icon: "m.square.fill")
+                    widgetPreview(locKey: "widget_large", icon: "l.square.fill")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .listRowBackground(Color.clear)
             } header: {
-                Label("Preview", systemImage: "rectangle.on.rectangle")
+                Label(localizer.localizedString(forKey: "widget_preview_header"), systemImage: "rectangle.on.rectangle")
             } footer: {
-                Text("Changes are applied to the home screen immediately.")
+                Text(localizer.localizedString(forKey: "widget_preview_footer"))
             }
         }
-        .navigationTitle("Widget Settings")
+        .navigationTitle(localizer.localizedString(forKey: "widget_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: taskFilter)      { _, _ in save() }
         .onChange(of: maxTasks)        { _, _ in save() }
@@ -87,12 +88,12 @@ struct WidgetEinstellungenView: View {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    private func widgetPreview(size: String, icon: String) -> some View {
+    private func widgetPreview(locKey: String, icon: String) -> some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 32))
                 .foregroundStyle(.secondary)
-            Text(size)
+            Text(localizer.localizedString(forKey: locKey))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

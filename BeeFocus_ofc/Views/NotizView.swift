@@ -15,6 +15,7 @@ struct NotizView: View {
     @State private var showNeuerOrdner = false
     @State private var neuerOrdnerName = ""
     @State private var showSortMenu    = false
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var accent:  Color { aktivesThema.isEmpty ? Color(red: 0.6, green: 0.3, blue: 1.0) : appThemaFarben(aktivesThema).0 }
     private var accent2: Color { aktivesThema.isEmpty ? Color(red: 0.35, green: 0.2, blue: 1.0) : appThemaFarben(aktivesThema).1 }
@@ -35,17 +36,17 @@ struct NotizView: View {
                     if gefilterte.isEmpty { emptyState } else { noteContent }
                 }
             }
-            .navigationTitle("Notes")
+            .navigationTitle(localizer.localizedString(forKey: "notiz_nav_title"))
             .navigationBarTitleDisplayMode(.large)
             .preferredColorScheme(.dark)
             .toolbar { toolbarItems }
             .sheet(item: $editNotiz) { n in
                 NotizEditorView(notiz: n, accent: accent, accent2: accent2, ordnerListe: store.ordnerListe)
             }
-            .alert("New Folder", isPresented: $showNeuerOrdner) {
-                TextField("Name", text: $neuerOrdnerName)
-                Button("Create") { store.addOrdner(neuerOrdnerName); neuerOrdnerName = "" }
-                Button("Cancel", role: .cancel) { neuerOrdnerName = "" }
+            .alert(localizer.localizedString(forKey: "notiz_new_folder_alert_title"), isPresented: $showNeuerOrdner) {
+                TextField(localizer.localizedString(forKey: "notiz_new_folder_name_placeholder"), text: $neuerOrdnerName)
+                Button(localizer.localizedString(forKey: "notiz_new_folder_create")) { store.addOrdner(neuerOrdnerName); neuerOrdnerName = "" }
+                Button(localizer.localizedString(forKey: "notiz_new_folder_cancel"), role: .cancel) { neuerOrdnerName = "" }
             }
         }
     }
@@ -72,7 +73,7 @@ struct NotizView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                Section("Sort") {
+                Section(localizer.localizedString(forKey: "notiz_sort_section")) {
                     ForEach(NotizSortierung.allCases) { s in
                         Button { sortierung = s } label: {
                             Label(s.rawValue, systemImage: s.icon)
@@ -80,9 +81,9 @@ struct NotizView: View {
                         }
                     }
                 }
-                Section("View") {
-                    Button { listModus = false } label: { Label("Grid", systemImage: "square.grid.2x2") }
-                    Button { listModus = true  } label: { Label("List",  systemImage: "list.bullet") }
+                Section(localizer.localizedString(forKey: "notiz_view_section")) {
+                    Button { listModus = false } label: { Label(localizer.localizedString(forKey: "notiz_view_grid"), systemImage: "square.grid.2x2") }
+                    Button { listModus = true  } label: { Label(localizer.localizedString(forKey: "notiz_view_list"),  systemImage: "list.bullet") }
                 }
             } label: {
                 Image(systemName: listModus ? "list.bullet" : "square.grid.2x2")
@@ -97,7 +98,7 @@ struct NotizView: View {
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(.white.opacity(0.35))
-            TextField("Search…", text: $suchText)
+            TextField(localizer.localizedString(forKey: "notiz_search_placeholder"), text: $suchText)
                 .font(.system(size: 15)).foregroundStyle(.white)
             if !suchText.isEmpty {
                 Button { suchText = "" } label: {
@@ -115,15 +116,15 @@ struct NotizView: View {
     private var ordnerBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ordnerChip(id: "__alle__",   label: "All",     icon: "tray.full.fill",      count: store.notizen.count)
-                ordnerChip(id: "__pinned__", label: "Pinned",  icon: "pin.fill",             count: store.notizen.filter(\.isPinned).count)
+                ordnerChip(id: "__alle__",   label: localizer.localizedString(forKey: "notiz_folder_all"),    icon: "tray.full.fill",      count: store.notizen.count)
+                ordnerChip(id: "__pinned__", label: localizer.localizedString(forKey: "notiz_folder_pinned"), icon: "pin.fill",             count: store.notizen.filter(\.isPinned).count)
                 ForEach(store.ordnerListe, id: \.self) { o in
                     ordnerChipCustom(o)
                 }
                 Button { showNeuerOrdner = true } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "folder.badge.plus").font(.system(size: 12, weight: .semibold))
-                        Text("Folder").font(.system(size: 12, weight: .medium))
+                        Text(localizer.localizedString(forKey: "notiz_folder_new_button")).font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.4))
                     .padding(.horizontal, 12).padding(.vertical, 7)
@@ -184,7 +185,7 @@ struct NotizView: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(role: .destructive) { store.deleteOrdner(name) } label: {
-                Label("Delete Folder", systemImage: "trash")
+                Label(localizer.localizedString(forKey: "notiz_delete_folder"), systemImage: "trash")
             }
         }
     }
@@ -248,14 +249,14 @@ struct NotizView: View {
                     .foregroundStyle(accent.opacity(0.6))
             }
             VStack(spacing: 6) {
-                Text(suchText.isEmpty ? "No Notes" : "No Results")
+                Text(suchText.isEmpty ? localizer.localizedString(forKey: "notiz_empty_no_notes") : localizer.localizedString(forKey: "notiz_empty_no_results"))
                     .font(.system(size: 18, weight: .bold)).foregroundStyle(.white.opacity(0.5))
-                Text(suchText.isEmpty ? "Tap the pencil icon to get started." : "Try a different search term.")
+                Text(suchText.isEmpty ? localizer.localizedString(forKey: "notiz_empty_hint") : localizer.localizedString(forKey: "notiz_empty_no_search_results"))
                     .font(.system(size: 14)).foregroundStyle(.white.opacity(0.25)).multilineTextAlignment(.center)
             }
             if suchText.isEmpty {
                 Button { editNotiz = Notiz() } label: {
-                    Label("New Note", systemImage: "square.and.pencil")
+                    Label(localizer.localizedString(forKey: "notiz_new_note_button"), systemImage: "square.and.pencil")
                         .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 20).padding(.vertical, 11)
                         .background(LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing), in: Capsule())
@@ -276,6 +277,7 @@ private struct NotizKarte: View {
     let onEdit: () -> Void
     let onPin: () -> Void
     let onDelete: () -> Void
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private let dateFmt: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter(); f.locale = Locale(identifier: "de_DE"); return f
@@ -329,7 +331,7 @@ private struct NotizKarte: View {
                             }
                         }
                         if notiz.checkItems.count > 4 {
-                            Text("+ \(notiz.checkItems.count - 4) more")
+                            Text(String(format: localizer.localizedString(forKey: "notiz_checklist_more"), notiz.checkItems.count - 4))
                                 .font(.system(size: 10)).foregroundStyle(.white.opacity(0.3))
                         }
                     }
@@ -370,15 +372,15 @@ private struct NotizKarte: View {
     @ViewBuilder
     private var contextMenuItems: some View {
         Button { onEdit() } label: {
-            Label("Edit", systemImage: "pencil")
+            Label(localizer.localizedString(forKey: "notiz_context_edit"), systemImage: "pencil")
         }
         Button { onPin() } label: {
-            Label(notiz.isPinned ? "Unpin" : "Pin",
+            Label(notiz.isPinned ? localizer.localizedString(forKey: "notiz_context_unpin") : localizer.localizedString(forKey: "notiz_context_pin"),
                   systemImage: notiz.isPinned ? "pin.slash" : "pin.fill")
         }
         Divider()
         Button(role: .destructive) { onDelete() } label: {
-            Label("Delete", systemImage: "trash")
+            Label(localizer.localizedString(forKey: "notiz_context_delete"), systemImage: "trash")
         }
     }
 }
@@ -391,6 +393,7 @@ private struct NotizListenZeile: View {
     let onEdit: () -> Void
     let onPin: () -> Void
     let onDelete: () -> Void
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private let dateFmt: DateFormatter = {
         let f = DateFormatter(); f.locale = Locale(identifier: "de_DE"); f.dateStyle = .short; f.timeStyle = .short; return f
@@ -409,7 +412,7 @@ private struct NotizListenZeile: View {
                         if notiz.isPinned {
                             Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(notiz.farbe)
                         }
-                        Text(notiz.titel.isEmpty ? "Untitled" : notiz.titel)
+                        Text(notiz.titel.isEmpty ? localizer.localizedString(forKey: "notiz_list_untitled") : notiz.titel)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
                             .lineLimit(1)
@@ -421,10 +424,10 @@ private struct NotizListenZeile: View {
                     HStack(spacing: 6) {
                         if notiz.typ == .checkliste {
                             Image(systemName: "checklist").font(.system(size: 11)).foregroundStyle(notiz.farbe)
-                            Text("\(notiz.checkItemsDone)/\(notiz.checkItems.count) done")
+                            Text(String(format: localizer.localizedString(forKey: "notiz_list_done_count"), notiz.checkItemsDone, notiz.checkItems.count))
                                 .font(.system(size: 12)).foregroundStyle(.white.opacity(0.45))
                         } else {
-                            Text(notiz.inhalt.isEmpty ? "Empty" : notiz.inhalt)
+                            Text(notiz.inhalt.isEmpty ? localizer.localizedString(forKey: "notiz_list_empty_content") : notiz.inhalt)
                                 .font(.system(size: 12)).foregroundStyle(.white.opacity(0.45))
                                 .lineLimit(1)
                         }
@@ -443,12 +446,12 @@ private struct NotizListenZeile: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label(localizer.localizedString(forKey: "notiz_swipe_delete"), systemImage: "trash")
             }
         }
         .swipeActions(edge: .leading) {
             Button(action: onPin) {
-                Label(notiz.isPinned ? "Unpin" : "Pin",
+                Label(notiz.isPinned ? localizer.localizedString(forKey: "notiz_swipe_unpin") : localizer.localizedString(forKey: "notiz_swipe_pin"),
                       systemImage: notiz.isPinned ? "pin.slash.fill" : "pin.fill")
             }
             .tint(notiz.farbe)
@@ -466,6 +469,7 @@ struct NotizEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var store = NotizStore.shared
+    @ObservedObject private var localizer = LocalizationManager.shared
     @FocusState private var fokusInhalt: Bool
     @FocusState private var fokusTitel: Bool
     @State private var showOrdnerPicker    = false
@@ -510,18 +514,18 @@ struct NotizEditorView: View {
             .preferredColorScheme(.dark)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { editorToolbar }
-            .alert("Delete note?", isPresented: $showDeleteAlert) {
-                Button("Delete", role: .destructive) { store.delete(notiz); dismiss() }
-                Button("Cancel", role: .cancel) {}
+            .alert(localizer.localizedString(forKey: "notiz_editor_delete_title"), isPresented: $showDeleteAlert) {
+                Button(localizer.localizedString(forKey: "notiz_editor_delete_button"), role: .destructive) { store.delete(notiz); dismiss() }
+                Button(localizer.localizedString(forKey: "notiz_editor_cancel"), role: .cancel) {}
             } message: {
-                Text("This action cannot be undone.")
+                Text(localizer.localizedString(forKey: "notiz_editor_undone"))
             }
-            .confirmationDialog("Discard changes?", isPresented: $showVerwerfen, titleVisibility: .visible) {
-                Button("Discard", role: .destructive) { dismiss() }
-                Button("Save") { store.save(notiz); dismiss() }
-                Button("Keep editing", role: .cancel) {}
+            .confirmationDialog(localizer.localizedString(forKey: "notiz_editor_discard_title"), isPresented: $showVerwerfen, titleVisibility: .visible) {
+                Button(localizer.localizedString(forKey: "notiz_editor_discard_button"), role: .destructive) { dismiss() }
+                Button(localizer.localizedString(forKey: "notiz_editor_save_button")) { store.save(notiz); dismiss() }
+                Button(localizer.localizedString(forKey: "notiz_editor_keep_editing"), role: .cancel) {}
             } message: {
-                Text("You have unsaved changes.")
+                Text(localizer.localizedString(forKey: "notiz_editor_unsaved"))
             }
         }
         .onAppear {
@@ -535,7 +539,7 @@ struct NotizEditorView: View {
     // MARK: - Titel
 
     private var titelField: some View {
-        TextField("Titel", text: $notiz.titel, axis: .vertical)
+        TextField(localizer.localizedString(forKey: "notiz_editor_titel_placeholder"), text: $notiz.titel, axis: .vertical)
             .font(.system(size: 24, weight: .bold))
             .foregroundStyle(.white)
             .focused($fokusTitel)
@@ -558,7 +562,7 @@ struct NotizEditorView: View {
             if notiz.typ == .text && !notiz.inhalt.isEmpty {
                 HStack(spacing: 4) {
                     Image(systemName: "text.alignleft").font(.system(size: 11)).foregroundStyle(.white.opacity(0.3))
-                    Text("\(notiz.wortanzahl) words").font(.system(size: 12)).foregroundStyle(.white.opacity(0.3))
+                    Text(String(format: localizer.localizedString(forKey: "notiz_editor_words"), notiz.wortanzahl)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.3))
                 }
             }
 
@@ -567,7 +571,7 @@ struct NotizEditorView: View {
                 HStack(spacing: 4) {
                     Image(systemName: notiz.ordner.isEmpty ? "tray" : "folder.fill")
                         .font(.system(size: 11))
-                    Text(notiz.ordner.isEmpty ? "Inbox" : notiz.ordner)
+                    Text(notiz.ordner.isEmpty ? localizer.localizedString(forKey: "notiz_editor_inbox") : notiz.ordner)
                         .font(.system(size: 12))
                 }
                 .foregroundStyle(notiz.farbe.opacity(0.85))
@@ -575,8 +579,8 @@ struct NotizEditorView: View {
                 .background(notiz.farbe.opacity(0.12), in: Capsule())
             }
             .buttonStyle(.plain)
-            .confirmationDialog("Choose Folder", isPresented: $showOrdnerPicker) {
-                Button("All Notes") { notiz.ordner = "" }
+            .confirmationDialog(localizer.localizedString(forKey: "notiz_editor_choose_folder"), isPresented: $showOrdnerPicker) {
+                Button(localizer.localizedString(forKey: "notiz_editor_all_notes")) { notiz.ordner = "" }
                 ForEach(ordnerListe, id: \.self) { o in
                     Button(o) { notiz.ordner = o }
                 }
@@ -613,7 +617,7 @@ struct NotizEditorView: View {
                             Button {
                                 withAnimation { notiz.typ = .checkliste }
                             } label: {
-                                Label("Checkliste", systemImage: "checklist")
+                                Label(localizer.localizedString(forKey: "notiz_editor_checklist_label"), systemImage: "checklist")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(accent)
                             }
@@ -622,7 +626,7 @@ struct NotizEditorView: View {
                         .padding(.horizontal, 4)
                     }
                     Spacer()
-                    Button("Done") { fokusInhalt = false; fokusTitel = false }
+                    Button(localizer.localizedString(forKey: "notiz_editor_done")) { fokusInhalt = false; fokusTitel = false }
                         .font(.system(size: 14, weight: .semibold)).foregroundStyle(accent)
                 }
             }
@@ -653,7 +657,7 @@ struct NotizEditorView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 13)).foregroundStyle(.white.opacity(0.4))
-                        TextField("Search in checklist…", text: $checkSuche)
+                        TextField(localizer.localizedString(forKey: "notiz_editor_checklist_search"), text: $checkSuche)
                             .font(.system(size: 15)).foregroundStyle(.white)
                         if !checkSuche.isEmpty {
                             Button { checkSuche = "" } label: {
@@ -662,7 +666,7 @@ struct NotizEditorView: View {
                         }
                         let matchCount = notiz.checkItems.filter { $0.text.localizedCaseInsensitiveContains(checkSuche) }.count
                         if !checkSuche.isEmpty {
-                            Text("\(matchCount) results")
+                            Text(String(format: localizer.localizedString(forKey: "notiz_editor_match_count"), matchCount))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(matchCount > 0 ? notiz.farbe : .red.opacity(0.7))
                         }
@@ -686,7 +690,7 @@ struct NotizEditorView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(accent)
-                    TextField("New item…", text: $neuesCheckItem)
+                    TextField(localizer.localizedString(forKey: "notiz_editor_new_item_placeholder"), text: $neuesCheckItem)
                         .font(.system(size: 16))
                         .foregroundStyle(.white)
                         .submitLabel(.done)
@@ -697,14 +701,14 @@ struct NotizEditorView: View {
                 if !done.isEmpty {
                     Divider().opacity(0.1).padding(.horizontal, 20).padding(.vertical, 8)
                     HStack {
-                        Text("\(done.count) Done")
+                        Text(String(format: localizer.localizedString(forKey: "notiz_editor_done_count"), done.count))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.3))
                         Spacer()
                         Button {
                             withAnimation { notiz.checkItems.removeAll { $0.isChecked } }
                         } label: {
-                            Text("Delete")
+                            Text(localizer.localizedString(forKey: "notiz_editor_delete_done"))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.red.opacity(0.7))
                         }
@@ -722,13 +726,13 @@ struct NotizEditorView: View {
                 Button {
                     withAnimation { notiz.typ = .text }
                 } label: {
-                    Label("Text Mode", systemImage: "doc.text")
+                    Label(localizer.localizedString(forKey: "notiz_editor_text_mode"), systemImage: "doc.text")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(accent)
                 }
                 .buttonStyle(.plain)
                 Spacer()
-                Button("Fertig") { fokusInhalt = false; fokusTitel = false }
+                Button(localizer.localizedString(forKey: "notiz_editor_done_checklist")) { fokusInhalt = false; fokusTitel = false }
                     .font(.system(size: 14, weight: .semibold)).foregroundStyle(accent)
             }
         }
@@ -794,7 +798,7 @@ struct NotizEditorView: View {
                     VStack(spacing: 3) {
                         Image(systemName: notiz.typ == .checkliste ? "doc.text" : "checklist")
                             .font(.system(size: 16, weight: .semibold))
-                        Text(notiz.typ == .checkliste ? "Text" : "List")
+                        Text(notiz.typ == .checkliste ? localizer.localizedString(forKey: "notiz_editor_text_mode") : localizer.localizedString(forKey: "notiz_editor_checklist_label"))
                             .font(.system(size: 10, weight: .medium))
                     }
                     .foregroundStyle(accent)
@@ -846,7 +850,7 @@ struct NotizEditorView: View {
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Cancel") {
+            Button(localizer.localizedString(forKey: "notiz_editor_cancel")) {
                 if hatAenderungen && kannSpeichern {
                     showVerwerfen = true
                 } else {
@@ -867,7 +871,7 @@ struct NotizEditorView: View {
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("Done") {
+            Button(localizer.localizedString(forKey: "notiz_editor_done")) {
                 if kannSpeichern { store.save(notiz) }
                 dismiss()
             }
@@ -882,7 +886,7 @@ struct NotizEditorView: View {
         let cal = Calendar.current
         if cal.isDateInToday(date) {
             let f = DateFormatter(); f.locale = Locale.current; f.timeStyle = .short; f.dateStyle = .none
-            return "Today, \(f.string(from: date))"
+            return String(format: LocalizationManager.shared.localizedString(forKey: "notiz_editor_today_prefix"), f.string(from: date))
         }
         let f = DateFormatter(); f.locale = Locale.current; f.dateStyle = .medium; f.timeStyle = .none
         return f.string(from: date)

@@ -52,6 +52,17 @@ enum TodoTimeFilter: String, CaseIterable {
         case .ueberfaellig: return .red
         }
     }
+
+    var label: String {
+        let l = LocalizationManager.shared
+        switch self {
+        case .alle:         return l.localizedString(forKey: "filter_all")
+        case .heute:        return l.localizedString(forKey: "filter_today")
+        case .morgen:       return l.localizedString(forKey: "filter_tomorrow")
+        case .dieseWoche:   return l.localizedString(forKey: "filter_this_week")
+        case .ueberfaellig: return l.localizedString(forKey: "filter_overdue")
+        }
+    }
 }
 
 struct TodoListView: View {
@@ -636,16 +647,16 @@ struct TodoListView: View {
     // MARK: - Tools Strip
 
     private let allToolDefs: [ToolDef] = [
-        ToolDef(id: "gewohnheiten",  icon: "calendar.badge.checkmark",  label: "Habits",        r: 0.3,  g: 0.82, b: 0.5),
-        ToolDef(id: "journal",       icon: "book.closed.fill",           label: "Journal",       r: 0.65, g: 0.35, b: 1.0),
-        ToolDef(id: "score",         icon: "chart.line.uptrend.xyaxis",  label: "Score",         r: 0.2,  g: 0.85, b: 0.5),
-        ToolDef(id: "motivation",    icon: "quote.bubble.fill",          label: "Motivation",    r: 1.0,  g: 0.5,  b: 0.8),
-        ToolDef(id: "wasser",        icon: "drop.fill",                  label: "Water",         r: 0.15, g: 0.75, b: 0.95),
-        ToolDef(id: "schlaf",        icon: "moon.zzz.fill",              label: "Sleep",         r: 0.4,  g: 0.3,  b: 0.9),
-        ToolDef(id: "notizen",       icon: "note.text",                  label: "Notes",         r: 1.0,  g: 0.75, b: 0.2),
-        ToolDef(id: "braindump",     icon: "brain",                      label: "Brain Dump",    r: 1.0,  g: 0.55, b: 0.15),
-        ToolDef(id: "zeiterfassung", icon: "timer.circle.fill",          label: "Time Tracking", r: 0.3,  g: 0.5,  b: 1.0),
-        ToolDef(id: "countdown",     icon: "hourglass",                  label: "Countdown",     r: 0.5,  g: 0.3,  b: 1.0),
+        ToolDef(id: "gewohnheiten",  icon: "calendar.badge.checkmark",  locKey: "tool_habits",        r: 0.3,  g: 0.82, b: 0.5),
+        ToolDef(id: "journal",       icon: "book.closed.fill",           locKey: "tool_journal",       r: 0.65, g: 0.35, b: 1.0),
+        ToolDef(id: "score",         icon: "chart.line.uptrend.xyaxis",  locKey: "tool_score",         r: 0.2,  g: 0.85, b: 0.5),
+        ToolDef(id: "motivation",    icon: "quote.bubble.fill",          locKey: "tool_motivation",    r: 1.0,  g: 0.5,  b: 0.8),
+        ToolDef(id: "wasser",        icon: "drop.fill",                  locKey: "tool_water",         r: 0.15, g: 0.75, b: 0.95),
+        ToolDef(id: "schlaf",        icon: "moon.zzz.fill",              locKey: "tool_sleep",         r: 0.4,  g: 0.3,  b: 0.9),
+        ToolDef(id: "notizen",       icon: "note.text",                  locKey: "tool_notes",         r: 1.0,  g: 0.75, b: 0.2),
+        ToolDef(id: "braindump",     icon: "brain",                      locKey: "tool_brain_dump",    r: 1.0,  g: 0.55, b: 0.15),
+        ToolDef(id: "zeiterfassung", icon: "timer.circle.fill",          locKey: "tool_time_tracking", r: 0.3,  g: 0.5,  b: 1.0),
+        ToolDef(id: "countdown",     icon: "hourglass",                  locKey: "tool_countdown",     r: 0.5,  g: 0.3,  b: 1.0),
     ]
 
     private var orderedTools: [ToolDef] {
@@ -724,7 +735,7 @@ struct TodoListView: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(tool.color)
                 }
-                Text(tool.label)
+                Text(localizer.localizedString(forKey: tool.locKey))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.primary.opacity(0.75))
                     .lineLimit(1)
@@ -1515,7 +1526,7 @@ struct TodoListView: View {
                         HStack(spacing: 5) {
                             Image(systemName: filter.icon)
                                 .font(.system(size: 12, weight: .semibold))
-                            Text(filter.rawValue)
+                            Text(filter.label)
                                 .font(.system(size: 13, weight: .semibold))
                         }
                         .padding(.horizontal, 14)
@@ -2611,7 +2622,7 @@ struct CategoryButton: View {
 struct ToolDef: Identifiable {
     let id: String
     let icon: String
-    let label: String
+    let locKey: String
     let r: Double, g: Double, b: Double
     var color: Color { Color(red: r, green: g, blue: b) }
 }

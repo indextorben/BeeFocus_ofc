@@ -300,7 +300,7 @@ struct TimerView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "lungs.fill")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Breathe")
+                    Text("Atmen")
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundStyle(.white.opacity(0.85))
@@ -514,17 +514,17 @@ final class TimerNotificationDelegate: NSObject, ObservableObject, UNUserNotific
         UNUserNotificationCenter.current().getNotificationCategories { existing in
             let pauseAction = UNNotificationAction(
                 identifier: ID.pause,
-                title: "⏸ Pause / Resume",
+                title: String(localized: "⏸ Pause / Fortsetzen"),
                 options: []
             )
             let nextAction = UNNotificationAction(
                 identifier: ID.next,
-                title: "⏭ Next Phase",
+                title: String(localized: "⏭ Nächste Phase"),
                 options: .destructive
             )
             let stopAction = UNNotificationAction(
                 identifier: ID.stop,
-                title: "⏹ Stop",
+                title: String(localized: "⏹ Stopp"),
                 options: .destructive
             )
             let timerCategory = UNNotificationCategory(
@@ -547,11 +547,11 @@ final class TimerNotificationDelegate: NSObject, ObservableObject, UNUserNotific
         cancelBanner()
         let content = UNMutableNotificationContent()
         content.title = isBreak
-            ? "🍃 Break running"
-            : "🎯 Focus session \(session)/\(total)"
+            ? String(localized: "🍃 Pause läuft")
+            : String(format: String(localized: "🎯 Fokussitzung %d/%d"), session, total)
         let mins = Int(timeRemaining) / 60
         let secs = Int(timeRemaining) % 60
-        content.body = String(format: "%02d:%02d remaining", mins, secs)
+        content.body = String(format: String(localized: "%02d:%02d verbleibend"), mins, secs)
         content.categoryIdentifier = ID.category
         content.sound = nil
         let request = UNNotificationRequest(identifier: ID.banner, content: content, trigger: nil)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AmbientSoundView: View {
     @ObservedObject private var manager = AmbientSoundManager.shared
+    @ObservedObject private var localizer = LocalizationManager.shared
     @Environment(\.dismiss) private var dismiss
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
@@ -83,7 +84,7 @@ struct AmbientSoundView: View {
             Text("Ambient Sounds")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(.white)
-            Text("Boost your focus with sound")
+            Text(localizer.localizedString(forKey: "ambient_boost_subtitle"))
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.55))
                 .multilineTextAlignment(.center)
@@ -252,7 +253,7 @@ struct AmbientSoundView: View {
                     .frame(width: 24)
             }
 
-            Text("Volume")
+            Text(localizer.localizedString(forKey: "ambient_volume"))
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.35))
         }
@@ -268,7 +269,7 @@ struct AmbientSoundView: View {
             Image(systemName: "headphones")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.yellow)
-            Text("Use headphones for optimal binaural beats")
+            Text(localizer.localizedString(forKey: "ambient_headphones_hint"))
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.65))
         }
@@ -284,11 +285,11 @@ struct AmbientSoundView: View {
                 Image(systemName: "info.circle.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.35))
-                Text("What are Binaural Beats?")
+                Text(localizer.localizedString(forKey: "ambient_binaural_title"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
             }
-            Text("Binaural beats occur when two slightly different tones — one per ear — are played. The brain perceives the difference and can shift into specific states such as focus (40 Hz gamma) or deep relaxation (6 Hz theta).")
+            Text(localizer.localizedString(forKey: "ambient_binaural_text"))
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.35))
                 .lineSpacing(3)

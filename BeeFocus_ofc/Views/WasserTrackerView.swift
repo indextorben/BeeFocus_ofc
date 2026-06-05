@@ -7,6 +7,7 @@ struct WasserTrackerView: View {
     @State private var showGoalPicker = false
     @State private var showHistory = false
     @State private var bounceKey = UUID()
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private let quickAmounts = [150, 200, 300, 500]
     private let cyan = Color(red: 0.15, green: 0.75, blue: 0.95)
@@ -37,11 +38,11 @@ struct WasserTrackerView: View {
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Water Tracker")
+        .navigationTitle(localizer.localizedString(forKey: "wasser_nav_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Close") { dismiss() }
+                Button(localizer.localizedString(forKey: "wasser_close")) { dismiss() }
                     .foregroundStyle(.white.opacity(0.6))
             }
             ToolbarItem(placement: .primaryAction) {
@@ -94,7 +95,7 @@ struct WasserTrackerView: View {
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                         .animation(.spring(response: 0.4), value: total)
-                    Text("ml of \(goal) ml")
+                    Text(String(format: localizer.localizedString(forKey: "wasser_ml_of_goal"), goal))
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -114,25 +115,25 @@ struct WasserTrackerView: View {
 
     private func statusLabel(_ pct: Double) -> String {
         switch pct {
-        case 1.0...: return "Daily goal reached! 💧"
-        case 0.75...: return "Almost there 👏"
-        case 0.5...: return "On track 💪"
-        case 0.25...: return "Keep going!"
-        default:     return "Drink more water!"
+        case 1.0...: return localizer.localizedString(forKey: "wasser_status_goal_reached")
+        case 0.75...: return localizer.localizedString(forKey: "wasser_status_almost")
+        case 0.5...: return localizer.localizedString(forKey: "wasser_status_on_track")
+        case 0.25...: return localizer.localizedString(forKey: "wasser_status_keep_going")
+        default:     return localizer.localizedString(forKey: "wasser_status_drink_more")
         }
     }
 
     private func remainingLabel(total: Int, goal: Int) -> String {
         let rem = max(0, goal - total)
-        if rem == 0 { return "Goal reached for today" }
-        return "\(rem) ml until goal"
+        if rem == 0 { return localizer.localizedString(forKey: "wasser_goal_reached_today") }
+        return String(format: localizer.localizedString(forKey: "wasser_remaining_ml"), rem)
     }
 
     // MARK: - Quick Add
 
     private var quickAddRow: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Add")
+            Text(localizer.localizedString(forKey: "wasser_quick_add"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.4))
 
@@ -187,7 +188,7 @@ struct WasserTrackerView: View {
         let maxML = max(days.map(\.ml).max() ?? 1, store.tagesziel)
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Last 7 Days")
+            Text(localizer.localizedString(forKey: "wasser_last7days"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.4))
 
@@ -228,7 +229,7 @@ struct WasserTrackerView: View {
             HStack {
                 Image(systemName: "arrow.right")
                     .font(.system(size: 9))
-                Text("Daily goal: \(store.tagesziel) ml")
+                Text(String(format: localizer.localizedString(forKey: "wasser_daily_goal_line"), store.tagesziel))
                     .font(.system(size: 10))
             }
             .foregroundStyle(cyan.opacity(0.5))
@@ -243,14 +244,14 @@ struct WasserTrackerView: View {
     private var todayLog: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Drunk today")
+                Text(localizer.localizedString(forKey: "wasser_drunk_today"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.4))
                 Spacer()
                 Button {
                     store.todayEntries.forEach { store.delete($0) }
                 } label: {
-                    Text("Reset")
+                    Text(localizer.localizedString(forKey: "wasser_reset"))
                         .font(.system(size: 12))
                         .foregroundStyle(.red.opacity(0.6))
                 }
@@ -297,11 +298,12 @@ private struct CustomAmountButton: View {
     let onAdd: (Int) -> Void
     @State private var showField = false
     @State private var text = ""
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     var body: some View {
         if showField {
             HStack(spacing: 10) {
-                TextField("Amount in ml", text: $text)
+                TextField(localizer.localizedString(forKey: "wasser_amount_placeholder"), text: $text)
                     .keyboardType(.numberPad)
                     .font(.system(size: 15))
                     .foregroundStyle(.white)
@@ -314,7 +316,7 @@ private struct CustomAmountButton: View {
                         showField = false
                     }
                 } label: {
-                    Text("Add")
+                    Text(localizer.localizedString(forKey: "wasser_add_button"))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14).padding(.vertical, 10)
@@ -331,7 +333,7 @@ private struct CustomAmountButton: View {
             Button { showField = true } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
-                    Text("Custom amount")
+                    Text(localizer.localizedString(forKey: "wasser_custom_amount"))
                         .font(.system(size: 13))
                 }
                 .foregroundStyle(cyan.opacity(0.7))
@@ -351,6 +353,7 @@ private struct ZielPickerSheet: View {
     @ObservedObject var store: WasserStore
     let cyan: Color
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private let presets = [1500, 2000, 2500, 3000, 3500]
 
@@ -359,7 +362,7 @@ private struct ZielPickerSheet: View {
             ZStack {
                 Color(red: 0.07, green: 0.1, blue: 0.2).ignoresSafeArea()
                 VStack(spacing: 20) {
-                    Text("Choose daily goal")
+                    Text(localizer.localizedString(forKey: "wasser_choose_goal"))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.5))
                         .padding(.top, 8)
@@ -373,7 +376,7 @@ private struct ZielPickerSheet: View {
                                 HStack {
                                     Image(systemName: "drop.fill")
                                         .foregroundStyle(cyan)
-                                    Text("\(ml) ml / day")
+                                    Text(String(format: localizer.localizedString(forKey: "wasser_ml_per_day"), ml))
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundStyle(.white)
                                     Spacer()
@@ -395,12 +398,12 @@ private struct ZielPickerSheet: View {
                     Spacer()
                 }
             }
-            .navigationTitle("Daily Goal")
+            .navigationTitle(localizer.localizedString(forKey: "wasser_goal_picker_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }.foregroundStyle(.white.opacity(0.6))
+                    Button(localizer.localizedString(forKey: "wasser_close")) { dismiss() }.foregroundStyle(.white.opacity(0.6))
                 }
             }
             .preferredColorScheme(.dark)

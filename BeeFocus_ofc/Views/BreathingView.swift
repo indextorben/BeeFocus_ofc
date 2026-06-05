@@ -16,7 +16,7 @@ struct BreathingPattern: Identifiable {
     static let all: [BreathingPattern] = [
         BreathingPattern(
             id: "box",
-            name: "Box Breathing",
+            name: "Box-Atmung",
             subtitle: "Stressabbau & Fokus",
             icon: "square",
             inhale: 4, hold1: 4, exhale: 4, hold2: 4,
@@ -54,11 +54,11 @@ enum BreathPhase {
 
     var label: String {
         switch self {
-        case .idle:   return "Ready?"
-        case .inhale: return "Inhale"
-        case .hold1:  return "Hold"
-        case .exhale: return "Exhale"
-        case .hold2:  return "Hold"
+        case .idle:   return String(localized: "Bereit?")
+        case .inhale: return String(localized: "Einatmen")
+        case .hold1:  return String(localized: "Halten")
+        case .exhale: return String(localized: "Ausatmen")
+        case .hold2:  return String(localized: "Halten")
         }
     }
 }
@@ -92,7 +92,7 @@ struct BreathingView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Text("Breathing Exercise")
+                    Text("Atemübung")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(.white)
                     Spacer()
@@ -150,7 +150,7 @@ struct BreathingView: View {
                                 .foregroundStyle(.white.opacity(0.9))
                                 .contentTransition(.numericText())
                         } else if !isRunning {
-                            Text("Tap to start")
+                            Text("Tippen zum Starten")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.white.opacity(0.4))
                         }
@@ -309,10 +309,10 @@ struct PatternCard: View {
                     .foregroundStyle(.white.opacity(0.45))
 
                 HStack(spacing: 4) {
-                    rhythmChip("\(Int(pattern.inhale))s", "In", pattern.color)
-                    if pattern.hold1 > 0 { rhythmChip("\(Int(pattern.hold1))s", "H", pattern.color.opacity(0.7)) }
-                    rhythmChip("\(Int(pattern.exhale))s", "Ex", pattern.color)
-                    if pattern.hold2 > 0 { rhythmChip("\(Int(pattern.hold2))s", "H", pattern.color.opacity(0.7)) }
+                    rhythmChip("\(Int(pattern.inhale))s", String(localized: "Ein"), pattern.color)
+                    if pattern.hold1 > 0 { rhythmChip("\(Int(pattern.hold1))s", String(localized: "H"), pattern.color.opacity(0.7)) }
+                    rhythmChip("\(Int(pattern.exhale))s", String(localized: "Aus"), pattern.color)
+                    if pattern.hold2 > 0 { rhythmChip("\(Int(pattern.hold2))s", String(localized: "H"), pattern.color.opacity(0.7)) }
                 }
             }
             .padding(.horizontal, 14)

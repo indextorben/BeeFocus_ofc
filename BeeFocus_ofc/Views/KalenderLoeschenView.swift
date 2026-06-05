@@ -2,6 +2,7 @@ import SwiftUI
 import EventKit
 
 struct KalenderLoeschenView: View {
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var eventStore = EKEventStore()
     @State private var sections: [(title: String, calendars: [EKCalendar])] = []
     @State private var accessGranted = false
@@ -29,13 +30,13 @@ struct KalenderLoeschenView: View {
                         Image(systemName: "calendar.badge.exclamationmark")
                             .font(.system(size: 44))
                             .foregroundStyle(.orange)
-                        Text("Calendar access required")
+                        Text(localizer.localizedString(forKey: "cal_del_access_required"))
                             .font(.headline)
-                        Text("Go to Settings → Privacy & Security → Calendars and allow BeeFocus full access.")
+                        Text(localizer.localizedString(forKey: "cal_del_access_text"))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
-                        Button("Open Settings") {
+                        Button(localizer.localizedString(forKey: "cal_del_open_settings")) {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
                             }
@@ -48,17 +49,17 @@ struct KalenderLoeschenView: View {
                 .listRowBackground(Color.clear)
             } else {
                 Section {
-                    DatePicker("From", selection: $deleteFrom, displayedComponents: .date)
-                    DatePicker("To", selection: $deleteTo, in: deleteFrom..., displayedComponents: .date)
+                    DatePicker(localizer.localizedString(forKey: "cal_del_from"), selection: $deleteFrom, displayedComponents: .date)
+                    DatePicker(localizer.localizedString(forKey: "cal_del_to"), selection: $deleteTo, in: deleteFrom..., displayedComponents: .date)
                 } header: {
-                    Text("Date range of entries to delete")
+                    Text(localizer.localizedString(forKey: "cal_del_date_range_header"))
                 } footer: {
-                    Text("Only entries within this date range will be deleted.")
+                    Text(localizer.localizedString(forKey: "cal_del_date_range_footer"))
                 }
 
                 if sections.isEmpty {
                     Section {
-                        Label("No writable calendars found", systemImage: "calendar.badge.minus")
+                        Label(localizer.localizedString(forKey: "cal_del_no_calendars"), systemImage: "calendar.badge.minus")
                             .foregroundStyle(.secondary)
                             .font(.footnote)
                     }
@@ -89,19 +90,19 @@ struct KalenderLoeschenView: View {
                 }
             }
         }
-        .navigationTitle("Delete Calendar Events")
+        .navigationTitle(localizer.localizedString(forKey: "cal_del_nav_title"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { requestAccess() }
         .confirmationDialog(
-            "Delete Calendar Events",
+            localizer.localizedString(forKey: "cal_del_confirm_title"),
             isPresented: $showConfirm,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) { deleteEvents() }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cal_del_confirm_delete"), role: .destructive) { deleteEvents() }
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
         } message: {
             if let cal = selectedCalendar {
-                Text("All events from \"\(cal.title)\" in the selected date range will be permanently deleted.")
+                Text(String(format: localizer.localizedString(forKey: "cal_del_confirm_msg"), cal.title))
             }
         }
         .overlay {
@@ -110,17 +111,17 @@ struct KalenderLoeschenView: View {
                     Color.black.opacity(0.35).ignoresSafeArea()
                     VStack(spacing: 14) {
                         ProgressView()
-                        Text("Deleting…").font(.subheadline)
+                        Text(localizer.localizedString(forKey: "cal_del_deleting")).font(.subheadline)
                     }
                     .padding(24)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
         }
-        .alert("Done", isPresented: $showResult) {
+        .alert(localizer.localizedString(forKey: "cal_del_done_title"), isPresented: $showResult) {
             Button("OK") {}
         } message: {
-            Text("\(deletedCount) calendar events were deleted.")
+            Text(String(format: localizer.localizedString(forKey: "cal_del_done_msg"), deletedCount))
         }
     }
 
@@ -148,7 +149,7 @@ struct KalenderLoeschenView: View {
 
         var dict: [String: [EKCalendar]] = [:]
         for cal in cals {
-            let key = cal.source?.title ?? "Unknown"
+            let key = cal.source?.title ?? localizer.localizedString(forKey: "cal_del_unknown_source")
             dict[key, default: []].append(cal)
         }
 

@@ -9,6 +9,7 @@ struct HabitTrackerView: View {
     @State private var showAddSheet = false
     @State private var editingHabit: Habit? = nil
     @State private var bouncedHabitID: UUID? = nil
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var c1: Color { appThemaFarben(aktivesThema).0 }
     private var c2: Color { appThemaFarben(aktivesThema).1 }
@@ -92,10 +93,10 @@ struct HabitTrackerView: View {
         return VStack(spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Habits")
+                    Text(localizer.localizedString(forKey: "habit_title"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("Today, \(Date().formatted(date: .abbreviated, time: .omitted))")
+                    Text(localizer.localizedString(forKey: "habit_today_prefix") + Date().formatted(date: .abbreviated, time: .omitted))
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.5))
                 }
@@ -153,10 +154,10 @@ struct HabitTrackerView: View {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.system(size: 48))
                 .foregroundStyle(accent.opacity(0.6))
-            Text("No Habits")
+            Text(localizer.localizedString(forKey: "habit_empty_title"))
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.7))
-            Text("Add your first daily habit and watch it become a routine.")
+            Text(localizer.localizedString(forKey: "habit_empty_body"))
                 .font(.system(size: 14))
                 .foregroundStyle(.white.opacity(0.4))
                 .multilineTextAlignment(.center)
@@ -181,7 +182,7 @@ struct HabitTrackerView: View {
             HStack(spacing: 10) {
                 Image(systemName: atLimit ? "lock.fill" : "plus.circle.fill")
                     .font(.system(size: 16, weight: .semibold))
-                Text(atLimit ? "Pro for more habits" : "Add habit")
+                Text(atLimit ? localizer.localizedString(forKey: "habit_pro_button") : localizer.localizedString(forKey: "habit_add_button"))
                     .font(.system(size: 15, weight: .semibold))
             }
             .foregroundStyle(.white)
@@ -279,14 +280,14 @@ struct HabitCard: View {
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(.white)
                     }
-                    Text("Streak")
+                    Text(LocalizationManager.shared.localizedString(forKey: "habit_streak_label"))
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.4))
                 } else {
                     Text("\(habit.totalCompletions)")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white.opacity(0.4))
-                    Text("Total")
+                    Text(LocalizationManager.shared.localizedString(forKey: "habit_total_label"))
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.3))
                 }
@@ -315,6 +316,7 @@ struct HabitAddSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = HabitStore.shared
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var name: String = ""
     @State private var selectedIcon: String = "star.fill"
@@ -341,8 +343,8 @@ struct HabitAddSheet: View {
 
                         // Name
                         VStack(alignment: .leading, spacing: 8) {
-                            label("Name")
-                            TextField("e.g. Read every day", text: $name)
+                            label(localizer.localizedString(forKey: "habit_sheet_name_label"))
+                            TextField(localizer.localizedString(forKey: "habit_sheet_name_placeholder"), text: $name)
                                 .font(.system(size: 16))
                                 .padding(14)
                                 .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
@@ -351,7 +353,7 @@ struct HabitAddSheet: View {
 
                         // Icon Picker
                         VStack(alignment: .leading, spacing: 10) {
-                            label("Icon")
+                            label(localizer.localizedString(forKey: "habit_sheet_icon_label"))
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
                                 ForEach(Habit.availableIcons.filter { !$0.contains("🧘") }, id: \.self) { icon in
                                     Button {
@@ -377,7 +379,7 @@ struct HabitAddSheet: View {
 
                         // Color Picker
                         VStack(alignment: .leading, spacing: 10) {
-                            label("Color")
+                            label(localizer.localizedString(forKey: "habit_sheet_color_label"))
                             HStack(spacing: 12) {
                                 ForEach(Habit.availableColors, id: \.name) { c in
                                     let col = colorFor(c.name)
@@ -399,16 +401,16 @@ struct HabitAddSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(existing == nil ? "Add Habit" : "Edit")
+            .navigationTitle(existing == nil ? localizer.localizedString(forKey: "habit_sheet_add_title") : localizer.localizedString(forKey: "habit_sheet_edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(localizer.localizedString(forKey: "habit_sheet_cancel")) { dismiss() }
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    Button(localizer.localizedString(forKey: "habit_sheet_save")) { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(name.isEmpty ? .gray : habitColor)
                         .disabled(name.isEmpty)

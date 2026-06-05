@@ -131,12 +131,12 @@ struct TagesplanerView: View {
                     Button {
                         if let url = buildDayPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Day as PDF", systemImage: "doc.fill")
+                        Label("Tag als PDF", systemImage: "doc.fill")
                     }
                     Button {
                         if let url = buildWeekPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Week as PDF", systemImage: "doc.on.doc.fill")
+                        Label("Woche als PDF", systemImage: "doc.on.doc.fill")
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -230,7 +230,7 @@ struct TagesplanerView: View {
     // MARK: - Selected date label
 
     private var selectedDateString: String {
-        if isToday { return "Today" }
+        if isToday { return String(localized: "Heute") }
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMM d"
         f.locale = Locale.current
@@ -323,7 +323,7 @@ struct TagesplanerView: View {
 
     private func shortWeekday(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
+        f.locale = Locale.current
         f.dateFormat = "EEE"
         let s = f.string(from: date)
         return String(s.prefix(3))
@@ -360,8 +360,8 @@ struct TagesplanerView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Text(total == 0
-                     ? "No tasks scheduled"
-                     : "\(done) of \(total) completed")
+                     ? "Keine Aufgaben geplant"
+                     : "\(done) von \(total) erledigt")
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
             }
@@ -374,7 +374,7 @@ struct TagesplanerView: View {
                             selectedDate = cal.startOfDay(for: Date())
                         }
                     } label: {
-                        Text("Today")
+                        Text("Heute")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(themeC1)
                             .padding(.horizontal, 10).padding(.vertical, 5)
@@ -401,9 +401,9 @@ struct TagesplanerView: View {
     private var headerLabel: String {
         if isToday {
             let h = cal.component(.hour, from: Date())
-            if h < 12 { return "Good Morning" }
-            if h < 18 { return "Good Afternoon" }
-            return "Good Evening"
+            if h < 12 { return String(localized: "Guten Morgen") }
+            if h < 18 { return String(localized: "Guten Tag") }
+            return String(localized: "Guten Abend")
         }
         let f = DateFormatter()
         f.locale = Locale.current
@@ -430,9 +430,9 @@ struct TagesplanerView: View {
         let spanToEvening = (morningTasks + middayTasks).last(where: { $0.endDate.map { $0 > eveStart } == true })
 
         return VStack(spacing: 0) {
-            treeSection(label: "Morning",   icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
-            treeSection(label: "Afternoon", icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
-            treeSection(label: "Evening",   icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
+            treeSection(label: String(localized: "Morgen", comment: "time of day: morning"),   icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
+            treeSection(label: String(localized: "Nachmittag"), icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
+            treeSection(label: String(localized: "Abend"),   icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
         }
         .padding(.horizontal, 4)
     }
@@ -778,8 +778,8 @@ struct TagesplanerView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus").font(.system(size: 9, weight: .bold))
                         Text(minutes >= 60
-                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") free"
-                             : "\(Int(minutes))min free")
+                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") frei"
+                             : "\(Int(minutes))min frei")
                             .font(.system(size: 10))
                     }
                     .foregroundStyle(isDark ? .white.opacity(0.22) : Color.secondary.opacity(0.5))
@@ -835,11 +835,11 @@ struct TagesplanerView: View {
                         HStack(spacing: 4) {
                             if isActive {
                                 Circle().fill(themeC1).frame(width: 5, height: 5)
-                                Text("running")
+                                Text("läuft")
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundStyle(themeC1)
                             }
-                            Text("until \(timeFmt.string(from: endDate))")
+                            Text("bis \(timeFmt.string(from: endDate))")
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             if isActive {
@@ -861,7 +861,7 @@ struct TagesplanerView: View {
                                 Image(systemName: "clock")
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(.secondary)
-                                Text("starts in \(startingInLabel(from: due))")
+                                Text("startet in \(startingInLabel(from: due))")
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
@@ -1048,7 +1048,7 @@ struct TagesplanerView: View {
     private func startingInLabel(from dueDate: Date) -> String {
         let secs = max(0, dueDate.timeIntervalSince(now))
         let mins = Int(secs / 60)
-        if mins < 15 { return "soon" }
+        if mins < 15 { return String(localized: "bald") }
         if mins < 60 { return "\(mins)min" }
         let h = mins / 60; let m = mins % 60
         return m == 0 ? "\(h)h" : "\(h)h \(m)min"
@@ -1066,15 +1066,15 @@ struct TagesplanerView: View {
 
     private var alleAufgabenContent: some View {
         VStack(spacing: 12) {
-            aufgabenGroup(id: "today", title: "Today", icon: "sun.max.fill",
+            aufgabenGroup(id: "today", title: String(localized: "Heute"), icon: "sun.max.fill",
                           color: themeC1, todos: groupedTodos(.today))
-            aufgabenGroup(id: "overdue", title: "Overdue", icon: "exclamationmark.triangle.fill",
+            aufgabenGroup(id: "overdue", title: String(localized: "Überfällig"), icon: "exclamationmark.triangle.fill",
                           color: .red, todos: groupedTodos(.overdue))
-            aufgabenGroup(id: "week", title: "This Week", icon: "calendar.badge.clock",
+            aufgabenGroup(id: "week", title: String(localized: "Diese Woche"), icon: "calendar.badge.clock",
                           color: themeC2, todos: groupedTodos(.thisWeek))
-            aufgabenGroup(id: "later", title: "Later", icon: "arrow.right.circle.fill",
+            aufgabenGroup(id: "later", title: String(localized: "Später"), icon: "arrow.right.circle.fill",
                           color: .secondary, todos: groupedTodos(.later))
-            aufgabenGroup(id: "nodate", title: "No Date", icon: "tray.fill",
+            aufgabenGroup(id: "nodate", title: String(localized: "Ohne Datum"), icon: "tray.fill",
                           color: .secondary, todos: groupedTodos(.noDate))
         }
     }
@@ -1206,7 +1206,7 @@ struct TagesplanerView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.badge.plus")
                             .font(.system(size: 11, weight: .semibold))
-                        Text("Schedule")
+                        Text("Einplanen")
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundStyle(themeC1)
@@ -1636,7 +1636,7 @@ private let defaultQuickSlots: [QuickSlot] = [
     QuickSlot(name: "Mittag",     icon: "sun.max.fill",         hour: 12),
     QuickSlot(name: "Nachmittag", icon: "cloud.sun.fill",       hour: 15),
     QuickSlot(name: "Abend",      icon: "moon.fill",            hour: 18),
-    QuickSlot(name: "Late evening",  icon: "moon.stars.fill",      hour: 21),
+    QuickSlot(name: "Später Abend",  icon: "moon.stars.fill",      hour: 21),
 ]
 
 private func loadQuickSlots() -> [QuickSlot] {
@@ -1804,7 +1804,7 @@ struct TagesplanQuickAddSheet: View {
 
                         VStack(spacing: 10) {
                             Button { submit() } label: {
-                                Text("Add").font(.headline)
+                                Text("Hinzufügen").font(.headline)
                                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                                     .background(
                                         title.trimmingCharacters(in: .whitespaces).isEmpty
@@ -1820,7 +1820,7 @@ struct TagesplanQuickAddSheet: View {
                             Button { onAufgabenUebersicht() } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "list.bullet").font(.system(size: 13))
-                                    Text("Task overview").font(.subheadline)
+                                    Text("Aufgabenübersicht").font(.subheadline)
                                 }
                                 .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                             }
@@ -1937,7 +1937,7 @@ struct TagesplanQuickAddSheet: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(themeC1)
-                Text("Suggestions")
+                Text("Vorschläge")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
             }
@@ -2040,11 +2040,11 @@ struct SlotEditorSheet: View {
                     slots.append(newSlot)
                     editingSlot = newSlot
                 } label: {
-                    Label("Add time slot", systemImage: "plus.circle.fill")
+                    Label("Zeitraum hinzufügen", systemImage: "plus.circle.fill")
                         .foregroundStyle(themeC1)
                 }
             }
-            .navigationTitle("Edit time slots")
+            .navigationTitle("Zeiträume bearbeiten")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -2186,9 +2186,9 @@ struct AufgabenUebersichtSheet: View {
 
     private let groups: [(id: String, title: String, icon: String, color: Color, kind: GroupKind)] = [
         ("today",   "Heute",         "sun.max.fill",               .orange, .today),
-        ("overdue", "Overdue",    "exclamationmark.triangle.fill", .red,  .overdue),
+        ("overdue", "Überfällig",    "exclamationmark.triangle.fill", .red,  .overdue),
         ("week",    "Diese Woche",   "calendar.badge.clock",       .blue,   .thisWeek),
-        ("later",   "Later",        "arrow.right.circle.fill",    .secondary, .later),
+        ("later",   "Später",        "arrow.right.circle.fill",    .secondary, .later),
         ("nodate",  "Ohne Datum",    "tray.fill",                  .secondary, .noDate),
     ]
 
@@ -2254,7 +2254,7 @@ struct AufgabenUebersichtSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Schließen") { dismiss() }
                 }
             }
         }
@@ -2275,7 +2275,7 @@ struct AufgabenUebersichtSheet: View {
                         RoundedRectangle(cornerRadius: 8).fill(group.color.opacity(0.15)).frame(width: 30, height: 30)
                         Image(systemName: group.icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(group.color)
                     }
-                    Text(group.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isDark ? .white : .primary)
+                    Text(LocalizedStringKey(group.title)).font(.system(size: 15, weight: .semibold)).foregroundStyle(isDark ? .white : .primary)
                     Spacer()
                     Text("\(items.count)").font(.caption.weight(.bold)).foregroundStyle(group.color)
                         .padding(.horizontal, 8).padding(.vertical, 3).background(group.color.opacity(0.12), in: Capsule())
@@ -2489,7 +2489,7 @@ struct EinplanenSheet: View {
                             Button(role: .destructive) {
                                 showDeleteConfirm = true
                             } label: {
-                                Label("Delete task", systemImage: "trash")
+                                Label("Aufgabe löschen", systemImage: "trash")
                                     .font(.subheadline.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
@@ -2499,16 +2499,16 @@ struct EinplanenSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 14)
                                         .stroke(Color.red.opacity(0.25), lineWidth: 1))
                             }
-                            .confirmationDialog("Delete task?",
+                            .confirmationDialog("Aufgabe löschen?",
                                                isPresented: $showDeleteConfirm,
                                                titleVisibility: .visible) {
-                                Button("Delete", role: .destructive) {
+                                Button("Löschen", role: .destructive) {
                                     onDelete?()
                                     dismiss()
                                 }
                                 Button("Cancel", role: .cancel) {}
                             } message: {
-                                Text("\"\(todo.title)\" will be permanently deleted.")
+                                Text("\"\(todo.title)\" wird dauerhaft gelöscht.")
                             }
                         }
                     }
@@ -2644,7 +2644,7 @@ struct TagesplanExportView: View {
 
     private var dateString: String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
+        f.locale = Locale.current
         f.dateFormat = "EEEE, MMMM d, yyyy"
         return f.string(from: date)
     }
@@ -2654,7 +2654,7 @@ struct TagesplanExportView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Daily Plan")
+                    Text("Tagesplan")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(themeC1)
                     Text(dateString)
@@ -2711,7 +2711,7 @@ struct TagesplanWocheExportView: View {
 
     private let dayFmt: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US")
+        f.locale = Locale.current
         f.dateFormat = "EEE MMM d"
         return f
     }()

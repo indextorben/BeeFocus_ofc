@@ -4,6 +4,7 @@ struct OrdnerView: View {
     @EnvironmentObject var todoStore: TodoStore
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var showingAddAlert = false
     @State private var newFolderName = ""
@@ -16,14 +17,14 @@ struct OrdnerView: View {
     private var c2: Color { appThemaFarben(aktivesThema).1 }
     private var accent: Color { aktivesThema.isEmpty ? Color.indigo : c1 }
 
-    private let standardFolders: [(title: String, icon: String, color: Color)] = [
-        ("Today",                    "sun.max.fill",                   .orange),
-        ("Overdue",                  "exclamationmark.circle.fill",    .red),
-        ("This Week",                "calendar.badge.clock",           .blue),
-        ("This Month",               "calendar",                       .purple),
-        ("Later",                    "arrow.forward.circle.fill",      .teal),
-        ("General",                  "tray.fill",                      Color(.systemGray)),
-        ("Birthdays & Holidays",     "calendar.badge.exclamationmark", .pink),
+    private let standardFolders: [(id: String, locKey: String, icon: String, color: Color)] = [
+        ("Today",               "folder_today",     "sun.max.fill",                   .orange),
+        ("Overdue",             "folder_overdue",   "exclamationmark.circle.fill",    .red),
+        ("This Week",           "folder_this_week", "calendar.badge.clock",           .blue),
+        ("This Month",          "folder_this_month","calendar",                       .purple),
+        ("Later",               "folder_later",     "arrow.forward.circle.fill",      .teal),
+        ("General",             "folder_general",   "tray.fill",                      Color(.systemGray)),
+        ("Birthdays & Holidays","folder_birthdays", "calendar.badge.exclamationmark", .pink),
     ]
 
     // MARK: - Body
@@ -37,7 +38,7 @@ struct OrdnerView: View {
 
                     sectionCard(
                         icon: "folder.fill",
-                        title: "Default Folders",
+                        title: localizer.localizedString(forKey: "folder_default_folders"),
                         color: accent,
                         sectionIndex: 0
                     ) {
@@ -49,7 +50,7 @@ struct OrdnerView: View {
 
                     sectionCard(
                         icon: "folder.badge.plus",
-                        title: "Custom Folders",
+                        title: localizer.localizedString(forKey: "folder_custom_folders"),
                         color: accent,
                         sectionIndex: 1
                     ) {
@@ -63,7 +64,7 @@ struct OrdnerView: View {
                         }
                     }
 
-                    Text("Tasks can be moved to folders via the context menu (long press).")
+                    Text(localizer.localizedString(forKey: "folder_hint"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -76,7 +77,7 @@ struct OrdnerView: View {
                 .padding(.bottom, 48)
             }
         }
-        .navigationTitle("Folders")
+        .navigationTitle(localizer.localizedString(forKey: "folder_nav_title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -92,24 +93,24 @@ struct OrdnerView: View {
                 }
             }
         }
-        .alert("New Folder", isPresented: $showingAddAlert) {
-            TextField("Folder name", text: $newFolderName)
-            Button("Create") {
+        .alert(localizer.localizedString(forKey: "folder_new_alert_title"), isPresented: $showingAddAlert) {
+            TextField(localizer.localizedString(forKey: "folder_name_placeholder"), text: $newFolderName)
+            Button(localizer.localizedString(forKey: "folder_create")) {
                 let name = newFolderName.trimmingCharacters(in: .whitespaces)
                 guard !name.isEmpty else { return }
                 todoStore.addCustomFolder(name)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
         } message: {
-            Text("Enter a name for the new folder.")
+            Text(localizer.localizedString(forKey: "folder_new_alert_msg"))
         }
-        .confirmationDialog("Delete Folder?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
+        .confirmationDialog(localizer.localizedString(forKey: "folder_delete_title"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(localizer.localizedString(forKey: "cal_del_confirm_delete"), role: .destructive) {
                 if let f = folderToDelete { todoStore.removeCustomFolder(f) }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel"), role: .cancel) {}
         } message: {
-            Text("Tasks in this folder will be kept.")
+            Text(localizer.localizedString(forKey: "folder_delete_msg"))
         }
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.05)) {
@@ -120,17 +121,17 @@ struct OrdnerView: View {
 
     // MARK: - Standard Folder Row
 
-    private func standardFolderRow(_ folder: (title: String, icon: String, color: Color)) -> some View {
+    private func standardFolderRow(_ folder: (id: String, locKey: String, icon: String, color: Color)) -> some View {
         HStack(spacing: 14) {
             iconBadge(icon: folder.icon, color: folder.color)
 
-            Text(folder.title)
+            Text(localizer.localizedString(forKey: folder.locKey))
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
 
             Spacer()
 
-            let count = taskCount(for: folder.title)
+            let count = taskCount(for: folder.id)
             if count > 0 {
                 Text("\(count)")
                     .font(.system(size: 12, weight: .bold))
@@ -160,7 +161,9 @@ struct OrdnerView: View {
                     .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
 
                 let count = todoStore.todos.filter { $0.customFolder == folder }.count
-                Text(count == 0 ? "Empty" : "\(count) task\(count == 1 ? "" : "s")")
+                Text(count == 0
+                     ? localizer.localizedString(forKey: "folder_empty")
+                     : String(format: localizer.localizedString(forKey: "folder_task_count"), count))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -200,10 +203,10 @@ struct OrdnerView: View {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 36, weight: .light))
                 .foregroundStyle(accent.opacity(0.5))
-            Text("No custom folders yet")
+            Text(localizer.localizedString(forKey: "folder_no_custom"))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
-            Text("Tap the folder icon above to create a new folder.")
+            Text(localizer.localizedString(forKey: "folder_no_custom_hint"))
                 .font(.system(size: 13))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)

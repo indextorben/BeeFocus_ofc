@@ -4,6 +4,7 @@ struct ProfilView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema = ""
     @AppStorage("darkModeEnabled")       private var darkModeEnabled = false
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var isDark: Bool { colorScheme == .dark }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
@@ -12,7 +13,7 @@ struct ProfilView: View {
     // MARK: - Hardcoded developer data
 
     private let devName      = "Torben Lehneke"
-    private let devBio       = "iOS-Entwickler & Designer von BeeFocus"
+    private var devBio: String { localizer.localizedString(forKey: "profil_dev_bio") }
     private let devEmail     = "lehneketorben@gmail.com"
     private let devInstagram = "torben.lehneke_"
     private let devWebsite   = "torbenlehneke.de"
@@ -32,7 +33,7 @@ struct ProfilView: View {
                 .padding(.bottom, 52)
             }
         }
-        .navigationTitle("About the Developer")
+        .navigationTitle(localizer.localizedString(forKey: "profil_nav_title"))
         .navigationBarTitleDisplayMode(.large)
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
     }
@@ -73,7 +74,7 @@ struct ProfilView: View {
     // MARK: - Contact Card
 
     private var contactCard: some View {
-        profileSection(title: "Kontakt", icon: "person.crop.circle.fill", color: themeC1) {
+        profileSection(title: localizer.localizedString(forKey: "profil_contact_section"), icon: "person.crop.circle.fill", color: themeC1) {
             contactRow(
                 icon: "envelope.fill",
                 color: .red,
@@ -110,12 +111,12 @@ struct ProfilView: View {
     // MARK: - App Info Card
 
     private var appInfoCard: some View {
-        profileSection(title: "App", icon: "app.fill", color: themeC2) {
+        profileSection(title: localizer.localizedString(forKey: "profil_app_section"), icon: "app.fill", color: themeC2) {
             infoRow(icon: "app.badge.fill", color: themeC1, label: "App", value: "BeeFocus")
             divider()
             infoRow(icon: "number", color: .indigo, label: "Version", value: Bundle.main.versionAndBuild)
             divider()
-            infoRow(icon: "hammer.fill", color: .orange, label: "Entwickelt mit", value: "SwiftUI · iOS 16+")
+            infoRow(icon: "hammer.fill", color: .orange, label: localizer.localizedString(forKey: "profil_built_with"), value: "SwiftUI · iOS 16+")
         }
     }
 
