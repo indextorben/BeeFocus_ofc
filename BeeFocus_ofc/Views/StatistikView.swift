@@ -43,6 +43,7 @@ struct StatistikView: View {
     @State private var heatmapWidth: CGFloat = 320
     @AppStorage("dailyFocusGoalMinutes") private var dailyGoal: Int = 60
     @ObservedObject private var timerManager = TimerManager.shared
+    @ObservedObject private var screenTimeTracker = ScreenTimeTracker.shared
 
     private var freigeschalteteItems: Set<String> {
         Set(freigeschalteteItemsString.components(separatedBy: ",").filter { !$0.isEmpty })
@@ -419,12 +420,12 @@ struct StatistikView: View {
 
     var motivationText: String {
         switch completionRate {
-        case 0:      return "Let's go – you've got this!"
-        case ..<0.25: return "Good start, keep it up!"
-        case ..<0.5:  return "You're on the right track!"
-        case ..<0.75: return "More than halfway there!"
-        case ..<1.0:  return "Almost done – great work!"
-        default:      return "Everything done – fantastic!"
+        case 0:       return String(localized: "stat_motivation_0")
+        case ..<0.25: return String(localized: "stat_motivation_25")
+        case ..<0.5:  return String(localized: "stat_motivation_50")
+        case ..<0.75: return String(localized: "stat_motivation_75")
+        case ..<1.0:  return String(localized: "stat_motivation_almost")
+        default:      return String(localized: "stat_motivation_done")
         }
     }
 
@@ -463,7 +464,7 @@ struct StatistikView: View {
     @ViewBuilder private var sectionsTop: some View {
         animatedSection(delay: 0.05) { fokuspunkteCard }
         animatedSection(delay: 0.10) {
-            sectionGroup(icon: "storefront.fill", label: "Focus Store", color: Color(red: 1, green: 0.55, blue: 0.0)) { storeCard }
+            sectionGroup(icon: "storefront.fill", label: String(localized: "stat_focus_store_label"), color: Color(red: 1, green: 0.55, blue: 0.0)) { storeCard }
         }
         animatedSection(delay: 0.15) {
             sectionGroup(icon: "chart.bar.fill", label: localizer.localizedString(forKey: "overview_title"), color: .purple) { overviewCard }
@@ -479,15 +480,20 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.30) {
-            sectionGroup(icon: "timer", label: "Focus Time", color: .cyan) { glassCard { focusCard } }
+            sectionGroup(icon: "timer", label: String(localized: "stat_focus_time_label"), color: .cyan) { glassCard { focusCard } }
+        }
+        animatedSection(delay: 0.31) {
+            sectionGroup(icon: "iphone.and.arrow.forward.inward", label: String(localized: "stat_screen_time_label"), color: Color(red: 0.2, green: 0.7, blue: 0.5)) {
+                glassCard { screenTimeCard }
+            }
         }
         if freigeschalteteItems.contains("Abzeichen-System") {
             animatedSection(delay: 0.32) {
-                sectionGroup(icon: "medal.fill", label: "Badges", color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
+                sectionGroup(icon: "medal.fill", label: String(localized: "stat_badges_label"), color: Color(red: 0.6, green: 0.3, blue: 0.9)) {
                     glassCard {
                         if #available(iOS 16, *) {
                             NavigationLink(destination: FokusAchievementsView()) {
-                                iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: "View all badges")
+                                iconNavRow(icon: "medal.fill", color: Color(red: 0.6, green: 0.3, blue: 0.9), label: String(localized: "stat_view_all_badges"))
                             }
                         }
                     }
@@ -499,7 +505,7 @@ struct StatistikView: View {
     @ViewBuilder private var sectionsMiddle: some View {
         if freigeschalteteItems.contains("Aktivitäts-Heatmap") {
             animatedSection(delay: 0.33) {
-                sectionGroup(icon: "calendar.badge.checkmark", label: "Activity Heatmap", color: .green) {
+                sectionGroup(icon: "calendar.badge.checkmark", label: String(localized: "stat_activity_heatmap_label"), color: .green) {
                     glassCard { heatmapView }
                 }
             }
@@ -522,10 +528,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.38) {
-            sectionGroup(icon: "trophy.fill", label: "Challenges", color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
+            sectionGroup(icon: "trophy.fill", label: String(localized: "stat_challenges_label"), color: Color(red: 1.0, green: 0.7, blue: 0.2)) {
                 glassCard {
                     Button { showChallenges = true } label: {
-                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: "View Focus Challenges")
+                        iconNavRow(icon: "trophy.fill", color: Color(red: 1.0, green: 0.7, blue: 0.2), label: String(localized: "stat_view_challenges"))
                     }
                     .buttonStyle(.plain)
                 }
@@ -536,10 +542,10 @@ struct StatistikView: View {
     // MARK: - Pro Statistiken
     @ViewBuilder private var sectionsProStatistik: some View {
         animatedSection(delay: 0.57) {
-            sectionGroup(icon: "chart.bar.xaxis", label: "Pro Statistics", color: Color(red: 0.2, green: 0.6, blue: 1.0)) {
+            sectionGroup(icon: "chart.bar.xaxis", label: String(localized: "stat_pro_statistics_label"), color: Color(red: 0.2, green: 0.6, blue: 1.0)) {
                 glassCard {
                     Button { showProStatistik = true } label: {
-                        iconNavRow(icon: "chart.bar.xaxis", color: Color(red: 0.2, green: 0.6, blue: 1.0), label: "Weekday, time of day & category analysis")
+                        iconNavRow(icon: "chart.bar.xaxis", color: Color(red: 0.2, green: 0.6, blue: 1.0), label: String(localized: "stat_pro_statistics_desc"))
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.2, green: 0.6, blue: 1.0))
@@ -551,10 +557,10 @@ struct StatistikView: View {
     // MARK: KI-Features
     @ViewBuilder private var sectionsKI: some View {
         animatedSection(delay: 0.60) {
-            sectionGroup(icon: "brain.head.profile", label: "AI Task Analysis", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+            sectionGroup(icon: "brain.head.profile", label: String(localized: "stat_ai_task_analysis_label"), color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
                 glassCard {
                     Button { showKIAnalyse = true } label: {
-                        iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "AI analyzes your tasks & priorities")
+                        iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: String(localized: "stat_ai_task_analysis_desc"))
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.55, green: 0.35, blue: 1.0))
@@ -562,10 +568,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.62) {
-            sectionGroup(icon: "moon.stars.fill", label: "AI Daily Reflection", color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
+            sectionGroup(icon: "moon.stars.fill", label: String(localized: "stat_ai_daily_reflection_label"), color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
                 glassCard {
                     Button { showKIReflexion = true } label: {
-                        iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: "Personal AI reflection of your day")
+                        iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: String(localized: "stat_ai_daily_reflection_desc"))
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 1.0, green: 0.5, blue: 0.8))
@@ -573,10 +579,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.64) {
-            sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: "AI Weekly Report", color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
+            sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: String(localized: "stat_ai_weekly_report_label"), color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
                 glassCard {
                     Button { showKIWochenbericht = true } label: {
-                        iconNavRow(icon: "chart.bar.doc.horizontal.fill", color: Color(red: 0.2, green: 0.75, blue: 1.0), label: "AI analyzes your entire week")
+                        iconNavRow(icon: "chart.bar.doc.horizontal.fill", color: Color(red: 0.2, green: 0.75, blue: 1.0), label: String(localized: "stat_ai_weekly_report_desc"))
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.2, green: 0.75, blue: 1.0))
@@ -584,10 +590,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.66) {
-            sectionGroup(icon: "scissors", label: "AI Task Splitter", color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
+            sectionGroup(icon: "scissors", label: String(localized: "stat_ai_task_splitter_label"), color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
                 glassCard {
                     Button { showKIZerteiler = true } label: {
-                        iconNavRow(icon: "scissors", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: "Break complex tasks into steps")
+                        iconNavRow(icon: "scissors", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: String(localized: "stat_ai_task_splitter_desc"))
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 0.3, green: 0.85, blue: 0.5))
@@ -595,10 +601,10 @@ struct StatistikView: View {
             }
         }
         animatedSection(delay: 0.68) {
-            sectionGroup(icon: "flame.fill", label: "AI Focus Strategy", color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
+            sectionGroup(icon: "flame.fill", label: String(localized: "stat_ai_focus_strategy_label"), color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
                 glassCard {
                     Button { showKIStrategie = true } label: {
-                        iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: "Personalized AI Productivity Plan")
+                        iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: String(localized: "stat_ai_focus_strategy_desc"))
                     }
                     .buttonStyle(.plain)
                     kiProBadge(color: Color(red: 1.0, green: 0.55, blue: 0.1))
@@ -611,17 +617,17 @@ struct StatistikView: View {
 
     @ViewBuilder private var sectionsGesamtbericht: some View {
         animatedSection(delay: 0.75) {
-            sectionGroup(icon: "doc.text.magnifyingglass", label: "AI Overall Report", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
+            sectionGroup(icon: "doc.text.magnifyingglass", label: String(localized: "stat_ai_overall_report_label"), color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
                 glassCard {
                     Button { showKIGesamtbericht = true } label: {
-                        iconNavRow(icon: "doc.text.magnifyingglass", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: "Alle App-Daten analysiert & exportierbar")
+                        iconNavRow(icon: "doc.text.magnifyingglass", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: String(localized: "stat_ai_overall_report_desc"))
                     }
                     .buttonStyle(.plain)
                     HStack(spacing: 6) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
-                        Text("Als PDF, PNG oder JPEG exportieren")
+                        Text(String(localized: "stat_export_hint"))
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
                     }
@@ -636,7 +642,7 @@ struct StatistikView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(color)
-            Text("Pro KI-Feature")
+            Text(String(localized: "stat_pro_ki_feature"))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(color)
         }
@@ -781,10 +787,10 @@ struct StatistikView: View {
 
                     // Erklärung Fokuspunkte
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Earn Focus Points", systemImage: "bolt.fill")
+                        Label(String(localized: "stat_fp_earn_title"), systemImage: "bolt.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
-                        Text("Focus points are credited for your productivity and never decrease automatically – only purchases in the Focus Store reduce your balance.")
+                        Text(String(localized: "stat_fp_earn_desc"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -811,10 +817,10 @@ struct StatistikView: View {
 
                     // Erklärung Fokus-Store
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Focus Store", systemImage: "storefront.fill")
+                        Label(String(localized: "stat_focus_store_label"), systemImage: "storefront.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
-                        Text("In the Focus Store you can unlock color themes for the statistics view. Each theme changes the background gradient of this page.")
+                        Text(String(localized: "stat_fp_store_desc"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -835,10 +841,10 @@ struct StatistikView: View {
 
                     // Erklärung Abzeichen-System
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Badge System", systemImage: "medal.fill")
+                        Label(String(localized: "stat_fp_badge_title"), systemImage: "medal.fill")
                             .font(.headline)
                             .foregroundStyle(Color(red: 0.6, green: 0.3, blue: 0.9))
-                        Text("Unlock the badge system in the store for 2,000 FP. For each badge earned you receive one-time bonus focus points – up to 5,675 FP in total.")
+                        Text(String(localized: "stat_fp_badge_desc"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -863,7 +869,7 @@ struct StatistikView: View {
                     }
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    Text("Currently \(storeItems.count) items available – new ones coming with app updates.")
+                    Text(String(format: String(localized: "stat_store_item_count"), storeItems.count))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -871,7 +877,7 @@ struct StatistikView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Focus Points & Store")
+            .navigationTitle(String(localized: "stat_fp_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -1076,7 +1082,7 @@ struct StatistikView: View {
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [c1, c2], startPoint: .leading, endPoint: .trailing))
                     .animation(.easeInOut(duration: 0.5), value: aktivesThema)
-                Text("\(Int(completionRate * 100))% abgeschlossen")
+                Text(String(format: String(localized: "stat_completion_pct"), Int(completionRate * 100)))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -1099,7 +1105,7 @@ struct StatistikView: View {
             if currentStreak > 0 {
                 HStack(spacing: 3) {
                     Text("\(currentStreak)").font(.system(size: 14, weight: .bold, design: .rounded)).foregroundStyle(.orange)
-                    Text(currentStreak == 1 ? "Tag" : "Tage").font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text(String(localized: currentStreak == 1 ? "stat_day_singular" : "stat_day_plural")).font(.system(size: 12)).foregroundStyle(.secondary)
                 }
             }
         }
@@ -1146,7 +1152,7 @@ struct StatistikView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text("Focus Points").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.75))
+                        Text(String(localized: "stat_fp_label")).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.75))
                         Button { showFPInfo = true } label: {
                             Image(systemName: "info.circle.fill")
                                 .font(.system(size: 18, weight: .semibold))
@@ -1167,9 +1173,9 @@ struct StatistikView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("Total").font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
+                    Text(String(localized: "stat_fp_total_label")).font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
                     Text("\(fokuspunkteGesamt) FP").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.85))
-                    Text("earned").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
+                    Text(String(localized: "stat_fp_earned")).font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
                 }
             }
             .padding(.horizontal, 20).padding(.vertical, 18)
@@ -1188,8 +1194,8 @@ struct StatistikView: View {
                     HStack(spacing: 12) {
                         iconBadge(icon: "bolt.fill", color: Color(red: 1, green: 0.55, blue: 0.0))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Your balance").font(.system(size: 13)).foregroundStyle(.secondary)
-                            Text("\(fokuspunkteVerfuegbar) Focus Points")
+                            Text(String(localized: "stat_your_balance")).font(.system(size: 13)).foregroundStyle(.secondary)
+                            Text(String(format: String(localized: "stat_fp_balance_display"), fokuspunkteVerfuegbar))
                                 .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color(red: 1, green: 0.55, blue: 0.0))
                         }
@@ -1197,7 +1203,7 @@ struct StatistikView: View {
                         if let name = kaufErfolg {
                             HStack(spacing: 4) {
                                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                                Text("\(name) unlocked!").font(.system(size: 11, weight: .semibold)).foregroundStyle(.green)
+                                Text(String(format: String(localized: "stat_unlocked_fmt"), name)).font(.system(size: 11, weight: .semibold)).foregroundStyle(.green)
                             }
                             .transition(.opacity.combined(with: .scale))
                         }
@@ -1211,32 +1217,32 @@ struct StatistikView: View {
                             if !aktivesThema.isEmpty {
                                 let (tc, _, _) = themaFarben(fuer: aktivesThema)
                                 activeStatusRow(
-                                    dot: tc, label: "Theme", value: aktivesThema, farbe: tc,
+                                    dot: tc, label: String(localized: "stat_label_theme"), value: aktivesThema, farbe: tc,
                                     onDeactivate: { withAnimation { aktivesThema = "" } }
                                 )
                             }
                             if !aktiverTimerModus.isEmpty {
                                 let item = storeItems.first { $0.name == aktiverTimerModus }
                                 activeStatusRow(
-                                    dot: item?.farbe ?? .blue, label: "Timer", value: "\(aktiverTimerModus) (\(timerModusLabel(aktiverTimerModus)))", farbe: item?.farbe ?? .blue,
+                                    dot: item?.farbe ?? .blue, label: String(localized: "stat_label_timer"), value: "\(aktiverTimerModus) (\(timerModusLabel(aktiverTimerModus)))", farbe: item?.farbe ?? .blue,
                                     onDeactivate: { deaktiviereTimerModus() }
                                 )
                             }
                             if aktivePriorityStyle == "emoji" {
                                 activeStatusRow(
-                                    dot: .pink, label: "Priority", value: "Emojis active 🔴🟡🟢", farbe: .pink,
+                                    dot: .pink, label: String(localized: "stat_label_priority"), value: String(localized: "stat_value_emojis_active"), farbe: .pink,
                                     onDeactivate: { aktivePriorityStyle = "standard" }
                                 )
                             }
                             if konfettiEnabled {
                                 activeStatusRow(
-                                    dot: .yellow, label: "Confetti", value: "On 🎉", farbe: .yellow,
+                                    dot: .yellow, label: String(localized: "stat_label_confetti"), value: String(localized: "stat_value_on"), farbe: .yellow,
                                     onDeactivate: { konfettiEnabled = false }
                                 )
                             }
                             if fokusSperrmodus {
                                 activeStatusRow(
-                                    dot: .indigo, label: "Lock mode", value: "Active 🔒", farbe: .indigo,
+                                    dot: .indigo, label: String(localized: "stat_label_lock_mode"), value: String(localized: "stat_value_active_lock"), farbe: .indigo,
                                     onDeactivate: { fokusSperrmodus = false }
                                 )
                             }
@@ -1294,32 +1300,32 @@ struct StatistikView: View {
         .animation(.easeInOut(duration: 0.2), value: storeTab)
         // Kauf-Dialog
         .alert(
-            kaufBestaetigung.map { "\"\($0.name)\" freischalten?" } ?? "",
+            kaufBestaetigung.map { String(format: String(localized: "stat_buy_confirm_title"), $0.name) } ?? "",
             isPresented: Binding(get: { kaufBestaetigung != nil }, set: { if !$0 { kaufBestaetigung = nil } })
         ) {
             if let item = kaufBestaetigung {
-                Button("Unlock (\(item.kosten) FP)") { kaufeItem(item); kaufBestaetigung = nil }
+                Button(String(format: String(localized: "stat_unlock_btn"), item.kosten)) { kaufeItem(item); kaufBestaetigung = nil }
                 Button("Cancel", role: .cancel) { kaufBestaetigung = nil }
             }
         } message: {
             if let item = kaufBestaetigung {
-                Text("Costs \(item.kosten) focus points. You have \(fokuspunkteVerfuegbar) FP.")
+                Text(String(format: String(localized: "stat_buy_confirm_msg"), item.kosten, fokuspunkteVerfuegbar))
             }
         }
         // Verkauf-Dialog
         .alert(
-            verkaufBestaetigung.map { "Sell \"\($0.name)\"?" } ?? "",
+            verkaufBestaetigung.map { String(format: String(localized: "stat_sell_confirm_title"), $0.name) } ?? "",
             isPresented: Binding(get: { verkaufBestaetigung != nil }, set: { if !$0 { verkaufBestaetigung = nil } })
         ) {
             if let item = verkaufBestaetigung {
-                Button("Sell (\(item.kosten / 2) FP back)", role: .destructive) {
+                Button(String(format: String(localized: "stat_sell_btn"), item.kosten / 2), role: .destructive) {
                     verkaufeItem(item); verkaufBestaetigung = nil
                 }
                 Button("Cancel", role: .cancel) { verkaufBestaetigung = nil }
             }
         } message: {
             if let item = verkaufBestaetigung {
-                Text("You will receive \(item.kosten / 2) FP back.")
+                Text(String(format: String(localized: "stat_sell_refund_msg"), item.kosten / 2))
             }
         }
     }
@@ -1363,7 +1369,7 @@ struct StatistikView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(istFreigeschaltet ? .primary : .secondary)
                     if istAktiv {
-                        Text("Active")
+                        Text(String(localized: "stat_active"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 7).padding(.vertical, 2)
@@ -1383,7 +1389,7 @@ struct StatistikView: View {
                     if istAktiv { deaktiviereTimerModus() }
                     else { aktiverTimerModus = item.name; applyTimerModus(item.name) }
                 } label: {
-                    Text(istAktiv ? "Deactivate" : "Activate")
+                    Text(String(localized: istAktiv ? "stat_deactivate" : "stat_activate"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(istAktiv ? .secondary : item.farbe)
                         .padding(.horizontal, 12).padding(.vertical, 6)
@@ -1415,15 +1421,15 @@ struct StatistikView: View {
         .contextMenu {
             if istFreigeschaltet {
                 Button { if istAktiv { deaktiviereTimerModus() } else { aktiverTimerModus = item.name; applyTimerModus(item.name) } } label: {
-                    Label(istAktiv ? "Deactivate" : "Activate", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                    Label(String(localized: istAktiv ? "stat_deactivate" : "stat_activate"), systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
                 }
                 Divider()
                 Button(role: .destructive) { verkaufBestaetigung = item } label: {
-                    Label("Sell (\(item.kosten / 2) FP back)", systemImage: "arrow.uturn.left.circle")
+                    Label(String(format: String(localized: "stat_sell_btn"), item.kosten / 2), systemImage: "arrow.uturn.left.circle")
                 }
             } else if kannKaufen {
                 Button { kaufBestaetigung = item } label: {
-                    Label("Unlock (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                    Label(String(format: String(localized: "stat_unlock_btn"), item.kosten), systemImage: "lock.open.fill")
                 }
             }
         }
@@ -1544,17 +1550,17 @@ struct StatistikView: View {
                     default: break
                     }
                 } label: {
-                    Label(istAktiv ? "Deactivate" : "Activate", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                    Label(String(localized: istAktiv ? "stat_deactivate" : "stat_activate"), systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
                 }
                 Divider()
             }
             if istFreigeschaltet {
                 Button(role: .destructive) { verkaufBestaetigung = item } label: {
-                    Label("Sell (\(item.kosten / 2) FP back)", systemImage: "arrow.uturn.left.circle")
+                    Label(String(format: String(localized: "stat_sell_btn"), item.kosten / 2), systemImage: "arrow.uturn.left.circle")
                 }
             } else if kannKaufen {
                 Button { kaufBestaetigung = item } label: {
-                    Label("Unlock (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                    Label(String(format: String(localized: "stat_unlock_btn"), item.kosten), systemImage: "lock.open.fill")
                 }
             }
         }
@@ -1608,12 +1614,12 @@ struct StatistikView: View {
 
                 // Status-Badge / Preis
                 if istAktiv {
-                    Text("Active")
+                    Text(String(localized: "stat_active"))
                         .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 2)
                         .background(item.farbe.gradient, in: Capsule())
                 } else if istFreigeschaltet {
-                    Text("Activate")
+                    Text(String(localized: "stat_activate"))
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(item.farbe)
                         .padding(.horizontal, 8).padding(.vertical, 2)
@@ -1645,19 +1651,19 @@ struct StatistikView: View {
                 Button {
                     aktiviereThema(item)
                 } label: {
-                    Label(istAktiv ? "Deactivate" : "Activate", systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
+                    Label(String(localized: istAktiv ? "stat_deactivate" : "stat_activate"), systemImage: istAktiv ? "xmark.circle" : "checkmark.circle")
                 }
                 Divider()
                 Button(role: .destructive) {
                     verkaufBestaetigung = item
                 } label: {
-                    Label("Sell (\(item.kosten / 2) FP back)", systemImage: "arrow.uturn.left.circle")
+                    Label(String(format: String(localized: "stat_sell_btn"), item.kosten / 2), systemImage: "arrow.uturn.left.circle")
                 }
             } else if kannKaufen {
                 Button {
                     kaufBestaetigung = item
                 } label: {
-                    Label("Unlock (\(item.kosten) FP)", systemImage: "lock.open.fill")
+                    Label(String(format: String(localized: "stat_unlock_btn"), item.kosten), systemImage: "lock.open.fill")
                 }
             }
         }
@@ -1801,15 +1807,15 @@ struct StatistikView: View {
 
             // Legende
             HStack(spacing: 6) {
-                Text("Wenig").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(String(localized: "stat_heatmap_low")).font(.system(size: 11)).foregroundStyle(.secondary)
                 ForEach([0.1, 0.3, 0.5, 0.75, 1.0], id: \.self) { v in
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.green.opacity(0.15 + v * 0.75))
                         .frame(width: 13, height: 13)
                 }
-                Text("Viel").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(String(localized: "stat_heatmap_high")).font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(totalDays) active days")
+                Text(String(format: String(localized: "stat_active_days_fmt"), totalDays))
                     .font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
             }
         }
@@ -1839,7 +1845,7 @@ struct StatistikView: View {
                     Text(df.string(from: day))
                         .font(.system(size: 12, weight: .semibold))
                     if minutes == 0 {
-                        Text("Kein Fokus").font(.system(size: 11)).foregroundStyle(.secondary)
+                        Text(String(localized: "stat_no_focus")).font(.system(size: 11)).foregroundStyle(.secondary)
                     } else {
                         Text(timeText).font(.system(size: 11, weight: .medium)).foregroundStyle(Color.green)
                     }
@@ -1883,17 +1889,17 @@ struct StatistikView: View {
                     Text(stats.name).font(.system(size: 13, weight: .bold))
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Ø Focus").font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text(String(localized: "stat_avg_focus")).font(.system(size: 9)).foregroundStyle(.secondary)
                             Text(avgText).font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(stats.avg == 0 ? Color.secondary : Color.green)
                         }
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Total").font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text(String(localized: "stat_total")).font(.system(size: 9)).foregroundStyle(.secondary)
                             Text(totalText).font(.system(size: 11, weight: .semibold))
                         }
                         if let best = stats.best, best.minutes > 0 {
                             VStack(alignment: .leading, spacing: 1) {
-                                Text("Bester Tag").font(.system(size: 9)).foregroundStyle(.secondary)
+                                Text(String(localized: "stat_best_day")).font(.system(size: 9)).foregroundStyle(.secondary)
                                 Text(bestDF.string(from: best.date))
                                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.orange)
                             }
@@ -2087,6 +2093,102 @@ struct StatistikView: View {
         }
     }
 
+    // MARK: - Screen Time Card
+
+    private var screenTimeCard: some View {
+        let days = screenTimeTracker.last7Days
+        let maxSec = max(days.map(\.seconds).max() ?? 1, 1)
+        let teal = Color(red: 0.2, green: 0.7, blue: 0.5)
+        let todayFormatted = ScreenTimeTracker.formatDuration(screenTimeTracker.totalTodaySeconds)
+        let avgFormatted   = ScreenTimeTracker.formatDuration(screenTimeTracker.weeklyAverageSeconds)
+
+        return VStack(spacing: 0) {
+
+            // Today row
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(teal.opacity(0.18)).frame(width: 36, height: 36)
+                    Image(systemName: "iphone.and.arrow.forward.inward")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(teal)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(String(localized: "stat_usage_today"))
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text(todayFormatted)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(teal)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(String(localized: "stat_avg_7_days"))
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text(avgFormatted)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 14)
+
+            Divider().opacity(0.1)
+
+            // 7-day bar chart
+            HStack(alignment: .bottom, spacing: 5) {
+                ForEach(Array(days.enumerated()), id: \.offset) { _, entry in
+                    let isToday = Calendar.current.isDateInToday(entry.date)
+                    let frac    = CGFloat(entry.seconds) / CGFloat(maxSec)
+                    let label   = dayLabel(entry.date)
+                    VStack(spacing: 4) {
+                        if entry.seconds > 0 {
+                            Text(ScreenTimeTracker.formatDuration(entry.seconds))
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundStyle(isToday ? teal : Color.secondary.opacity(0.6))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
+                        } else {
+                            Text("–")
+                                .font(.system(size: 8))
+                                .foregroundStyle(Color.secondary.opacity(0.3))
+                        }
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isToday ? teal : teal.opacity(0.35))
+                            .frame(height: max(4, 60 * frac))
+                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: entry.seconds)
+                        Text(label)
+                            .font(.system(size: 9, weight: isToday ? .bold : .regular))
+                            .foregroundStyle(isToday ? teal : Color.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 96)
+            .padding(.horizontal, 16).padding(.bottom, 14).padding(.top, 10)
+
+            Divider().opacity(0.1)
+
+            // Hint
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                Text(String(localized: "stat_only_beefocus_hint"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 10)
+        }
+    }
+
+    private func dayLabel(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date)     { return String(localized: "stat_day_today") }
+        if cal.isDateInYesterday(date) { return String(localized: "stat_day_yesterday") }
+        let df = DateFormatter()
+        df.dateFormat = "EEE"
+        df.locale = Locale.current
+        return df.string(from: date)
+    }
+
     // MARK: - Focus Card
 
     private var focusCard: some View {
@@ -2096,7 +2198,7 @@ struct StatistikView: View {
                 iconBadge(icon: "flame.fill", color: .orange)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(focusTodayDateText).font(.system(size: 13)).foregroundStyle(.secondary)
-                    Text("Heute: \(focusTodayMinutes) Min.")
+                    Text(String(format: String(localized: "stat_today_min_fmt"), focusTodayMinutes))
                         .font(.system(size: 16, weight: .semibold))
                 }
                 Spacer()
@@ -2105,7 +2207,7 @@ struct StatistikView: View {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 11))
                             .foregroundStyle(.yellow)
-                        Text("\(todoStore.focusStreak) Tage")
+                        Text(String(format: String(localized: "stat_streak_days_fmt"), todoStore.focusStreak))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.orange)
                     }
@@ -2123,7 +2225,7 @@ struct StatistikView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(focusTodayMinutes)")
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                            Text("/ \(dailyGoal) min Tagesziel")
+                            Text(String(format: String(localized: "stat_daily_goal_fmt"), dailyGoal))
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         GeometryReader { geo in
@@ -2144,7 +2246,7 @@ struct StatistikView: View {
                         Text("\(timerManager.todayCompletedSessions)")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(chartAccentColors[0])
-                        Text("Sessions")
+                        Text(String(localized: "stat_sessions"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -2159,7 +2261,7 @@ struct StatistikView: View {
             // Total focus time
             HStack(spacing: 12) {
                 iconBadge(icon: "timer", color: .cyan)
-                Text("Total Focus Time")
+                Text(String(localized: "stat_total_focus_time"))
                     .font(.system(size: 16))
                 Spacer()
                 let h = totalFocusMinutesAll / 60
@@ -2180,13 +2282,13 @@ struct StatistikView: View {
     private var focusWeeklyChart: some View {
         VStack(spacing: 10) {
             HStack {
-                Text("Verlauf – 7 Tage")
+                Text(String(localized: "stat_weekly_history"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 let avg = todoStore.weeklyFocusAverage
                 if avg > 0 {
-                    Text("Ø \(avg) min")
+                    Text(String(format: String(localized: "stat_avg_min_fmt"), avg))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
