@@ -10,6 +10,10 @@ struct FokusChallenge: Identifiable {
     let target: Int
     let unit: String
 
+    var localizedTitle: String { NSLocalizedString("ch_\(id)_title", comment: "") }
+    var localizedDescription: String { NSLocalizedString("ch_\(id)_desc", comment: "") }
+    var localizedUnit: String { NSLocalizedString("ch_unit_\(unit)", comment: "") }
+
     enum ChallengePeriod { case daily, weekly }
 }
 
@@ -142,6 +146,8 @@ struct FokusChallengesView: View {
             ),
         ]
     }
+    // Note: title/description fields are kept as English identifiers for legacy compatibility.
+    // Localized display uses localizedTitle / localizedDescription computed properties.
 
     var body: some View {
         ZStack {
@@ -153,7 +159,7 @@ struct FokusChallengesView: View {
                         .padding(.top, 24)
                         .padding(.horizontal, 20)
 
-                    sectionHeader("Daily Challenges")
+                    sectionHeader(String(localized: "ch_section_daily"))
                         .padding(.horizontal, 20)
 
                     ForEach(challenges.filter { $0.period == .daily }) { c in
@@ -165,7 +171,7 @@ struct FokusChallengesView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    sectionHeader("Weekly Challenges")
+                    sectionHeader(String(localized: "ch_section_weekly"))
                         .padding(.horizontal, 20)
                         .padding(.top, 4)
 
@@ -208,10 +214,10 @@ struct FokusChallengesView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Focus Challenges")
+                    Text(String(localized: "ch_header_title"))
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("\(done) of \(challenges.count) completed")
+                    Text(String(format: String(localized: "ch_header_completed_fmt"), done, challenges.count))
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -262,12 +268,12 @@ struct ChallengeCard: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
-                        Text(challenge.title)
+                        Text(challenge.localizedTitle)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(claimed ? .white.opacity(0.6) : .white)
                         periodBadge
                     }
-                    Text(challenge.description)
+                    Text(challenge.localizedDescription)
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.45))
                 }
@@ -306,7 +312,7 @@ struct ChallengeCard: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "star.fill")
-                        Text("Complete Challenge!")
+                        Text(String(localized: "ch_claim_btn"))
                             .fontWeight(.semibold)
                     }
                     .font(.system(size: 14))
@@ -325,7 +331,7 @@ struct ChallengeCard: View {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(challenge.color)
-                    Text("Completed")
+                    Text(String(localized: "ch_completed"))
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.5))
                     Spacer()
@@ -352,7 +358,7 @@ struct ChallengeCard: View {
     }
 
     private var periodBadge: some View {
-        Text(challenge.period == .daily ? "Daily" : "Weekly")
+        Text(String(localized: challenge.period == .daily ? "ch_period_daily" : "ch_period_weekly"))
             .font(.system(size: 9, weight: .bold))
             .foregroundStyle(.white.opacity(0.6))
             .padding(.horizontal, 7).padding(.vertical, 2)

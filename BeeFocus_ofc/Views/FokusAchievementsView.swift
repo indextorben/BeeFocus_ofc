@@ -40,7 +40,7 @@ struct FokusAchievementsView: View {
                 .padding(.bottom, 52)
             }
         }
-        .navigationTitle("Abzeichen")
+        .navigationTitle(String(localized: "ach_nav_title"))
         .navigationBarTitleDisplayMode(.large)
         .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
         .overlay(alignment: .top) {
@@ -83,14 +83,14 @@ struct FokusAchievementsView: View {
                 .frame(width: 72, height: 72)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Abzeichen freigeschaltet")
+                    Text(String(localized: "ach_unlocked_summary"))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     HStack(spacing: 4) {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(themeC1)
-                        Text("+\(bonusEarned) FP Bonus verdient")
+                        Text(String(format: String(localized: "ach_bonus_earned_fmt"), bonusEarned))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(themeC1)
                     }
@@ -99,7 +99,7 @@ struct FokusAchievementsView: View {
                     .background(themeC1.opacity(0.12), in: Capsule())
 
                     let remaining = totalCount - unlockedCount
-                    Text(remaining == 0 ? "Alle Abzeichen freigeschaltet 🎉" : "\(remaining) noch zu freischalten")
+                    Text(remaining == 0 ? String(localized: "ach_all_unlocked") : String(format: String(localized: "ach_remaining_fmt"), remaining))
                         .font(.caption)
                         .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
                 }
@@ -115,7 +115,7 @@ struct FokusAchievementsView: View {
     private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterChip(label: "Alle", icon: "square.grid.2x2.fill", kategorie: nil)
+                filterChip(label: String(localized: "ach_filter_all"), icon: "square.grid.2x2.fill", kategorie: nil)
                 ForEach(FokusAchievement.Kategorie.allCases, id: \.rawValue) { k in
                     filterChip(label: k.rawValue, icon: k.systemIcon, kategorie: k)
                 }
@@ -198,11 +198,11 @@ struct FokusAchievementsView: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(a.name)
+                Text(a.localizedName)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(unlocked ? (isDark ? .white : .primary) : (isDark ? .white.opacity(0.55) : Color.secondary))
                     .lineLimit(1)
-                Text(a.beschreibung)
+                Text(a.localizedBeschreibung)
                     .font(.system(size: 11))
                     .foregroundStyle(isDark ? .white.opacity(0.4) : Color.secondary)
                     .lineLimit(2)
@@ -222,7 +222,7 @@ struct FokusAchievementsView: View {
                     .foregroundStyle(unlocked ? a.farbe : (isDark ? .white.opacity(0.3) : Color.secondary.opacity(0.4)))
                 if unlocked {
                     Spacer()
-                    Text("Verdient")
+                    Text(String(localized: "ach_earned"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(a.farbe.opacity(0.8))
                 }
@@ -258,7 +258,7 @@ struct FokusAchievementsView: View {
                 .frame(width: 36, height: 36)
                 .background(a.farbe.opacity(0.18), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text("Abzeichen freigeschaltet!")
+                Text(String(localized: "ach_banner_title"))
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white.opacity(0.7))
                 Text(a.name)

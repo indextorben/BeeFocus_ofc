@@ -53,6 +53,13 @@ struct FokusAchievement: Identifiable {
         }
     }
 
+    var localizedName: String {
+        NSLocalizedString("ach_\(id)_name", comment: "")
+    }
+    var localizedBeschreibung: String {
+        NSLocalizedString("ach_\(id)_desc", comment: "")
+    }
+
     static let all: [FokusAchievement] = _allAchievements
 }
 

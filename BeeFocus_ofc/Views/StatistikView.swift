@@ -196,6 +196,13 @@ struct StatistikView: View {
         var farbe: Color {
             switch self { case .themes: .purple; case .timer: .blue; case .features: .orange }
         }
+        var localizedName: String {
+            switch self {
+            case .themes:   return NSLocalizedString("store_tab_themes", comment: "")
+            case .timer:    return NSLocalizedString("store_tab_timer", comment: "")
+            case .features: return NSLocalizedString("store_tab_features", comment: "")
+            }
+        }
     }
 
     // MARK: - Store Item Model
@@ -212,6 +219,10 @@ struct StatistikView: View {
              tab: StoreTab = .themes, beschreibung: String = "") {
             self.name = name; self.icon = icon; self.kosten = kosten
             self.farbe = farbe; self.tab = tab; self.beschreibung = beschreibung
+        }
+
+        var localizedBeschreibung: String {
+            NSLocalizedString("store_desc_\(name)", comment: "")
         }
     }
 
@@ -1260,7 +1271,7 @@ struct StatistikView: View {
                         VStack(spacing: 4) {
                             Image(systemName: tab.icon)
                                 .font(.system(size: 15, weight: .semibold))
-                            Text(tab.rawValue)
+                            Text(tab.localizedName)
                                 .font(.system(size: 11, weight: .semibold))
                         }
                         .foregroundStyle(storeTab == tab ? tab.farbe : .secondary)
@@ -1376,7 +1387,7 @@ struct StatistikView: View {
                             .background(item.farbe.gradient, in: Capsule())
                     }
                 }
-                Text(item.beschreibung)
+                Text(item.localizedBeschreibung)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1474,7 +1485,7 @@ struct StatistikView: View {
                             .foregroundStyle(item.farbe)
                     }
                 }
-                Text(item.beschreibung)
+                Text(item.localizedBeschreibung)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
