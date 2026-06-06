@@ -133,11 +133,11 @@ final class TimerManager: ObservableObject {
         }
 
         if !isBreak && elapsedFocusSeconds <= 0 {
-            // Start counting from 0 for live accumulation when resuming
+            // Start counting from elapsed seconds already worked (estimated from planned vs remaining)
             elapsedFocusSeconds = max(0, plannedFocusDuration - timeRemaining)
-            // Align next threshold to the next full minute boundary
+            // Set threshold as absolute: next full-minute boundary after current elapsed seconds
             let remainder = elapsedFocusSeconds.truncatingRemainder(dividingBy: 60)
-            nextLiveMinuteThreshold = remainder == 0 ? 60 : (60 - remainder)
+            nextLiveMinuteThreshold = elapsedFocusSeconds + (remainder == 0 ? 60 : (60 - remainder))
         }
 
         startTimer()
@@ -367,8 +367,7 @@ final class TimerManager: ObservableObject {
     }
 
     private func postWorkedMinutesIfNeeded() {
-        // Only count when a focus session has been running
-        guard !isBreak else { return }
+        guard plannedFocusDuration > 0 else { return }
 
         // Compute actually worked seconds as planned minus remaining
         let workedSeconds = max(0, plannedFocusDuration - timeRemaining)

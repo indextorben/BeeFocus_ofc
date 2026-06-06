@@ -7,6 +7,7 @@ import ManagedSettings
 @available(iOS 16, *)
 struct FokusModeView: View {
     @StateObject private var manager = FokusModeManager.shared
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var showingPicker = false
     @State private var appeared = false
     @State private var glowPulse = false
@@ -19,8 +20,10 @@ struct FokusModeView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("fokusZitatEnabled") private var fokusZitatEnabled: Bool = false
 
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
+
     private var zitate: [String] {
-        (0..<10).map { i in NSLocalizedString("fmv_quote_\(i)", comment: "") }
+        (0..<10).map { i in loc("fmv_quote_\(i)") }
     }
 
     private var tagesZitat: String {
@@ -71,7 +74,7 @@ struct FokusModeView: View {
                         .opacity(appeared ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.15), value: appeared)
 
-                    Text(String(localized: "fmv_active_label"))
+                    Text(loc("fmv_active_label"))
                         .font(.caption)
                         .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                         .padding(.top, 2)
@@ -271,7 +274,7 @@ struct FokusModeView: View {
 
     private var statusText: some View {
         VStack(spacing: 8) {
-            Text(manager.isFocusModeActive ? String(localized: "fmv_status_active") : String(localized: "fmv_status_inactive"))
+            Text(manager.isFocusModeActive ? loc("fmv_status_active") : loc("fmv_status_inactive"))
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .foregroundStyle(isDark ? .white : .primary)
                 .animation(.easeInOut(duration: 0.3), value: manager.isFocusModeActive)
@@ -304,7 +307,7 @@ struct FokusModeView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "fmv_blocked_apps"))
+                        Text(loc("fmv_blocked_apps"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isDark ? .white : .primary)
                         Text(appSelectionLabel)
@@ -347,7 +350,7 @@ struct FokusModeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: manager.isFocusModeActive ? "xmark.shield.fill" : "shield.checkered")
                             .font(.system(size: 18, weight: .semibold))
-                        Text(manager.isFocusModeActive ? String(localized: "fmv_btn_deactivate") : String(localized: "fmv_btn_activate"))
+                        Text(manager.isFocusModeActive ? loc("fmv_btn_deactivate") : loc("fmv_btn_activate"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -371,7 +374,7 @@ struct FokusModeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "person.badge.key.fill")
                             .font(.system(size: 18, weight: .semibold))
-                        Text(String(localized: "fmv_btn_allow_screen_time"))
+                        Text(loc("fmv_btn_allow_screen_time"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -390,23 +393,23 @@ struct FokusModeView: View {
 
     private var selectionSummary: String {
         if !manager.isAuthorized {
-            return NSLocalizedString("fokus.selection.no_access", comment: "")
+            return loc("fokus.selection.no_access")
         }
         if manager.isFocusModeActive && manager.hasSelection {
             var parts: [String] = []
             if manager.selectedAppCount > 0 {
                 let key = manager.selectedAppCount == 1 ? "fokus.app_count" : "fokus.apps_count"
-                parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedAppCount))
+                parts.append(String(format: loc(key), manager.selectedAppCount))
             }
             if manager.selectedCategoryCount > 0 {
                 let key = manager.selectedCategoryCount == 1 ? "fokus.category_count" : "fokus.categories_count"
-                parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedCategoryCount))
+                parts.append(String(format: loc(key), manager.selectedCategoryCount))
             }
-            return String(format: NSLocalizedString("fokus.selection.active", comment: ""), parts.joined(separator: " & "))
+            return String(format: loc("fokus.selection.active"), parts.joined(separator: " & "))
         } else if manager.hasSelection {
-            return NSLocalizedString("fmv_ready", comment: "")
+            return loc("fmv_ready")
         }
-        return NSLocalizedString("fmv_choose_apps", comment: "")
+        return loc("fmv_choose_apps")
     }
 
     // MARK: - Stats Button
@@ -424,7 +427,7 @@ struct FokusModeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(String(localized: "fmv_stats_title"))
+                    Text(loc("fmv_stats_title"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Text(statsSubtitle)
@@ -454,12 +457,12 @@ struct FokusModeView: View {
         if manager.isFocusModeActive, let start = manager.currentSessionStart {
             secs += Int(Date().timeIntervalSince(start))
         }
-        guard secs > 0 else { return NSLocalizedString("fmv_no_focus_today", comment: "") }
+        guard secs > 0 else { return loc("fmv_no_focus_today") }
         let h = secs / 3600
         let m = (secs % 3600) / 60
-        if h > 0 && m > 0 { return String(format: NSLocalizedString("fokus.today_hours", comment: ""), h, m) }
-        if h > 0 { return String(format: NSLocalizedString("fokus.today_hours_only", comment: ""), h) }
-        return String(format: NSLocalizedString("fokus.today_minutes", comment: ""), m)
+        if h > 0 && m > 0 { return String(format: loc("fokus.today_hours"), h, m) }
+        if h > 0 { return String(format: loc("fokus.today_hours_only"), h) }
+        return String(format: loc("fokus.today_minutes"), m)
     }
 
     // MARK: - Website Section
@@ -477,7 +480,7 @@ struct FokusModeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(String(localized: "fmv_block_websites"))
+                    Text(loc("fmv_block_websites"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Text(verbatim: domainsLabel)
@@ -516,21 +519,21 @@ struct FokusModeView: View {
         var parts: [String] = []
         if manager.selectedAppCount > 0 {
             let key = manager.selectedAppCount == 1 ? "fokus.app_count" : "fokus.apps_count"
-            parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedAppCount))
+            parts.append(String(format: loc(key), manager.selectedAppCount))
         }
         if manager.selectedCategoryCount > 0 {
             let key = manager.selectedCategoryCount == 1 ? "fokus.category_count" : "fokus.categories_count"
-            parts.append(String(format: NSLocalizedString(key, comment: ""), manager.selectedCategoryCount))
+            parts.append(String(format: loc(key), manager.selectedCategoryCount))
         }
-        return parts.isEmpty ? NSLocalizedString("fmv_none_selected", comment: "") : parts.joined(separator: ", ")
+        return parts.isEmpty ? loc("fmv_none_selected") : parts.joined(separator: ", ")
     }
 
     private var domainsLabel: String {
         guard !manager.blockedDomains.isEmpty else {
-            return NSLocalizedString("fmv_domains_label", comment: "")
+            return loc("fmv_domains_label")
         }
         let key = manager.blockedDomains.count == 1 ? "fokus.domains_count" : "fokus.domains_count_plural"
-        return String(format: NSLocalizedString(key, comment: ""), manager.blockedDomains.count)
+        return String(format: loc(key), manager.blockedDomains.count)
     }
 
     // MARK: - Streak & Goal Row
@@ -545,7 +548,7 @@ struct FokusModeView: View {
                     Text("\(manager.currentStreak)")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(isDark ? .white : .primary)
-                    Text(String(localized: "fmv_day_streak"))
+                    Text(loc("fmv_day_streak"))
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -580,7 +583,7 @@ struct FokusModeView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(String(localized: "fmv_daily_goal"))
+                        Text(loc("fmv_daily_goal"))
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                         Text(goalDisplayLabel)
@@ -618,6 +621,9 @@ struct GoalPickerSheet: View {
     let onSelect: (Int) -> Void
 
     @Environment(\.dismiss) var dismiss
+    @ObservedObject private var localizer = LocalizationManager.shared
+
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     private let options: [(key: String, mins: Int)] = [
         ("fmv_goal_30min",  30),
@@ -638,7 +644,7 @@ struct GoalPickerSheet: View {
                     dismiss()
                 } label: {
                     HStack {
-                        Text(NSLocalizedString(option.key, comment: "")).foregroundStyle(.primary)
+                        Text(loc(option.key)).foregroundStyle(.primary)
                         Spacer()
                         if currentMinutes == option.mins {
                             Image(systemName: "checkmark").foregroundStyle(themeC1)
@@ -647,11 +653,11 @@ struct GoalPickerSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .navigationTitle(String(localized: "fmv_goal_picker_title"))
+            .navigationTitle(loc("fmv_goal_picker_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "ki_done")) { dismiss() }
+                    Button(loc("ki_done")) { dismiss() }
                 }
             }
         }

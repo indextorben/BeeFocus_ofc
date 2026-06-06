@@ -45,6 +45,7 @@ struct TagesplanerView: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
     @AppStorage("collapsedSectionsString") private var collapsedSectionsString: String = ""
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var selectedDate: Date
     @State private var itemSheet: TagesplanItemSheet? = nil
@@ -69,6 +70,7 @@ struct TagesplanerView: View {
     }
 
     var isDark: Bool { colorScheme == .dark }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
     private var cal: Calendar { Calendar.current }
@@ -131,12 +133,12 @@ struct TagesplanerView: View {
                     Button {
                         if let url = buildDayPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Tag als PDF", systemImage: "doc.fill")
+                        Label(loc("Tag als PDF"), systemImage: "doc.fill")
                     }
                     Button {
                         if let url = buildWeekPDF() { shareItems = [url]; showingShareSheet = true }
                     } label: {
-                        Label("Woche als PDF", systemImage: "doc.on.doc.fill")
+                        Label(loc("Woche als PDF"), systemImage: "doc.on.doc.fill")
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -230,7 +232,7 @@ struct TagesplanerView: View {
     // MARK: - Selected date label
 
     private var selectedDateString: String {
-        if isToday { return String(localized: "Heute") }
+        if isToday { return loc("Heute") }
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMM d"
         f.locale = Locale.current
@@ -360,8 +362,8 @@ struct TagesplanerView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Text(total == 0
-                     ? "Keine Aufgaben geplant"
-                     : "\(done) von \(total) erledigt")
+                     ? loc("Keine Aufgaben geplant")
+                     : String(format: loc("%lld von %lld erledigt"), done, total))
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
             }
@@ -374,7 +376,7 @@ struct TagesplanerView: View {
                             selectedDate = cal.startOfDay(for: Date())
                         }
                     } label: {
-                        Text("Heute")
+                        Text(loc("Heute"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(themeC1)
                             .padding(.horizontal, 10).padding(.vertical, 5)
@@ -401,9 +403,9 @@ struct TagesplanerView: View {
     private var headerLabel: String {
         if isToday {
             let h = cal.component(.hour, from: Date())
-            if h < 12 { return String(localized: "Guten Morgen") }
-            if h < 18 { return String(localized: "Guten Tag") }
-            return String(localized: "Guten Abend")
+            if h < 12 { return loc("Guten Morgen") }
+            if h < 18 { return loc("Guten Tag") }
+            return loc("Guten Abend")
         }
         let f = DateFormatter()
         f.locale = Locale.current
@@ -430,9 +432,9 @@ struct TagesplanerView: View {
         let spanToEvening = (morningTasks + middayTasks).last(where: { $0.endDate.map { $0 > eveStart } == true })
 
         return VStack(spacing: 0) {
-            treeSection(label: String(localized: "Morgen", comment: "time of day: morning"),   icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
-            treeSection(label: String(localized: "Nachmittag"), icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
-            treeSection(label: String(localized: "Abend"),   icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
+            treeSection(label: loc("Morgen"),      icon: "sun.and.horizon.fill", color: .orange,  hours: 6..<12,  spanningIn: nil)
+            treeSection(label: loc("Nachmittag"),  icon: "sun.max.fill",         color: themeC1,  hours: 12..<18, spanningIn: spanToMidday)
+            treeSection(label: loc("Abend"),       icon: "moon.stars.fill",      color: .indigo,  hours: 18..<24, spanningIn: spanToEvening)
         }
         .padding(.horizontal, 4)
     }
@@ -592,8 +594,6 @@ struct TagesplanerView: View {
                         if gapMins > 5 { freeTimeRow(minutes: gapMins, color: color, showHint: false) }
                     }
                 }
-
-                if nowSlotIdx == slots.count { nowIndicatorRow() }
 
                 // Gap after last slot
                 if let last = slots.last {
@@ -762,6 +762,17 @@ struct TagesplanerView: View {
         }
     }
 
+    private func freeTimeLabel(minutes: CGFloat) -> String {
+        let h = Int(minutes / 60)
+        let m = Int(minutes) % 60
+        if h > 0 {
+            return m > 0
+                ? String(format: loc("tpv_free_h_m"), h, m)
+                : String(format: loc("tpv_free_h"), h)
+        }
+        return String(format: loc("tpv_free_m"), Int(minutes))
+    }
+
     // Free-time gap — aligns with timeline spine
     private func freeTimeRow(minutes: CGFloat, color: Color, showHint: Bool) -> some View {
         let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
@@ -777,9 +788,7 @@ struct TagesplanerView: View {
                 Button { showingQuickAdd = true } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus").font(.system(size: 9, weight: .bold))
-                        Text(minutes >= 60
-                             ? "\(Int(minutes/60))h\(Int(minutes)%60 > 0 ? " \(Int(minutes)%60)min" : "") frei"
-                             : "\(Int(minutes))min frei")
+                        Text(freeTimeLabel(minutes: minutes))
                             .font(.system(size: 10))
                     }
                     .foregroundStyle(isDark ? .white.opacity(0.22) : Color.secondary.opacity(0.5))
@@ -835,11 +844,11 @@ struct TagesplanerView: View {
                         HStack(spacing: 4) {
                             if isActive {
                                 Circle().fill(themeC1).frame(width: 5, height: 5)
-                                Text("läuft")
+                                Text(loc("läuft"))
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundStyle(themeC1)
                             }
-                            Text("bis \(timeFmt.string(from: endDate))")
+                            Text(String(format: loc("bis %@"), timeFmt.string(from: endDate)))
                                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             if isActive {
@@ -861,7 +870,7 @@ struct TagesplanerView: View {
                                 Image(systemName: "clock")
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(.secondary)
-                                Text("startet in \(startingInLabel(from: due))")
+                                Text(String(format: loc("startet in %@"), startingInLabel(from: due)))
                                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
@@ -973,7 +982,7 @@ struct TagesplanerView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "clock")
                                 .font(.system(size: 9, weight: .semibold))
-                            Text("in \(startingInLabel(from: due))")
+                            Text(String(format: loc("in %@"), startingInLabel(from: due)))
                                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                         }
                         .foregroundStyle(.secondary)
@@ -1048,7 +1057,7 @@ struct TagesplanerView: View {
     private func startingInLabel(from dueDate: Date) -> String {
         let secs = max(0, dueDate.timeIntervalSince(now))
         let mins = Int(secs / 60)
-        if mins < 15 { return String(localized: "bald") }
+        if mins < 15 { return loc("bald") }
         if mins < 60 { return "\(mins)min" }
         let h = mins / 60; let m = mins % 60
         return m == 0 ? "\(h)h" : "\(h)h \(m)min"
@@ -1066,15 +1075,15 @@ struct TagesplanerView: View {
 
     private var alleAufgabenContent: some View {
         VStack(spacing: 12) {
-            aufgabenGroup(id: "today", title: String(localized: "Heute"), icon: "sun.max.fill",
+            aufgabenGroup(id: "today", title: loc("Heute"), icon: "sun.max.fill",
                           color: themeC1, todos: groupedTodos(.today))
-            aufgabenGroup(id: "overdue", title: String(localized: "Überfällig"), icon: "exclamationmark.triangle.fill",
+            aufgabenGroup(id: "overdue", title: loc("Überfällig"), icon: "exclamationmark.triangle.fill",
                           color: .red, todos: groupedTodos(.overdue))
-            aufgabenGroup(id: "week", title: String(localized: "Diese Woche"), icon: "calendar.badge.clock",
+            aufgabenGroup(id: "week", title: loc("Diese Woche"), icon: "calendar.badge.clock",
                           color: themeC2, todos: groupedTodos(.thisWeek))
-            aufgabenGroup(id: "later", title: String(localized: "Später"), icon: "arrow.right.circle.fill",
+            aufgabenGroup(id: "later", title: loc("Später"), icon: "arrow.right.circle.fill",
                           color: .secondary, todos: groupedTodos(.later))
-            aufgabenGroup(id: "nodate", title: String(localized: "Ohne Datum"), icon: "tray.fill",
+            aufgabenGroup(id: "nodate", title: loc("Ohne Datum"), icon: "tray.fill",
                           color: .secondary, todos: groupedTodos(.noDate))
         }
     }
@@ -1206,7 +1215,7 @@ struct TagesplanerView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.badge.plus")
                             .font(.system(size: 11, weight: .semibold))
-                        Text("Einplanen")
+                        Text(loc("Einplanen"))
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundStyle(themeC1)
@@ -1668,6 +1677,7 @@ struct TagesplanQuickAddSheet: View {
     let onAdd: (String, Date?, Date?) -> Void
     let onAufgabenUebersicht: () -> Void
 
+    @ObservedObject private var localizer = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @StateObject private var bausteinStore = BausteinStore.shared
@@ -1686,6 +1696,7 @@ struct TagesplanQuickAddSheet: View {
     @State private var selectedBaustein: TagesplanBaustein? = nil
 
     var isDark: Bool { colorScheme == .dark }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     private var selectedSlot: QuickSlot? { slots.first { $0.id == selectedSlotID } }
 
@@ -1717,7 +1728,7 @@ struct TagesplanQuickAddSheet: View {
                         // Title input
                         HStack(spacing: 12) {
                             Image(systemName: "pencil.line").font(.system(size: 18)).foregroundStyle(themeC1)
-                            TextField("Aufgabe eingeben…", text: $title)
+                            TextField(loc("Aufgabe eingeben…"), text: $title)
                                 .font(.system(size: 18, weight: .medium))
                                 .focused($titleFocused)
                                 .submitLabel(.done)
@@ -1746,7 +1757,7 @@ struct TagesplanQuickAddSheet: View {
                         // Time slots
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Text("Zeitraum")
+                                Text(loc("Zeitraum"))
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                                 Spacer()
@@ -1779,7 +1790,7 @@ struct TagesplanQuickAddSheet: View {
                             if showingCustom {
                                 HStack(spacing: 0) {
                                     VStack(spacing: 6) {
-                                        Text("Von").font(.caption.weight(.semibold))
+                                        Text(loc("Von")).font(.caption.weight(.semibold))
                                             .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                                         DatePicker("", selection: $customTimeStart, displayedComponents: .hourAndMinute)
                                             .datePickerStyle(.compact).labelsHidden().tint(themeC1)
@@ -1789,7 +1800,7 @@ struct TagesplanQuickAddSheet: View {
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(themeC1.opacity(0.6)).padding(.top, 18)
                                     VStack(spacing: 6) {
-                                        Text("Bis").font(.caption.weight(.semibold))
+                                        Text(loc("Bis")).font(.caption.weight(.semibold))
                                             .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                                         DatePicker("", selection: $customTimeEnd, displayedComponents: .hourAndMinute)
                                             .datePickerStyle(.compact).labelsHidden().tint(themeC1)
@@ -1804,7 +1815,7 @@ struct TagesplanQuickAddSheet: View {
 
                         VStack(spacing: 10) {
                             Button { submit() } label: {
-                                Text("Hinzufügen").font(.headline)
+                                Text(loc("Hinzufügen")).font(.headline)
                                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                                     .background(
                                         title.trimmingCharacters(in: .whitespaces).isEmpty
@@ -1820,7 +1831,7 @@ struct TagesplanQuickAddSheet: View {
                             Button { onAufgabenUebersicht() } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "list.bullet").font(.system(size: 13))
-                                    Text("Aufgabenübersicht").font(.subheadline)
+                                    Text(loc("Aufgabenübersicht")).font(.subheadline)
                                 }
                                 .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                             }
@@ -1831,11 +1842,11 @@ struct TagesplanQuickAddSheet: View {
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingCustom)
             }
-            .navigationTitle("Schnellaufgabe")
+            .navigationTitle(loc("Schnellaufgabe"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(loc("Abbrechen")) { dismiss() }
                 }
             }
         }
@@ -1857,7 +1868,7 @@ struct TagesplanQuickAddSheet: View {
             VStack(spacing: 5) {
                 Image(systemName: slot.icon).font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(isSelected ? .white : themeC1)
-                Text(slot.name).font(.system(size: 11, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.7)
+                Text(loc(slot.name)).font(.system(size: 11, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.7)
                     .foregroundStyle(isSelected ? .white : (isDark ? .white.opacity(0.8) : .primary))
                 Text(String(format: "%02d:%02d", slot.hour, slot.minute))
                     .font(.system(size: 10, design: .monospaced))
@@ -1885,7 +1896,7 @@ struct TagesplanQuickAddSheet: View {
             VStack(spacing: 5) {
                 Image(systemName: "clock.badge.plus").font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(isSelected ? .white : themeC1)
-                Text("Eigene").font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                Text(loc("Eigene")).font(.system(size: 11, weight: .semibold)).lineLimit(1)
                     .foregroundStyle(isSelected ? .white : (isDark ? .white.opacity(0.8) : .primary))
                 Text(isSelected ? "\(f.string(from: customTimeStart))–\(f.string(from: customTimeEnd))" : "– : –")
                     .font(.system(size: 9, design: .monospaced)).minimumScaleFactor(0.7).lineLimit(1)
@@ -1937,7 +1948,7 @@ struct TagesplanQuickAddSheet: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(themeC1)
-                Text("Vorschläge")
+                Text(loc("Vorschläge"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
             }
@@ -2003,11 +2014,13 @@ struct SlotEditorSheet: View {
     let themeC1: Color
     let themeC2: Color
     @Binding var slots: [QuickSlot]
+    @ObservedObject private var localizer = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @State private var editingSlot: QuickSlot? = nil
 
     var isDark: Bool { colorScheme == .dark }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     var body: some View {
         NavigationStack {
@@ -2020,8 +2033,8 @@ struct SlotEditorSheet: View {
                                 .foregroundStyle(themeC1)
                                 .frame(width: 28)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(slot.name).font(.body.weight(.medium))
-                                Text(String(format: "%02d:%02d Uhr", slot.hour, slot.minute))
+                                Text(loc(slot.name)).font(.body.weight(.medium))
+                                Text(String(format: loc("tpv_slot_time_fmt"), slot.hour, slot.minute))
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -2036,19 +2049,19 @@ struct SlotEditorSheet: View {
                 .onMove { slots.move(fromOffsets: $0, toOffset: $1) }
 
                 Button {
-                    let newSlot = QuickSlot(name: "Neu", icon: "clock", hour: 9)
+                    let newSlot = QuickSlot(name: loc("tpv_new_slot_name"), icon: "clock", hour: 9)
                     slots.append(newSlot)
                     editingSlot = newSlot
                 } label: {
-                    Label("Zeitraum hinzufügen", systemImage: "plus.circle.fill")
+                    Label(loc("Zeitraum hinzufügen"), systemImage: "plus.circle.fill")
                         .foregroundStyle(themeC1)
                 }
             }
-            .navigationTitle("Zeiträume bearbeiten")
+            .navigationTitle(loc("Zeiträume bearbeiten"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { saveQuickSlots(slots); dismiss() }
+                    Button(loc("Fertig")) { saveQuickSlots(slots); dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     EditButton()
@@ -2082,6 +2095,7 @@ struct SingleSlotEditor: View {
     let slot: QuickSlot
     let onSave: (QuickSlot) -> Void
 
+    @ObservedObject private var localizer = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @State private var name: String
@@ -2089,6 +2103,7 @@ struct SingleSlotEditor: View {
     @State private var timeDate: Date
 
     var isDark: Bool { colorScheme == .dark }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     init(themeC1: Color, themeC2: Color, slot: QuickSlot, onSave: @escaping (QuickSlot) -> Void) {
         self.themeC1 = themeC1; self.themeC2 = themeC2; self.slot = slot; self.onSave = onSave
@@ -2102,19 +2117,19 @@ struct SingleSlotEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Name") {
+                Section(loc("Name")) {
                     HStack(spacing: 12) {
                         Image(systemName: icon).foregroundStyle(themeC1).frame(width: 24)
-                        TextField("Name", text: $name)
+                        TextField(loc("Name"), text: $name)
                     }
                 }
 
-                Section("Uhrzeit") {
-                    DatePicker("Zeit", selection: $timeDate, displayedComponents: .hourAndMinute)
+                Section(loc("Uhrzeit")) {
+                    DatePicker(loc("Zeit"), selection: $timeDate, displayedComponents: .hourAndMinute)
                         .tint(themeC1)
                 }
 
-                Section("Symbol") {
+                Section(loc("Symbol")) {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
                         ForEach(slotIcons, id: \.self) { sym in
                             Button {
@@ -2138,14 +2153,14 @@ struct SingleSlotEditor: View {
                     .padding(.vertical, 6)
                 }
             }
-            .navigationTitle("Zeitraum bearbeiten")
+            .navigationTitle(loc("Zeitraum bearbeiten"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(loc("Abbrechen")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Sichern") {
+                    Button(loc("Sichern")) {
                         let cal = Calendar.current
                         let h = cal.component(.hour, from: timeDate)
                         let m = cal.component(.minute, from: timeDate)
@@ -2170,6 +2185,7 @@ struct SingleSlotEditor: View {
 
 struct AufgabenUebersichtSheet: View {
     @EnvironmentObject var todoStore: TodoStore
+    @ObservedObject private var localizer = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
@@ -2183,14 +2199,17 @@ struct AufgabenUebersichtSheet: View {
     @State private var searchText: String = ""
 
     var isDark: Bool { colorScheme == .dark }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
-    private let groups: [(id: String, title: String, icon: String, color: Color, kind: GroupKind)] = [
-        ("today",   "Heute",         "sun.max.fill",               .orange, .today),
-        ("overdue", "Überfällig",    "exclamationmark.triangle.fill", .red,  .overdue),
-        ("week",    "Diese Woche",   "calendar.badge.clock",       .blue,   .thisWeek),
-        ("later",   "Später",        "arrow.right.circle.fill",    .secondary, .later),
-        ("nodate",  "Ohne Datum",    "tray.fill",                  .secondary, .noDate),
-    ]
+    private var groups: [(id: String, title: String, icon: String, color: Color, kind: GroupKind)] {
+        [
+            ("today",   loc("Heute"),        "sun.max.fill",               .orange, .today),
+            ("overdue", loc("Überfällig"),   "exclamationmark.triangle.fill", .red,  .overdue),
+            ("week",    loc("Diese Woche"),  "calendar.badge.clock",       .blue,   .thisWeek),
+            ("later",   loc("Später"),       "arrow.right.circle.fill",    .secondary, .later),
+            ("nodate",  loc("Ohne Datum"),   "tray.fill",                  .secondary, .noDate),
+        ]
+    }
 
     enum GroupKind { case today, overdue, thisWeek, later, noDate }
 
@@ -2228,7 +2247,7 @@ struct AufgabenUebersichtSheet: View {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
-                        TextField("Aufgabe suchen…", text: $searchText)
+                        TextField(loc("Aufgabe suchen…"), text: $searchText)
                             .font(.system(size: 16))
                     }
                     .padding(12)
@@ -2250,11 +2269,11 @@ struct AufgabenUebersichtSheet: View {
                     }
                 }
             }
-            .navigationTitle("Aufgaben einplanen")
+            .navigationTitle(loc("Aufgaben einplanen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button(loc("Schließen")) { dismiss() }
                 }
             }
         }
@@ -2275,7 +2294,7 @@ struct AufgabenUebersichtSheet: View {
                         RoundedRectangle(cornerRadius: 8).fill(group.color.opacity(0.15)).frame(width: 30, height: 30)
                         Image(systemName: group.icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(group.color)
                     }
-                    Text(LocalizedStringKey(group.title)).font(.system(size: 15, weight: .semibold)).foregroundStyle(isDark ? .white : .primary)
+                    Text(group.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isDark ? .white : .primary)
                     Spacer()
                     Text("\(items.count)").font(.caption.weight(.bold)).foregroundStyle(group.color)
                         .padding(.horizontal, 8).padding(.vertical, 3).background(group.color.opacity(0.12), in: Capsule())
@@ -2328,6 +2347,7 @@ struct EinplanenSheet: View {
     let onSave: (TodoItem) -> Void
     var onDelete: (() -> Void)? = nil
 
+    @ObservedObject private var localizer = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
     @State private var showDeleteConfirm = false
     @Environment(\.colorScheme) var colorScheme
@@ -2338,6 +2358,7 @@ struct EinplanenSheet: View {
     @State private var appeared = false
 
     var isDark: Bool { colorScheme == .dark }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
@@ -2375,7 +2396,7 @@ struct EinplanenSheet: View {
                             Image(systemName: "pencil.line")
                                 .font(.system(size: 20))
                                 .foregroundStyle(themeC1)
-                            TextField("Aufgabenname", text: $editedTitle)
+                            TextField(loc("Aufgabenname"), text: $editedTitle)
                                 .font(.headline)
                                 .foregroundStyle(isDark ? .white : .primary)
                                 .submitLabel(.done)
@@ -2385,7 +2406,7 @@ struct EinplanenSheet: View {
 
                         // Datum
                         VStack(alignment: .leading, spacing: 10) {
-                            Label("Datum", systemImage: "calendar")
+                            Label(loc("Datum"), systemImage: "calendar")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
                             DatePicker("", selection: $selectedDate, displayedComponents: .date)
@@ -2398,14 +2419,14 @@ struct EinplanenSheet: View {
 
                         // Von / Bis — frei wählbar
                         VStack(alignment: .leading, spacing: 14) {
-                            Label("Uhrzeit", systemImage: "clock")
+                            Label(loc("Uhrzeit"), systemImage: "clock")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(isDark ? .white.opacity(0.6) : .secondary)
 
                             HStack(spacing: 0) {
                                 // Von
                                 VStack(spacing: 6) {
-                                    Text("Von")
+                                    Text(loc("Von"))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                                     DatePicker("", selection: $selectedDate,
@@ -2428,7 +2449,7 @@ struct EinplanenSheet: View {
 
                                 // Bis
                                 VStack(spacing: 6) {
-                                    Text("Bis")
+                                    Text(loc("Bis"))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(isDark ? .white.opacity(0.5) : .secondary)
                                     DatePicker("", selection: $selectedEndDate,
@@ -2475,7 +2496,7 @@ struct EinplanenSheet: View {
                             onSave(updated)
                             dismiss()
                         } label: {
-                            Text("Einplanen")
+                            Text(loc("Einplanen"))
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -2489,7 +2510,7 @@ struct EinplanenSheet: View {
                             Button(role: .destructive) {
                                 showDeleteConfirm = true
                             } label: {
-                                Label("Aufgabe löschen", systemImage: "trash")
+                                Label(loc("Aufgabe löschen"), systemImage: "trash")
                                     .font(.subheadline.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
@@ -2499,16 +2520,16 @@ struct EinplanenSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 14)
                                         .stroke(Color.red.opacity(0.25), lineWidth: 1))
                             }
-                            .confirmationDialog("Aufgabe löschen?",
+                            .confirmationDialog(loc("Aufgabe löschen?"),
                                                isPresented: $showDeleteConfirm,
                                                titleVisibility: .visible) {
-                                Button("Löschen", role: .destructive) {
+                                Button(loc("Löschen"), role: .destructive) {
                                     onDelete?()
                                     dismiss()
                                 }
-                                Button("Cancel", role: .cancel) {}
+                                Button(loc("Abbrechen"), role: .cancel) {}
                             } message: {
-                                Text("\"\(todo.title)\" wird dauerhaft gelöscht.")
+                                Text(String(format: loc("\"%@\" wird dauerhaft gelöscht."), todo.title))
                             }
                         }
                     }
@@ -2517,17 +2538,17 @@ struct EinplanenSheet: View {
                 .transaction { $0.animation = appeared ? $0.animation : nil }
                 .onAppear { appeared = true }
             }
-            .navigationTitle("Einplanen")
+            .navigationTitle(loc("Einplanen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(loc("Abbrechen")) { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
                         FokusTodoEditorView(todo: todo)
                     } label: {
-                        Label("Bearbeiten", systemImage: "slider.horizontal.3")
+                        Label(loc("Bearbeiten"), systemImage: "slider.horizontal.3")
                     }
                 }
             }
@@ -2545,6 +2566,8 @@ private struct ExportSectionView: View {
     let color: Color
     let tasks: [TodoItem]
     let themeC1: Color
+    @ObservedObject private var localizer = LocalizationManager.shared
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     private let timeFmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
@@ -2565,7 +2588,7 @@ private struct ExportSectionView: View {
             .padding(.bottom, 8)
 
             if tasks.isEmpty {
-                Text("Keine Aufgaben")
+                Text(loc("Keine Aufgaben"))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .padding(.leading, 4)
@@ -2632,6 +2655,9 @@ struct TagesplanExportView: View {
     let themeC1: Color
     let themeC2: Color
 
+    @ObservedObject private var localizer = LocalizationManager.shared
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
+
     private var cal: Calendar { Calendar.current }
 
     private func tasks(for hours: Range<Int>) -> [TodoItem] {
@@ -2654,7 +2680,7 @@ struct TagesplanExportView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Tagesplan")
+                    Text(loc("Tagesplan"))
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(themeC1)
                     Text(dateString)
@@ -2671,11 +2697,11 @@ struct TagesplanExportView: View {
 
             Divider()
 
-            ExportSectionView(label: "Morgen",  icon: "sun.and.horizon.fill", color: .orange,
+            ExportSectionView(label: loc("Morgen"),  icon: "sun.and.horizon.fill", color: .orange,
                               tasks: tasks(for: 6..<12), themeC1: themeC1)
-            ExportSectionView(label: "Mittag",  icon: "sun.max.fill",         color: themeC1,
+            ExportSectionView(label: loc("Mittag"),  icon: "sun.max.fill",         color: themeC1,
                               tasks: tasks(for: 12..<18), themeC1: themeC1)
-            ExportSectionView(label: "Abend",   icon: "moon.stars.fill",      color: .indigo,
+            ExportSectionView(label: loc("Abend"),   icon: "moon.stars.fill",      color: .indigo,
                               tasks: tasks(for: 18..<24), themeC1: themeC1)
 
             Spacer(minLength: 12)
@@ -2683,7 +2709,7 @@ struct TagesplanExportView: View {
             // Footer
             HStack {
                 Spacer()
-                Text("Erstellt mit BeeFocus")
+                Text(loc("Erstellt mit BeeFocus"))
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
             }
@@ -2699,6 +2725,9 @@ struct TagesplanWocheExportView: View {
     let themeC1: Color
     let themeC2: Color
     let kw: Int
+
+    @ObservedObject private var localizer = LocalizationManager.shared
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     private var cal: Calendar { Calendar.current }
 
@@ -2725,10 +2754,10 @@ struct TagesplanWocheExportView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Wochenplan")
+                    Text(loc("Wochenplan"))
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(themeC1)
-                    Text("KW \(kw)")
+                    Text(String(format: loc("KW %lld"), kw))
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
@@ -2753,7 +2782,7 @@ struct TagesplanWocheExportView: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(isToday ? themeC1 : .primary)
                         if isToday {
-                            Text("Heute")
+                            Text(loc("Heute"))
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
@@ -2763,7 +2792,7 @@ struct TagesplanWocheExportView: View {
                     }
 
                     if dayTasks.isEmpty {
-                        Text("Keine Aufgaben")
+                        Text(loc("Keine Aufgaben"))
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                             .padding(.leading, 4)
@@ -2804,7 +2833,7 @@ struct TagesplanWocheExportView: View {
 
             HStack {
                 Spacer()
-                Text("Erstellt mit BeeFocus")
+                Text(loc("Erstellt mit BeeFocus"))
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
             }
