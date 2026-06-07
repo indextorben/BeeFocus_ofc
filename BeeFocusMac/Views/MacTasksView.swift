@@ -9,7 +9,6 @@ struct MacTasksView: View {
     @State private var showAddSheet = false
     @State private var editingTodo: MacTodoItem? = nil
 
-    // Löschen + Rückgängig
     @State private var showDeleteSnackbar = false
     @State private var snackbarTask: Task<Void, Never>? = nil
 
@@ -19,18 +18,18 @@ struct MacTasksView: View {
         case all       = "Alle"
         case today     = "Heute"
         case tomorrow  = "Morgen"
-        case thisWeek  = "Diese Woche"
+        case thisWeek  = "Woche"
         case overdue   = "Überfällig"
         case completed = "Erledigt"
 
         var icon: String {
             switch self {
-            case .all:       return "list.bullet"
-            case .today:     return "sun.max.fill"
-            case .tomorrow:  return "moon.stars.fill"
-            case .thisWeek:  return "calendar.badge.clock"
-            case .overdue:   return "exclamationmark.circle.fill"
-            case .completed: return "checkmark.circle.fill"
+            case .all:       return "tray.full"
+            case .today:     return "sun.max"
+            case .tomorrow:  return "moon.stars"
+            case .thisWeek:  return "calendar"
+            case .overdue:   return "exclamationmark.circle"
+            case .completed: return "checkmark.circle"
             }
         }
 
@@ -58,16 +57,10 @@ struct MacTasksView: View {
     }
 
     private var filtered: [MacTodoItem] {
-        let base: [MacTodoItem]
-        if searchText.isEmpty {
-            base = baseFiltered
-        } else {
-            base = baseFiltered.filter {
-                $0.title.localizedCaseInsensitiveContains(searchText)
-                || $0.description.localizedCaseInsensitiveContains(searchText)
-            }
+        let base = searchText.isEmpty ? baseFiltered : baseFiltered.filter {
+            $0.title.localizedCaseInsensitiveContains(searchText)
+            || $0.description.localizedCaseInsensitiveContains(searchText)
         }
-        // Favoriten zuerst, dann nach Fälligkeit → Priorität → Erstellungsdatum
         if filter == .completed { return base }
         return sorted(base)
     }
@@ -83,9 +76,7 @@ struct MacTasksView: View {
             let aHas = a.dueDate != nil
             let bHas = b.dueDate != nil
             if aHas != bHas { return aHas }
-            if aHas {
-                return (a.dueDate ?? .distantFuture) < (b.dueDate ?? .distantFuture)
-            }
+            if aHas { return (a.dueDate ?? .distantFuture) < (b.dueDate ?? .distantFuture) }
             let pa = priorityRank(a.priority), pb = priorityRank(b.priority)
             if pa != pb { return pa < pb }
             return a.createdAt > b.createdAt
@@ -102,17 +93,26 @@ struct MacTasksView: View {
 
             VStack(spacing: 0) {
                 header
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 12)
+
                 searchBar
                     .padding(.horizontal, 16)
-                    .padding(.top, 4)
+
                 filterChips
-                    .padding(.top, 8)
+                    .padding(.top, 10)
+
+                Divider()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .opacity(0.5)
 
                 if filtered.isEmpty {
                     emptyState
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 10) {
+                        LazyVStack(spacing: 8) {
                             ForEach(filtered) { todo in
                                 MacTodoCard(
                                     todo: todo,
@@ -128,13 +128,12 @@ struct MacTasksView: View {
                     }
                 }
 
-                // "Alle Erledigten löschen"-Button
                 if filter == .completed && !filtered.isEmpty {
                     Button(role: .destructive) {
                         todoStore.deleteCompleted()
                     } label: {
                         Label("Alle erledigten löschen", systemImage: "trash")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.red)
                             .padding(.vertical, 10)
                     }
@@ -143,7 +142,7 @@ struct MacTasksView: View {
                 }
             }
 
-            // Löschen-Snackbar
+            // Snackbar
             VStack {
                 Spacer()
                 if showDeleteSnackbar {
@@ -174,99 +173,110 @@ struct MacTasksView: View {
             .animation(.easeInOut(duration: 0.25), value: showDeleteSnackbar)
         }
         .sheet(isPresented: $showAddSheet) {
-            MacAddTodoSheet()
-                .environmentObject(todoStore)
+            MacAddTodoSheet().environmentObject(todoStore)
         }
         .sheet(item: $editingTodo) { todo in
-            MacEditTodoSheet(todo: todo)
-                .environmentObject(todoStore)
+            MacEditTodoSheet(todo: todo).environmentObject(todoStore)
         }
     }
 
     // MARK: - Header
 
     private var header: some View {
-        HStack {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Aufgaben")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                 Text("\(todoStore.activeTodos.count) offen · \(todoStore.overdueTodos.count) überfällig")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
             Spacer()
             Button {
                 showAddSheet = true
             } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 30))
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(accent)
+                    .frame(width: 32, height: 32)
+                    .background(accent.opacity(0.12), in: Circle())
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 8)
     }
 
-    // MARK: - Suche
+    // MARK: - Search
 
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
-            TextField("Aufgaben suchen …", text: $searchText)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
+                .foregroundStyle(.tertiary)
+            TextField("Suchen …", text: $searchText)
+                .font(.system(size: 13))
                 .textFieldStyle(.plain)
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 11)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 9))
     }
 
     // MARK: - Filter Chips
 
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 ForEach(TaskFilter.allCases, id: \.self) { f in
                     let isActive = filter == f
-                    Button { withAnimation(.spring(response: 0.3)) { filter = f } } label: {
-                        Label(f.rawValue, systemImage: f.icon)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(isActive ? .white : f.color)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(
-                                Capsule().fill(isActive ? f.color : f.color.opacity(0.12))
-                            )
+                    Button {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { filter = f }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: f.icon)
+                                .font(.system(size: 11, weight: .medium))
+                            Text(f.rawValue)
+                                .font(.system(size: 12, weight: isActive ? .semibold : .regular))
+                        }
+                        .foregroundStyle(isActive ? f.color : .secondary)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background {
+                            if isActive {
+                                Capsule().fill(f.color.opacity(0.12))
+                            } else {
+                                Capsule().fill(Color.clear)
+                            }
+                        }
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(isActive ? f.color.opacity(0.3) : Color.primary.opacity(0.08), lineWidth: 1)
+                        }
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 4)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 2)
         }
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "tray")
-                .font(.system(size: 48))
-                .foregroundStyle(accent.opacity(0.4))
-            Text("Keine Aufgaben")
-                .font(.headline)
+        VStack(spacing: 10) {
+            Image(systemName: filter == .completed ? "checkmark.circle" : "tray")
+                .font(.system(size: 36, weight: .thin))
+                .foregroundStyle(.tertiary)
+            Text(filter == .completed ? "Nichts erledigt" : "Keine Aufgaben")
+                .font(.system(size: 14))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -281,10 +291,7 @@ struct MacTasksView: View {
         snackbarTask = Task {
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             guard !Task.isCancelled else { return }
-            await MainActor.run {
-                withAnimation { showDeleteSnackbar = false }
-            }
+            await MainActor.run { withAnimation { showDeleteSnackbar = false } }
         }
     }
-
 }

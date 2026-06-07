@@ -75,6 +75,8 @@ struct MenuBarContentView: View {
     @State private var selectedTaskID: UUID? = nil
 
     private var accent: Color { activeTheme.isEmpty ? .orange : activeTheme.themeAccent }
+    private var themeC1: Color { appThemaFarben(activeTheme).0 }
+    private var themeC2: Color { appThemaFarben(activeTheme).1 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -971,87 +973,105 @@ struct MenuBarContentView: View {
 
     private var tasksTab: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header row
-            HStack {
-                Text(currentMonthLabel)
-                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            // Header
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Aufgaben")
+                        .font(.system(size: 16, weight: .bold))
+                    Text(currentMonthLabel)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
-                if filteredTasks.count > 0 {
-                    Text("\(filteredTasks.count) offen")
-                        .font(.system(size: 11, weight: .medium)).foregroundStyle(accent)
-                        .padding(.horizontal, 8).padding(.vertical, 2)
-                        .background(accent.opacity(0.12), in: Capsule())
-                }
-                Button {
-                    withAnimation(.spring(response: 0.25)) { showCompleted.toggle() }
-                } label: {
-                    Image(systemName: showCompleted ? "checkmark.circle.fill" : "checkmark.circle")
-                        .font(.system(size: 16))
-                        .foregroundStyle(showCompleted ? accent : Color.secondary.opacity(0.6))
-                }
-                .buttonStyle(.plain).help("Erledigte anzeigen")
+                HStack(spacing: 6) {
+                    if filteredTasks.count > 0 {
+                        Text("\(filteredTasks.count)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(accent.opacity(0.12), in: Capsule())
+                    }
+                    Button {
+                        withAnimation(.spring(response: 0.25)) { showCompleted.toggle() }
+                    } label: {
+                        Image(systemName: showCompleted ? "checkmark.circle.fill" : "checkmark.circle")
+                            .font(.system(size: 15))
+                            .foregroundStyle(showCompleted ? accent : Color.secondary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain).help("Erledigte anzeigen")
 
-                Button {
-                    withAnimation(.spring(response: 0.3)) { showingAddForm = true }
-                } label: {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 18)).foregroundStyle(accent)
+                    Button {
+                        withAnimation(.spring(response: 0.3)) { showingAddForm = true }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(accent)
+                            .frame(width: 26, height: 26)
+                            .background(accent.opacity(0.12), in: Circle())
+                    }
+                    .buttonStyle(.plain).help("Neue Aufgabe (⌘N)")
                 }
-                .buttonStyle(.plain).help("Neue Aufgabe (⌘N)")
             }
-            .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
+            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
 
             // Search bar
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(.secondary)
-                TextField("Suchen…", text: $searchText)
+            HStack(spacing: 7) {
+                Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(.tertiary)
+                TextField("Suchen …", text: $searchText)
                     .textFieldStyle(.plain).font(.system(size: 13))
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 12)).foregroundStyle(Color.secondary.opacity(0.5))
+                            .font(.system(size: 12)).foregroundStyle(Color.secondary.opacity(0.4))
                     }.buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal, 16).padding(.bottom, 8)
+            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+            .padding(.horizontal, 14).padding(.bottom, 8)
 
             // Priority filter chips
-            HStack(spacing: 6) {
-                priorityChip(nil, label: "Alle")
-                ForEach(MacTodoPriority.allCases, id: \.self) { p in
-                    let rgb = p.color
-                    let c = Color(red: rgb.0, green: rgb.1, blue: rgb.2)
-                    priorityChip(p, label: p.label, color: c)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 5) {
+                    priorityChip(nil, label: "Alle")
+                    ForEach(MacTodoPriority.allCases, id: \.self) { p in
+                        let rgb = p.color
+                        let c = Color(red: rgb.0, green: rgb.1, blue: rgb.2)
+                        priorityChip(p, label: p.label, color: c)
+                    }
                 }
+                .padding(.horizontal, 14)
             }
-            .padding(.horizontal, 16).padding(.bottom, 10)
+            .padding(.bottom, 10)
 
             // Task list
             if filteredTasks.isEmpty && !showCompleted {
-                emptyState(icon: "checkmark.circle.fill",
-                           text: searchText.isEmpty ? "Keine offenen Aufgaben diesen Monat" : "Keine Treffer")
+                emptyState(icon: "checkmark.circle",
+                           text: searchText.isEmpty ? "Keine offenen Aufgaben" : "Keine Treffer")
             } else {
-                VStack(spacing: 0) {
+                VStack(spacing: 6) {
                     ForEach(filteredTasks) { taskRow($0) }
                 }
+                .padding(.horizontal, 14)
 
                 if showCompleted {
                     if !filteredTasks.isEmpty {
                         HStack {
-                            Rectangle().fill(Color.primary.opacity(0.1)).frame(height: 1)
-                            Text("Erledigt").font(.system(size: 10, weight: .semibold))
+                            Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
+                            Text("Erledigt")
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.secondary).fixedSize()
-                            Rectangle().fill(Color.primary.opacity(0.1)).frame(height: 1)
+                            Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 6)
+                        .padding(.horizontal, 14).padding(.vertical, 8)
                     }
                     if filteredCompletedTasks.isEmpty {
                         emptyState(icon: "tray", text: "Keine erledigten Aufgaben")
                     } else {
-                        VStack(spacing: 0) {
+                        VStack(spacing: 6) {
                             ForEach(filteredCompletedTasks) { taskRow($0) }
                         }
+                        .padding(.horizontal, 14)
                     }
                 }
             }
@@ -1083,28 +1103,38 @@ struct MenuBarContentView: View {
     }
 
     private func taskRow(_ todo: MacTodoItem) -> some View {
-        let isExpanded  = expandedTaskID == todo.id
-        let isSelected  = selectedTaskID == todo.id
-        let doneCount   = todo.subTasks.filter(\.isCompleted).count
-        let totalCount  = todo.subTasks.count
+        let isExpanded = expandedTaskID == todo.id
+        let isSelected = selectedTaskID == todo.id
+        let doneCount  = todo.subTasks.filter(\.isCompleted).count
+        let totalCount = todo.subTasks.count
+
+        let priorityColor: Color = {
+            switch todo.priority {
+            case .high:   return .red
+            case .medium: return .orange
+            case .low:    return .green
+            }
+        }()
 
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
-                // Main checkmark
                 Button { todoStore.toggle(todo) } label: {
                     ZStack {
                         Circle()
-                            .stroke(todo.isCompleted ? Color.green : Color.secondary.opacity(0.4), lineWidth: 1.5)
-                            .frame(width: 18, height: 18)
+                            .fill(todo.isCompleted ? priorityColor : .clear)
+                            .frame(width: 20, height: 20)
+                        Circle()
+                            .stroke(priorityColor.opacity(todo.isCompleted ? 1 : 0.45), lineWidth: 1.5)
+                            .frame(width: 20, height: 20)
                         if todo.isCompleted {
-                            Circle().fill(Color.green).frame(width: 18, height: 18)
-                            Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
                         }
                     }
                 }
                 .buttonStyle(.plain)
 
-                // Title + subtask pill — tapping expands
                 Button {
                     guard totalCount > 0 else { return }
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
@@ -1112,21 +1142,28 @@ struct MenuBarContentView: View {
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Text(todo.title)
-                            .font(.system(size: 13))
-                            .strikethrough(todo.isCompleted, color: .secondary)
-                            .foregroundStyle(todo.isCompleted ? Color.secondary.opacity(0.5) : Color.primary)
-                            .lineLimit(1)
-
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(todo.title)
+                                .font(.system(size: 13, weight: .medium))
+                                .strikethrough(todo.isCompleted, color: .secondary)
+                                .foregroundStyle(todo.isCompleted ? Color.secondary.opacity(0.5) : Color.primary)
+                                .lineLimit(1)
+                            if let due = todo.dueDate {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "calendar").font(.system(size: 9))
+                                    Text(dueDateLabel(due)).font(.system(size: 10))
+                                }
+                                .foregroundStyle(todo.isOverdue ? .red : .secondary)
+                            }
+                        }
                         if totalCount > 0 {
                             HStack(spacing: 3) {
                                 Image(systemName: "checklist").font(.system(size: 9))
-                                Text("\(doneCount)/\(totalCount)")
-                                    .font(.system(size: 10, weight: .semibold))
+                                Text("\(doneCount)/\(totalCount)").font(.system(size: 10, weight: .semibold))
                             }
                             .foregroundStyle(doneCount == totalCount ? Color.green : accent)
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background((doneCount == totalCount ? Color.green : accent).opacity(0.13), in: Capsule())
+                            .background((doneCount == totalCount ? Color.green : accent).opacity(0.12), in: Capsule())
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1139,31 +1176,33 @@ struct MenuBarContentView: View {
                 if totalCount > 0 {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
-                }
-
-                if todo.priority == .high && !todo.isCompleted {
-                    RoundedRectangle(cornerRadius: 3).fill(Color.orange).frame(width: 3, height: 14)
+                        .foregroundStyle(Color.secondary.opacity(0.4))
                 }
             }
-            .padding(.horizontal, 16).padding(.vertical, 8)
-            .background(
-                isSelected
-                    ? accent.opacity(0.09)
-                    : Color.primary.opacity(0.001),
-                in: Rectangle()
-            )
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .themeGlass(cornerRadius: 10)
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [themeC1.opacity(todo.isCompleted ? 0.25 : 0.85),
+                                     themeC2.opacity(todo.isCompleted ? 0.15 : 0.55)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 3)
+                    .padding(.vertical, 8)
+            }
+            .background(isSelected ? accent.opacity(0.06) : Color.clear)
             .contentShape(Rectangle())
             .onTapGesture { selectedTaskID = todo.id }
+            .opacity(todo.isCompleted ? 0.6 : 1.0)
 
-            // Expanded subtask list
             if isExpanded && totalCount > 0 {
                 VStack(spacing: 0) {
                     ForEach(todo.subTasks) { sub in
                         HStack(spacing: 8) {
-                            // Indent
-                            Rectangle().fill(Color.clear).frame(width: 28)
-
+                            Rectangle().fill(Color.clear).frame(width: 22)
                             Button {
                                 var updated = todo
                                 if let idx = updated.subTasks.firstIndex(where: { $0.id == sub.id }) {
@@ -1174,35 +1213,41 @@ struct MenuBarContentView: View {
                                 ZStack {
                                     Circle()
                                         .stroke(sub.isCompleted ? Color.green : Color.secondary.opacity(0.35), lineWidth: 1.5)
-                                        .frame(width: 15, height: 15)
+                                        .frame(width: 14, height: 14)
                                     if sub.isCompleted {
-                                        Circle().fill(Color.green).frame(width: 15, height: 15)
+                                        Circle().fill(Color.green).frame(width: 14, height: 14)
                                         Image(systemName: "checkmark").font(.system(size: 7, weight: .bold)).foregroundStyle(.white)
                                     }
                                 }
                             }
                             .buttonStyle(.plain)
-
                             Text(sub.title)
                                 .font(.system(size: 12))
                                 .strikethrough(sub.isCompleted, color: .secondary)
-                                .foregroundStyle(sub.isCompleted ? Color.secondary.opacity(0.45) : Color.primary.opacity(0.8))
+                                .foregroundStyle(sub.isCompleted ? Color.secondary.opacity(0.4) : Color.primary.opacity(0.75))
                                 .lineLimit(1)
-
                             Spacer()
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 5)
-                        .background(Color.primary.opacity(0.001).contentShape(Rectangle()))
-
+                        .padding(.horizontal, 12).padding(.vertical, 5)
                         if sub.id != todo.subTasks.last?.id {
-                            Divider().opacity(0.08).padding(.leading, 56)
+                            Divider().opacity(0.07).padding(.leading, 48)
                         }
                     }
                 }
-                .background(Color.primary.opacity(0.03))
+                .background(Color.primary.opacity(0.02), in: RoundedRectangle(cornerRadius: 10))
+                .padding(.top, 3)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    private func dueDateLabel(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date)     { return "Heute" }
+        if cal.isDateInTomorrow(date)  { return "Morgen" }
+        if cal.isDateInYesterday(date) { return "Gestern" }
+        let f = DateFormatter(); f.dateFormat = "d. MMM"; f.locale = Locale(identifier: "de_DE")
+        return f.string(from: date)
     }
 
     // MARK: - Planner Tab
@@ -1278,21 +1323,23 @@ struct MenuBarContentView: View {
     }
 
     private func statCard(label: String, value: String, color: Color, icon: String) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 9).fill(color.opacity(0.13)).frame(width: 36, height: 36)
-                Image(systemName: icon).font(.system(size: 16, weight: .semibold)).foregroundStyle(color)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
             }
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(color)
-                Text(label).font(.system(size: 10)).foregroundStyle(.secondary)
-            }
-            Spacer()
+            Text(value)
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
         }
-        .padding(.horizontal, 12).padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.18), lineWidth: 1))
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .themeGlass(cornerRadius: 14)
     }
 
     // MARK: - Bottom Tab Bar
