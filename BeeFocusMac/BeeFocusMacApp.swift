@@ -75,6 +75,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func showPanel() {
+        NSUbiquitousKeyValueStore.default.synchronize()
+        MacCloudSettingsSync.shared.forceSync()
         guard let btn = statusItem.button, let btnWin = btn.window else { return }
         let btnFrame = btnWin.convertToScreen(btn.frame)
         var x = btnFrame.midX - panel.frame.width / 2

@@ -42,6 +42,11 @@ final class MacCloudSettingsSync {
 
     private init() {}
 
+    func forceSync() {
+        store.synchronize()
+        pullFromCloud()
+    }
+
     func start() {
         store.synchronize()
         pullFromCloud()
@@ -62,7 +67,7 @@ final class MacCloudSettingsSync {
 
     // MARK: - Pull: iCloud → UserDefaults
 
-    private func pullFromCloud() {
+    func pullFromCloud() {
         isPulling = true
         defer { isPulling = false }
 
