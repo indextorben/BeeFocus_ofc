@@ -278,19 +278,25 @@ struct MenuBarContentView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(LinearGradient(colors: [accent.opacity(0.25), accent.opacity(0.10)],
-                                        startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 32, height: 32)
-                Image(systemName: "hexagon.fill")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(accent)
+                    .fill(LinearGradient(
+                        colors: [themeC1.opacity(0.30), themeC2.opacity(0.15)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 34, height: 34)
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(colors: [themeC1, themeC2],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("BeeFocus")
                     .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary)
                 Text(todayHeaderString)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeC1.opacity(0.8))
             }
             Spacer()
             Button { withAnimation(.spring(response: 0.28)) { showingSettings = true } } label: {
@@ -313,8 +319,14 @@ struct MenuBarContentView: View {
             .buttonStyle(.plain)
             .help("BeeFocus beenden")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            LinearGradient(
+                colors: [themeC1.opacity(0.07), themeC2.opacity(0.03)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 
     private var todayHeaderString: String {
