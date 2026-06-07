@@ -96,6 +96,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
     var isFavorite: Bool
 
     // Extended fields
+    var customFolder: String?
     var subTasks: [MacSubTask]
     var reminderOffsetMinutes: Int?          // nil = no reminder, 0 = at due time, >0 = minutes before
     var recurrenceEnabled: Bool
@@ -111,6 +112,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
         isFavorite: Bool = false,
+        customFolder: String? = nil,
         subTasks: [MacSubTask] = [],
         reminderOffsetMinutes: Int? = nil,
         recurrenceEnabled: Bool = false,
@@ -125,6 +127,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.createdAt             = createdAt
         self.updatedAt             = updatedAt
         self.isFavorite            = isFavorite
+        self.customFolder          = customFolder
         self.subTasks              = subTasks
         self.reminderOffsetMinutes = reminderOffsetMinutes
         self.recurrenceEnabled     = recurrenceEnabled
@@ -147,8 +150,9 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.dueDate     = record["dueDate"] as? Date
         self.createdAt   = record["createdAt"] as? Date ?? Date()
         self.updatedAt   = record["updatedAt"] as? Date ?? Date()
-        self.isFavorite  = record["isFavorite"] as? Bool ?? false
-        self.priority    = MacTodoPriority(rawValue: record["priority"] as? String ?? "medium") ?? .medium
+        self.isFavorite   = record["isFavorite"] as? Bool ?? false
+        self.customFolder = record["customFolder"] as? String
+        self.priority     = MacTodoPriority(rawValue: record["priority"] as? String ?? "medium") ?? .medium
         self.reminderOffsetMinutes = record["reminderOffsetMinutes"] as? Int
         self.recurrenceEnabled     = record["recurrenceEnabled"] as? Bool ?? false
 
@@ -184,6 +188,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         record["updatedAt"]   = Date() as CKRecordValue
         record["isFavorite"]  = isFavorite as CKRecordValue
         record["recurrenceEnabled"] = recurrenceEnabled as CKRecordValue
+        if let folder = customFolder { record["customFolder"] = folder as CKRecordValue }
         if let due = dueDate { record["dueDate"] = due as CKRecordValue }
         if let rem = reminderOffsetMinutes { record["reminderOffsetMinutes"] = rem as CKRecordValue }
         if let data = try? JSONEncoder().encode(subTasks) {

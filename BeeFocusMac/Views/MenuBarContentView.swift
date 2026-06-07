@@ -1,6 +1,42 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Time Filter enum
+
+private enum MacTodoTimeFilter: CaseIterable {
+    case alle, heute, morgen, dieseWoche, ueberfaellig
+
+    var label: String {
+        switch self {
+        case .alle:         return "Alle"
+        case .heute:        return "Heute"
+        case .morgen:       return "Morgen"
+        case .dieseWoche:   return "Woche"
+        case .ueberfaellig: return "Überfällig"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .alle:         return "list.bullet"
+        case .heute:        return "sun.max.fill"
+        case .morgen:       return "moon.stars.fill"
+        case .dieseWoche:   return "calendar.badge.clock"
+        case .ueberfaellig: return "exclamationmark.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .alle:         return .blue
+        case .heute:        return .orange
+        case .morgen:       return .indigo
+        case .dieseWoche:   return .teal
+        case .ueberfaellig: return .red
+        }
+    }
+}
+
 // MARK: - Tab enum
 
 private enum MenuBarTab: CaseIterable {
@@ -67,8 +103,28 @@ struct MenuBarContentView: View {
 
     // Tasks filters
     @State private var searchText      = ""
-    @State private var priorityFilter: MacTodoPriority? = nil
+    @State private var timeFilter: MacTodoTimeFilter = .alle
     @State private var showCompleted   = false
+
+    // Tasks: Today highlight
+    @AppStorage("todayHighlightID") private var highlightIDStr: String = ""
+
+    // Tasks: Collapsible sections
+    @AppStorage("mac_collapsedSections") private var collapsedSectionsString: String = ""
+
+    // Tasks: Delete snackbar
+    @State private var showDeleteSnackbar = false
+    @State private var snackbarDismissTask: Task<Void, Never>? = nil
+
+    // Tasks: Multi-select
+    @State private var isSelecting = false
+    @State private var selectedTaskIDs: Set<UUID> = []
+
+    // Tasks: Folder management
+    @State private var showAddFolderAlert = false
+    @State private var newFolderName = ""
+    @State private var showFolderPicker = false
+    @State private var pendingFolderTaskID: UUID? = nil
 
     // Timer task picker
     @State private var showTimerTaskPicker = false
@@ -127,7 +183,20 @@ struct MenuBarContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(commandPaletteOverlay)
+        .overlay(folderPickerOverlay)
+        .overlay(alignment: .bottom) { deleteSnackbar }
+        .animation(.easeInOut(duration: 0.25), value: showDeleteSnackbar)
         .background(keyboardShortcutLayer)
+        .alert("Neuer Ordner", isPresented: $showAddFolderAlert) {
+            TextField("Ordnername", text: $newFolderName)
+            Button("Erstellen") {
+                if !newFolderName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    todoStore.addCustomFolder(newFolderName)
+                }
+                newFolderName = ""
+            }
+            Button("Abbrechen", role: .cancel) { newFolderName = "" }
+        } message: { Text("Gib einen Namen für den neuen Ordner ein.") }
         .onReceive(NotificationCenter.default.publisher(for: .beeFocusToggleTimer)) { _ in
             timerMgr.startPause()
         }
@@ -262,7 +331,7 @@ struct MenuBarContentView: View {
 
     private func navigateTask(by delta: Int) {
         guard activeTab == .tasks, !showingAddForm, !showingSettings else { return }
-        let tasks = filteredTasks
+        let tasks = timeFilteredTasks
         guard !tasks.isEmpty else { return }
         if let current = selectedTaskID, let idx = tasks.firstIndex(where: { $0.id == current }) {
             let newIdx = max(0, min(tasks.count - 1, idx + delta))
@@ -274,19 +343,19 @@ struct MenuBarContentView: View {
 
     private func toggleSelectedTask() {
         guard activeTab == .tasks, !showingAddForm else { return }
-        guard let id = selectedTaskID, let task = filteredTasks.first(where: { $0.id == id }) else { return }
+        guard let id = selectedTaskID, let task = timeFilteredTasks.first(where: { $0.id == id }) else { return }
         todoStore.toggle(task)
     }
 
     private func deleteSelectedTask() {
         guard activeTab == .tasks, !showingAddForm else { return }
-        guard let id = selectedTaskID, let task = filteredTasks.first(where: { $0.id == id }) else { return }
-        let tasks = filteredTasks
+        guard let id = selectedTaskID, let task = timeFilteredTasks.first(where: { $0.id == id }) else { return }
+        let tasks = timeFilteredTasks
         if let idx = tasks.firstIndex(where: { $0.id == id }) {
             let nextID = tasks.count > 1 ? tasks[idx > 0 ? idx - 1 : 1].id : nil
             selectedTaskID = nextID
         }
-        todoStore.delete(task)
+        deleteWithSnackbar(task)
     }
 
 
@@ -1217,54 +1286,375 @@ struct MenuBarContentView: View {
 
     // MARK: - Tasks Tab
 
-    private var filteredTasks: [MacTodoItem] {
-        var tasks = thisMonthActiveTodos
-        if let pf = priorityFilter { tasks = tasks.filter { $0.priority == pf } }
-        if !searchText.isEmpty { tasks = tasks.filter { $0.title.localizedCaseInsensitiveContains(searchText) } }
-        return tasks
+    // MARK: Folder group model
+    private struct MacTodoFolderGroup: Identifiable {
+        let id: String
+        let title: String
+        let icon: String
+        let color: Color
+        var todos: [MacTodoItem]
     }
 
-    private var filteredCompletedTasks: [MacTodoItem] {
+    // MARK: Collapsed sections helpers
+    private var collapsedSections: Set<String> {
+        Set(collapsedSectionsString.components(separatedBy: ",").filter { !$0.isEmpty })
+    }
+    private func setCollapsed(_ id: String, collapsed: Bool) {
+        var s = collapsedSections
+        if collapsed { s.insert(id) } else { s.remove(id) }
+        collapsedSectionsString = s.joined(separator: ",")
+    }
+
+    // MARK: Filtered tasks
+    private var timeFilteredTasks: [MacTodoItem] {
         let cal = Calendar.current
         let now = Date()
-        var tasks = todoStore.todos.filter {
-            $0.isCompleted &&
-            (($0.dueDate == nil) || $0.dueDate.map { cal.isDate($0, equalTo: now, toGranularity: .month) } == true)
+        let todayStart = cal.startOfDay(for: now)
+        let todayEnd   = cal.date(bySettingHour: 23, minute: 59, second: 59, of: todayStart) ?? now
+        let tomStart   = cal.date(byAdding: .day, value: 1, to: todayStart) ?? now
+        let tomEnd     = cal.date(bySettingHour: 23, minute: 59, second: 59, of: tomStart) ?? now
+        let weekEnd    = cal.date(byAdding: .day, value: 6, to: todayEnd) ?? now
+
+        let base = todoStore.activeTodos
+        let searched = searchText.isEmpty ? base : base.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+
+        switch timeFilter {
+        case .alle:
+            return searched
+        case .heute:
+            return searched.filter { guard let d = $0.dueDate else { return false }; return d >= todayStart && d <= todayEnd }
+        case .morgen:
+            return searched.filter { guard let d = $0.dueDate else { return false }; return d >= tomStart && d <= tomEnd }
+        case .dieseWoche:
+            return searched.filter { guard let d = $0.dueDate else { return false }; return d >= todayStart && d <= weekEnd }
+        case .ueberfaellig:
+            return searched.filter { $0.isOverdue }
         }
-        if let pf = priorityFilter { tasks = tasks.filter { $0.priority == pf } }
-        if !searchText.isEmpty { tasks = tasks.filter { $0.title.localizedCaseInsensitiveContains(searchText) } }
-        return tasks.sorted { $0.updatedAt > $1.updatedAt }
     }
 
+    // MARK: Folder groups
+    private var macTodoGroups: [MacTodoFolderGroup] {
+        let tasks = timeFilteredTasks.filter { $0.customFolder == nil }
+        let cal = Calendar.current
+        let now = Date()
+        let todayStart = cal.startOfDay(for: now)
+        let todayEnd   = cal.date(bySettingHour: 23, minute: 59, second: 59, of: todayStart) ?? now
+        let tomStart   = cal.date(byAdding: .day, value: 1, to: todayStart) ?? now
+        let tomEnd     = cal.date(bySettingHour: 23, minute: 59, second: 59, of: tomStart) ?? now
+        let weekEnd    = cal.date(byAdding: .day, value: 6, to: todayEnd) ?? now
+
+        let noDue      = tasks.filter { $0.dueDate == nil }
+        let overdue    = tasks.filter { $0.isOverdue }
+        let todayDue   = tasks.filter { guard let d = $0.dueDate else { return false }; return d >= todayStart && d <= todayEnd && !$0.isCompleted }
+        let tomorrowDue = tasks.filter { guard let d = $0.dueDate else { return false }; return d >= tomStart && d <= tomEnd }
+        let thisWeek   = tasks.filter { guard let d = $0.dueDate else { return false }; return d > tomEnd && d <= weekEnd }
+        let later      = tasks.filter { guard let d = $0.dueDate else { return false }; return d > weekEnd }
+
+        var groups: [MacTodoFolderGroup] = []
+        // Heute – always shown
+        groups.append(MacTodoFolderGroup(id: "__today__",    title: "Heute",       icon: "sun.max.fill",              color: .orange,  todos: todayDue))
+        if !tomorrowDue.isEmpty {
+            groups.append(MacTodoFolderGroup(id: "__tomorrow__", title: "Morgen",       icon: "moon.stars.fill",           color: .indigo,  todos: tomorrowDue))
+        }
+        if !noDue.isEmpty {
+            groups.append(MacTodoFolderGroup(id: "__general__",  title: "Allgemein",    icon: "tray.fill",                 color: .secondary, todos: noDue))
+        }
+        if !overdue.isEmpty {
+            groups.append(MacTodoFolderGroup(id: "__overdue__",  title: "Überfällig",   icon: "exclamationmark.circle.fill", color: .red,    todos: overdue))
+        }
+        if !thisWeek.isEmpty {
+            groups.append(MacTodoFolderGroup(id: "__week__",     title: "Diese Woche",  icon: "calendar.badge.clock",      color: .blue,    todos: thisWeek))
+        }
+        if !later.isEmpty {
+            groups.append(MacTodoFolderGroup(id: "__later__",    title: "Später",       icon: "arrow.forward.circle.fill", color: .teal,    todos: later))
+        }
+        // Custom folders
+        for folderName in todoStore.customFolders {
+            let folderTasks = timeFilteredTasks.filter { $0.customFolder == folderName }
+            groups.append(MacTodoFolderGroup(id: "__custom__\(folderName)", title: folderName, icon: "folder.fill", color: .indigo, todos: folderTasks))
+        }
+        return groups
+    }
+
+    // MARK: Highlight card
+    private var highlightCard: some View {
+        Group {
+            if let uid = UUID(uuidString: highlightIDStr),
+               let todo = todoStore.activeTodos.first(where: { $0.id == uid }) {
+                HStack(spacing: 10) {
+                    Text("⭐️").font(.system(size: 18))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Highlight").font(.system(size: 9, weight: .semibold)).foregroundStyle(.white.opacity(0.5))
+                        Text(todo.title).font(.system(size: 13, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    }
+                    Spacer()
+                    Button {
+                        todoStore.toggle(todo)
+                        highlightIDStr = ""
+                    } label: {
+                        Image(systemName: "checkmark.circle").font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.2))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(
+                    LinearGradient(
+                        colors: [Color(red: 0.55, green: 0.4, blue: 0).opacity(0.35), Color(red: 0.4, green: 0.25, blue: 0).opacity(0.25)],
+                        startPoint: .leading, endPoint: .trailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 12)
+                )
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.35), lineWidth: 1.5))
+                .padding(.horizontal, 14).padding(.top, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.spring(response: 0.35), value: highlightIDStr)
+    }
+
+    // MARK: Delete snackbar
+    @ViewBuilder
+    private var deleteSnackbar: some View {
+        if showDeleteSnackbar {
+            HStack(spacing: 10) {
+                Image(systemName: "trash").foregroundStyle(.white).font(.system(size: 13))
+                Text("Aufgabe gelöscht").font(.system(size: 13)).foregroundStyle(.white).lineLimit(1)
+                Spacer()
+                Button {
+                    snackbarDismissTask?.cancel()
+                    withAnimation { showDeleteSnackbar = false; todoStore.undo() }
+                } label: {
+                    Text("Rückgängig").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Color.black.opacity(0.85), in: Capsule())
+            .padding(.horizontal, 14).padding(.bottom, 52)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .animation(.easeInOut(duration: 0.25), value: showDeleteSnackbar)
+        }
+    }
+
+    // MARK: Folder picker overlay
+    @ViewBuilder
+    private var folderPickerOverlay: some View {
+        if showFolderPicker {
+            ZStack {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                    .onTapGesture { withAnimation { showFolderPicker = false; pendingFolderTaskID = nil } }
+
+                VStack(spacing: 0) {
+                    Spacer()
+                    VStack(spacing: 16) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("In Ordner verschieben").font(.system(size: 15, weight: .bold))
+                                if let id = pendingFolderTaskID,
+                                   let todo = todoStore.todos.first(where: { $0.id == id }) {
+                                    Text(todo.title).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                withAnimation { showFolderPicker = false; pendingFolderTaskID = nil }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill").font(.system(size: 18)).foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 16)
+
+                        if todoStore.customFolders.isEmpty {
+                            VStack(spacing: 8) {
+                                Image(systemName: "folder.badge.questionmark").font(.system(size: 28)).foregroundStyle(.secondary)
+                                Text("Noch keine Ordner.\nOrdner im + Menü anlegen.")
+                                    .font(.system(size: 12)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            }
+                            .padding(.vertical, 10)
+                        } else {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                Button {
+                                    if let id = pendingFolderTaskID { todoStore.assignTodo(id, toFolder: nil) }
+                                    withAnimation { showFolderPicker = false; pendingFolderTaskID = nil }
+                                } label: {
+                                    VStack(spacing: 8) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.1)).frame(width: 44, height: 44)
+                                            Image(systemName: "tray.fill").font(.system(size: 18, weight: .semibold)).foregroundStyle(Color.secondary)
+                                        }
+                                        Text("Allgemein").font(.system(size: 12, weight: .semibold)).foregroundStyle(.primary)
+                                    }
+                                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                    .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                                }
+                                .buttonStyle(.plain)
+                                ForEach(todoStore.customFolders, id: \.self) { folder in
+                                    Button {
+                                        if let id = pendingFolderTaskID { todoStore.assignTodo(id, toFolder: folder) }
+                                        withAnimation { showFolderPicker = false; pendingFolderTaskID = nil }
+                                    } label: {
+                                        VStack(spacing: 8) {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 10).fill(Color.indigo.opacity(0.1)).frame(width: 44, height: 44)
+                                                Image(systemName: "folder.fill").font(.system(size: 18, weight: .semibold)).foregroundStyle(Color.indigo)
+                                            }
+                                            Text(folder).font(.system(size: 12, weight: .semibold)).foregroundStyle(.primary).lineLimit(2)
+                                        }
+                                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                        .background(Color.indigo.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                    .padding(.top, 20).padding(.bottom, 20)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal, 8).padding(.bottom, 8)
+                }
+            }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showFolderPicker)
+        }
+    }
+
+    // MARK: Delete with snackbar
+    private func deleteWithSnackbar(_ todo: MacTodoItem) {
+        snackbarDismissTask?.cancel()
+        todoStore.delete(todo)
+        withAnimation { showDeleteSnackbar = true }
+        snackbarDismissTask = Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run { withAnimation { showDeleteSnackbar = false } }
+        }
+    }
+
+    // MARK: Folder section
+    private func macFolderSection(_ group: MacTodoFolderGroup) -> some View {
+        let isCollapsed = collapsedSections.contains(group.id)
+        let isCustom = group.id.hasPrefix("__custom__")
+        let folderName = isCustom ? String(group.id.dropFirst("__custom__".count)) : nil
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    setCollapsed(group.id, collapsed: !isCollapsed)
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 2).fill(group.color).frame(width: 3, height: 24)
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 7).fill(group.color.opacity(0.15)).frame(width: 28, height: 28)
+                        Image(systemName: group.icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(group.color)
+                    }
+
+                    Text(group.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.primary)
+
+                    Spacer()
+
+                    HStack(spacing: 6) {
+                        if !group.todos.isEmpty {
+                            Text("\(group.todos.count)")
+                                .font(.system(size: 11, weight: .bold)).foregroundStyle(group.color)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(group.color.opacity(0.12), in: Capsule())
+                        }
+                        if let name = folderName {
+                            Button {
+                                todoStore.removeCustomFolder(name)
+                            } label: {
+                                Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(.red.opacity(0.6))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold)).foregroundStyle(.tertiary)
+                            .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                    }
+                }
+                .padding(.horizontal, 10).padding(.vertical, 9)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if !isCollapsed {
+                if group.todos.isEmpty && group.id == "__today__" {
+                    VStack(spacing: 6) {
+                        Image(systemName: "sun.and.horizon.fill").font(.system(size: 22)).foregroundStyle(Color.orange.opacity(0.6))
+                        Text("Heute keine Aufgaben").font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                } else if group.todos.isEmpty {
+                    Text("Keine Aufgaben").font(.system(size: 12)).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                } else {
+                    VStack(spacing: 5) {
+                        ForEach(group.todos) { taskRow($0) }
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 8)
+                }
+            }
+        }
+        .themeGlass(cornerRadius: 12)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCollapsed)
+    }
+
+    // MARK: Main tasks tab
     private var tasksTab: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Aufgaben")
-                        .font(.system(size: 16, weight: .bold))
-                    Text(currentMonthLabel)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                Text("Aufgaben")
+                    .font(.system(size: 16, weight: .bold))
+                if !timeFilteredTasks.isEmpty {
+                    Text("\(timeFilteredTasks.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(accent)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(accent.opacity(0.12), in: Capsule())
                 }
                 Spacer()
                 HStack(spacing: 6) {
-                    if filteredTasks.count > 0 {
-                        Text("\(filteredTasks.count)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(accent)
-                            .padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(accent.opacity(0.12), in: Capsule())
+                    // Multi-select toggle
+                    Button {
+                        withAnimation(.spring(response: 0.25)) {
+                            isSelecting.toggle()
+                            if !isSelecting { selectedTaskIDs.removeAll() }
+                        }
+                    } label: {
+                        Image(systemName: isSelecting ? "checkmark.circle.fill" : "checkmark.circle.badge.plus")
+                            .font(.system(size: 14))
+                            .foregroundStyle(isSelecting ? accent : Color.secondary.opacity(0.5))
                     }
+                    .buttonStyle(.plain).help("Mehrfachauswahl")
+
+                    // Show completed toggle
                     Button {
                         withAnimation(.spring(response: 0.25)) { showCompleted.toggle() }
                     } label: {
-                        Image(systemName: showCompleted ? "checkmark.circle.fill" : "checkmark.circle")
-                            .font(.system(size: 15))
+                        Image(systemName: showCompleted ? "eye.fill" : "eye")
+                            .font(.system(size: 14))
                             .foregroundStyle(showCompleted ? accent : Color.secondary.opacity(0.5))
                     }
                     .buttonStyle(.plain).help("Erledigte anzeigen")
 
+                    // New folder button
+                    Button {
+                        newFolderName = ""
+                        showAddFolderAlert = true
+                    } label: {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 14))
+                            .foregroundStyle(accent)
+                    }
+                    .buttonStyle(.plain).help("Neuer Ordner")
+
+                    // Add task button
                     Button {
                         withAnimation(.spring(response: 0.3)) { showingAddForm = true }
                     } label: {
@@ -1277,7 +1667,42 @@ struct MenuBarContentView: View {
                     .buttonStyle(.plain).help("Neue Aufgabe (⌘N)")
                 }
             }
-            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
+            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 8)
+
+            // Multi-select action bar
+            if isSelecting && !selectedTaskIDs.isEmpty {
+                HStack(spacing: 10) {
+                    Text("\(selectedTaskIDs.count) ausgewählt")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        withAnimation { showFolderPicker = true }
+                        pendingFolderTaskID = selectedTaskIDs.first
+                    } label: {
+                        Label("Ordner", systemImage: "folder").font(.system(size: 12))
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        for id in selectedTaskIDs {
+                            if let todo = todoStore.todos.first(where: { $0.id == id }) {
+                                todoStore.delete(todo)
+                            }
+                        }
+                        selectedTaskIDs.removeAll()
+                        isSelecting = false
+                    } label: {
+                        Label("Löschen", systemImage: "trash").font(.system(size: 12)).foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 14).padding(.bottom, 6)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            // Highlight card
+            highlightCard
 
             // Search bar
             HStack(spacing: 7) {
@@ -1293,51 +1718,60 @@ struct MenuBarContentView: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
             .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal, 14).padding(.bottom, 8)
+            .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 6)
 
-            // Priority filter chips
+            // Time filter chips
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 5) {
-                    priorityChip(nil, label: "Alle")
-                    ForEach(MacTodoPriority.allCases, id: \.self) { p in
-                        let rgb = p.color
-                        let c = Color(red: rgb.0, green: rgb.1, blue: rgb.2)
-                        priorityChip(p, label: p.label, color: c)
+                HStack(spacing: 6) {
+                    ForEach(MacTodoTimeFilter.allCases, id: \.self) { filter in
+                        let isSelected = timeFilter == filter
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { timeFilter = filter }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: filter.icon).font(.system(size: 11, weight: .semibold))
+                                Text(filter.label).font(.system(size: 12, weight: .semibold))
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(isSelected ? filter.color.opacity(0.20) : Color.clear)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(
+                                isSelected ? filter.color.opacity(0.7) : Color.secondary.opacity(0.22),
+                                lineWidth: 1.5
+                            ))
+                            .foregroundStyle(isSelected ? filter.color : Color.primary.opacity(0.6))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.25), value: isSelected)
                     }
                 }
                 .padding(.horizontal, 14)
             }
             .padding(.bottom, 10)
 
-            // Task list
-            if filteredTasks.isEmpty && !showCompleted {
-                emptyState(icon: "checkmark.circle",
-                           text: searchText.isEmpty ? "Keine offenen Aufgaben" : "Keine Treffer")
-            } else {
-                VStack(spacing: 6) {
-                    ForEach(filteredTasks) { taskRow($0) }
+            // Folder sections
+            VStack(spacing: 8) {
+                ForEach(macTodoGroups) { group in
+                    macFolderSection(group)
                 }
-                .padding(.horizontal, 14)
+            }
+            .padding(.horizontal, 14)
 
-                if showCompleted {
-                    if !filteredTasks.isEmpty {
-                        HStack {
-                            Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
-                            Text("Erledigt")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.secondary).fixedSize()
-                            Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
-                        }
-                        .padding(.horizontal, 14).padding(.vertical, 8)
+            // Completed section
+            if showCompleted {
+                let completedTasks = todoStore.todos.filter { $0.isCompleted }
+                if !completedTasks.isEmpty {
+                    HStack {
+                        Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
+                        Text("Erledigt").font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary).fixedSize()
+                        Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
                     }
-                    if filteredCompletedTasks.isEmpty {
-                        emptyState(icon: "tray", text: "Keine erledigten Aufgaben")
-                    } else {
-                        VStack(spacing: 6) {
-                            ForEach(filteredCompletedTasks) { taskRow($0) }
-                        }
-                        .padding(.horizontal, 14)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+
+                    VStack(spacing: 6) {
+                        ForEach(completedTasks.sorted { $0.updatedAt > $1.updatedAt }) { taskRow($0) }
                     }
+                    .padding(.horizontal, 14)
                 }
             }
 
@@ -1345,33 +1779,13 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func priorityChip(_ priority: MacTodoPriority?, label: String, color: Color = .secondary) -> some View {
-        let selected = priorityFilter == priority
-        return Button {
-            withAnimation(.spring(response: 0.22)) { priorityFilter = priority }
-        } label: {
-            HStack(spacing: 4) {
-                if let p = priority {
-                    let rgb = p.color
-                    Circle().fill(Color(red: rgb.0, green: rgb.1, blue: rgb.2)).frame(width: 6, height: 6)
-                }
-                Text(label).font(.system(size: 11, weight: selected ? .semibold : .regular))
-                    .foregroundStyle(selected ? (priority == nil ? accent : color) : Color.secondary)
-            }
-            .padding(.horizontal, 9).padding(.vertical, 5)
-            .background(
-                selected ? (priority == nil ? accent : color).opacity(0.14) : Color.primary.opacity(0.05),
-                in: Capsule()
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
     private func taskRow(_ todo: MacTodoItem) -> some View {
-        let isExpanded = expandedTaskID == todo.id
-        let isSelected = selectedTaskID == todo.id
-        let doneCount  = todo.subTasks.filter(\.isCompleted).count
-        let totalCount = todo.subTasks.count
+        let isExpanded  = expandedTaskID == todo.id
+        let isSelected  = selectedTaskID == todo.id
+        let isMultiSel  = selectedTaskIDs.contains(todo.id)
+        let doneCount   = todo.subTasks.filter(\.isCompleted).count
+        let totalCount  = todo.subTasks.count
+        let isHighlight = highlightIDStr == todo.id.uuidString
 
         let priorityColor: Color = {
             switch todo.priority {
@@ -1382,24 +1796,37 @@ struct MenuBarContentView: View {
         }()
 
         return VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                // Multi-select checkbox
+                if isSelecting {
+                    Button {
+                        if isMultiSel { selectedTaskIDs.remove(todo.id) } else { selectedTaskIDs.insert(todo.id) }
+                    } label: {
+                        Image(systemName: isMultiSel ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 16))
+                            .foregroundStyle(isMultiSel ? accent : Color.secondary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Highlight star badge
+                if isHighlight {
+                    Text("⭐️").font(.system(size: 11))
+                }
+
+                // Completion toggle
                 Button { todoStore.toggle(todo) } label: {
                     ZStack {
-                        Circle()
-                            .fill(todo.isCompleted ? priorityColor : .clear)
-                            .frame(width: 20, height: 20)
-                        Circle()
-                            .stroke(priorityColor.opacity(todo.isCompleted ? 1 : 0.45), lineWidth: 1.5)
-                            .frame(width: 20, height: 20)
+                        Circle().fill(todo.isCompleted ? priorityColor : .clear).frame(width: 20, height: 20)
+                        Circle().stroke(priorityColor.opacity(todo.isCompleted ? 1 : 0.45), lineWidth: 1.5).frame(width: 20, height: 20)
                         if todo.isCompleted {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.white)
+                            Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
                         }
                     }
                 }
                 .buttonStyle(.plain)
 
+                // Title + metadata
                 Button {
                     guard totalCount > 0 else { return }
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
@@ -1440,27 +1867,58 @@ struct MenuBarContentView: View {
 
                 if totalCount > 0 {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.secondary.opacity(0.4))
+                        .font(.system(size: 9, weight: .medium)).foregroundStyle(Color.secondary.opacity(0.4))
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
             .themeGlass(cornerRadius: 10)
             .overlay(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(
-                        LinearGradient(
-                            colors: [themeC1.opacity(todo.isCompleted ? 0.25 : 0.85),
-                                     themeC2.opacity(todo.isCompleted ? 0.15 : 0.55)],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .frame(width: 3)
-                    .padding(.vertical, 8)
+                    .fill(LinearGradient(
+                        colors: [themeC1.opacity(todo.isCompleted ? 0.25 : 0.85), themeC2.opacity(todo.isCompleted ? 0.15 : 0.55)],
+                        startPoint: .top, endPoint: .bottom
+                    ))
+                    .frame(width: 3).padding(.vertical, 8)
             }
-            .background(isSelected ? accent.opacity(0.06) : Color.clear)
+            .background(isMultiSel ? accent.opacity(0.10) : (isSelected ? accent.opacity(0.06) : Color.clear))
             .contentShape(Rectangle())
-            .onTapGesture { selectedTaskID = todo.id }
+            .onTapGesture {
+                if isSelecting {
+                    if isMultiSel { selectedTaskIDs.remove(todo.id) } else { selectedTaskIDs.insert(todo.id) }
+                } else {
+                    selectedTaskID = todo.id
+                }
+            }
+            .contextMenu {
+                if !todo.isCompleted {
+                    Button {
+                        highlightIDStr = isHighlight ? "" : todo.id.uuidString
+                    } label: {
+                        Label(isHighlight ? "Highlight entfernen" : "Als Highlight setzen",
+                              systemImage: isHighlight ? "star.slash" : "star.fill")
+                    }
+                    Button {
+                        todoStore.toggleFavorite(todo)
+                    } label: {
+                        Label(todo.isFavorite ? "Favorit entfernen" : "Als Favorit markieren",
+                              systemImage: todo.isFavorite ? "heart.slash" : "heart.fill")
+                    }
+                }
+                if !todoStore.customFolders.isEmpty || todo.customFolder != nil {
+                    Menu("In Ordner verschieben") {
+                        Button("Allgemein") { todoStore.assignTodo(todo.id, toFolder: nil) }
+                        ForEach(todoStore.customFolders, id: \.self) { folder in
+                            Button(folder) { todoStore.assignTodo(todo.id, toFolder: folder) }
+                        }
+                    }
+                }
+                Divider()
+                Button(role: .destructive) {
+                    deleteWithSnackbar(todo)
+                } label: {
+                    Label("Löschen", systemImage: "trash")
+                }
+            }
             .opacity(todo.isCompleted ? 0.6 : 1.0)
 
             if isExpanded && totalCount > 0 {

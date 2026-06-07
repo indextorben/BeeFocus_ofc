@@ -193,6 +193,39 @@ final class MacTodoStore: ObservableObject {
         update(updated)
     }
 
+    // MARK: - Custom Folders
+
+    var customFolders: [String] {
+        get {
+            let str = UserDefaults.standard.string(forKey: "mac_customFolders") ?? ""
+            return str.isEmpty ? [] : str.components(separatedBy: ",").filter { !$0.isEmpty }
+        }
+        set {
+            UserDefaults.standard.set(newValue.joined(separator: ","), forKey: "mac_customFolders")
+            objectWillChange.send()
+        }
+    }
+
+    func addCustomFolder(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty && !customFolders.contains(trimmed) else { return }
+        customFolders = customFolders + [trimmed]
+    }
+
+    func removeCustomFolder(_ name: String) {
+        customFolders = customFolders.filter { $0 != name }
+        for todo in todos where todo.customFolder == name {
+            var updated = todo; updated.customFolder = nil; update(updated)
+        }
+    }
+
+    func assignTodo(_ id: UUID, toFolder folder: String?) {
+        guard let idx = todos.firstIndex(where: { $0.id == id }) else { return }
+        todos[idx].customFolder = folder
+        let updated = todos[idx]
+        Task { await saveToCloudKit(updated) }
+    }
+
     private func saveToCloudKit(_ item: MacTodoItem) async {
         // If addTodo() is still in flight for this id, skip — it will save the latest state
         guard !pendingAdds.contains(item.id) else { return }
