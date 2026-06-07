@@ -1316,53 +1316,115 @@ struct MenuBarContentView: View {
 
     private var plannerTab: some View {
         let today = todayTimedTodos
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(shortDateString)
-                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-                Spacer()
-                Text("\(today.count) Aufgabe\(today.count == 1 ? "" : "n")")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
+        let doneCount = today.filter(\.isCompleted).count
 
+        return VStack(alignment: .leading, spacing: 12) {
+            // Header card
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar.day.timeline.left")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(themeC1)
+                        Text("Tagesplan")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(shortDateString)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.primary)
+                    Text("\(today.count) Aufgabe\(today.count == 1 ? "" : "n") · \(doneCount) erledigt")
+                        .font(.caption)
+                        .foregroundStyle(themeC1.opacity(0.85))
+                }
+                Spacer()
+                if !today.isEmpty {
+                    ZStack {
+                        Circle()
+                            .stroke(themeC1.opacity(0.15), lineWidth: 5)
+                        Circle()
+                            .trim(from: 0, to: today.isEmpty ? 0 : CGFloat(doneCount) / CGFloat(today.count))
+                            .stroke(
+                                LinearGradient(colors: [themeC1, themeC2], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.5), value: doneCount)
+                        Text("\(Int((CGFloat(doneCount) / CGFloat(max(today.count, 1))) * 100))%")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(width: 48, height: 48)
+                }
+            }
+            .padding(14)
+            .themeGlass(cornerRadius: 16)
+
+            // Task list
             if today.isEmpty {
                 emptyState(icon: "calendar.badge.checkmark", text: "Nichts für heute geplant")
             } else {
-                VStack(spacing: 0) {
+                VStack(spacing: 6) {
                     ForEach(today) { todo in
                         HStack(spacing: 10) {
                             Button { todoStore.toggle(todo) } label: {
                                 ZStack {
                                     Circle()
-                                        .stroke(todo.isCompleted ? Color.green : Color.secondary.opacity(0.4), lineWidth: 1.5)
-                                        .frame(width: 18, height: 18)
+                                        .fill(todo.isCompleted
+                                              ? LinearGradient(colors: [themeC1, themeC2], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                              : LinearGradient(colors: [.clear, .clear], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(width: 20, height: 20)
+                                    Circle()
+                                        .stroke(todo.isCompleted ? themeC1 : Color.secondary.opacity(0.35), lineWidth: 1.5)
+                                        .frame(width: 20, height: 20)
                                     if todo.isCompleted {
-                                        Circle().fill(Color.green).frame(width: 18, height: 18)
-                                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundStyle(.white)
                                     }
                                 }
                             }
                             .buttonStyle(.plain)
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(todo.title)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.system(size: 13, weight: .medium))
                                     .strikethrough(todo.isCompleted, color: .secondary)
                                     .foregroundStyle(todo.isCompleted ? Color.secondary.opacity(0.5) : Color.primary)
                                     .lineLimit(1)
                                 if let due = todo.dueDate {
-                                    Text(timeString(due))
-                                        .font(.system(size: 10)).foregroundStyle(accent.opacity(0.8))
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "clock").font(.system(size: 9))
+                                        Text(timeString(due)).font(.system(size: 10))
+                                    }
+                                    .foregroundStyle(themeC1.opacity(0.8))
                                 }
                             }
                             Spacer()
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 6)
+                        .padding(.horizontal, 12).padding(.vertical, 9)
+                        .themeGlass(cornerRadius: 10)
+                        .overlay(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [themeC1.opacity(todo.isCompleted ? 0.25 : 0.85),
+                                                 themeC2.opacity(todo.isCompleted ? 0.15 : 0.55)],
+                                        startPoint: .top, endPoint: .bottom
+                                    )
+                                )
+                                .frame(width: 3)
+                                .padding(.vertical, 8)
+                        }
+                        .opacity(todo.isCompleted ? 0.6 : 1.0)
                     }
                 }
             }
+
             Spacer(minLength: 10)
         }
+        .padding(.horizontal, 14)
+        .padding(.top, 14)
     }
 
     // MARK: - Stats Tab
