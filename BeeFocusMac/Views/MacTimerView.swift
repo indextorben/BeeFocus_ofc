@@ -250,7 +250,7 @@ struct MacTimerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .themeGlass(cornerRadius: 16)
         .padding(.horizontal, 8)
         .padding(.bottom, 8)
     }

@@ -408,12 +408,7 @@ struct MacStatistikView: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .strokeBorder(LinearGradient(
-                colors: [c1.opacity(isDark ? 0.35 : 0.22), c2.opacity(isDark ? 0.12 : 0.07)],
-                startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-        .shadow(color: c1.opacity(isDark ? 0.18 : 0.08), radius: 10, x: 0, y: 4)
+        .themeGlass(cornerRadius: 14)
         .animation(.easeInOut(duration: 0.5), value: aktivesThema)
     }
 
@@ -550,7 +545,7 @@ struct MacStatistikView: View {
                 }
             }
             .padding(4)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .themeGlass(cornerRadius: 14)
 
             switch storeTab {
             case .themes:
@@ -709,9 +704,7 @@ struct MacStatistikView: View {
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16)
-            .stroke(istAktiv ? item.farbe.opacity(0.5) : item.farbe.opacity(0.12), lineWidth: istAktiv ? 1.5 : 1))
+        .themeGlass(cornerRadius: 16)
         .opacity(istFreigeschaltet ? 1.0 : (kannKaufen ? 0.9 : 0.55))
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: istAktiv)
         .contextMenu {
@@ -802,9 +795,7 @@ struct MacStatistikView: View {
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16)
-            .stroke(istAktiv ? item.farbe.opacity(0.5) : item.farbe.opacity(0.12), lineWidth: istAktiv ? 1.5 : 1))
+        .themeGlass(cornerRadius: 16)
         .opacity(istFreigeschaltet ? 1.0 : (kannKaufen ? 0.9 : 0.55))
         .contextMenu {
             if istFreigeschaltet {
@@ -848,12 +839,7 @@ struct MacStatistikView: View {
                 bigStatCell(value: "\(overdueTasks)",   label: "Überfällig",  icon: "exclamationmark.triangle",  color: .red)
             }
             .padding(.vertical, 18)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(LinearGradient(
-                    colors: [Color.white.opacity(isDark ? 0.12 : 0.65), Color.white.opacity(isDark ? 0.04 : 0.2)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-            .shadow(color: Color.black.opacity(isDark ? 0.22 : 0.07), radius: 14, x: 0, y: 5)
+            .themeGlass(cornerRadius: 18)
 
             glassCard {
                 VStack(alignment: .leading, spacing: 10) {
