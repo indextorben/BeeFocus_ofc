@@ -816,105 +816,162 @@ struct MenuBarContentView: View {
     // MARK: - Timer Tab
 
     private var timerTab: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 14)
+        VStack(spacing: 12) {
+            // Timer Ring Card
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: timerMgr.mode == .focus ? "brain.head.profile" : "cup.and.saucer")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(themeC1)
+                    Text(timerMgr.mode.displayName.uppercased())
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .kerning(1.2)
+                    Spacer()
+                    if timerMgr.isRunning {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 7, height: 7)
+                    }
+                }
 
-            Text(timerMgr.mode.displayName.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(timerMgr.mode.color.opacity(0.85))
-                .kerning(1.5)
+                ZStack {
+                    Circle()
+                        .stroke(themeC1.opacity(0.10), lineWidth: 10)
+                    Circle()
+                        .trim(from: 0, to: 1 - timerMgr.progress)
+                        .stroke(
+                            LinearGradient(colors: [themeC1, themeC2],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing),
+                            style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 1), value: timerMgr.progress)
 
-            Spacer(minLength: 14)
-
-            ZStack {
-                Circle().stroke(timerMgr.mode.color.opacity(0.10), lineWidth: 9)
-                Circle()
-                    .trim(from: 0, to: 1 - timerMgr.progress)
-                    .stroke(timerMgr.mode.color, style: StrokeStyle(lineWidth: 9, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 1), value: timerMgr.progress)
-                VStack(spacing: 5) {
-                    Text(timerMgr.timeString)
-                        .font(.system(size: 38, weight: .bold, design: .monospaced))
-                    HStack(spacing: 5) {
-                        ForEach(0..<4, id: \.self) { i in
-                            let filled = i < (timerMgr.sessionCount % 4 == 0 && timerMgr.sessionCount > 0 ? 4 : timerMgr.sessionCount % 4)
-                            Circle()
-                                .fill(filled ? timerMgr.mode.color : Color.primary.opacity(0.12))
-                                .frame(width: 5, height: 5)
-                                .animation(.easeInOut(duration: 0.3), value: timerMgr.sessionCount)
+                    VStack(spacing: 6) {
+                        Text(timerMgr.timeString)
+                            .font(.system(size: 36, weight: .bold, design: .monospaced))
+                        HStack(spacing: 5) {
+                            ForEach(0..<4, id: \.self) { i in
+                                let filled = i < (timerMgr.sessionCount % 4 == 0 && timerMgr.sessionCount > 0 ? 4 : timerMgr.sessionCount % 4)
+                                Circle()
+                                    .fill(filled
+                                          ? LinearGradient(colors: [themeC1, themeC2], startPoint: .leading, endPoint: .trailing)
+                                          : LinearGradient(colors: [Color.primary.opacity(0.12), Color.primary.opacity(0.12)], startPoint: .leading, endPoint: .trailing))
+                                    .frame(width: 5, height: 5)
+                                    .animation(.easeInOut(duration: 0.3), value: timerMgr.sessionCount)
+                            }
                         }
                     }
                 }
+                .frame(width: 150, height: 150)
+
+                HStack(spacing: 20) {
+                    Button { timerMgr.reset() } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.primary.opacity(0.07), in: Circle())
+                    }
+                    .buttonStyle(.plain).help("Zurücksetzen")
+
+                    Button { timerMgr.startPause() } label: {
+                        Image(systemName: timerMgr.isRunning ? "pause.fill" : "play.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 58, height: 58)
+                            .background(
+                                LinearGradient(colors: [themeC1, themeC2],
+                                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                                in: Circle()
+                            )
+                            .shadow(color: themeC1.opacity(0.45), radius: 12, y: 5)
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.space, modifiers: [])
+                    .help(timerMgr.isRunning ? "Pause" : "Start")
+
+                    Button { timerMgr.skipToNext() } label: {
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.primary.opacity(0.07), in: Circle())
+                    }
+                    .buttonStyle(.plain).help("Überspringen")
+                }
             }
-            .frame(width: 148, height: 148)
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .themeGlass(cornerRadius: 18)
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
 
-            Spacer(minLength: 18)
-
-            HStack(spacing: 22) {
-                Button { timerMgr.reset() } label: {
-                    Image(systemName: "arrow.counterclockwise").font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary).frame(width: 40, height: 40)
-                        .background(Color.primary.opacity(0.07), in: Circle())
-                }
-                .buttonStyle(.plain).help("Zurücksetzen")
-
-                Button { timerMgr.startPause() } label: {
-                    Image(systemName: timerMgr.isRunning ? "pause.fill" : "play.fill")
-                        .font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-                        .frame(width: 58, height: 58)
-                        .background(LinearGradient(colors: [timerMgr.mode.color, timerMgr.mode.color.opacity(0.75)],
-                                                   startPoint: .topLeading, endPoint: .bottomTrailing), in: Circle())
-                        .shadow(color: timerMgr.mode.color.opacity(0.5), radius: 12, y: 5)
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.space, modifiers: [])
-                .help(timerMgr.isRunning ? "Pause" : "Start")
-
-                Button { timerMgr.skipToNext() } label: {
-                    Image(systemName: "forward.end.fill").font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary).frame(width: 40, height: 40)
-                        .background(Color.primary.opacity(0.07), in: Circle())
-                }
-                .buttonStyle(.plain).help("Überspringen")
+            // Sessions card
+            HStack(spacing: 12) {
+                Image(systemName: "timer")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(themeC2)
+                Text("Sessions")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(timerMgr.sessionCount)")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(themeC1)
             }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .themeGlass(cornerRadius: 14)
+            .padding(.horizontal, 14)
 
-            Spacer(minLength: 10)
-
-            Text("\(timerMgr.sessionCount) Session\(timerMgr.sessionCount == 1 ? "" : "s") abgeschlossen")
-                .font(.system(size: 11)).foregroundStyle(.secondary)
-
-            Spacer(minLength: 10)
-
-            // Linked task section
+            // Linked task
             timerLinkedTask
+                .padding(.horizontal, 14)
 
-            Spacer(minLength: 14)
+            Spacer(minLength: 10)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var timerLinkedTask: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             if let taskID = timerMgr.linkedTaskID,
                let task = todoStore.activeTodos.first(where: { $0.id == taskID }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "link").font(.system(size: 11)).foregroundStyle(accent)
-                    Text(task.title).font(.system(size: 12, weight: .medium)).lineLimit(1).foregroundStyle(.primary)
+                HStack(spacing: 10) {
+                    Image(systemName: "link")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(themeC1)
+                    Text(task.title)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(1)
+                        .foregroundStyle(.primary)
                     Spacer()
                     Button { timerMgr.linkedTaskID = nil } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14)).foregroundStyle(Color.secondary.opacity(0.6))
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.secondary.opacity(0.5))
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .themeGlass(cornerRadius: 12)
             } else {
                 Button { withAnimation(.spring(response: 0.25)) { showTimerTaskPicker.toggle() } } label: {
-                    Label("Fokusaufgabe verknüpfen", systemImage: "link")
-                        .font(.system(size: 12)).foregroundStyle(accent.opacity(0.8))
+                    HStack(spacing: 6) {
+                        Image(systemName: "link")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(themeC1)
+                        Text("Fokusaufgabe verknüpfen")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Image(systemName: showTimerTaskPicker ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .themeGlass(cornerRadius: 12)
                 }
                 .buttonStyle(.plain)
             }
@@ -927,7 +984,10 @@ struct MenuBarContentView: View {
                             withAnimation { showTimerTaskPicker = false }
                         } label: {
                             HStack {
-                                Text(task.title).font(.system(size: 12)).lineLimit(1).foregroundStyle(.primary)
+                                Text(task.title)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                    .foregroundStyle(.primary)
                                 Spacer()
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -935,19 +995,21 @@ struct MenuBarContentView: View {
                         }
                         .buttonStyle(.plain)
                         if task.id != todoStore.activeTodos.prefix(5).last?.id {
-                            Divider().opacity(0.1).padding(.leading, 12)
+                            Divider().opacity(0.08).padding(.leading, 12)
                         }
                     }
                     if todoStore.activeTodos.isEmpty {
-                        Text("Keine offenen Aufgaben").font(.system(size: 12))
-                            .foregroundStyle(.secondary).padding(12)
+                        Text("Keine offenen Aufgaben")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .padding(12)
                     }
                 }
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                .padding(.horizontal, 16)
+                .themeGlass(cornerRadius: 12)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: showTimerTaskPicker)
     }
 
     // MARK: - Tasks Tab
