@@ -51,7 +51,12 @@ struct MenuBarContentView: View {
     private var aiProvider: MacAIProvider { MacAIProvider(rawValue: aiProviderRaw) ?? .groq }
 
     // Settings panel
-    @State private var showingSettings = false
+    @State private var showingSettings       = false
+    @State private var showAutoDeleteConfirm = false
+
+    // Shared settings
+    @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled   = false
+    @AppStorage("autoDeleteCompletedDays")    private var autoDeleteCompletedDays: Int = 30
 
     // Subtask expansion
     @State private var expandedTaskID: UUID? = nil
@@ -77,6 +82,15 @@ struct MenuBarContentView: View {
     private var accent: Color { activeTheme.isEmpty ? .orange : activeTheme.themeAccent }
     private var themeC1: Color { appThemaFarben(activeTheme).0 }
     private var themeC2: Color { appThemaFarben(activeTheme).1 }
+
+    private let allThemes: [(id: String, label: String)] = [
+        ("", "Standard"), ("Ocean", "Ocean"), ("Forest", "Forest"),
+        ("Night", "Night"), ("Solar", "Solar"), ("Cherry Blossom", "Cherry"), // gekürzt wegen Platz
+        ("Volcano", "Volcano"), ("Ice", "Ice"), ("Autumn", "Autumn"),
+        ("Lavender", "Lavender"), ("Sunset", "Sunset"), ("Galaxy", "Galaxy"),
+        ("Northern Lights", "Nordlichter"), ("Aurora", "Aurora"),
+        ("Obsidian", "Obsidian"), ("Nebula", "Nebula"),
+    ]
 
     var body: some View {
         ZStack {
@@ -382,6 +396,56 @@ struct MenuBarContentView: View {
 
     private var settingsPanel: some View {
         VStack(alignment: .leading, spacing: 18) {
+
+            // Theme picker
+            settingsSectionLabel("Design", icon: "paintbrush.fill")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(allThemes, id: \.id) { theme in
+                        let (c1, c2, _) = appThemaFarben(theme.id)
+                        let selected    = activeTheme == theme.id
+                        let col1 = theme.id.isEmpty ? Color.gray : c1
+                        let col2 = theme.id.isEmpty ? Color.gray.opacity(0.6) : c2
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) { activeTheme = theme.id }
+                            NSUbiquitousKeyValueStore.default.set(theme.id, forKey: "aktivesStatistikThema")
+                            NSUbiquitousKeyValueStore.default.synchronize()
+                        } label: {
+                            VStack(spacing: 5) {
+                                ZStack {
+                                    Circle()
+                                        .fill(LinearGradient(colors: [col1, col2],
+                                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(width: 32, height: 32)
+                                        .shadow(color: col1.opacity(selected ? 0.5 : 0.15),
+                                                radius: selected ? 6 : 2)
+                                    if selected {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(.white)
+                                    } else if theme.id.isEmpty {
+                                        Image(systemName: "circle.slash")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.white.opacity(0.7))
+                                    }
+                                }
+                                .overlay(Circle().stroke(selected ? col1 : Color.clear, lineWidth: 2).scaleEffect(1.2))
+                                Text(theme.label)
+                                    .font(.system(size: 8, weight: selected ? .bold : .regular))
+                                    .foregroundStyle(selected ? col1 : Color.secondary)
+                                    .lineLimit(1).frame(width: 48)
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.2), value: activeTheme)
+                    }
+                }
+                .padding(.horizontal, 14)
+            }
+            .frame(height: 72)
+            .themeGlass(cornerRadius: 12)
+
             // Timer settings
             settingsSectionLabel("Timer-Zeiten", icon: "timer")
             VStack(spacing: 0) {
@@ -407,6 +471,102 @@ struct MenuBarContentView: View {
             // AI settings
             settingsSectionLabel("KI Quick Input", icon: "sparkles")
             aiSettingsPanel
+
+            // Auto-Delete
+            settingsSectionLabel("Automatisches Löschen", icon: "checkmark.circle.fill")
+            VStack(spacing: 0) {
+                HStack {
+                    Label("Auto-Delete erledigte", systemImage: "trash.circle")
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer()
+                    Toggle("", isOn: $autoDeleteCompletedEnabled)
+                        .toggleStyle(.switch).tint(themeC1).labelsHidden()
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+
+                Divider().opacity(0.12).padding(.leading, 14)
+
+                HStack {
+                    Label("Nach \(autoDeleteCompletedDays) Tagen", systemImage: "calendar.badge.clock")
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Button {
+                            if autoDeleteCompletedDays > 1 { autoDeleteCompletedDays -= 1 }
+                        } label: {
+                            Image(systemName: "minus").font(.system(size: 11, weight: .semibold))
+                                .frame(width: 22, height: 22)
+                                .background(Color.primary.opacity(0.08), in: Circle())
+                        }
+                        .buttonStyle(.plain).disabled(!autoDeleteCompletedEnabled)
+                        Button {
+                            if autoDeleteCompletedDays < 365 { autoDeleteCompletedDays += 1 }
+                        } label: {
+                            Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
+                                .frame(width: 22, height: 22)
+                                .background(Color.primary.opacity(0.08), in: Circle())
+                        }
+                        .buttonStyle(.plain).disabled(!autoDeleteCompletedEnabled)
+                    }
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .opacity(autoDeleteCompletedEnabled ? 1 : 0.4)
+
+                Divider().opacity(0.12).padding(.leading, 14)
+
+                let completedCount = todoStore.todos.filter(\.isCompleted).count
+                Button { showAutoDeleteConfirm = true } label: {
+                    HStack {
+                        Label("Jetzt löschen (\(completedCount))", systemImage: "trash.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.red)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .disabled(completedCount == 0)
+            }
+            .themeGlass(cornerRadius: 12)
+            .alert("Erledigte Aufgaben löschen?", isPresented: $showAutoDeleteConfirm) {
+                Button("Löschen", role: .destructive) { todoStore.deleteCompleted() }
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("Alle abgeschlossenen Aufgaben werden unwiderruflich gelöscht.")
+            }
+
+            // Sync
+            settingsSectionLabel("Synchronisation", icon: "arrow.triangle.2.circlepath")
+            VStack(spacing: 0) {
+                Button {
+                    NSUbiquitousKeyValueStore.default.synchronize()
+                    MacCloudSettingsSync.shared.forceSync()
+                } label: {
+                    HStack {
+                        Label("Einstellungen syncen", systemImage: "icloud.and.arrow.down")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square").font(.system(size: 11)).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+
+                Divider().opacity(0.12).padding(.leading, 14)
+
+                Button {
+                    Task { await todoStore.fetchTodos() }
+                } label: {
+                    HStack {
+                        Label("Aufgaben neu laden", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            }
+            .themeGlass(cornerRadius: 12)
 
             // Apply button
             Button {
