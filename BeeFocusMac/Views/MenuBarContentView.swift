@@ -1518,31 +1518,44 @@ struct MenuBarContentView: View {
     private var bottomTabBar: some View {
         HStack(spacing: 0) {
             ForEach(MenuBarTab.allCases, id: \.self) { tab in
+                let isActive = activeTab == tab
                 Button {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) { activeTab = tab }
                 } label: {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 3) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 12, weight: activeTab == tab ? .semibold : .regular))
-                            .foregroundStyle(activeTab == tab ? accent : Color.secondary.opacity(0.6))
+                            .font(.system(size: 13, weight: isActive ? .semibold : .regular))
+                            .foregroundStyle(isActive
+                                ? LinearGradient(colors: [themeC1, themeC2], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                : LinearGradient(colors: [Color.secondary.opacity(0.5), Color.secondary.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing))
                         Text(tab.label)
-                            .font(.system(size: 9, weight: activeTab == tab ? .semibold : .regular))
-                            .foregroundStyle(activeTab == tab ? accent : Color.secondary.opacity(0.6))
+                            .font(.system(size: 9, weight: isActive ? .semibold : .regular))
+                            .foregroundStyle(isActive ? themeC1 : Color.secondary.opacity(0.5))
                     }
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Group {
-                        if activeTab == tab {
-                            RoundedRectangle(cornerRadius: 7).fill(accent.opacity(0.14))
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background {
+                        if isActive {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(LinearGradient(
+                                    colors: [themeC1.opacity(0.14), themeC2.opacity(0.08)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                ))
                                 .matchedGeometryEffect(id: "tabBG", in: tabNS)
                         }
-                    })
+                    }
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 8).padding(.vertical, 5)
+        .padding(.horizontal, 8).padding(.vertical, 6)
+        .background(
+            LinearGradient(
+                colors: [themeC1.opacity(0.06), themeC2.opacity(0.03)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 
     // MARK: - Empty State
