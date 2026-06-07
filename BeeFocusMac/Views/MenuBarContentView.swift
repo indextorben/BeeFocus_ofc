@@ -1369,39 +1369,74 @@ struct MenuBarContentView: View {
 
     private var statsTab: some View {
         VStack(spacing: 10) {
+            // Top row – themeC1 / themeC2 wie FokusStatistikView
             HStack(spacing: 10) {
-                statCard(label: "Erledigt",   value: "\(completedThisMonth)",        color: .green,              icon: "checkmark.circle.fill")
-                statCard(label: "Überfällig", value: "\(thisMonthOverdueTodos.count)", color: .red,              icon: "exclamationmark.circle.fill")
+                statCard(
+                    title: "Sessions",
+                    value: "\(timerMgr.sessionCount)",
+                    subtitle: "heute",
+                    icon: "timer",
+                    color: themeC1,
+                    isLive: timerMgr.isRunning
+                )
+                statCard(
+                    title: "Erledigt",
+                    value: "\(completedThisMonth)",
+                    subtitle: currentMonthLabel,
+                    icon: "checkmark.circle.fill",
+                    color: themeC2,
+                    isLive: false
+                )
             }
+
+            // Bottom row
             HStack(spacing: 10) {
-                statCard(label: "Offen",      value: "\(thisMonthActiveTodos.count)", color: accent,             icon: "circle.dotted")
-                statCard(label: "Sessions",   value: "\(timerMgr.sessionCount)",      color: timerMgr.mode.color, icon: "timer")
+                statCard(
+                    title: "Offen",
+                    value: "\(thisMonthActiveTodos.count)",
+                    subtitle: currentMonthLabel,
+                    icon: "circle.dotted",
+                    color: accent,
+                    isLive: false
+                )
+                statCard(
+                    title: "Überfällig",
+                    value: "\(thisMonthOverdueTodos.count)",
+                    subtitle: "Aufgaben",
+                    icon: "exclamationmark.circle.fill",
+                    color: thisMonthOverdueTodos.isEmpty ? .secondary : .red,
+                    isLive: false
+                )
             }
-            Text(currentMonthLabel)
-                .font(.system(size: 10)).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal, 14).padding(.vertical, 14)
     }
 
-    private func statCard(label: String, value: String, color: Color, icon: String) -> some View {
+    private func statCard(title: String, value: String, subtitle: String, icon: String, color: Color, isLive: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(color)
-                Text(label)
+                Text(title)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
+                if isLive {
+                    Circle().fill(Color.green).frame(width: 7, height: 7)
+                }
             }
             Text(value)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
+                .minimumScaleFactor(0.7)
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(color.opacity(0.8))
         }
-        .padding(.horizontal, 12).padding(.vertical, 12)
+        .padding(.horizontal, 14).padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .themeGlass(cornerRadius: 14)
+        .themeGlass(cornerRadius: 16)
     }
 
     // MARK: - Bottom Tab Bar
