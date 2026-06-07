@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var panel:           NSPanel!
     private var labelHostingView: NSHostingView<AnyView>!
     private var eventMonitor:    Any?
+    private var cancellables     = Set<AnyCancellable>()
 
     // MARK: Lifecycle
 
@@ -44,15 +45,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         let labelView = AnyView(MenuBarLabel().environmentObject(timerMgr))
         labelHostingView = NSHostingView(rootView: labelView)
-        labelHostingView.frame = NSRect(x: 0, y: 0, width: 72, height: NSStatusBar.system.thickness)
+        updateStatusItemFrame()
 
         if let btn = statusItem.button {
-            btn.frame = labelHostingView.frame
             btn.addSubview(labelHostingView)
             btn.action = #selector(togglePanel)
             btn.target  = self
             btn.sendAction(on: .leftMouseDown)
         }
+
+        timerMgr.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.updateStatusItemFrame() }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func updateStatusItemFrame() {
+        let height = NSStatusBar.system.thickness
+        let width  = max(28, labelHostingView.fittingSize.width)
+        let frame  = NSRect(x: 0, y: 0, width: width, height: height)
+        labelHostingView.frame   = frame
+        statusItem.button?.frame = frame
     }
 
     @objc private func togglePanel() {
@@ -133,18 +148,9 @@ struct MenuBarLabel: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            ZStack {
-                Circle().stroke(Color.primary.opacity(0.15), lineWidth: 2)
-                Circle()
-                    .trim(from: 0, to: timerMgr.isRunning ? timerMgr.progress : 0)
-                    .stroke(accent, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 1), value: timerMgr.progress)
-                Image(systemName: "hexagon.fill")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(timerMgr.isRunning ? accent : accent.opacity(0.8))
-            }
-            .frame(width: 16, height: 16)
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(timerMgr.isRunning ? accent : accent.opacity(0.8))
             if timerMgr.isRunning {
                 Text(timerMgr.timeString)
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
