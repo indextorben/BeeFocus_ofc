@@ -2526,7 +2526,7 @@ struct EinplanenSheet: View {
                                 Button(loc("Löschen"), role: .destructive) {
                                     onDelete?()
                                     dismiss()
-                                }
+                             x   }
                                 Button(loc("Abbrechen"), role: .cancel) {}
                             } message: {
                                 Text(String(format: loc("\"%@\" wird dauerhaft gelöscht."), todo.title))

@@ -9,5 +9,6 @@ import SwiftUI
 struct TutorialItem: Identifiable {
     let id = UUID()
     let title: String
+    let icon: String
     let sections: [TutorialSection]
 }

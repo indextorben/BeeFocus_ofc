@@ -1,24 +1,6 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Window helper
-
-private struct WindowResizer: NSViewRepresentable {
-    func makeNSView(context: Context) -> ResizeHelperView { ResizeHelperView() }
-    func updateNSView(_ nsView: ResizeHelperView, context: Context) {}
-
-    class ResizeHelperView: NSView {
-        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            guard let window else { return }
-            window.styleMask.insert(.resizable)
-            window.minSize = NSSize(width: 320, height: 440)
-        }
-    }
-}
-
 // MARK: - Tab enum
 
 private enum MenuBarTab: CaseIterable {
@@ -48,7 +30,7 @@ private enum MenuBarTab: CaseIterable {
 struct MenuBarContentView: View {
     @EnvironmentObject var todoStore: MacTodoStore
     @EnvironmentObject var timerMgr:  MacTimerManager
-    @Environment(\.activeTheme) private var activeTheme
+    @AppStorage("aktivesStatistikThema") private var activeTheme: String = ""
     @State private var activeTab:   MenuBarTab = .tasks
     @Namespace private var tabNS
 
@@ -86,6 +68,12 @@ struct MenuBarContentView: View {
     // Timer task picker
     @State private var showTimerTaskPicker = false
 
+    // Command palette
+    @State private var showingCommandPalette = false
+
+    // Task list keyboard navigation
+    @State private var selectedTaskID: UUID? = nil
+
     private var accent: Color { activeTheme.isEmpty ? .orange : activeTheme.themeAccent }
 
     var body: some View {
@@ -116,11 +104,92 @@ struct MenuBarContentView: View {
                 bottomTabBar
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.ultraThinMaterial)
-        .background(WindowResizer())
-        .frame(width: 360, height: 500)
-        .background(
-            // ⌘N → neue Aufgabe (unsichtbarer Button als Shortcut-Träger)
+        .overlay(commandPaletteOverlay)
+        .background(keyboardShortcutLayer)
+        .onReceive(NotificationCenter.default.publisher(for: .beeFocusToggleTimer)) { _ in
+            timerMgr.startPause()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .beeFocusOpenNewTask)) { _ in
+            MacAddTodoWindow.open(todoStore: todoStore)
+        }
+    }
+
+    // MARK: - Command Palette Overlay
+
+    @ViewBuilder
+    private var commandPaletteOverlay: some View {
+        if showingCommandPalette {
+            ZStack(alignment: .top) {
+                Color.black.opacity(0.01)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.22)) { showingCommandPalette = false }
+                    }
+                MacCommandPaletteView(
+                    isPresented: $showingCommandPalette,
+                    actions: paletteActions
+                )
+                .frame(maxWidth: 336)
+                .padding(.top, 4)
+            }
+            .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+        }
+    }
+
+    private var paletteActions: [MacPaletteAction] {
+        [
+            MacPaletteAction(
+                title: timerMgr.isRunning ? "Timer pausieren" : "Timer starten",
+                subtitle: timerMgr.mode.displayName,
+                icon: timerMgr.isRunning ? "pause.fill" : "play.fill",
+                shortcut: "⌥⌘T"
+            ) {
+                timerMgr.startPause()
+                withAnimation { activeTab = .timer }
+            },
+            MacPaletteAction(title: "Timer zurücksetzen",  subtitle: nil, icon: "arrow.counterclockwise", shortcut: nil) {
+                timerMgr.reset()
+                withAnimation { activeTab = .timer }
+            },
+            MacPaletteAction(title: "Nächste Phase",       subtitle: nil, icon: "forward.end.fill",      shortcut: nil) {
+                timerMgr.skipToNext()
+                withAnimation { activeTab = .timer }
+            },
+            MacPaletteAction(title: "Neue Aufgabe",        subtitle: "Schnelleingabe",  icon: "plus.circle.fill", shortcut: "⌘N") {
+                withAnimation(.spring(response: 0.3)) {
+                    showingCommandPalette = false
+                    activeTab = .tasks
+                    showingAddForm = true
+                }
+            },
+            MacPaletteAction(title: "Aufgaben",            subtitle: "Tab wechseln",   icon: "checklist",                   shortcut: "⌘1") {
+                withAnimation { activeTab = .tasks }
+            },
+            MacPaletteAction(title: "Tagesplaner",         subtitle: "Tab wechseln",   icon: "calendar.day.timeline.left",  shortcut: "⌘2") {
+                withAnimation { activeTab = .planner }
+            },
+            MacPaletteAction(title: "Timer",               subtitle: "Tab wechseln",   icon: "timer",                       shortcut: "⌘3") {
+                withAnimation { activeTab = .timer }
+            },
+            MacPaletteAction(title: "Statistik",           subtitle: "Tab wechseln",   icon: "chart.bar.fill",              shortcut: "⌘4") {
+                withAnimation { activeTab = .stats }
+            },
+            MacPaletteAction(title: "Einstellungen",       subtitle: nil,              icon: "gearshape.fill",              shortcut: nil) {
+                withAnimation(.spring(response: 0.28)) { showingSettings = true }
+            },
+            MacPaletteAction(title: "BeeFocus beenden",    subtitle: nil,              icon: "power",                       shortcut: nil) {
+                NSApp.terminate(nil)
+            },
+        ]
+    }
+
+    // MARK: - Keyboard shortcut layer (hidden buttons)
+
+    private var keyboardShortcutLayer: some View {
+        Group {
+            // ⌘N → neue Aufgabe
             Button("") {
                 guard !showingAddForm && !showingSettings else { return }
                 withAnimation(.spring(response: 0.3)) {
@@ -130,8 +199,76 @@ struct MenuBarContentView: View {
             }
             .keyboardShortcut("n", modifiers: .command)
             .opacity(0)
-        )
+
+            // ⌘K → Command Palette
+            Button("") {
+                guard !showingAddForm && !showingSettings else { return }
+                withAnimation(.spring(response: 0.25)) { showingCommandPalette.toggle() }
+            }
+            .keyboardShortcut("k", modifiers: .command)
+            .opacity(0)
+
+            // ⌘1-4 → Tab switching
+            Button("") { withAnimation { activeTab = .tasks } }
+                .keyboardShortcut("1", modifiers: .command).opacity(0)
+            Button("") { withAnimation { activeTab = .planner } }
+                .keyboardShortcut("2", modifiers: .command).opacity(0)
+            Button("") { withAnimation { activeTab = .timer } }
+                .keyboardShortcut("3", modifiers: .command).opacity(0)
+            Button("") { withAnimation { activeTab = .stats } }
+                .keyboardShortcut("4", modifiers: .command).opacity(0)
+
+            // Space → Timer starten/pausieren (nur im Timer-Tab)
+            Button("") {
+                guard activeTab == .timer else { return }
+                timerMgr.startPause()
+            }
+            .keyboardShortcut(.space, modifiers: [])
+            .opacity(0)
+
+            // Arrow keys → Task-Navigation
+            Button("") { navigateTask(by: -1) }
+                .keyboardShortcut(.upArrow, modifiers: []).opacity(0)
+            Button("") { navigateTask(by: 1) }
+                .keyboardShortcut(.downArrow, modifiers: []).opacity(0)
+            Button("") { toggleSelectedTask() }
+                .keyboardShortcut(.return, modifiers: []).opacity(0)
+            Button("") { deleteSelectedTask() }
+                .keyboardShortcut(.delete, modifiers: .command).opacity(0)
+        }
     }
+
+    // MARK: - Task keyboard navigation helpers
+
+    private func navigateTask(by delta: Int) {
+        guard activeTab == .tasks, !showingAddForm, !showingSettings else { return }
+        let tasks = filteredTasks
+        guard !tasks.isEmpty else { return }
+        if let current = selectedTaskID, let idx = tasks.firstIndex(where: { $0.id == current }) {
+            let newIdx = max(0, min(tasks.count - 1, idx + delta))
+            selectedTaskID = tasks[newIdx].id
+        } else {
+            selectedTaskID = delta >= 0 ? tasks.first?.id : tasks.last?.id
+        }
+    }
+
+    private func toggleSelectedTask() {
+        guard activeTab == .tasks, !showingAddForm else { return }
+        guard let id = selectedTaskID, let task = filteredTasks.first(where: { $0.id == id }) else { return }
+        todoStore.toggle(task)
+    }
+
+    private func deleteSelectedTask() {
+        guard activeTab == .tasks, !showingAddForm else { return }
+        guard let id = selectedTaskID, let task = filteredTasks.first(where: { $0.id == id }) else { return }
+        let tasks = filteredTasks
+        if let idx = tasks.firstIndex(where: { $0.id == id }) {
+            let nextID = tasks.count > 1 ? tasks[idx > 0 ? idx - 1 : 1].id : nil
+            selectedTaskID = nextID
+        }
+        todoStore.delete(task)
+    }
+
 
     // MARK: - Header
 
@@ -946,9 +1083,10 @@ struct MenuBarContentView: View {
     }
 
     private func taskRow(_ todo: MacTodoItem) -> some View {
-        let isExpanded = expandedTaskID == todo.id
-        let doneCount  = todo.subTasks.filter(\.isCompleted).count
-        let totalCount = todo.subTasks.count
+        let isExpanded  = expandedTaskID == todo.id
+        let isSelected  = selectedTaskID == todo.id
+        let doneCount   = todo.subTasks.filter(\.isCompleted).count
+        let totalCount  = todo.subTasks.count
 
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
@@ -1009,7 +1147,14 @@ struct MenuBarContentView: View {
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 8)
-            .background(Color.primary.opacity(0.001).contentShape(Rectangle()))
+            .background(
+                isSelected
+                    ? accent.opacity(0.09)
+                    : Color.primary.opacity(0.001),
+                in: Rectangle()
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { selectedTaskID = todo.id }
 
             // Expanded subtask list
             if isExpanded && totalCount > 0 {

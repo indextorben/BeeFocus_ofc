@@ -9,8 +9,10 @@ import SwiftUI
 struct TutorialSection: Identifiable {
     let id = UUID()
     let heading: String
+    let icon: String
     let text: String
     let highlights: [String]?
     let highlightData: [String: SubFunctionData]?
+    let highlightIcons: [String: String]?
     let bulletPoints: [String]?
 }
