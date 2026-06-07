@@ -566,20 +566,34 @@ struct MenuBarContentView: View {
                     Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                     Text("Zurück").font(.system(size: 13))
                 }
-                .foregroundStyle(accent)
+                .foregroundStyle(themeC1)
             }
             .buttonStyle(.plain)
             Spacer()
-            Text("Neue Aufgabe").font(.system(size: 14, weight: .semibold))
+            HStack(spacing: 6) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(colors: [themeC1, themeC2],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                Text("Neue Aufgabe").font(.system(size: 14, weight: .semibold))
+            }
             Spacer()
             Button("Speichern") { saveInlineTask() }
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(newTitle.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : accent)
+                .foregroundStyle(newTitle.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : themeC1)
                 .buttonStyle(.plain)
                 .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            LinearGradient(
+                colors: [themeC1.opacity(0.06), themeC2.opacity(0.03)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 
     // MARK: - Inline Add Form Body
