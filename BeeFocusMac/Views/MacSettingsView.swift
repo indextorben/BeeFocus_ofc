@@ -13,20 +13,39 @@ struct MacSettingsView: View {
     @AppStorage("mac_notifyOnComplete")  private var notifyOnComplete = true
 
     // Shared with iOS
-    @AppStorage("showPastTasksGlobal")      private var showPastTasksGlobal      = false
-    @AppStorage("filterCurrentMonthOnly")   private var filterCurrentMonthOnly   = false
-    @AppStorage("aktivesStatistikThema")    private var aktivesThema: String      = ""
-    @AppStorage("fokuspunktePeak")          private var fokuspunktePeak: Int      = 0
-    @AppStorage("fokuspunkteAusgegeben")    private var fokuspunkteAusgegeben: Int = 0
+    @AppStorage("showPastTasksGlobal")           private var showPastTasksGlobal           = false
+    @AppStorage("filterCurrentMonthOnly")        private var filterCurrentMonthOnly        = false
+    @AppStorage("aktivesStatistikThema")         private var aktivesThema: String           = ""
+    @AppStorage("fokuspunktePeak")               private var fokuspunktePeak: Int           = 0
+    @AppStorage("fokuspunkteAusgegeben")         private var fokuspunkteAusgegeben: Int     = 0
+    @AppStorage("autoDeleteCompletedEnabled")    private var autoDeleteCompletedEnabled     = false
+    @AppStorage("autoDeleteCompletedDays")       private var autoDeleteCompletedDays: Int   = 30
 
-    @State private var headerAppeared        = false
-    @State private var sectionsAppeared      = false
-    @State private var showResetStatsConfirm = false
+    // AI
+    @AppStorage("mac_ai_provider") private var aiProviderRaw: String = MacAIProvider.groq.rawValue
+    private var aiProvider: MacAIProvider { MacAIProvider(rawValue: aiProviderRaw) ?? .groq }
+
+    @State private var headerAppeared         = false
+    @State private var sectionsAppeared       = false
+    @State private var showResetStatsConfirm  = false
     @State private var showNotificationBanner = false
-    @State private var notificationMessage   = ""
-    @State private var bannerColor: Color    = .green
+    @State private var notificationMessage    = ""
+    @State private var bannerColor: Color     = .green
     @State private var bannerDismissTask: Task<Void, Never>? = nil
-    @State private var showPaywall           = false
+    @State private var showPaywall            = false
+    @State private var showAutoDeleteConfirm  = false
+    @State private var aiKeyInput: String     = ""
+    @State private var aiKeyVisible: Bool     = false
+    @State private var aiKeySaved: Bool       = false
+
+    private let allThemes: [(id: String, label: String)] = [
+        ("", "Standard"), ("Ocean", "Ocean"), ("Forest", "Forest"),
+        ("Night", "Night"), ("Solar", "Solar"), ("Cherry Blossom", "Cherry Blossom"),
+        ("Volcano", "Volcano"), ("Ice", "Ice"), ("Autumn", "Autumn"),
+        ("Lavender", "Lavender"), ("Sunset", "Sunset"), ("Galaxy", "Galaxy"),
+        ("Northern Lights", "Northern Lights"), ("Aurora", "Aurora"),
+        ("Obsidian", "Obsidian"), ("Nebula", "Nebula"),
+    ]
 
     private var isDark: Bool { colorScheme == .dark }
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
@@ -49,34 +68,46 @@ struct MacSettingsView: View {
                         proCard
                     }
                     animatedSection(delay: 0.08) {
-                        sectionGroup(icon: "paintbrush.fill", label: "Darstellung", color: .indigo) { darstellungCard }
+                        sectionGroup(icon: "paintbrush.fill", label: "Design", color: .indigo) { themeCard }
                     }
-                    animatedSection(delay: 0.12) {
+                    animatedSection(delay: 0.10) {
+                        sectionGroup(icon: "eye", label: "Darstellung", color: .indigo) { darstellungCard }
+                    }
+                    animatedSection(delay: 0.14) {
                         sectionGroup(icon: "timer", label: "Timer-Einstellungen", color: .orange) { timerCard }
                     }
-                    animatedSection(delay: 0.16) {
+                    animatedSection(delay: 0.18) {
                         sectionGroup(icon: "bell.badge.fill", label: "Benachrichtigungen", color: .red) { benachrichtigungenCard }
                     }
-                    animatedSection(delay: 0.20) {
+                    animatedSection(delay: 0.22) {
                         sectionGroup(icon: "gearshape", label: "Verhalten", color: .teal) { verhaltensCard }
                     }
-                    animatedSection(delay: 0.24) {
+                    animatedSection(delay: 0.26) {
+                        sectionGroup(icon: "sparkles", label: "KI Quick Input", color: .purple) { kiCard }
+                    }
+                    animatedSection(delay: 0.30) {
+                        sectionGroup(icon: "checkmark.circle.fill", label: "Automatisches Löschen", color: .mint) { autoDeleteCard }
+                    }
+                    animatedSection(delay: 0.34) {
+                        sectionGroup(icon: "arrow.triangle.2.circlepath", label: "Synchronisation", color: .blue) { syncCard }
+                    }
+                    animatedSection(delay: 0.38) {
                         sectionGroup(icon: "chart.bar.fill", label: "Statistik", color: .pink) { statistikCard }
                     }
-                    animatedSection(delay: 0.28) {
+                    animatedSection(delay: 0.42) {
                         sectionGroup(icon: "lock.shield", label: "Berechtigungen", color: .indigo) { berechtigungenCard }
                     }
-                    animatedSection(delay: 0.32) {
+                    animatedSection(delay: 0.46) {
                         sectionGroup(icon: "envelope.fill", label: "Feedback / Verbesserungen", color: .teal) { feedbackCard }
                     }
 
                     datenschutzCard
                         .opacity(sectionsAppeared ? 1 : 0)
-                        .animation(.easeOut(duration: 0.4).delay(0.35), value: sectionsAppeared)
+                        .animation(.easeOut(duration: 0.4).delay(0.50), value: sectionsAppeared)
                     versionCard
                         .padding(.top, 2)
                         .opacity(sectionsAppeared ? 1 : 0)
-                        .animation(.easeOut(duration: 0.4).delay(0.38), value: sectionsAppeared)
+                        .animation(.easeOut(duration: 0.4).delay(0.54), value: sectionsAppeared)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -111,6 +142,16 @@ struct MacSettingsView: View {
             Button("Abbrechen", role: .cancel) {}
         } message: {
             Text("Alle Fokuspunkte und gespeicherte Statistiken werden zurückgesetzt.")
+        }
+        .alert("Erledigte Aufgaben löschen?", isPresented: $showAutoDeleteConfirm) {
+            Button("Löschen", role: .destructive) {
+                todoStore.deleteCompleted()
+                bannerColor = .green
+                showBanner(message: "Erledigte Aufgaben gelöscht")
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Alle abgeschlossenen Aufgaben werden unwiderruflich gelöscht.")
         }
         .sheet(isPresented: $showPaywall) {
             MacProPaywallView()
@@ -259,6 +300,213 @@ struct MacSettingsView: View {
     }
 
     // MARK: - Section Cards
+
+    // ── Theme Picker ──────────────────────────────────────────────────
+    private var themeCard: some View {
+        glassCard {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(allThemes, id: \.id) { theme in
+                        let (c1, c2, _) = appThemaFarben(theme.id)
+                        let isSelected  = aktivesThema == theme.id
+                        let accentC1    = theme.id.isEmpty ? Color.gray : c1
+                        let accentC2    = theme.id.isEmpty ? Color.gray.opacity(0.6) : c2
+
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.35)) { aktivesThema = theme.id }
+                            NSUbiquitousKeyValueStore.default.set(theme.id, forKey: "aktivesStatistikThema")
+                            NSUbiquitousKeyValueStore.default.synchronize()
+                        } label: {
+                            VStack(spacing: 6) {
+                                ZStack {
+                                    Circle()
+                                        .fill(LinearGradient(colors: [accentC1, accentC2],
+                                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(width: 36, height: 36)
+                                        .shadow(color: accentC1.opacity(isSelected ? 0.55 : 0.2),
+                                                radius: isSelected ? 8 : 3)
+                                    if isSelected {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundStyle(.white)
+                                    } else if theme.id.isEmpty {
+                                        Image(systemName: "circle.slash")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(.white.opacity(0.7))
+                                    }
+                                }
+                                .overlay(
+                                    Circle().stroke(isSelected ? accentC1 : Color.clear, lineWidth: 2.5)
+                                        .scaleEffect(1.18)
+                                )
+
+                                Text(theme.label)
+                                    .font(.system(size: 9, weight: isSelected ? .bold : .regular))
+                                    .foregroundStyle(isSelected ? accentC1 : Color.secondary)
+                                    .lineLimit(1)
+                                    .frame(width: 56)
+                            }
+                            .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.25), value: aktivesThema)
+                    }
+                }
+                .padding(.horizontal, 14)
+            }
+            .frame(height: 82)
+        }
+    }
+
+    // ── KI Quick Input ────────────────────────────────────────────────
+    private var kiCard: some View {
+        glassCard {
+            HStack(spacing: 12) {
+                iconBadge(icon: "sparkles", color: .purple)
+                Text("Anbieter")
+                    .font(.system(size: 16))
+                Spacer()
+                Picker("", selection: $aiProviderRaw) {
+                    ForEach(MacAIProvider.allCases, id: \.rawValue) { p in
+                        Text(p.label).tag(p.rawValue)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 120)
+                .onChange(of: aiProviderRaw) { _ in
+                    aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? ""
+                    aiKeySaved = false
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+
+            cardDivider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    iconBadge(icon: "key.fill", color: .orange)
+                    Group {
+                        if aiKeyVisible {
+                            TextField("API Key", text: $aiKeyInput)
+                        } else {
+                            SecureField("API Key", text: $aiKeyInput)
+                        }
+                    }
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13, design: .monospaced))
+                    .onAppear { aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? "" }
+
+                    Button { aiKeyVisible.toggle() } label: {
+                        Image(systemName: aiKeyVisible ? "eye.slash" : "eye")
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        MacKeychain.save(aiKeyInput.trimmingCharacters(in: .whitespaces),
+                                         for: aiProvider.keychainKey)
+                        aiKeySaved = true
+                        bannerColor = .green
+                        showBanner(message: "API Key gespeichert")
+                    } label: {
+                        Text(aiKeySaved ? "✓" : "Speichern")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(aiKeySaved ? .green : themeColors.0)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(aiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 11)
+
+                Text(aiProvider == .groq
+                     ? "Groq: kostenlos unter console.groq.com → API Keys"
+                     : "OpenAI: platform.openai.com → API Keys")
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 16).padding(.bottom, 10)
+            }
+        }
+    }
+
+    // ── Auto-Delete erledigte Aufgaben ────────────────────────────────
+    private var autoDeleteCard: some View {
+        glassCard {
+            iconToggleRow(icon: "checkmark.circle.fill", color: .mint,
+                          label: "Abgeschlossene automatisch löschen",
+                          isOn: $autoDeleteCompletedEnabled)
+
+            cardDivider()
+
+            HStack(spacing: 12) {
+                iconBadge(icon: "calendar.badge.clock", color: .purple)
+                Stepper("Löschen nach \(autoDeleteCompletedDays) Tagen",
+                        value: $autoDeleteCompletedDays, in: 1...365)
+                    .disabled(!autoDeleteCompletedEnabled)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+
+            cardDivider()
+
+            Button { showAutoDeleteConfirm = true } label: {
+                HStack(spacing: 12) {
+                    iconBadge(icon: "trash.fill", color: .red)
+                    Text("Erledigte Aufgaben jetzt löschen")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.red)
+                    Spacer()
+                    Text("\(todoStore.todos.filter(\.isCompleted).count)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            .disabled(todoStore.todos.filter(\.isCompleted).isEmpty)
+        }
+    }
+
+    // ── Synchronisation ───────────────────────────────────────────────
+    private var syncCard: some View {
+        glassCard {
+            Button {
+                NSUbiquitousKeyValueStore.default.synchronize()
+                MacCloudSettingsSync.shared.forceSync()
+                bannerColor = .blue
+                showBanner(message: "iCloud-Einstellungen synchronisiert")
+            } label: {
+                HStack(spacing: 12) {
+                    iconBadge(icon: "icloud.and.arrow.down", color: .blue)
+                    Text("Einstellungen jetzt synchronisieren")
+                        .font(.system(size: 16)).foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.system(size: 13)).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+
+            cardDivider()
+
+            Button {
+                Task {
+                    await todoStore.fetchTodos()
+                    await MainActor.run {
+                        bannerColor = .green
+                        showBanner(message: "Aufgaben neu geladen")
+                    }
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    iconBadge(icon: "arrow.triangle.2.circlepath", color: .teal)
+                    Text("Aufgaben neu laden")
+                        .font(.system(size: 16)).foregroundStyle(.primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+        }
+    }
 
     private var darstellungCard: some View {
         glassCard {
