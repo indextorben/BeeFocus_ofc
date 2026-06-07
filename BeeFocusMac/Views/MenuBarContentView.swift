@@ -345,21 +345,35 @@ struct MenuBarContentView: View {
                     Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                     Text("Zurück").font(.system(size: 13))
                 }
-                .foregroundStyle(accent)
+                .foregroundStyle(themeC1)
             }
             .buttonStyle(.plain)
             Spacer()
-            Text("Einstellungen").font(.system(size: 14, weight: .semibold))
+            HStack(spacing: 6) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(colors: [themeC1, themeC2],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                Text("Einstellungen")
+                    .font(.system(size: 14, weight: .semibold))
+            }
             Spacer()
-            // Balance spacer
             HStack(spacing: 4) {
                 Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                 Text("Zurück").font(.system(size: 13))
             }
             .opacity(0)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            LinearGradient(
+                colors: [themeC1.opacity(0.06), themeC2.opacity(0.03)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 
     private var settingsPanel: some View {
