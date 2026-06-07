@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Charts
 
 // MARK: - Time Filter enum
 
@@ -93,6 +94,7 @@ struct MenuBarContentView: View {
     // Shared settings
     @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled   = false
     @AppStorage("autoDeleteCompletedDays")    private var autoDeleteCompletedDays: Int = 30
+    @AppStorage("mac_dailyGoalMinutes")       private var dailyGoalMinutes: Int        = 60
 
     // Subtask expansion
     @State private var expandedTaskID: UUID? = nil
@@ -2090,14 +2092,55 @@ struct MenuBarContentView: View {
 
     // MARK: - Stats Tab
 
+    private func formatFocusDuration(_ seconds: Int) -> String {
+        guard seconds > 0 else { return "0 min" }
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        if h > 0 { return m > 0 ? "\(h)h \(m)m" : "\(h)h" }
+        return "\(m) min"
+    }
+
     private var statsTab: some View {
         VStack(spacing: 10) {
-            // Top row – themeC1 / themeC2 wie FokusStatistikView
+
+            // Fokus: Heute / Woche
+            HStack(spacing: 10) {
+                statCard(
+                    title: "Heute",
+                    value: formatFocusDuration(timerMgr.todayFocusSeconds),
+                    subtitle: timerMgr.isRunning && timerMgr.mode == .focus ? "aktiv" : "Fokuszeit",
+                    icon: "sun.max.fill",
+                    color: themeC1,
+                    isLive: timerMgr.isRunning && timerMgr.mode == .focus
+                )
+                statCard(
+                    title: "Diese Woche",
+                    value: formatFocusDuration(timerMgr.weekFocusSeconds),
+                    subtitle: "7 Tage",
+                    icon: "calendar",
+                    color: themeC2,
+                    isLive: false
+                )
+            }
+
+            // Streak + Tages-Ziel
+            HStack(spacing: 10) {
+                statsStreakCard
+                statsGoalCard
+            }
+
+            // 7-Tage-Chart
+            statsChartCard
+
+            // Wochenvergleich
+            statsWeekCompareCard
+
+            // Aufgaben
             HStack(spacing: 10) {
                 statCard(
                     title: "Sessions",
                     value: "\(timerMgr.sessionCount)",
-                    subtitle: "heute",
+                    subtitle: "gesamt",
                     icon: "timer",
                     color: themeC1,
                     isLive: timerMgr.isRunning
@@ -2111,8 +2154,6 @@ struct MenuBarContentView: View {
                     isLive: false
                 )
             }
-
-            // Bottom row
             HStack(spacing: 10) {
                 statCard(
                     title: "Offen",
@@ -2131,8 +2172,195 @@ struct MenuBarContentView: View {
                     isLive: false
                 )
             }
+
+            // All-Time
+            statsAllTimeCard
+
+            Spacer(minLength: 4)
         }
-        .padding(.horizontal, 14).padding(.vertical, 14)
+        .padding(.horizontal, 14).padding(.top, 12).padding(.bottom, 14)
+    }
+
+    // MARK: Streak card
+    private var statsStreakCard: some View {
+        let streak = timerMgr.currentStreak
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "flame.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(.orange)
+                Text("Streak").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text("\(streak)").font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(streak > 0 ? Color.orange : Color.secondary)
+                Text(streak == 1 ? "Tag" : "Tage")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.bottom, 2)
+            }
+            Text(streak == 0 ? "Fang heute an 🔥" : streak < 3 ? "Weiter so!" : streak < 7 ? "Guter Lauf!" : "Auf Feuer! 🔥")
+                .font(.caption).foregroundStyle(Color.orange.opacity(0.9))
+        }
+        .padding(14).frame(maxWidth: .infinity, alignment: .leading).themeGlass(cornerRadius: 16)
+    }
+
+    // MARK: Goal card
+    private var statsGoalCard: some View {
+        let goal = dailyGoalMinutes
+        let progress: Double = goal > 0 ? min(1.0, Double(timerMgr.todayFocusSeconds) / Double(goal * 60)) : 0
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "target").font(.system(size: 13, weight: .semibold)).foregroundStyle(.mint)
+                Text("Tagesziel").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                if progress >= 1.0 {
+                    Image(systemName: "checkmark.seal.fill").font(.system(size: 12)).foregroundStyle(.mint)
+                }
+            }
+            ZStack {
+                Circle().stroke(Color.mint.opacity(0.15), lineWidth: 7)
+                Circle().trim(from: 0, to: progress)
+                    .stroke(
+                        LinearGradient(colors: [.mint, themeC1], startPoint: .leading, endPoint: .trailing),
+                        style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.5), value: progress)
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+            }
+            .frame(width: 52, height: 52).frame(maxWidth: .infinity)
+            Text("\(goal) min Ziel").font(.caption).foregroundStyle(Color.mint.opacity(0.9))
+        }
+        .padding(14).frame(maxWidth: .infinity, alignment: .leading).themeGlass(cornerRadius: 16)
+    }
+
+    // MARK: 7-day chart
+    private var statsChartCard: some View {
+        let data = timerMgr.last7DaysData
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Letzte 7 Tage").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Text("in Minuten").font(.caption).foregroundStyle(.secondary)
+            }
+            Chart {
+                ForEach(data, id: \.date) { entry in
+                    let minutes = entry.seconds / 60
+                    let isToday = Calendar.current.isDateInToday(entry.date)
+                    BarMark(
+                        x: .value("Tag", entry.date, unit: .day),
+                        y: .value("Minuten", minutes)
+                    )
+                    .foregroundStyle(
+                        isToday
+                            ? LinearGradient(colors: [themeC1, themeC2], startPoint: .bottom, endPoint: .top)
+                            : LinearGradient(colors: [themeC1.opacity(0.35), themeC1.opacity(0.55)], startPoint: .bottom, endPoint: .top)
+                    )
+                    .cornerRadius(5)
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day)) { _ in
+                    AxisValueLabel(format: .dateTime.weekday(.narrow), centered: true)
+                        .foregroundStyle(Color.secondary)
+                }
+            }
+            .chartYAxis {
+                AxisMarks { _ in
+                    AxisValueLabel().foregroundStyle(Color.secondary)
+                    AxisGridLine().foregroundStyle(Color.primary.opacity(0.06))
+                }
+            }
+            .frame(height: 120)
+        }
+        .padding(16).themeGlass(cornerRadius: 16)
+    }
+
+    // MARK: Weekly comparison
+    private var statsWeekCompareCard: some View {
+        let thisWeek = timerMgr.weekFocusSeconds
+        let lastWeek = timerMgr.lastWeekFocusSeconds
+        let trendPositiv = thisWeek >= lastWeek
+        let trendColor: Color = trendPositiv ? .green : .red
+        let trendIcon = trendPositiv ? "arrow.up.right" : "arrow.down.right"
+        let trendText: String = {
+            guard lastWeek > 0 else { return thisWeek > 0 ? "+100%" : "0%" }
+            let pct = Int(Double(thisWeek - lastWeek) / Double(lastWeek) * 100)
+            return (pct >= 0 ? "+" : "") + "\(pct)%"
+        }()
+        let blueAccent = Color(red: 0.4, green: 0.6, blue: 1.0)
+        let maxSec = max(thisWeek, lastWeek, 1)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.doc.horizontal").font(.system(size: 13, weight: .semibold)).foregroundStyle(blueAccent)
+                Text("Wochenvergleich").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                HStack(spacing: 3) {
+                    Image(systemName: trendIcon).font(.system(size: 10, weight: .bold))
+                    Text(trendText).font(.caption.weight(.bold))
+                }
+                .foregroundStyle(lastWeek == 0 ? blueAccent : trendColor)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background((lastWeek == 0 ? blueAccent : trendColor).opacity(0.12), in: Capsule())
+            }
+
+            VStack(spacing: 6) {
+                weekBar(label: "Letzte Woche", seconds: lastWeek, maxSeconds: maxSec, color: blueAccent.opacity(0.45))
+                weekBar(label: "Diese Woche",  seconds: thisWeek, maxSeconds: maxSec, color: blueAccent)
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Letzte Woche").font(.caption2).foregroundStyle(.secondary)
+                    Text(formatFocusDuration(lastWeek)).font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text("Diese Woche").font(.caption2).foregroundStyle(.secondary)
+                    Text(formatFocusDuration(thisWeek)).font(.system(size: 13, weight: .bold, design: .rounded))
+                }
+            }
+        }
+        .padding(16).themeGlass(cornerRadius: 16)
+    }
+
+    private func weekBar(label: String, seconds: Int, maxSeconds: Int, color: Color) -> some View {
+        let ratio = maxSeconds > 0 ? CGFloat(seconds) / CGFloat(maxSeconds) : 0
+        return HStack(spacing: 8) {
+            Text(label).font(.caption2).foregroundStyle(.secondary).frame(width: 72, alignment: .leading)
+            GeometryReader { geo in
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(color)
+                    .frame(width: max(4, geo.size.width * ratio), height: 10)
+                    .animation(.easeOut(duration: 0.5), value: seconds)
+            }
+            .frame(height: 10)
+        }
+    }
+
+    // MARK: All-time card
+    private var statsAllTimeCard: some View {
+        VStack(spacing: 0) {
+            statsAllTimeRow(label: "Gesamt Fokuszeit", value: formatFocusDuration(timerMgr.allTimeFocusSeconds), icon: "infinity", color: themeC1)
+            Divider().opacity(0.15).padding(.horizontal, 14)
+            statsAllTimeRow(label: "Aktive Tage", value: "\(timerMgr.activeFocusDays)", icon: "calendar.badge.checkmark", color: themeC2)
+            Divider().opacity(0.15).padding(.horizontal, 14)
+            statsAllTimeRow(label: "Bester Tag", value: formatFocusDuration(timerMgr.bestDaySeconds), icon: "trophy.fill", color: themeC1)
+        }
+        .themeGlass(cornerRadius: 16)
+    }
+
+    private func statsAllTimeRow(label: String, value: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8).fill(color.opacity(0.15)).frame(width: 30, height: 30)
+                Image(systemName: icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(color)
+            }
+            Text(label).font(.system(size: 13)).foregroundStyle(.primary)
+            Spacer()
+            Text(value).font(.system(size: 13, weight: .semibold))
+        }
+        .padding(.horizontal, 14).padding(.vertical, 11)
     }
 
     private func statCard(title: String, value: String, subtitle: String, icon: String, color: Color, isLive: Bool) -> some View {
@@ -2150,14 +2378,14 @@ struct MenuBarContentView: View {
                 }
             }
             Text(value)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
                 .minimumScaleFactor(0.7)
             Text(subtitle)
                 .font(.caption)
                 .foregroundStyle(color.opacity(0.8))
         }
-        .padding(.horizontal, 14).padding(.vertical, 14)
+        .padding(.horizontal, 14).padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .themeGlass(cornerRadius: 16)
     }
