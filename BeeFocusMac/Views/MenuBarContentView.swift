@@ -79,35 +79,39 @@ struct MenuBarContentView: View {
     private var themeC2: Color { appThemaFarben(activeTheme).1 }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if showingAddForm {
-                inlineAddFormHeader
-                Divider().opacity(0.2)
-                ScrollView(.vertical, showsIndicators: false) { inlineAddForm }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if showingSettings {
-                settingsHeader
-                Divider().opacity(0.2)
-                ScrollView(.vertical, showsIndicators: false) { settingsPanel }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                header
-                Divider().opacity(0.2)
-                ScrollView(.vertical, showsIndicators: false) {
-                    switch activeTab {
-                    case .tasks:   tasksTab
-                    case .planner: plannerTab
-                    case .timer:   timerTab
-                    case .stats:   statsTab
+        ZStack {
+            ThemeBackgroundView()
+
+            VStack(spacing: 0) {
+                if showingAddForm {
+                    inlineAddFormHeader
+                    Divider().opacity(0.2)
+                    ScrollView(.vertical, showsIndicators: false) { inlineAddForm }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if showingSettings {
+                    settingsHeader
+                    Divider().opacity(0.2)
+                    ScrollView(.vertical, showsIndicators: false) { settingsPanel }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    header
+                    Divider().opacity(0.2)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        switch activeTab {
+                        case .tasks:   tasksTab
+                        case .planner: plannerTab
+                        case .timer:   timerTab
+                        case .stats:   statsTab
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Divider().opacity(0.2)
+                    bottomTabBar
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                Divider().opacity(0.2)
-                bottomTabBar
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ultraThinMaterial)
         .overlay(commandPaletteOverlay)
         .background(keyboardShortcutLayer)
         .onReceive(NotificationCenter.default.publisher(for: .beeFocusToggleTimer)) { _ in
