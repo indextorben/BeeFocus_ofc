@@ -612,36 +612,36 @@ struct MenuBarContentView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 15, weight: .medium))
                     .padding(.horizontal, 12).padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                    .themeGlass(cornerRadius: 10)
             }
+
             VStack(alignment: .leading, spacing: 6) {
                 formLabel("Priorität", icon: "flag.fill")
                 HStack(spacing: 8) {
                     ForEach(MacTodoPriority.allCases, id: \.self) { inlinePriorityChip($0) }
                 }
             }
+
             VStack(alignment: .leading, spacing: 6) {
                 formLabel("Fälligkeitsdatum", icon: "calendar")
                 VStack(spacing: 0) {
                     Toggle(isOn: $newHasDueDate.animation(.spring(response: 0.3))) {
                         Text("Datum festlegen").font(.system(size: 13, weight: .medium))
                     }
-                    .tint(accent)
+                    .tint(themeC1)
                     .padding(.horizontal, 12).padding(.vertical, 10)
                     if newHasDueDate {
-                        Divider().opacity(0.15).padding(.horizontal, 12)
+                        Divider().opacity(0.12).padding(.horizontal, 12)
                         DatePicker("", selection: $newDueDate, displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(.compact)
                             .labelsHidden()
-                            .tint(accent)
+                            .tint(themeC1)
                             .padding(.horizontal, 12).padding(.vertical, 8)
                     }
                 }
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .themeGlass(cornerRadius: 10)
             }
-            // Subtasks
+
             VStack(alignment: .leading, spacing: 6) {
                 formLabel("Teilaufgaben", icon: "checklist")
                 VStack(spacing: 0) {
@@ -649,9 +649,9 @@ struct MenuBarContentView: View {
                         HStack(spacing: 8) {
                             Button { withAnimation { sub.isCompleted.toggle() } } label: {
                                 ZStack {
-                                    Circle().stroke(sub.isCompleted ? Color.green : Color.secondary.opacity(0.4), lineWidth: 1.5).frame(width: 16, height: 16)
+                                    Circle().stroke(sub.isCompleted ? themeC1 : Color.secondary.opacity(0.4), lineWidth: 1.5).frame(width: 16, height: 16)
                                     if sub.isCompleted {
-                                        Circle().fill(Color.green).frame(width: 16, height: 16)
+                                        Circle().fill(themeC1).frame(width: 16, height: 16)
                                         Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)).foregroundStyle(.white)
                                     }
                                 }
@@ -665,21 +665,20 @@ struct MenuBarContentView: View {
                             }.buttonStyle(.plain)
                         }
                         .padding(.horizontal, 10).padding(.vertical, 7)
-                        if sub.id != newSubTasks.last?.id { Divider().opacity(0.1).padding(.leading, 10) }
+                        if sub.id != newSubTasks.last?.id { Divider().opacity(0.08).padding(.leading, 10) }
                     }
-                    if !newSubTasks.isEmpty { Divider().opacity(0.1) }
+                    if !newSubTasks.isEmpty { Divider().opacity(0.08) }
                     HStack(spacing: 8) {
-                        Image(systemName: "plus.circle").font(.system(size: 14)).foregroundStyle(accent)
+                        Image(systemName: "plus.circle").font(.system(size: 14)).foregroundStyle(themeC1)
                         TextField("Neue Teilaufgabe…", text: $newSubTaskInput, onCommit: addInlineSubTask)
                             .textFieldStyle(.plain).font(.system(size: 13))
                     }
                     .padding(.horizontal, 10).padding(.vertical, 8)
                 }
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                .themeGlass(cornerRadius: 10)
             }
 
-            // Button zum vollständigen Formular
+            // Alle Optionen Button
             Button {
                 dismissAddForm()
                 MacAddTodoWindow.open(todoStore: todoStore)
@@ -691,16 +690,15 @@ struct MenuBarContentView: View {
                     Spacer()
                     Image(systemName: "arrow.up.right").font(.system(size: 11))
                 }
-                .foregroundStyle(accent.opacity(0.8))
+                .foregroundStyle(themeC1.opacity(0.85))
                 .padding(.horizontal, 12).padding(.vertical, 9)
-                .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.2), lineWidth: 1))
+                .themeGlass(cornerRadius: 10)
             }
             .buttonStyle(.plain)
 
             Spacer(minLength: 8)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.top, 14)
         .padding(.bottom, 16)
     }
@@ -727,21 +725,21 @@ struct MenuBarContentView: View {
                         } else {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(smartInputText.isEmpty ? Color.secondary : accent)
+                                .foregroundStyle(smartInputText.isEmpty ? Color.secondary : themeC1)
                         }
                     }
                     .frame(width: 32, height: 32)
-                    .background(accent.opacity(smartInputText.isEmpty ? 0.06 : 0.14), in: Circle())
+                    .background(themeC1.opacity(smartInputText.isEmpty ? 0.06 : 0.14), in: Circle())
                 }
                 .buttonStyle(.plain)
                 .disabled(smartInputText.trimmingCharacters(in: .whitespaces).isEmpty || isParsing)
                 .help("Mit KI ausfüllen (Return)")
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+            .themeGlass(cornerRadius: 10)
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(aiDidFill ? accent.opacity(0.5) : Color.primary.opacity(0.08), lineWidth: aiDidFill ? 1.5 : 1)
+                    .strokeBorder(aiDidFill ? themeC1.opacity(0.5) : Color.clear, lineWidth: aiDidFill ? 1.5 : 0)
             )
 
             if let err = parseError {
@@ -750,16 +748,15 @@ struct MenuBarContentView: View {
             }
             if aiDidFill {
                 Label("Felder automatisch ausgefüllt", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 11)).foregroundStyle(accent)
+                    .font(.system(size: 11)).foregroundStyle(themeC1)
             }
 
-            // Kein Key konfiguriert
             if MacKeychain.load(for: aiProvider.keychainKey) == nil {
                 Button {
                     withAnimation { showingAddForm = false; showingSettings = true }
                 } label: {
                     Label("API-Key in Einstellungen hinterlegen →", systemImage: "key.fill")
-                        .font(.system(size: 11)).foregroundStyle(accent.opacity(0.8))
+                        .font(.system(size: 11)).foregroundStyle(themeC1.opacity(0.8))
                 }
                 .buttonStyle(.plain)
             }
@@ -819,7 +816,7 @@ struct MenuBarContentView: View {
     private func formLabel(_ text: String, icon: String) -> some View {
         Label(text, systemImage: icon)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(accent.opacity(0.85))
+            .foregroundStyle(themeC1.opacity(0.9))
             .textCase(.uppercase)
             .tracking(0.4)
     }
