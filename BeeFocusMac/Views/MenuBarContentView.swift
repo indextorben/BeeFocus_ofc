@@ -389,8 +389,7 @@ struct MenuBarContentView: View {
                 Divider().opacity(0.12).padding(.leading, 14)
                 timerSettingRow("Sessions bis Pause", value: $timerMgr.sessionsUntilLong, range: 1...10, unit: "")
             }
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+            .themeGlass(cornerRadius: 12)
 
             // Behaviour toggles
             settingsSectionLabel("Verhalten", icon: "slider.horizontal.3")
@@ -399,8 +398,7 @@ struct MenuBarContentView: View {
                 Divider().opacity(0.12).padding(.leading, 14)
                 settingsToggleRow("Sound & Benachrichtigungen", icon: "bell.fill", binding: $timerMgr.soundEnabled)
             }
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+            .themeGlass(cornerRadius: 12)
 
             // AI settings
             settingsSectionLabel("KI Quick Input", icon: "sparkles")
@@ -416,13 +414,18 @@ struct MenuBarContentView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(accent, in: RoundedRectangle(cornerRadius: 12))
+                    .background(
+                        LinearGradient(colors: [themeC1, themeC2],
+                                       startPoint: .leading, endPoint: .trailing),
+                        in: RoundedRectangle(cornerRadius: 12)
+                    )
+                    .shadow(color: themeC1.opacity(0.35), radius: 8, y: 3)
             }
             .buttonStyle(.plain)
 
             Spacer(minLength: 8)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.top, 14)
         .padding(.bottom, 16)
     }
@@ -465,7 +468,7 @@ struct MenuBarContentView: View {
             Spacer()
             Toggle("", isOn: binding)
                 .toggleStyle(.switch)
-                .tint(accent)
+                .tint(themeC1)
                 .labelsHidden()
         }
         .padding(.horizontal, 14)
@@ -530,7 +533,7 @@ struct MenuBarContentView: View {
                     } label: {
                         Text(aiKeySaved ? "✓" : "Speichern")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(aiKeySaved ? .green : accent)
+                            .foregroundStyle(aiKeySaved ? .green : themeC1)
                     }
                     .buttonStyle(.plain)
                     .disabled(aiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -545,14 +548,13 @@ struct MenuBarContentView: View {
                     .padding(.horizontal, 14).padding(.bottom, 10)
             }
         }
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+        .themeGlass(cornerRadius: 12)
     }
 
     private func settingsSectionLabel(_ text: String, icon: String) -> some View {
         Label(text, systemImage: icon)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(accent.opacity(0.85))
+            .foregroundStyle(themeC1.opacity(0.9))
             .textCase(.uppercase)
             .tracking(0.4)
     }
