@@ -7,63 +7,98 @@ struct HotkeyRecorderRow: View {
     let icon: String
     let accent: Color
     @Binding var config: HotkeyConfig
+    var conflictLabel: String? = nil
 
     @State private var isRecording = false
     @State private var eventMonitor: Any?
 
+    private var hasConflict: Bool { conflictLabel != nil }
+
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 13))
-                .foregroundStyle(accent)
-                .frame(width: 18)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(hasConflict ? Color.orange : accent)
+                    .frame(width: 18)
 
-            Text(label)
-                .font(.system(size: 13, weight: .medium))
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
 
-            Spacer()
+                Spacer()
 
-            // Clear button
-            if !config.isNone {
-                Button {
-                    stopRecording()
-                    config = .none
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
+                // Clear button
+                if !config.isNone {
+                    Button {
+                        stopRecording()
+                        config = .none
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.secondary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-            }
 
-            // Recorder pill
-            Button {
-                if isRecording { stopRecording() } else { startRecording() }
-            } label: {
-                Text(isRecording ? "Taste drücken…" : (config.isNone ? "Kein Shortcut" : config.displayString))
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(isRecording ? .white : (config.isNone ? Color.secondary : Color.primary))
+                // Recorder pill
+                Button {
+                    if isRecording { stopRecording() } else { startRecording() }
+                } label: {
+                    HStack(spacing: 5) {
+                        if hasConflict && !isRecording {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.orange)
+                        }
+                        Text(isRecording ? "Taste drücken…" : (config.isNone ? "Kein Shortcut" : config.displayString))
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(
+                                isRecording ? .white
+                                : hasConflict ? Color.orange
+                                : config.isNone ? Color.secondary
+                                : Color.primary
+                            )
+                    }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(
                         isRecording
                             ? AnyShapeStyle(accent)
-                            : AnyShapeStyle(Color.primary.opacity(0.07)),
+                            : hasConflict
+                                ? AnyShapeStyle(Color.orange.opacity(0.12))
+                                : AnyShapeStyle(Color.primary.opacity(0.07)),
                         in: RoundedRectangle(cornerRadius: 7)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 7)
                             .strokeBorder(
-                                isRecording ? accent : Color.primary.opacity(0.13),
+                                isRecording ? accent
+                                : hasConflict ? Color.orange.opacity(0.6)
+                                : Color.primary.opacity(0.13),
                                 lineWidth: 1
                             )
                     )
                     .animation(.easeInOut(duration: 0.15), value: isRecording)
+                    .animation(.easeInOut(duration: 0.2), value: hasConflict)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, hasConflict ? 4 : 10)
+
+            if let conflict = conflictLabel {
+                HStack(spacing: 4) {
+                    Text("Bereits vergeben für \"\(conflict)\"")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.orange)
+                }
+                .padding(.leading, 46)
+                .padding(.bottom, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .animation(.easeInOut(duration: 0.2), value: hasConflict)
         .onDisappear { stopRecording() }
     }
 
@@ -71,7 +106,6 @@ struct HotkeyRecorderRow: View {
 
     private func startRecording() {
         isRecording = true
-        // Local monitor — fires for key events while panel is key window
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == UInt16(kVK_Escape) {
                 stopRecording()
@@ -79,7 +113,6 @@ struct HotkeyRecorderRow: View {
             }
             let mods = HotkeyConfig.carbonModifiers(from: event.modifierFlags)
             guard mods != 0 else {
-                // No modifier held — ignore plain keys
                 stopRecording()
                 return event
             }

@@ -97,6 +97,11 @@ struct HotkeyConfig: Codable, Equatable {
         if flags.contains(.shift)   { mods |= UInt32(shiftKey) }
         return mods
     }
+
+    func conflictsWith(_ other: HotkeyConfig) -> Bool {
+        guard !isNone && !other.isNone else { return false }
+        return keyCode == other.keyCode && modifiers == other.modifiers
+    }
 }
 
 // MARK: - GlobalHotkeyManager
