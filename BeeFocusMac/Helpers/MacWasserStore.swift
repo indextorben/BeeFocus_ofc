@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct MacWasserEintrag: Identifiable, Codable {
     var id: UUID = UUID()

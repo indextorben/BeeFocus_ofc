@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 enum MacBrainDumpTag: String, CaseIterable, Codable {
     case idee    = "idee"
