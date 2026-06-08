@@ -25,6 +25,7 @@ struct HotkeyRecorderRow: View {
 
                 Text(label)
                     .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
 
                 Spacer()
 
@@ -81,6 +82,7 @@ struct HotkeyRecorderRow: View {
                     )
                     .animation(.easeInOut(duration: 0.15), value: isRecording)
                     .animation(.easeInOut(duration: 0.2), value: hasConflict)
+                    .fixedSize()
                 }
                 .buttonStyle(.plain)
             }
