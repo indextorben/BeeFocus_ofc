@@ -25,6 +25,7 @@ final class MacCloudSettingsSync {
         "mac_soundEnabled",
         "mac_autoStartBreaks",
         "mac_notifyOnComplete",
+        "wasserTagesziel",
     ]
 
     // Punkte-Schlüssel: höchster Wert gewinnt
