@@ -72,9 +72,16 @@ struct SchlafTrackerView: View {
                     .foregroundStyle(.white.opacity(0.45))
             }
             Spacer()
-            Image(systemName: "heart.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color(red: 1.0, green: 0.25, blue: 0.4))
+            HStack(spacing: 5) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 12))
+                Text("Apple Health")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(Color(red: 1.0, green: 0.25, blue: 0.4))
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Color(red: 1.0, green: 0.25, blue: 0.4).opacity(0.12), in: Capsule())
+            .overlay(Capsule().stroke(Color(red: 1.0, green: 0.25, blue: 0.4).opacity(0.3), lineWidth: 1))
         }
     }
 
@@ -169,12 +176,12 @@ struct SchlafTrackerView: View {
             .buttonStyle(.plain)
 
             HStack(spacing: 6) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.3))
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color(red: 1.0, green: 0.25, blue: 0.4).opacity(0.7))
                 Text(localizer.localizedString(forKey: "sleep_health_note"))
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(.white.opacity(0.55))
             }
         }
         .padding(20)
