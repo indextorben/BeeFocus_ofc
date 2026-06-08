@@ -1884,13 +1884,13 @@ struct MenuBarContentView: View {
             }
             .background(isMultiSel ? accent.opacity(0.10) : (isSelected ? accent.opacity(0.06) : Color.clear))
             .contentShape(Rectangle())
-            .onTapGesture {
+            .simultaneousGesture(TapGesture().onEnded {
                 if isSelecting {
                     if isMultiSel { selectedTaskIDs.remove(todo.id) } else { selectedTaskIDs.insert(todo.id) }
                 } else {
                     selectedTaskID = todo.id
                 }
-            }
+            })
             .contextMenu {
                 if !todo.isCompleted {
                     Button {
