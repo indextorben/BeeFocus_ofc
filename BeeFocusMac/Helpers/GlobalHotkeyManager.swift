@@ -17,7 +17,7 @@ struct HotkeyConfig: Codable, Equatable {
 
     static let none = HotkeyConfig(keyCode: -1, modifiers: 0, enabled: false)
 
-    var isNone: Bool { keyCode < 0 || (!enabled) }
+    var isNone: Bool { keyCode < 0 || !enabled }
 
     var displayString: String {
         guard !isNone else { return "–" }
@@ -28,6 +28,11 @@ struct HotkeyConfig: Codable, Equatable {
         if modifiers & UInt32(cmdKey)     != 0 { s += "⌘" }
         s += Self.keyCodeToString(keyCode)
         return s
+    }
+
+    func conflictsWith(_ other: HotkeyConfig) -> Bool {
+        guard !isNone && !other.isNone else { return false }
+        return keyCode == other.keyCode && modifiers == other.modifiers
     }
 
     static func keyCodeToString(_ code: Int) -> String {
@@ -97,11 +102,6 @@ struct HotkeyConfig: Codable, Equatable {
         if flags.contains(.shift)   { mods |= UInt32(shiftKey) }
         return mods
     }
-
-    func conflictsWith(_ other: HotkeyConfig) -> Bool {
-        guard !isNone && !other.isNone else { return false }
-        return keyCode == other.keyCode && modifiers == other.modifiers
-    }
 }
 
 // MARK: - GlobalHotkeyManager
@@ -109,28 +109,54 @@ struct HotkeyConfig: Codable, Equatable {
 final class GlobalHotkeyManager: ObservableObject {
     static let shared = GlobalHotkeyManager()
 
-    // ID 1 = timer toggle, ID 2 = new task, ID 3 = toggle panel
-    @Published var panelHotkey: HotkeyConfig {
-        didSet { save(panelHotkey, key: "mac_hotkey_panel");   reregister(id: 3, config: panelHotkey) }
-    }
-    @Published var timerHotkey: HotkeyConfig {
-        didSet { save(timerHotkey, key: "mac_hotkey_timer");   reregister(id: 1, config: timerHotkey) }
-    }
-    @Published var newTaskHotkey: HotkeyConfig {
-        didSet { save(newTaskHotkey, key: "mac_hotkey_newtask"); reregister(id: 2, config: newTaskHotkey) }
-    }
+    // Use Published directly — updated only through updateHotkey()
+    @Published private(set) var panelHotkey:   HotkeyConfig
+    @Published private(set) var timerHotkey:   HotkeyConfig
+    @Published private(set) var newTaskHotkey: HotkeyConfig
 
+    // ID 1 = timer, ID 2 = new task, ID 3 = panel
     private var refs: [UInt32: EventHotKeyRef] = [:]
     private var carbonHandler: EventHandlerRef?
+    private var cancellables = Set<AnyCancellable>()
 
     private init() {
-        panelHotkey   = Self.load("mac_hotkey_panel")   ?? HotkeyConfig(keyCode: Int(kVK_ANSI_B), modifiers: UInt32(cmdKey | optionKey))
-        timerHotkey   = Self.load("mac_hotkey_timer")   ?? HotkeyConfig(keyCode: Int(kVK_ANSI_T), modifiers: UInt32(cmdKey | optionKey))
-        newTaskHotkey = Self.load("mac_hotkey_newtask") ?? HotkeyConfig(keyCode: Int(kVK_ANSI_N), modifiers: UInt32(cmdKey | optionKey))
+        // Load persisted configs — bypass didSet by using _name = Published(wrappedValue:)
+        let panel   = Self.load("mac_hotkey_panel")   ?? HotkeyConfig(keyCode: Int(kVK_ANSI_B), modifiers: UInt32(cmdKey | optionKey))
+        let timer   = Self.load("mac_hotkey_timer")   ?? HotkeyConfig(keyCode: Int(kVK_ANSI_T), modifiers: UInt32(cmdKey | optionKey))
+        let newTask = Self.load("mac_hotkey_newtask") ?? HotkeyConfig(keyCode: Int(kVK_ANSI_N), modifiers: UInt32(cmdKey | optionKey))
 
+        _panelHotkey   = Published(wrappedValue: panel)
+        _timerHotkey   = Published(wrappedValue: timer)
+        _newTaskHotkey = Published(wrappedValue: newTask)
+
+        // Install Carbon handler FIRST, then register hotkeys
         installCarbonHandler()
-        registerAll()
+        register(id: 1, config: timer)
+        register(id: 2, config: newTask)
+        register(id: 3, config: panel)
     }
+
+    // MARK: - Public API (called from HotkeyRecorderRow via Binding)
+
+    func updatePanel(_ config: HotkeyConfig) {
+        panelHotkey = config
+        save(config, key: "mac_hotkey_panel")
+        reregister(id: 3, config: config)
+    }
+
+    func updateTimer(_ config: HotkeyConfig) {
+        timerHotkey = config
+        save(config, key: "mac_hotkey_timer")
+        reregister(id: 1, config: config)
+    }
+
+    func updateNewTask(_ config: HotkeyConfig) {
+        newTaskHotkey = config
+        save(config, key: "mac_hotkey_newtask")
+        reregister(id: 2, config: config)
+    }
+
+    // MARK: - Carbon
 
     private func installCarbonHandler() {
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
@@ -140,9 +166,10 @@ final class GlobalHotkeyManager: ObservableObject {
             { _, event, userData -> OSStatus in
                 guard let event, let userData else { return noErr }
                 var hkID = EventHotKeyID()
-                GetEventParameter(event, EventParamName(kEventParamDirectObject),
-                                  EventParamType(typeEventHotKeyID), nil,
-                                  MemoryLayout<EventHotKeyID>.size, nil, &hkID)
+                GetEventParameter(event,
+                                  EventParamName(kEventParamDirectObject),
+                                  EventParamType(typeEventHotKeyID),
+                                  nil, MemoryLayout<EventHotKeyID>.size, nil, &hkID)
                 let mgr = Unmanaged<GlobalHotkeyManager>.fromOpaque(userData).takeUnretainedValue()
                 DispatchQueue.main.async { mgr.fire(id: hkID.id) }
                 return noErr
@@ -151,14 +178,8 @@ final class GlobalHotkeyManager: ObservableObject {
         )
     }
 
-    private func registerAll() {
-        register(id: 1, config: timerHotkey)
-        register(id: 2, config: newTaskHotkey)
-        register(id: 3, config: panelHotkey)
-    }
-
     private func register(id: UInt32, config: HotkeyConfig) {
-        guard config.enabled && !config.isNone else { return }
+        guard !config.isNone else { return }
         var hkID = EventHotKeyID()
         hkID.signature = fourCharCode("BeFo")
         hkID.id = id

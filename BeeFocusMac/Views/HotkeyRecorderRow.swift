@@ -6,8 +6,9 @@ struct HotkeyRecorderRow: View {
     let label: String
     let icon: String
     let accent: Color
-    @Binding var config: HotkeyConfig
-    var conflictLabel: String? = nil
+    let config: HotkeyConfig
+    let conflictLabel: String?
+    let onUpdate: (HotkeyConfig) -> Void
 
     @State private var isRecording = false
     @State private var eventMonitor: Any?
@@ -27,11 +28,10 @@ struct HotkeyRecorderRow: View {
 
                 Spacer()
 
-                // Clear button
                 if !config.isNone {
                     Button {
                         stopRecording()
-                        config = .none
+                        onUpdate(.none)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
@@ -40,7 +40,6 @@ struct HotkeyRecorderRow: View {
                     .buttonStyle(.plain)
                 }
 
-                // Recorder pill
                 Button {
                     if isRecording { stopRecording() } else { startRecording() }
                 } label: {
@@ -50,7 +49,9 @@ struct HotkeyRecorderRow: View {
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.orange)
                         }
-                        Text(isRecording ? "Taste drücken…" : (config.isNone ? "Kein Shortcut" : config.displayString))
+                        Text(isRecording ? "Taste drücken…"
+                             : config.isNone ? "Kein Shortcut"
+                             : config.displayString)
                             .font(.system(size: 12, weight: .semibold, design: .monospaced))
                             .foregroundStyle(
                                 isRecording ? .white
@@ -88,21 +89,17 @@ struct HotkeyRecorderRow: View {
             .padding(.bottom, hasConflict ? 4 : 10)
 
             if let conflict = conflictLabel {
-                HStack(spacing: 4) {
-                    Text("Bereits vergeben für \"\(conflict)\"")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Color.orange)
-                }
-                .padding(.leading, 46)
-                .padding(.bottom, 8)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                Text("Bereits vergeben für \"\(conflict)\"")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Color.orange)
+                    .padding(.leading, 46)
+                    .padding(.bottom, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: hasConflict)
         .onDisappear { stopRecording() }
     }
-
-    // MARK: - Recording
 
     private func startRecording() {
         isRecording = true
@@ -112,11 +109,8 @@ struct HotkeyRecorderRow: View {
                 return nil
             }
             let mods = HotkeyConfig.carbonModifiers(from: event.modifierFlags)
-            guard mods != 0 else {
-                stopRecording()
-                return event
-            }
-            config = HotkeyConfig(keyCode: Int(event.keyCode), modifiers: mods)
+            guard mods != 0 else { stopRecording(); return event }
+            onUpdate(HotkeyConfig(keyCode: Int(event.keyCode), modifiers: mods))
             stopRecording()
             return nil
         }

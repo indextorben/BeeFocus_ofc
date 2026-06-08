@@ -649,33 +649,36 @@ struct MenuBarContentView: View {
                     label: "App öffnen / schließen",
                     icon: "menubar.rectangle",
                     accent: themeC1,
-                    config: $hotkeyMgr.panelHotkey,
+                    config: hotkeyMgr.panelHotkey,
                     conflictLabel: hotkeyConflict(for: hotkeyMgr.panelHotkey, others: [
                         ("Timer starten / pausieren", hotkeyMgr.timerHotkey),
                         ("Neue Aufgabe",              hotkeyMgr.newTaskHotkey)
-                    ])
+                    ]),
+                    onUpdate: { hotkeyMgr.updatePanel($0) }
                 )
                 Divider().opacity(0.12).padding(.leading, 14)
                 HotkeyRecorderRow(
                     label: "Timer starten / pausieren",
                     icon: "timer",
                     accent: themeC1,
-                    config: $hotkeyMgr.timerHotkey,
+                    config: hotkeyMgr.timerHotkey,
                     conflictLabel: hotkeyConflict(for: hotkeyMgr.timerHotkey, others: [
                         ("App öffnen / schließen", hotkeyMgr.panelHotkey),
                         ("Neue Aufgabe",            hotkeyMgr.newTaskHotkey)
-                    ])
+                    ]),
+                    onUpdate: { hotkeyMgr.updateTimer($0) }
                 )
                 Divider().opacity(0.12).padding(.leading, 14)
                 HotkeyRecorderRow(
                     label: "Neue Aufgabe",
                     icon: "plus.circle",
                     accent: themeC1,
-                    config: $hotkeyMgr.newTaskHotkey,
+                    config: hotkeyMgr.newTaskHotkey,
                     conflictLabel: hotkeyConflict(for: hotkeyMgr.newTaskHotkey, others: [
                         ("App öffnen / schließen",    hotkeyMgr.panelHotkey),
                         ("Timer starten / pausieren", hotkeyMgr.timerHotkey)
-                    ])
+                    ]),
+                    onUpdate: { hotkeyMgr.updateNewTask($0) }
                 )
             }
             .themeGlass(cornerRadius: 12)
