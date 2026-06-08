@@ -39,6 +39,9 @@ struct MacMainWindowView: View {
             MacStatistikView()
                 .environmentObject(todoStore)
                 .environmentObject(timerMgr)
+        case 4:
+            MacBrainDumpView()
+                .environmentObject(todoStore)
         default:
             MacSettingsView()
                 .environmentObject(timerMgr)
@@ -59,7 +62,8 @@ struct MacMainWindowView: View {
         .init(icon: "calendar.day.timeline.left",  label: "Tag",        tag: 1),
         .init(icon: "timer",                       label: "Timer",      tag: 2),
         .init(icon: "chart.bar.fill",              label: "Statistik",  tag: 3),
-        .init(icon: "gearshape.fill",              label: "Mehr",       tag: 4),
+        .init(icon: "brain",                       label: "Brain",      tag: 4),
+        .init(icon: "gearshape.fill",              label: "Mehr",       tag: 5),
     ]
 
     private var bottomTabBar: some View {

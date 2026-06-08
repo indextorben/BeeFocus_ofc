@@ -41,7 +41,7 @@ private enum MacTodoTimeFilter: CaseIterable {
 // MARK: - Tab enum
 
 private enum MenuBarTab: CaseIterable {
-    case tasks, planner, timer, stats
+    case tasks, planner, timer, stats, brain, wasser
 
     var icon: String {
         switch self {
@@ -49,6 +49,8 @@ private enum MenuBarTab: CaseIterable {
         case .planner: return "calendar.day.timeline.left"
         case .timer:   return "timer"
         case .stats:   return "chart.bar.fill"
+        case .brain:   return "brain"
+        case .wasser:  return "drop.fill"
         }
     }
 
@@ -58,6 +60,8 @@ private enum MenuBarTab: CaseIterable {
         case .planner: return "Tag"
         case .timer:   return "Timer"
         case .stats:   return "Statistik"
+        case .brain:   return "Brain"
+        case .wasser:  return "Wasser"
         }
     }
 }
@@ -177,6 +181,8 @@ struct MenuBarContentView: View {
                         case .planner: plannerTab
                         case .timer:   timerTab
                         case .stats:   statsTab
+                        case .brain:   MacBrainDumpView().environmentObject(todoStore)
+                        case .wasser:  MacWasserTrackerView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
