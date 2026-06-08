@@ -36,6 +36,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         setupPanel()
+
+        NotificationCenter.default.addObserver(
+            forName: .beeFocusTogglePanel,
+            object: nil, queue: .main
+        ) { [weak self] _ in self?.togglePanel() }
     }
 
     // MARK: Status Item

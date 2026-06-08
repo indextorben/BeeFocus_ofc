@@ -134,6 +134,9 @@ struct MenuBarContentView: View {
     // Command palette
     @State private var showingCommandPalette = false
 
+    // Hotkeys
+    @ObservedObject private var hotkeyMgr = GlobalHotkeyManager.shared
+
     // Task list keyboard navigation
     @State private var selectedTaskID: UUID? = nil
 
@@ -636,6 +639,32 @@ struct MenuBarContentView: View {
                     .padding(.horizontal, 14).padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
+            }
+            .themeGlass(cornerRadius: 12)
+
+            // Shortcuts
+            settingsSectionLabel("Tastaturkürzel", icon: "keyboard")
+            VStack(spacing: 0) {
+                HotkeyRecorderRow(
+                    label: "App öffnen / schließen",
+                    icon: "menubar.rectangle",
+                    accent: themeC1,
+                    config: $hotkeyMgr.panelHotkey
+                )
+                Divider().opacity(0.12).padding(.leading, 14)
+                HotkeyRecorderRow(
+                    label: "Timer starten / pausieren",
+                    icon: "timer",
+                    accent: themeC1,
+                    config: $hotkeyMgr.timerHotkey
+                )
+                Divider().opacity(0.12).padding(.leading, 14)
+                HotkeyRecorderRow(
+                    label: "Neue Aufgabe",
+                    icon: "plus.circle",
+                    accent: themeC1,
+                    config: $hotkeyMgr.newTaskHotkey
+                )
             }
             .themeGlass(cornerRadius: 12)
 
