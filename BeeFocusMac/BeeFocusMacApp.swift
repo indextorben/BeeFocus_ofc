@@ -131,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 .environmentObject(todoStore)
                 .environmentObject(timerMgr)
         )
-        let hv = NSHostingView(rootView: content)
+        let hv = FirstMouseHostingView(rootView: content)
         hv.translatesAutoresizingMaskIntoConstraints = true
         panel.contentView = hv
     }
@@ -141,6 +141,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         hidePanel()
     }
+}
+
+// NSHostingView subclass that accepts the first mouse click directly,
+// so buttons in the non-activating panel respond without a "focus" click first.
+private final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 // MARK: - Menu Bar Label
