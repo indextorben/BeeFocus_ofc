@@ -61,8 +61,8 @@ struct MacTagesplanerView: View {
             now = Date()
         }
         .sheet(isPresented: $showQuickAdd) {
-            MacTagesplanQuickAddSheet(selectedDate: selectedDate, themeC1: themeC1, themeC2: themeC2) { title, time in
-                let item = MacTodoItem(title: title, dueDate: time)
+            MacTagesplanQuickAddSheet(selectedDate: selectedDate, themeC1: themeC1, themeC2: themeC2) { title, time, end in
+                let item = MacTodoItem(title: title, dueDate: time, endTime: end)
                 todoStore.addTodo(item)
             }
         }
@@ -335,7 +335,9 @@ struct MacTagesplanerView: View {
     private func taskRow(todo: MacTodoItem, showTime: Bool) -> some View {
         let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
         let isActive = isToday && !todo.isCompleted
-            && todo.dueDate.map { now >= $0 && now < $0.addingTimeInterval(3600) } ?? false
+            && todo.dueDate.map { start in
+                now >= start && now < (todo.endTime ?? start.addingTimeInterval(3600))
+            } ?? false
         let borderColor: Color = todo.isCompleted ? .green.opacity(0.35)
                                : isActive         ? themeC1.opacity(0.6)
                                :                    themeC1.opacity(0.28)
@@ -347,9 +349,16 @@ struct MacTagesplanerView: View {
             // Zeit-Spalte
             Group {
                 if showTime, let due = todo.dueDate {
-                    Text(shortTime(due))
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(todo.isCompleted ? .secondary : themeC1)
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(shortTime(due))
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        if let end = todo.endTime {
+                            Text(shortTime(end))
+                                .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                .opacity(0.65)
+                        }
+                    }
+                    .foregroundStyle(todo.isCompleted ? .secondary : themeC1)
                 } else {
                     Color.clear
                 }
@@ -575,19 +584,23 @@ struct MacTagesplanQuickAddSheet: View {
     let selectedDate: Date
     let themeC1: Color
     let themeC2: Color
-    let onAdd: (String, Date?) -> Void
+    let onAdd: (String, Date?, Date?) -> Void
 
     @State private var title = ""
     @State private var hasTime = false
+    @State private var hasEndTime = false
     @State private var time: Date
+    @State private var endTime: Date
 
-    init(selectedDate: Date, themeC1: Color, themeC2: Color, onAdd: @escaping (String, Date?) -> Void) {
+    init(selectedDate: Date, themeC1: Color, themeC2: Color, onAdd: @escaping (String, Date?, Date?) -> Void) {
         self.selectedDate = selectedDate
         self.themeC1 = themeC1
         self.themeC2 = themeC2
         self.onAdd = onAdd
         let cal = Calendar.current
-        _time = State(initialValue: cal.date(bySettingHour: 9, minute: 0, second: 0, of: selectedDate) ?? selectedDate)
+        let start = cal.date(bySettingHour: 9, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+        _time    = State(initialValue: start)
+        _endTime = State(initialValue: cal.date(byAdding: .hour, value: 1, to: start) ?? start)
     }
 
     var body: some View {
@@ -597,9 +610,13 @@ struct MacTagesplanQuickAddSheet: View {
                     TextField("Titel", text: $title)
                 }
                 Section {
-                    Toggle("Uhrzeit festlegen", isOn: $hasTime)
+                    Toggle("Uhrzeit festlegen", isOn: $hasTime.animation())
                     if hasTime {
-                        DatePicker("Uhrzeit", selection: $time, displayedComponents: [.hourAndMinute])
+                        DatePicker("Beginn", selection: $time, displayedComponents: [.hourAndMinute])
+                        Toggle("Endzeit festlegen", isOn: $hasEndTime.animation())
+                        if hasEndTime {
+                            DatePicker("Ende", selection: $endTime, displayedComponents: [.hourAndMinute])
+                        }
                     }
                 }
             }
@@ -612,13 +629,14 @@ struct MacTagesplanQuickAddSheet: View {
                     Button("Hinzufügen") {
                         guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
                         let finalTime: Date? = hasTime ? time : nil
-                        onAdd(title, finalTime)
+                        let finalEnd: Date? = (hasTime && hasEndTime) ? endTime : nil
+                        onAdd(title, finalTime, finalEnd)
                         dismiss()
                     }
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
-        .frame(width: 360, height: 280)
+        .frame(width: 360, height: 320)
     }
 }

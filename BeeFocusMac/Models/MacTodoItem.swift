@@ -98,6 +98,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
     // Extended fields
     var customFolder: String?
     var subTasks: [MacSubTask]
+    var endTime: Date?
     var reminderOffsetMinutes: Int?          // nil = no reminder, 0 = at due time, >0 = minutes before
     var recurrenceEnabled: Bool
     var recurrenceRule: MacRecurrenceRule
@@ -114,6 +115,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         isFavorite: Bool = false,
         customFolder: String? = nil,
         subTasks: [MacSubTask] = [],
+        endTime: Date? = nil,
         reminderOffsetMinutes: Int? = nil,
         recurrenceEnabled: Bool = false,
         recurrenceRule: MacRecurrenceRule = .none
@@ -129,6 +131,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.isFavorite            = isFavorite
         self.customFolder          = customFolder
         self.subTasks              = subTasks
+        self.endTime               = endTime
         self.reminderOffsetMinutes = reminderOffsetMinutes
         self.recurrenceEnabled     = recurrenceEnabled
         self.recurrenceRule        = recurrenceRule
@@ -153,6 +156,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.isFavorite   = record["isFavorite"] as? Bool ?? false
         self.customFolder = record["customFolder"] as? String
         self.priority     = MacTodoPriority(rawValue: record["priority"] as? String ?? "medium") ?? .medium
+        self.endTime               = record["endTime"] as? Date
         self.reminderOffsetMinutes = record["reminderOffsetMinutes"] as? Int
         self.recurrenceEnabled     = record["recurrenceEnabled"] as? Bool ?? false
 
@@ -190,6 +194,7 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         record["recurrenceEnabled"] = recurrenceEnabled as CKRecordValue
         if let folder = customFolder { record["customFolder"] = folder as CKRecordValue }
         if let due = dueDate { record["dueDate"] = due as CKRecordValue }
+        if let end = endTime { record["endTime"] = end as CKRecordValue }
         if let rem = reminderOffsetMinutes { record["reminderOffsetMinutes"] = rem as CKRecordValue }
         if let data = try? JSONEncoder().encode(subTasks) {
             record["subTasks"] = data as CKRecordValue

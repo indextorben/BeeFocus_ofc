@@ -98,6 +98,8 @@ struct MacTodoEditorView: View {
     // Extended
     @State private var subTasks: [MacSubTask]
     @State private var newSubTaskTitle: String = ""
+    @State private var hasEndTime: Bool
+    @State private var endTime: Date
     @State private var reminderOffset: Int?
     @State private var recurrenceEnabled: Bool
     @State private var recurrenceRule: MacRecurrenceRule
@@ -118,6 +120,8 @@ struct MacTodoEditorView: View {
         _dueDate           = State(initialValue: base)
         _isFavorite        = State(initialValue: todo?.isFavorite ?? false)
         _subTasks          = State(initialValue: todo?.subTasks ?? [])
+        _hasEndTime        = State(initialValue: todo?.endTime != nil)
+        _endTime           = State(initialValue: todo?.endTime ?? Calendar.current.date(byAdding: .hour, value: 1, to: base) ?? base)
         _reminderOffset    = State(initialValue: todo?.reminderOffsetMinutes)
         _recurrenceEnabled = State(initialValue: todo?.recurrenceEnabled ?? false)
         _recurrenceRule    = State(initialValue: todo?.recurrenceRule ?? .none)
@@ -273,9 +277,39 @@ struct MacTodoEditorView: View {
                         .datePickerStyle(.graphical).tint(themeC1)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                     Divider().opacity(0.15).padding(.horizontal, 14)
-                    DatePicker("Uhrzeit", selection: $dueDate, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.compact).labelsHidden().tint(themeC1)
+                    HStack {
+                        Text("Beginn")
+                            .font(.system(size: 15, weight: .medium))
+                        Spacer()
+                        DatePicker("Beginn", selection: $dueDate, displayedComponents: .hourAndMinute)
+                            .datePickerStyle(.compact).labelsHidden().tint(themeC1)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+
+                    Divider().opacity(0.15).padding(.horizontal, 14)
+                    Toggle(isOn: $hasEndTime.animation(.spring(response: 0.35))) {
+                        Label("Endzeit festlegen", systemImage: "timer")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .tint(themeC1)
+                    .padding(.horizontal, 14).padding(.vertical, 13)
+
+                    if hasEndTime {
+                        Divider().opacity(0.15).padding(.horizontal, 14)
+                        HStack {
+                            Text("Ende")
+                                .font(.system(size: 15, weight: .medium))
+                            Spacer()
+                            DatePicker("Ende", selection: $endTime, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(.compact).labelsHidden().tint(themeC1)
+                                .onChange(of: dueDate) { newStart in
+                                    if endTime <= newStart {
+                                        endTime = Calendar.current.date(byAdding: .hour, value: 1, to: newStart) ?? newStart
+                                    }
+                                }
+                        }
                         .padding(.horizontal, 14).padding(.vertical, 12)
+                    }
                 }
             }
             .themeGlass(cornerRadius: 16)
@@ -590,6 +624,7 @@ struct MacTodoEditorView: View {
         if hasDueDate != (t?.dueDate != nil || prefilledDate != nil) { return true }
         if isFavorite != (t?.isFavorite ?? false) { return true }
         if subTasks   != (t?.subTasks ?? [])     { return true }
+        if hasEndTime != (t?.endTime != nil)     { return true }
         if reminderOffset != t?.reminderOffsetMinutes { return true }
         if recurrenceEnabled != (t?.recurrenceEnabled ?? false) { return true }
         return false
@@ -605,6 +640,7 @@ struct MacTodoEditorView: View {
             updated.description           = bodyText
             updated.priority              = priority
             updated.dueDate               = hasDueDate ? dueDate : nil
+            updated.endTime               = (hasDueDate && hasEndTime) ? endTime : nil
             updated.isFavorite            = isFavorite
             updated.updatedAt             = Date()
             updated.subTasks              = subTasks
@@ -620,6 +656,7 @@ struct MacTodoEditorView: View {
                 priority:              priority,
                 isFavorite:            isFavorite,
                 subTasks:              subTasks,
+                endTime:               (hasDueDate && hasEndTime) ? endTime : nil,
                 reminderOffsetMinutes: reminderOffset,
                 recurrenceEnabled:     recurrenceEnabled,
                 recurrenceRule:        recurrenceEnabled ? recurrenceRule : .none
