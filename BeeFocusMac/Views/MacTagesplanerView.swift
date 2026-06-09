@@ -57,7 +57,7 @@ struct MacTagesplanerView: View {
                 }
             }
         }
-        .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
             now = Date()
         }
         .sheet(isPresented: $showQuickAdd) {
@@ -334,10 +334,9 @@ struct MacTagesplanerView: View {
 
     private func taskRow(todo: MacTodoItem, showTime: Bool) -> some View {
         let lineColor = isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
-        let isActive = isToday && !todo.isCompleted
-            && todo.dueDate.map { start in
-                now >= start && now < (todo.endTime ?? start.addingTimeInterval(3600))
-            } ?? false
+        let endDate   = todo.endTime ?? (todo.dueDate?.addingTimeInterval(3600))
+        let isActive  = isToday && !todo.isCompleted
+            && todo.dueDate.map { start in now >= start && now < (endDate ?? .distantFuture) } ?? false
         let borderColor: Color = todo.isCompleted ? .green.opacity(0.35)
                                : isActive         ? themeC1.opacity(0.6)
                                :                    themeC1.opacity(0.28)
@@ -346,19 +345,12 @@ struct MacTagesplanerView: View {
                            :                   themeC1.opacity(isDark ? 0.12 : 0.07)
 
         return HStack(alignment: .top, spacing: 0) {
-            // Zeit-Spalte
+            // Zeit-Spalte (nur Startzeit)
             Group {
                 if showTime, let due = todo.dueDate {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text(shortTime(due))
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        if let end = todo.endTime {
-                            Text(shortTime(end))
-                                .font(.system(size: 10, weight: .regular, design: .monospaced))
-                                .opacity(0.65)
-                        }
-                    }
-                    .foregroundStyle(todo.isCompleted ? .secondary : themeC1)
+                    Text(shortTime(due))
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(todo.isCompleted ? .secondary : themeC1)
                 } else {
                     Color.clear
                 }
@@ -391,7 +383,7 @@ struct MacTagesplanerView: View {
             .frame(width: 20)
 
             // Karte
-            HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         todoStore.toggle(todo)
@@ -402,13 +394,29 @@ struct MacTagesplanerView: View {
                         .foregroundStyle(todo.isCompleted ? Color.green : themeC1.opacity(0.5))
                 }
                 .buttonStyle(.plain)
+                .padding(.top, 1)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(todo.title)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(isDark ? .white.opacity(0.95) : Color.primary)
                         .strikethrough(todo.isCompleted, color: .secondary)
                         .lineLimit(2)
+
+                    // Zeitspanne (Startzeit – Endzeit)
+                    if showTime, let due = todo.dueDate, !todo.isCompleted {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 9))
+                            if let end = todo.endTime {
+                                Text("\(shortTime(due)) – \(shortTime(end))")
+                            } else {
+                                Text("ab \(shortTime(due))")
+                            }
+                        }
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    }
 
                     if !todo.description.isEmpty {
                         Text(todo.description)
@@ -417,30 +425,27 @@ struct MacTagesplanerView: View {
                             .lineLimit(1)
                     }
 
-                    if isActive {
-                        HStack(spacing: 3) {
-                            Circle().fill(themeC1).frame(width: 5, height: 5)
-                            Text("läuft gerade")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(themeC1)
-                        }
+                    // Timer-Badge
+                    if isToday, !todo.isCompleted, let due = todo.dueDate {
+                        timerBadge(due: due, endDate: endDate, isActive: isActive)
                     }
                 }
 
                 Spacer(minLength: 0)
 
-                if todo.isFavorite {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.yellow)
+                VStack(alignment: .trailing, spacing: 4) {
+                    if todo.isFavorite {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.yellow)
+                    }
+                    Button { editingTodo = todo } label: {
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(themeC1.opacity(0.45))
+                    }
+                    .buttonStyle(.plain)
                 }
-
-                Button { editingTodo = todo } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(themeC1.opacity(0.45))
-                }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -461,6 +466,62 @@ struct MacTagesplanerView: View {
         }
         .opacity(todo.isCompleted ? 0.55 : 1.0)
         .onTapGesture { editingTodo = todo }
+    }
+
+    @ViewBuilder
+    private func timerBadge(due: Date, endDate: Date?, isActive: Bool) -> some View {
+        if now < due {
+            // Noch nicht gestartet
+            let diff = due.timeIntervalSince(now)
+            HStack(spacing: 3) {
+                Image(systemName: "hourglass")
+                    .font(.system(size: 8, weight: .semibold))
+                Text("in \(formatInterval(diff))")
+                    .font(.system(size: 9, weight: .semibold))
+            }
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(.orange.opacity(isDark ? 0.18 : 0.12), in: Capsule())
+        } else if isActive, let end = endDate {
+            // Läuft gerade – Restzeit
+            let diff = end.timeIntervalSince(now)
+            HStack(spacing: 3) {
+                Circle().fill(themeC1).frame(width: 5, height: 5)
+                Text("noch \(formatInterval(diff))")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(themeC1)
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(themeC1.opacity(isDark ? 0.18 : 0.12), in: Capsule())
+        } else if isActive {
+            // Läuft gerade, keine Endzeit
+            HStack(spacing: 3) {
+                Circle().fill(themeC1).frame(width: 5, height: 5)
+                Text("läuft gerade")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(themeC1)
+        } else if let end = endDate, now >= end {
+            // Überfällig (Endzeit überschritten)
+            let diff = now.timeIntervalSince(end)
+            HStack(spacing: 3) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 9))
+                Text("\(formatInterval(diff)) überfällig")
+                    .font(.system(size: 9, weight: .semibold))
+            }
+            .foregroundStyle(.red)
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(.red.opacity(isDark ? 0.18 : 0.10), in: Capsule())
+        }
+    }
+
+    private func formatInterval(_ seconds: TimeInterval) -> String {
+        let total = max(Int(seconds), 0)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        if h > 0 { return m > 0 ? "\(h)h \(m)min" : "\(h)h" }
+        return "\(max(m, 1))min"
     }
 
     // MARK: - Now Indicator
