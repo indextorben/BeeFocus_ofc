@@ -849,7 +849,7 @@ struct AddTodoView: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Split this task into 3 to 6 meaningful, concrete subtasks.
+        Split this task into 3 to 6 meaningful, concrete subtasks in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:
@@ -938,7 +938,7 @@ struct AddTodoView: View {
         let todayStr = df.string(from: Date())
 
         let prompt = """
-        Today is \(todayStr). Analyze this task description and extract the data.
+        Today is \(todayStr). Analyze this task description and extract the data. Write title and description in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
 
         Input: \(input)
 
@@ -1085,7 +1085,7 @@ struct AddTodoView: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Create a reminder title and reminder text for this task.
+        Create a reminder title and reminder text for this task in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:

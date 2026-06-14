@@ -417,9 +417,10 @@ struct QuickAddSheet: View {
         formatter.dateFormat = "EEEE, d. MMMM yyyy"
         let today = formatter.string(from: Date())
 
+        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
         let prompt = """
         Today is \(today).
-        Extract a structured task from the following text.
+        Extract a structured task from the following text. Write title and note in \(lang).
         Available categories: \(categoryNames.isEmpty ? "none" : categoryNames)
 
         Reply ONLY with this JSON object (no Markdown, no text before or after):
@@ -525,7 +526,7 @@ struct QuickAddSheet: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Split this task into 3 to 6 meaningful, concrete subtasks.
+        Split this task into 3 to 6 meaningful, concrete subtasks in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:

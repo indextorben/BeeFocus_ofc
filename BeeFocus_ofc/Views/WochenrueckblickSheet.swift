@@ -371,8 +371,7 @@ struct WochenrueckblickSheet: View {
     private func generateReview() async {
         isGenerating = true
 
-        let isEN = Locale.current.language.languageCode?.identifier == "en"
-        let lang  = isEN ? "English" : "German"
+        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
 
         let fmt = DateFormatter()
         fmt.locale = Locale.current

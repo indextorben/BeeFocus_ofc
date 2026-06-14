@@ -919,8 +919,9 @@ struct KITagesplanSheet: View {
                 return cal.isDate(due, inSameDayAs: selectedDate)
             }.filter { !$0.isCompleted }
             let taskHint = dayTodos.isEmpty ? "" : "\n\nMy tasks today: " + dayTodos.prefix(5).map { $0.title }.joined(separator: ", ") + "."
+            let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
             return """
-            Respond in 1–3 sentences, direct and without filler phrases. No Markdown.
+            Respond in \(lang) in 1–3 sentences, direct and without filler phrases. No Markdown.
             \(trimmed)\(taskHint)
             """
         }
@@ -962,7 +963,7 @@ struct KITagesplanSheet: View {
 
         let ctx = cal.isDateInToday(selectedDate) ? "Today" : "On \(dateString)"
         return """
-        You are a concise productivity assistant. Respond in English in max 3 sentences, direct and without filler phrases. No markdown.
+        You are a concise productivity assistant. Respond in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English") in max 3 sentences, direct and without filler phrases. No markdown.
 
         \(ctx) (\(dateString)):
         \(lines)

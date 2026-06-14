@@ -331,7 +331,7 @@ struct FokusTodoEditorView: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Write a short, motivating description for this task in English.
+        Write a short, motivating description for this task in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:

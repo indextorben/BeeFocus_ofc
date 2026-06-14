@@ -360,7 +360,7 @@ struct StatistikProView: View {
         for p in priorityData { context += "Priority \(p.label): \(Int(p.rate * 100))%\n" }
 
         let prompt = """
-        Analyze this productivity data from an app user and provide a short, personal, and motivating insight in English.
+        Analyze this productivity data from an app user and provide a short, personal, and motivating insight in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
         Rules:
         - Maximum 3 sentences

@@ -376,8 +376,7 @@ struct KIAufgabenAnalyseView: View {
     }
 
     private var promptLanguage: String {
-        let code = Locale.current.languageCode ?? "en"
-        return Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+        LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
     }
 
     private func buildPrompt() -> String {

@@ -392,7 +392,8 @@ struct FokusJournalView: View {
             "Datum: \(df.string(from: e.date)), Stimmung: \(e.moodScore)/5, Gut lief: \(e.wentWell), Ablenkung: \(e.distraction), Morgen-Ziel: \(e.tomorrowPriority)"
         }.joined(separator: "\n")
 
-        let prompt = "You are a productivity coach. Analyze these focus journal entries from the past week and provide a short, motivating analysis (3–5 sentences) with concrete insights and one tip. No Markdown.\n\n\(summary)"
+        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
+        let prompt = "You are a productivity coach. Analyze these focus journal entries from the past week and provide a short, motivating analysis (3–5 sentences) with concrete insights and one tip. Respond in \(lang). No Markdown.\n\n\(summary)"
 
         let provider = UserDefaults.standard.string(forKey: "aiProvider") ?? "gemini"
 
@@ -450,7 +451,7 @@ struct JournalEntryCard: View {
                     Text(entry.date.formatted(date: .complete, time: .omitted))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text(entry.moodLabel)
+                    Text(localizer.localizedString(forKey: entry.moodLabel))
                         .font(.system(size: 12))
                         .foregroundStyle(entry.moodColor)
                 }
@@ -580,7 +581,7 @@ struct JournalEntrySheet: View {
                                             Text(JournalEntry.moods[score - 1].emoji)
                                                 .font(.system(size: moodScore == score ? 38 : 26))
                                                 .animation(.spring(response: 0.3), value: moodScore)
-                                            Text(JournalEntry.moods[score - 1].label)
+                                            Text(localizer.localizedString(forKey: JournalEntry.moods[score - 1].label))
                                                 .font(.system(size: 9))
                                                 .foregroundStyle(moodScore == score
                                                                  ? JournalEntry.moods[score - 1].color

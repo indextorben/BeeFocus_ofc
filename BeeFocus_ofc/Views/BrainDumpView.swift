@@ -484,8 +484,9 @@ struct BrainDumpView: View {
         analyseText = ""
 
         let entries = store.eintraege.map { "[\($0.tag.label)] \($0.text)" }.joined(separator: "\n")
+        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
         let prompt = """
-        Analyze these brain dump entries and provide a structured overview:
+        Analyze these brain dump entries and provide a structured overview in \(lang):
         - Identify patterns and recurring themes
         - Identify what is occupying the user the most
         - Give 2-3 concrete recommendations
@@ -520,7 +521,7 @@ struct BrainDumpView: View {
             .map { "- \($0.text)" }.joined(separator: "\n")
         let prompt = """
         Extract all concrete, actionable tasks from these brain dump entries – even if formulated as a worry, idea or question.
-        Phrase each task as a clear, actionable sentence (e.g. "Schedule doctor's appointment").
+        Phrase each task as a clear, actionable sentence in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English") (e.g. "Arzttermin vereinbaren").
         Output ONLY the tasks, one per line, no numbering, no explanations, no blank lines.
         Maximum 8 tasks.
 
@@ -548,7 +549,7 @@ struct BrainDumpView: View {
         reformulatingIDs.insert(id)
 
         let prompt = """
-        Rephrase this raw thought into a clear, actionable, positively worded sentence.
+        Rephrase this raw thought into a clear, actionable, positively worded sentence in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         Reply ONLY with the rephrased sentence, no explanations, no quotation marks.
 
         Thought: "\(entry.text)"
@@ -590,8 +591,9 @@ struct BrainDumpView: View {
         }
 
         let entries = recent.map { "[\($0.tag.label)] \($0.text)" }.joined(separator: "\n")
+        let lang2 = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
         let prompt = """
-        You are a compassionate productivity coach. Create a short weekly reflection based on these brain dump entries from the last 7 days:
+        You are a compassionate productivity coach. Create a short weekly reflection in \(lang2) based on these brain dump entries from the last 7 days:
         - What was on the user's mind?
         - What was experienced positively (gratitude / ideas)?
         - What should be prioritized?

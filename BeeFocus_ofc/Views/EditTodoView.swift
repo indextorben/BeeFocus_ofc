@@ -756,7 +756,7 @@ struct EditTodoView: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Write a short, motivating description for this task in English.
+        Write a short, motivating description for this task in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:
@@ -837,7 +837,7 @@ struct EditTodoView: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Create a reminder title and reminder text for this task in English.
+        Create a reminder title and reminder text for this task in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:
@@ -932,7 +932,7 @@ struct EditTodoView: View {
         let context = contextParts.joined(separator: "\n")
 
         let prompt = """
-        Break this task into 3 to 6 meaningful, concrete subtasks in English.
+        Break this task into 3 to 6 meaningful, concrete subtasks in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
         \(context)
 
         Rules:
