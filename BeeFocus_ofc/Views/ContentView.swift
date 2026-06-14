@@ -62,7 +62,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .tabItem {
-                Label("Day", systemImage: "calendar.day.timeline.left")
+                Label(localizer.localizedString(forKey: "Tag"), systemImage: "calendar.day.timeline.left")
             }
             .tag(1)
             
@@ -246,6 +246,27 @@ struct ContentView: View {
             Button("Abbrechen", role: .cancel) { }
         } message: {
             Text("All completed tasks will be moved to the trash and can be restored there.")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openWasserTrackerFromNotification)) { _ in
+            selectedTab = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openHabitTrackerFromNotification)) { _ in
+            selectedTab = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openJournalFromNotification)) { _ in
+            selectedTab = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openOverdueFromNotification)) { _ in
+            selectedTab = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openTodayDueFromNotification)) { _ in
+            selectedTab = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openStatistikFromNotification)) { _ in
+            selectedTab = 3
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openTimerFromNotification)) { _ in
+            selectedTab = 2
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {

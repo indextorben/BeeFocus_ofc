@@ -3,9 +3,15 @@ import SwiftUI
 import UserNotifications
 
 extension Notification.Name {
-    static let openTodayDueFromNotification = Notification.Name("OpenTodayDueFromNotification")
-    static let focusSessionCompleted        = Notification.Name("FocusSessionCompleted")
-    static let showPaywall                  = Notification.Name("ShowPaywall")
+    static let openTodayDueFromNotification      = Notification.Name("OpenTodayDueFromNotification")
+    static let openWasserTrackerFromNotification = Notification.Name("OpenWasserTrackerFromNotification")
+    static let openHabitTrackerFromNotification  = Notification.Name("OpenHabitTrackerFromNotification")
+    static let openJournalFromNotification       = Notification.Name("OpenJournalFromNotification")
+    static let openOverdueFromNotification       = Notification.Name("OpenOverdueFromNotification")
+    static let openStatistikFromNotification     = Notification.Name("OpenStatistikFromNotification")
+    static let openTimerFromNotification         = Notification.Name("OpenTimerFromNotification")
+    static let focusSessionCompleted             = Notification.Name("FocusSessionCompleted")
+    static let showPaywall                       = Notification.Name("ShowPaywall")
 }
 
 class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
@@ -384,10 +390,25 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        let id = response.notification.request.identifier
         let info = response.notification.request.content.userInfo
+
         if let action = info["action"] as? String, action == "openToday" {
             NotificationCenter.default.post(name: .openTodayDueFromNotification, object: nil)
+        } else if id.hasPrefix("water_") {
+            NotificationCenter.default.post(name: .openWasserTrackerFromNotification, object: nil)
+        } else if id.hasPrefix("habit_") {
+            NotificationCenter.default.post(name: .openHabitTrackerFromNotification, object: nil)
+        } else if id == "moodReminder" || id == "eveningReminder" {
+            NotificationCenter.default.post(name: .openJournalFromNotification, object: nil)
+        } else if id == "overdueAlert" {
+            NotificationCenter.default.post(name: .openOverdueFromNotification, object: nil)
+        } else if id == "weeklyReview" {
+            NotificationCenter.default.post(name: .openStatistikFromNotification, object: nil)
+        } else if id == "completionNotification" || id == "timerNotification" {
+            NotificationCenter.default.post(name: .openTimerFromNotification, object: nil)
         }
+
         completionHandler()
     }
 }

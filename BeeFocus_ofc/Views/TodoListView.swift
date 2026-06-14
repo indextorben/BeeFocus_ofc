@@ -312,6 +312,19 @@ struct TodoListView: View {
                     showOnlyTodayFromNotification = true
                     timeFilter = .heute
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .openWasserTrackerFromNotification)) { _ in
+                    showToolWasser = true
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .openHabitTrackerFromNotification)) { _ in
+                    showToolGewohnheiten = true
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .openJournalFromNotification)) { _ in
+                    showToolJournal = true
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .openOverdueFromNotification)) { _ in
+                    selectedCategory = nil
+                    timeFilter = .ueberfaellig
+                }
                 .onDisappear {
                     // Cancel the snackbar timer when view disappears
                     snackbarDismissTask?.cancel()
@@ -607,10 +620,10 @@ struct TodoListView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Today's Highlight")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.45))
+                            .foregroundStyle(.secondary)
                         Text(todo.title)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                             .lineLimit(1)
                     }
                     Spacer()
@@ -620,22 +633,24 @@ struct TodoListView: View {
                     } label: {
                         Image(systemName: "checkmark.circle")
                             .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.2))
+                            .foregroundStyle(colorScheme == .dark ? Color(red: 1.0, green: 0.85, blue: 0.2) : .orange)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(
-                    LinearGradient(
-                        colors: [Color(red: 0.55, green: 0.4, blue: 0.0).opacity(0.35),
-                                 Color(red: 0.4, green: 0.25, blue: 0.0).opacity(0.25)],
-                        startPoint: .leading, endPoint: .trailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 14)
-                )
+                .background {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(LinearGradient(
+                            colors: [Color(red: 0.55, green: 0.4, blue: 0.0).opacity(colorScheme == .dark ? 0.35 : 0.10),
+                                     Color(red: 0.4, green: 0.25, blue: 0.0).opacity(colorScheme == .dark ? 0.25 : 0.07)],
+                            startPoint: .leading, endPoint: .trailing
+                        ))
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.35), lineWidth: 1.5)
+                        .stroke(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(colorScheme == .dark ? 0.35 : 0.50), lineWidth: 1.5)
                 )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -1534,10 +1549,10 @@ struct TodoListView: View {
                         .background(isSelected ? filter.color.opacity(0.22) : Color.clear)
                         .clipShape(Capsule())
                         .overlay(Capsule().stroke(
-                            isSelected ? filter.color.opacity(0.7) : Color.secondary.opacity(0.25),
+                            isSelected ? filter.color.opacity(0.7) : Color.secondary.opacity(colorScheme == .dark ? 0.25 : 0.35),
                             lineWidth: 1.5
                         ))
-                        .foregroundStyle(isSelected ? filter.color : Color.primary.opacity(0.65))
+                        .foregroundStyle(isSelected ? filter.color : Color.primary.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .animation(.spring(response: 0.25), value: isSelected)
