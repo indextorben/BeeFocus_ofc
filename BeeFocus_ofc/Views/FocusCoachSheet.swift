@@ -230,8 +230,7 @@ struct FocusCoachSheet: View {
             return
         }
 
-        let isEN = Locale.current.language.languageCode?.identifier == "en"
-        let lang  = isEN ? "English" : "German"
+        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
 
         let taskList = openTodos.enumerated().map { i, t in
             var line = "\(i + 1). \(t.title) (priority: \(t.priority == .high ? "high" : t.priority == .medium ? "medium" : "low")"
