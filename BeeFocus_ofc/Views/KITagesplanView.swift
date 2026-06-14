@@ -51,6 +51,7 @@ struct KITagesplanSheet: View {
     @ObservedObject private var speech = SpeechManager.shared
     @AppStorage("selectedLanguage") private var selectedLanguage = "Deutsch"
     @AppStorage("aiAutoSpeak")      private var aiAutoSpeak: Bool = false
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
     @State private var lastSpokenLength = 0
@@ -75,14 +76,14 @@ struct KITagesplanSheet: View {
         switch aiProvider {
         case "openai": return "OpenAI API Key"
         case "groq":   return "Groq API Key"
-        default:       return String(localized: "ki_setup_title")
+        default:       return localizer.localizedString(forKey: "\1")
         }
     }
     private var setupDesc: String {
         switch aiProvider {
-        case "openai": return String(localized: "openai_setup_desc")
-        case "groq":   return String(localized: "groq_setup_desc")
-        default:       return String(localized: "ki_setup_desc")
+        case "openai": return localizer.localizedString(forKey: "\1")
+        case "groq":   return localizer.localizedString(forKey: "\1")
+        default:       return localizer.localizedString(forKey: "\1")
         }
     }
     private var setupPlaceholder: String {
@@ -119,16 +120,16 @@ struct KITagesplanSheet: View {
     }
     private var headerSub: String {
         switch usedSource {
-        case .appleIntelligence: return String(localized: "ki_runs_locally")
-        case .openai:            return String(localized: "ki_runs_openai")
-        case .groq:              return String(localized: "ki_runs_groq")
-        case .gemini:            return String(localized: "ki_runs_gemini")
+        case .appleIntelligence: return localizer.localizedString(forKey: "\1")
+        case .openai:            return localizer.localizedString(forKey: "\1")
+        case .groq:              return localizer.localizedString(forKey: "\1")
+        case .gemini:            return localizer.localizedString(forKey: "\1")
         case .none:
             switch aiProvider {
-            case "openai": return String(localized: "ki_runs_openai")
-            case "groq":   return String(localized: "ki_runs_groq")
-            case "apple":  return String(localized: "ki_runs_locally")
-            default:       return String(localized: "ki_runs_gemini")
+            case "openai": return localizer.localizedString(forKey: "\1")
+            case "groq":   return localizer.localizedString(forKey: "\1")
+            case "apple":  return localizer.localizedString(forKey: "\1")
+            default:       return localizer.localizedString(forKey: "\1")
             }
         }
     }
@@ -156,11 +157,11 @@ struct KITagesplanSheet: View {
                 promptInputArea
             }
             .background { ThemeBackgroundView().ignoresSafeArea() }
-            .navigationTitle(String(localized: "ki_title"))
+            .navigationTitle(localizer.localizedString(forKey: "\1"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "done")) { dismiss() }
+                    Button(localizer.localizedString(forKey: "\1")) { dismiss() }
                 }
                 ToolbarItem(placement: .principal) {
                     Menu {
@@ -205,7 +206,7 @@ struct KITagesplanSheet: View {
                 GeminiKeyGuideView()
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button(String(localized: "done")) {
+                            Button(localizer.localizedString(forKey: "\1")) {
                                 showGuide = false
                                 // Wenn Key jetzt gesetzt, direkt generieren
                                 if KeychainHelper.load(for: GeminiService.keychainKey) != nil {
@@ -254,7 +255,7 @@ struct KITagesplanSheet: View {
                 HStack(spacing: 12) {
                     Image(systemName: "key.fill")
                         .foregroundStyle(.green)
-                    Text(String(localized: "ki_key_saved_status"))
+                    Text(localizer.localizedString(forKey: "\1"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     Spacer()
@@ -262,7 +263,7 @@ struct KITagesplanSheet: View {
                         showSetup = false
                         Task { await generate() }
                     } label: {
-                        Label(String(localized: "ki_retry"), systemImage: "arrow.clockwise")
+                        Label(localizer.localizedString(forKey: "\1"), systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -301,7 +302,7 @@ struct KITagesplanSheet: View {
                         }
                     } else {
                         Button { showGuide = true } label: {
-                            Label(String(localized: "gemini_guide_short_btn"), systemImage: "questionmark.circle.fill")
+                            Label(localizer.localizedString(forKey: "\1"), systemImage: "questionmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.purple)
                                 .padding(.horizontal, 10).padding(.vertical, 5)
@@ -333,7 +334,7 @@ struct KITagesplanSheet: View {
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
 
                 HStack(spacing: 10) {
-                    Button(String(localized: "Abbrechen")) { showSetup = false }
+                    Button(localizer.localizedString(forKey: "\1")) { showSetup = false }
                         .font(.subheadline).foregroundStyle(.secondary).buttonStyle(.plain)
 
                     Spacer()
@@ -356,7 +357,7 @@ struct KITagesplanSheet: View {
                         if keySaving {
                             ProgressView().scaleEffect(0.8).tint(.white)
                         } else {
-                            Text(String(localized: "ki_setup_save"))
+                            Text(localizer.localizedString(forKey: "\1"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.white)
                         }
@@ -391,7 +392,7 @@ struct KITagesplanSheet: View {
     private var loadingCard: some View {
         HStack(spacing: 12) {
             ProgressView().tint(themeC1)
-            Text(String(localized: "ki_analyzing"))
+            Text(localizer.localizedString(forKey: "\1"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -449,14 +450,14 @@ struct KITagesplanSheet: View {
                 if isExtractingTasks {
                     HStack(spacing: 8) {
                         ProgressView().scaleEffect(0.8).tint(themeC1)
-                        Text(String(localized: "ki_extracting_tasks"))
+                        Text(localizer.localizedString(forKey: "\1"))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 } else if suggestedTasks.isEmpty {
                     Button {
                         Task { await extractTasks() }
                     } label: {
-                        Label(String(localized: "ki_save_as_tasks"), systemImage: "plus.circle.fill")
+                        Label(localizer.localizedString(forKey: "\1"), systemImage: "plus.circle.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeC1)
                     }
@@ -469,14 +470,14 @@ struct KITagesplanSheet: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text(String(localized: "ki_tasks_title"))
+                        Text(localizer.localizedString(forKey: "\1"))
                             .font(.subheadline.weight(.semibold))
                         Spacer()
                         Button {
                             let toAdd = suggestedTasks.filter { $0.isSelected && !addedTaskIDs.contains($0.id) }
                             toAdd.forEach { addTask($0) }
                         } label: {
-                            Label(String(localized: "ki_add_all"), systemImage: "checkmark.circle.fill")
+                            Label(localizer.localizedString(forKey: "\1"), systemImage: "checkmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 10).padding(.vertical, 5)
@@ -548,9 +549,9 @@ struct KITagesplanSheet: View {
 
     private func priorityBadge(_ p: TodoPriority) -> some View {
         let (label, color): (String, Color) = switch p {
-        case .high:   (String(localized: "priority_high"),   .red)
-        case .medium: (String(localized: "priority_medium"), .orange)
-        case .low:    (String(localized: "priority_low"),    .green)
+        case .high:   (localizer.localizedString(forKey: "\1"),   .red)
+        case .medium: (localizer.localizedString(forKey: "\1"), .orange)
+        case .low:    (localizer.localizedString(forKey: "\1"),    .green)
         }
         return Text(label)
             .font(.caption2.weight(.semibold))
@@ -563,7 +564,7 @@ struct KITagesplanSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text(String(localized: "ki_unavailable")).font(.subheadline.weight(.semibold))
+                Text(localizer.localizedString(forKey: "\1")).font(.subheadline.weight(.semibold))
             }
             Text(message).font(.caption).foregroundStyle(.secondary)
 
@@ -574,7 +575,7 @@ struct KITagesplanSheet: View {
                         errorMessage = nil
                         Task { await generate() }
                     } label: {
-                        Label(String(localized: "ki_retry"), systemImage: "arrow.clockwise")
+                        Label(localizer.localizedString(forKey: "\1"), systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -587,7 +588,7 @@ struct KITagesplanSheet: View {
                         showSetup = true
                         errorMessage = nil
                     } label: {
-                        Label(String(localized: "ki_add_key_button"), systemImage: "key.fill")
+                        Label(localizer.localizedString(forKey: "\1"), systemImage: "key.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -598,7 +599,7 @@ struct KITagesplanSheet: View {
                     Button {
                         showGuide = true
                     } label: {
-                        Label(String(localized: "gemini_guide_short_btn"), systemImage: "questionmark.circle")
+                        Label(localizer.localizedString(forKey: "\1"), systemImage: "questionmark.circle")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.purple)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -626,7 +627,7 @@ struct KITagesplanSheet: View {
                         // "Tagesplan" as default chip
                         bausteinChip(
                             icon: "calendar.badge.sparkles",
-                            label: String(localized: "ki_chip_tagesplan"),
+                            label: localizer.localizedString(forKey: "\1"),
                             color: themeC1
                         ) {
                             userPrompt = ""
@@ -639,7 +640,7 @@ struct KITagesplanSheet: View {
                                 label: b.titel,
                                 color: b.farbe.color
                             ) {
-                                userPrompt = String(localized: "ki_baustein_prompt_prefix") + " \"\(b.titel)\""
+                                userPrompt = localizer.localizedString(forKey: "\1") + " \"\(b.titel)\""
                                 Task { await generate() }
                             }
                         }
@@ -672,7 +673,7 @@ struct KITagesplanSheet: View {
                         )
                 }
 
-                TextField(String(localized: "ki_prompt_placeholder"), text: $userPrompt, axis: .vertical)
+                TextField(localizer.localizedString(forKey: "\1"), text: $userPrompt, axis: .vertical)
                     .lineLimit(1...4)
                     .font(.subheadline)
                     .padding(.horizontal, 14)
@@ -757,10 +758,10 @@ struct KITagesplanSheet: View {
                         errorMessage = error.localizedDescription
                     }
                 } else {
-                    errorMessage = String(localized: "ki_apple_unavailable")
+                    errorMessage = localizer.localizedString(forKey: "\1")
                 }
             } else {
-                errorMessage = String(localized: "ki_apple_requires_ios26")
+                errorMessage = localizer.localizedString(forKey: "\1")
             }
 
         case "openai":

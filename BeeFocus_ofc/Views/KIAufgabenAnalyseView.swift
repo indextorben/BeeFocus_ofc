@@ -9,6 +9,7 @@ struct KIAufgabenAnalyseView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
+    @ObservedObject private var localizer = LocalizationManager.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
     @AppStorage("groqSelectedModel")    private var groqModel:   String = GroqService.models[0]
@@ -49,11 +50,11 @@ struct KIAufgabenAnalyseView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle(String(localized: "ki_analyse_nav_title"))
+            .navigationTitle(localizer.localizedString(forKey: "ki_analyse_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "ki_done")) { dismiss() }
+                    Button(localizer.localizedString(forKey: "ki_done")) { dismiss() }
                 }
                 ToolbarItem(placement: .principal) {
                     Menu {
@@ -82,7 +83,7 @@ struct KIAufgabenAnalyseView: View {
                     GeminiKeyGuideView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button(String(localized: "ki_done")) {
+                                Button(localizer.localizedString(forKey: "ki_done")) {
                                     showGuide = false
                                     if hasKey { Task { await generate() } }
                                 }
@@ -107,10 +108,10 @@ struct KIAufgabenAnalyseView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(String(localized: "ki_analyse_header"))
+                Text(localizer.localizedString(forKey: "ki_analyse_header"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isDark ? .white : .primary)
-                Text(String(format: String(localized: "ki_analyse_header_subtitle"), providerLabel, todos.count))
+                Text(String(format: localizer.localizedString(forKey: "ki_analyse_header_subtitle"), providerLabel, todos.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -137,10 +138,10 @@ struct KIAufgabenAnalyseView: View {
         let noDate   = todos.filter { !$0.isCompleted && $0.dueDate == nil }.count
 
         return HStack(spacing: 8) {
-            analyseChip("\(open)", String(localized: "ki_analyse_stat_open"),    color: accent)
-            analyseChip("\(overdue)", String(localized: "ki_analyse_stat_overdue"), color: .red)
-            analyseChip("\(high)", String(localized: "ki_analyse_stat_urgent"),    color: .orange)
-            analyseChip("\(noDate)", String(localized: "ki_analyse_stat_no_date"), color: .secondary)
+            analyseChip("\(open)", localizer.localizedString(forKey: "ki_analyse_stat_open"),    color: accent)
+            analyseChip("\(overdue)", localizer.localizedString(forKey: "ki_analyse_stat_overdue"), color: .red)
+            analyseChip("\(high)", localizer.localizedString(forKey: "ki_analyse_stat_urgent"),    color: .orange)
+            analyseChip("\(noDate)", localizer.localizedString(forKey: "ki_analyse_stat_no_date"), color: .secondary)
         }
     }
 
@@ -175,11 +176,11 @@ struct KIAufgabenAnalyseView: View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text(String(localized: "ki_analyse_loading"))
+                Text(localizer.localizedString(forKey: "ki_analyse_loading"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Text(String(localized: "ki_analyse_loading_detail"))
+            Text(localizer.localizedString(forKey: "ki_analyse_loading_detail"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -195,7 +196,7 @@ struct KIAufgabenAnalyseView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(accent)
-                Text(String(localized: "ki_analyse_result_title"))
+                Text(localizer.localizedString(forKey: "ki_analyse_result_title"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -237,7 +238,7 @@ struct KIAufgabenAnalyseView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold))
+                Text(localizer.localizedString(forKey: "ki_error_title")).font(.subheadline.weight(.semibold))
             }
             Text(message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
@@ -245,7 +246,7 @@ struct KIAufgabenAnalyseView: View {
                     Button {
                         errorMessage = nil; Task { await generate() }
                     } label: {
-                        Label(String(localized: "ki_error_try_again"), systemImage: "arrow.clockwise")
+                        Label(localizer.localizedString(forKey: "ki_error_try_again"), systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -254,7 +255,7 @@ struct KIAufgabenAnalyseView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button { showSetup = true; errorMessage = nil } label: {
-                        Label(String(localized: "ki_error_add_key"), systemImage: "key.fill")
+                        Label(localizer.localizedString(forKey: "ki_error_add_key"), systemImage: "key.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -273,14 +274,14 @@ struct KIAufgabenAnalyseView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
+            Text(aiProvider == "openai" ? localizer.localizedString(forKey: "ki_setup_openai_key") : aiProvider == "groq" ? localizer.localizedString(forKey: "ki_setup_groq_key") : localizer.localizedString(forKey: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isDark ? .white : .primary)
 
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
-                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    if keyVisible { TextField(localizer.localizedString(forKey: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(localizer.localizedString(forKey: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .autocorrectionDisabled()
@@ -294,10 +295,10 @@ struct KIAufgabenAnalyseView: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
 
             HStack {
-                Button(String(localized: "ki_cancel")) { showSetup = false }
+                Button(localizer.localizedString(forKey: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.secondary).buttonStyle(.plain)
                 Spacer()
-                Button(String(localized: "ki_save_analyze")) {
+                Button(localizer.localizedString(forKey: "ki_save_analyze")) {
                     let trimmed = keyInput.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     let kcKey: String
@@ -341,8 +342,8 @@ struct KIAufgabenAnalyseView: View {
                         for try await partial in stream { generatedText = partial.content }
                         isLoading = false; return
                     } catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = String(localized: "ki_apple_not_available") }
-            } else { errorMessage = String(localized: "ki_apple_requires_ios26") }
+                } else { errorMessage = localizer.localizedString(forKey: "ki_apple_not_available") }
+            } else { errorMessage = localizer.localizedString(forKey: "ki_apple_requires_ios26") }
 
         case "openai":
             if let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty {

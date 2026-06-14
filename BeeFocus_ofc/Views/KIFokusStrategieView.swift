@@ -9,6 +9,7 @@ struct KIFokusStrategieView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("aiProvider")            private var aiProvider: String = "gemini"
+    @ObservedObject private var localizer = LocalizationManager.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("openaiSelectedModel")   private var openaiModel: String = OpenAIService.models[0]
     @AppStorage("groqSelectedModel")     private var groqModel:   String = GroqService.models[0]
@@ -56,10 +57,10 @@ struct KIFokusStrategieView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle(String(localized: "ki_strategy_nav_title"))
+            .navigationTitle(localizer.localizedString(forKey: "ki_strategy_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button(String(localized: "ki_done")) { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(localizer.localizedString(forKey: "ki_done")) { dismiss() } }
                 ToolbarItem(placement: .principal) { providerMenu }
             }
         }
@@ -96,10 +97,10 @@ struct KIFokusStrategieView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(String(localized: "ki_strategy_header"))
+                Text(localizer.localizedString(forKey: "ki_strategy_header"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
-                Text(String(localized: "ki_strategy_header_subtitle"))
+                Text(localizer.localizedString(forKey: "ki_strategy_header_subtitle"))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -122,12 +123,12 @@ struct KIFokusStrategieView: View {
     private var profileOverview: some View {
         let stats = computeStats()
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            profileChip("🎯", "\(dailyGoal)min", String(localized: "ki_strategy_stat_daily_goal"), color: accent)
-            profileChip("⏱", formatMins(stats.avgFocusMins), String(localized: "ki_strategy_stat_avg_7d"), color: .cyan)
-            profileChip("✅", "\(stats.rate)%", String(localized: "ki_strategy_stat_completion"), color: Color(red: 0.3, green: 0.85, blue: 0.5))
-            profileChip("🔥", "\(stats.streak)d", String(localized: "ki_strategy_stat_streak"), color: .orange)
-            profileChip("📋", "\(stats.open)", String(localized: "ki_strategy_stat_open"), color: .secondary)
-            profileChip("⚡", aktiverTimerModus.isEmpty ? "Standard" : aktiverTimerModus, String(localized: "ki_strategy_stat_timer"), color: .purple)
+            profileChip("🎯", "\(dailyGoal)min", localizer.localizedString(forKey: "ki_strategy_stat_daily_goal"), color: accent)
+            profileChip("⏱", formatMins(stats.avgFocusMins), localizer.localizedString(forKey: "ki_strategy_stat_avg_7d"), color: .cyan)
+            profileChip("✅", "\(stats.rate)%", localizer.localizedString(forKey: "ki_strategy_stat_completion"), color: Color(red: 0.3, green: 0.85, blue: 0.5))
+            profileChip("🔥", "\(stats.streak)d", localizer.localizedString(forKey: "ki_strategy_stat_streak"), color: .orange)
+            profileChip("📋", "\(stats.open)", localizer.localizedString(forKey: "ki_strategy_stat_open"), color: .secondary)
+            profileChip("⚡", aktiverTimerModus.isEmpty ? "Standard" : aktiverTimerModus, localizer.localizedString(forKey: "ki_strategy_stat_timer"), color: .purple)
         }
     }
 
@@ -152,10 +153,10 @@ struct KIFokusStrategieView: View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text(String(localized: "ki_strategy_loading"))
+                Text(localizer.localizedString(forKey: "ki_strategy_loading"))
                     .font(.subheadline).foregroundStyle(.white.opacity(0.6))
             }
-            Text(String(localized: "ki_strategy_loading_detail"))
+            Text(localizer.localizedString(forKey: "ki_strategy_loading_detail"))
                 .font(.caption).foregroundStyle(.white.opacity(0.35)).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(20)
@@ -167,7 +168,7 @@ struct KIFokusStrategieView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(accent)
-                Text(String(localized: "ki_strategy_result_title"))
+                Text(localizer.localizedString(forKey: "ki_strategy_result_title"))
                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.45)).textCase(.uppercase)
                 Spacer()
                 if !isLoading {
@@ -206,11 +207,11 @@ struct KIFokusStrategieView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text(localizer.localizedString(forKey: "ki_error_title")).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(msg).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             Button { errorMessage = nil; Task { await generate() } } label: {
-                Label(hasKey ? String(localized: "ki_error_try_again") : String(localized: "ki_error_add_key"),
+                Label(hasKey ? localizer.localizedString(forKey: "ki_error_try_again") : localizer.localizedString(forKey: "ki_error_add_key"),
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -226,12 +227,12 @@ struct KIFokusStrategieView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
+            Text(aiProvider == "openai" ? localizer.localizedString(forKey: "ki_setup_openai_key") : aiProvider == "groq" ? localizer.localizedString(forKey: "ki_setup_groq_key") : localizer.localizedString(forKey: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
-                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    if keyVisible { TextField(localizer.localizedString(forKey: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(localizer.localizedString(forKey: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced)).foregroundStyle(.white)
                 .autocorrectionDisabled().textInputAutocapitalization(.never)
@@ -241,10 +242,10 @@ struct KIFokusStrategieView: View {
             }
             .padding(10).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button(String(localized: "ki_cancel")) { showSetup = false }
+                Button(localizer.localizedString(forKey: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button(String(localized: "ki_save")) {
+                Button(localizer.localizedString(forKey: "ki_save")) {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -293,8 +294,8 @@ struct KIFokusStrategieView: View {
                 if case .available = SystemLanguageModel.default.availability {
                     do { let s = LanguageModelSession(); for try await p in s.streamResponse(to: prompt) { generatedText = p.content }; isLoading = false; return }
                     catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = String(localized: "ki_apple_not_available") }
-            } else { errorMessage = String(localized: "ki_apple_requires_ios26") }
+                } else { errorMessage = localizer.localizedString(forKey: "ki_apple_not_available") }
+            } else { errorMessage = localizer.localizedString(forKey: "ki_apple_requires_ios26") }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { generatedText += c }; isLoading = false; return }

@@ -9,6 +9,7 @@ struct KIWochenberichtView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("aiProvider")            private var aiProvider: String = "gemini"
+    @ObservedObject private var localizer = LocalizationManager.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("openaiSelectedModel")   private var openaiModel: String = OpenAIService.models[0]
     @AppStorage("groqSelectedModel")     private var groqModel:   String = GroqService.models[0]
@@ -73,7 +74,7 @@ struct KIWochenberichtView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle(String(localized: "ki_weekly_nav_title"))
+            .navigationTitle(localizer.localizedString(forKey: "ki_weekly_nav_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarItems }
         }
@@ -83,7 +84,7 @@ struct KIWochenberichtView: View {
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button(String(localized: "ki_done")) { dismiss() }
+            Button(localizer.localizedString(forKey: "ki_done")) { dismiss() }
         }
         ToolbarItem(placement: .principal) {
             providerMenu
@@ -120,7 +121,7 @@ struct KIWochenberichtView: View {
                     .foregroundStyle(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(String(localized: "ki_weekly_header"))
+                Text(localizer.localizedString(forKey: "ki_weekly_header"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Text(weekRangeLabel)
@@ -146,13 +147,13 @@ struct KIWochenberichtView: View {
     private var weekOverview: some View {
         let stats = weekStats
         return HStack(spacing: 8) {
-            weekChip("✅", "\(stats.completed)", String(localized: "ki_weekly_stat_completed"), color: Color(red: 0.3, green: 0.85, blue: 0.5))
-            weekChip("⏱", formatMins(stats.focusMins), String(localized: "ki_weekly_stat_focus"), color: accent)
+            weekChip("✅", "\(stats.completed)", localizer.localizedString(forKey: "ki_weekly_stat_completed"), color: Color(red: 0.3, green: 0.85, blue: 0.5))
+            weekChip("⏱", formatMins(stats.focusMins), localizer.localizedString(forKey: "ki_weekly_stat_focus"), color: accent)
             if let avg = stats.avgMood {
-                weekChip(stimmungsEmoji(Int(avg.rounded())), String(format: "%.1f", avg), String(localized: "ki_weekly_stat_mood"), color: stimmungsColor(Int(avg.rounded())))
+                weekChip(stimmungsEmoji(Int(avg.rounded())), String(format: "%.1f", avg), localizer.localizedString(forKey: "ki_weekly_stat_mood"), color: stimmungsColor(Int(avg.rounded())))
             }
             if !stats.bestDay.isEmpty {
-                weekChip("🏆", stats.bestDay, String(localized: "ki_weekly_stat_best_day"), color: .orange)
+                weekChip("🏆", stats.bestDay, localizer.localizedString(forKey: "ki_weekly_stat_best_day"), color: .orange)
             }
         }
     }
@@ -184,7 +185,7 @@ struct KIWochenberichtView: View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 ProgressView().tint(accent)
-                Text(String(localized: "ki_weekly_loading")).font(.subheadline).foregroundStyle(.white.opacity(0.6))
+                Text(localizer.localizedString(forKey: "ki_weekly_loading")).font(.subheadline).foregroundStyle(.white.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity).padding(20)
@@ -196,7 +197,7 @@ struct KIWochenberichtView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles").font(.system(size: 12, weight: .semibold)).foregroundStyle(accent)
-                Text(String(localized: "ki_weekly_result_title"))
+                Text(localizer.localizedString(forKey: "ki_weekly_result_title"))
                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.45)).textCase(.uppercase)
                 Spacer()
                 if !isLoading {
@@ -233,11 +234,11 @@ struct KIWochenberichtView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text(String(localized: "ki_error_title")).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text(localizer.localizedString(forKey: "ki_error_title")).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             }
             Text(msg).font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize(horizontal: false, vertical: true)
             Button { errorMessage = nil; Task { await generate() } } label: {
-                Label(hasKey ? String(localized: "ki_error_try_again") : String(localized: "ki_error_add_key"),
+                Label(hasKey ? localizer.localizedString(forKey: "ki_error_try_again") : localizer.localizedString(forKey: "ki_error_add_key"),
                       systemImage: hasKey ? "arrow.clockwise" : "key.fill")
                     .font(.caption.weight(.semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
@@ -253,12 +254,12 @@ struct KIWochenberichtView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(aiProvider == "openai" ? String(localized: "ki_setup_openai_key") : aiProvider == "groq" ? String(localized: "ki_setup_groq_key") : String(localized: "ki_setup_gemini_key"))
+            Text(aiProvider == "openai" ? localizer.localizedString(forKey: "ki_setup_openai_key") : aiProvider == "groq" ? localizer.localizedString(forKey: "ki_setup_groq_key") : localizer.localizedString(forKey: "ki_setup_gemini_key"))
                 .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
             HStack(spacing: 8) {
                 Group {
-                    if keyVisible { TextField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
-                    else          { SecureField(String(localized: "ki_api_key_placeholder"), text: $keyInput) }
+                    if keyVisible { TextField(localizer.localizedString(forKey: "ki_api_key_placeholder"), text: $keyInput) }
+                    else          { SecureField(localizer.localizedString(forKey: "ki_api_key_placeholder"), text: $keyInput) }
                 }
                 .font(.system(size: 14, design: .monospaced)).foregroundStyle(.white)
                 .autocorrectionDisabled().textInputAutocapitalization(.never)
@@ -268,10 +269,10 @@ struct KIWochenberichtView: View {
             }
             .padding(10).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             HStack {
-                Button(String(localized: "ki_cancel")) { showSetup = false }
+                Button(localizer.localizedString(forKey: "ki_cancel")) { showSetup = false }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4)).buttonStyle(.plain)
                 Spacer()
-                Button(String(localized: "ki_save")) {
+                Button(localizer.localizedString(forKey: "ki_save")) {
                     let t = keyInput.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
                     let k: String
                     switch aiProvider { case "openai": k = OpenAIService.keychainKey; case "groq": k = GroqService.keychainKey; default: k = GeminiService.keychainKey }
@@ -297,8 +298,8 @@ struct KIWochenberichtView: View {
                 if case .available = SystemLanguageModel.default.availability {
                     do { let s = LanguageModelSession(); for try await p in s.streamResponse(to: prompt) { generatedText = p.content }; isLoading = false; return }
                     catch { errorMessage = error.localizedDescription }
-                } else { errorMessage = String(localized: "ki_apple_not_available") }
-            } else { errorMessage = String(localized: "ki_apple_requires_ios26") }
+                } else { errorMessage = localizer.localizedString(forKey: "ki_apple_not_available") }
+            } else { errorMessage = localizer.localizedString(forKey: "ki_apple_requires_ios26") }
         case "openai":
             if let k = KeychainHelper.load(for: OpenAIService.keychainKey), !k.isEmpty {
                 do { for try await c in OpenAIService.stream(prompt: prompt, apiKey: k, model: openaiModel) { generatedText += c }; isLoading = false; return }
