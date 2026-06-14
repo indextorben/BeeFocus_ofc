@@ -170,7 +170,7 @@ final class SpeechManager: NSObject, ObservableObject {
     private func bestMaleVoice(languageCode: String) -> AVSpeechSynthesisVoice? {
         let prefix = String(languageCode.prefix(2))
         let voices = AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix(prefix) && $0.gender == .male }
+            .filter { $0.language.hasPrefix(prefix) }
             .sorted { $0.quality.rawValue > $1.quality.rawValue }
         return voices.first ?? AVSpeechSynthesisVoice(language: languageCode)
     }
