@@ -633,7 +633,7 @@ class TodoStore: ObservableObject {
 
                     // Build title/body with personalization fallback
                     let loc = LocalizationManager.shared
-                    let isGerman = (loc.selectedLanguage == "Deutsch" || loc.selectedLanguage == "German" || Locale.current.language.languageCode?.identifier == "de")
+                    let isGerman = (loc.currentLanguageCode == "de")
 
                     // Personalized override if provided
                     let personalizedTitle = newTodo.reminderTitle?.trimmingCharacters(in: .whitespacesAndNewlines)

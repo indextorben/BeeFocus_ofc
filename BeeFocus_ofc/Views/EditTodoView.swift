@@ -80,7 +80,7 @@ struct EditTodoView: View {
 
     private var dynamicDefaultReminderTitle: String {
         let loc = LocalizationManager.shared
-        let isGerman = (loc.currentLanguageCode == "de")
+        let isGerman = loc.currentLanguageCode == "de"
         let keyTitle = (reminderSelection >= 0) ? (isGerman ? "reminder_default_title_de" : "reminder_default_title_en") : (isGerman ? "due_default_title_de" : "due_default_title_en")
         let template = loc.localizedString(forKey: keyTitle)
         let baseTitle = title.isEmpty ? loc.localizedString(forKey: "task_title") : title
@@ -88,7 +88,7 @@ struct EditTodoView: View {
     }
     private var dynamicDefaultReminderBody: String {
         let loc = LocalizationManager.shared
-        let isGerman = (loc.currentLanguageCode == "de")
+        let isGerman = loc.currentLanguageCode == "de"
         let hasDescription = !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let bodyKey = (reminderSelection >= 0) ? (isGerman ? "reminder_default_body_de" : "reminder_default_body_en") : (isGerman ? "due_default_body_de" : "due_default_body_en")
         var template = loc.localizedString(forKey: bodyKey)
