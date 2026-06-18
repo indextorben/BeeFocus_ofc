@@ -46,6 +46,8 @@
 	</array>
 	<key>CloudKitContainerIdentifier</key>
 	<string>iCloud.com.TorbenLehneke.BeeFocus</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>BeeFocus fügt deine Aufgaben und Fälligkeitstermine zum Kalender hinzu.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>BeeFocus liest deine Schlafdaten aus Apple Health, um deinen Schlaf zu analysieren.</string>
 	<key>NSHealthUpdateUsageDescription</key>

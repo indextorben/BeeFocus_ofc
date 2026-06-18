@@ -50,7 +50,7 @@ struct FocusTimerLiveActivityLiveActivity: Widget {
             } minimal: {
                 Text(context.state.emoji)
             }
-            .widgetURL(URL(string: "http://www.apple.com"))
+            .widgetURL(URL(string: "beefocus://timer"))
             .keylineTint(Color.red)
         }
     }
