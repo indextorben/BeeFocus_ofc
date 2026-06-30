@@ -5,10 +5,12 @@ struct MacProPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var sub: MacSubscriptionManager
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
-    @State private var selectedID: String = MacSubscriptionManager.yearlyID
+    @State private var selectedID: String = MacSubscriptionManager.shared.activeProductID ?? MacSubscriptionManager.yearlyID
 
     private var accent:  Color { aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : appThemaFarben(aktivesThema).0 }
     private var accent2: Color { aktivesThema.isEmpty ? Color(red: 0.3,  green: 0.6,  blue: 1.0) : appThemaFarben(aktivesThema).1 }
+
+    private var isSelectedOwned: Bool { sub.activeProductID == selectedID }
 
     private var hasTrial: Bool {
         guard selectedID != MacSubscriptionManager.lifetimeID,
@@ -18,6 +20,7 @@ struct MacProPaywallView: View {
     }
 
     private var buttonLabel: String {
+        if isSelectedOwned { return "Abo verwalten" }
         switch selectedID {
         case MacSubscriptionManager.lifetimeID: return "Lifetime kaufen"
         case MacSubscriptionManager.yearlyID:   return hasTrial ? "7 Tage gratis starten" : "Jährlich abonnieren"
@@ -184,10 +187,14 @@ struct MacProPaywallView: View {
 
             // CTA
             Button {
-                Task {
-                    guard let product = sub.products.first(where: { $0.id == selectedID }) else { return }
-                    await sub.purchase(product)
-                    if sub.isPro { dismiss() }
+                if isSelectedOwned {
+                    sub.manageSubscriptions()
+                } else {
+                    Task {
+                        guard let product = sub.products.first(where: { $0.id == selectedID }) else { return }
+                        await sub.purchase(product)
+                        if sub.isPro { dismiss() }
+                    }
                 }
             } label: {
                 ZStack {
@@ -202,10 +209,12 @@ struct MacProPaywallView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 42)
                 .background(
-                    LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing),
+                    isSelectedOwned
+                        ? LinearGradient(colors: [.green.opacity(0.6), .green.opacity(0.4)], startPoint: .leading, endPoint: .trailing)
+                        : LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing),
                     in: RoundedRectangle(cornerRadius: 12)
                 )
-                .shadow(color: accent.opacity(0.4), radius: 8, y: 3)
+                .shadow(color: (isSelectedOwned ? Color.green : accent).opacity(0.4), radius: 8, y: 3)
             }
             .buttonStyle(.plain)
             .disabled(sub.isLoading)
@@ -245,20 +254,35 @@ struct MacProPaywallView: View {
     private func planCard(id: String, title: String, price: String,
                           period: String, badge: String?, savings: String?) -> some View {
         let isSelected = selectedID == id
-        return Button { selectedID = id } label: {
+        let isOwned = sub.activeProductID == id
+        return Button {
+            if !isOwned { selectedID = id }
+        } label: {
             HStack(spacing: 10) {
                 ZStack {
-                    Circle().stroke(isSelected ? accent : .white.opacity(0.25), lineWidth: 1.5)
+                    Circle().stroke(isOwned ? Color.green.opacity(0.8) : (isSelected ? accent : .white.opacity(0.25)), lineWidth: 1.5)
                         .frame(width: 18, height: 18)
-                    if isSelected { Circle().fill(accent).frame(width: 10, height: 10) }
+                    if isOwned {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.green)
+                    } else if isSelected {
+                        Circle().fill(accent).frame(width: 10, height: 10)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(title)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
-                        if let badge {
+                            .foregroundStyle(isOwned ? .white.opacity(0.5) : .white)
+                        if isOwned {
+                            Text("Aktuell")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Color.green.opacity(0.7), in: Capsule())
+                        } else if let badge {
                             Text(badge)
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(.white)
@@ -266,7 +290,7 @@ struct MacProPaywallView: View {
                                 .background(accent, in: Capsule())
                         }
                     }
-                    if let savings {
+                    if let savings, !isOwned {
                         Text(savings)
                             .font(.system(size: 10))
                             .foregroundStyle(accent.opacity(0.9))
@@ -278,19 +302,19 @@ struct MacProPaywallView: View {
                 VStack(alignment: .trailing, spacing: 1) {
                     Text(price)
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isOwned ? .white.opacity(0.4) : .white)
                     Text(period)
                         .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(.white.opacity(isOwned ? 0.25 : 0.45))
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? accent.opacity(0.15) : .white.opacity(0.05))
+                    .fill(isOwned ? .white.opacity(0.03) : (isSelected ? accent.opacity(0.15) : .white.opacity(0.05)))
                     .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(isSelected ? accent.opacity(0.6) : .white.opacity(0.08), lineWidth: 1.5))
+                        .stroke(isOwned ? Color.green.opacity(0.3) : (isSelected ? accent.opacity(0.6) : .white.opacity(0.08)), lineWidth: 1.5))
             )
         }
         .buttonStyle(.plain)

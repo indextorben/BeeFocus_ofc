@@ -16,6 +16,7 @@ final class MacSubscriptionManager: ObservableObject {
     private static let kvExpiryKey = "beefocus_expirationDate"
 
     @Published var isPro: Bool = false
+    @Published var activeProductID: String? = nil
     @Published var products: [Product] = []
     @Published var isLoading: Bool = false
     @Published var purchaseError: String? = nil
@@ -119,17 +120,24 @@ final class MacSubscriptionManager: ObservableObject {
     func refreshEntitlements() async {
         var active = false
         var expiry: Date? = nil
+        var latestProductID: String? = nil
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 active = true
                 if let exp = transaction.expirationDate {
-                    expiry = expiry.map { max($0, exp) } ?? exp
+                    if expiry == nil || exp > expiry! {
+                        expiry = exp
+                        latestProductID = transaction.productID
+                    }
+                } else {
+                    if latestProductID == nil { latestProductID = transaction.productID }
                 }
             }
         }
 
         isPro = active
+        activeProductID = active ? latestProductID : nil
         expirationDate = expiry
 
         kvStore.set(active, forKey: Self.kvIsProKey)

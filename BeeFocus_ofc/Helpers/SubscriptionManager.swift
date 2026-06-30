@@ -18,6 +18,7 @@ final class SubscriptionManager: ObservableObject {
 
     // MARK: - Published
     @Published var isPro: Bool = false
+    @Published var activeProductID: String? = nil
     @Published var products: [Product] = []
     @Published var isLoading: Bool = false
     @Published var purchaseError: String? = nil
@@ -30,7 +31,7 @@ final class SubscriptionManager: ObservableObject {
 
     init() {
         // Sofort iCloud-Cache lesen für schnelle UI
-        isPro = kvStore.bool(forKey: Self.kvIsProKey)
+        isPro = kvStore.bool(forKey: Self.kvIsProKey) || kvStore.bool(forKey: GiftCodeManager.kvGiftedKey)
         if let ts = kvStore.object(forKey: Self.kvExpiryKey) as? Double {
             expirationDate = Date(timeIntervalSince1970: ts)
         }
@@ -124,18 +125,26 @@ final class SubscriptionManager: ObservableObject {
     func refreshEntitlements() async {
         var active = false
         var expiry: Date? = nil
+        var latestProductID: String? = nil
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 active = true
                 if let exp = transaction.expirationDate {
-                    // Immer das späteste Ablaufdatum (falls mehrere Käufe)
-                    expiry = expiry.map { max($0, exp) } ?? exp
+                    if expiry == nil || exp > expiry! {
+                        expiry = exp
+                        latestProductID = transaction.productID
+                    }
+                } else {
+                    // Lifetime – kein Ablaufdatum
+                    if latestProductID == nil { latestProductID = transaction.productID }
                 }
             }
         }
 
-        isPro = active
+        let isGifted = kvStore.bool(forKey: GiftCodeManager.kvGiftedKey)
+        isPro = active || isGifted
+        activeProductID = active ? latestProductID : nil
         expirationDate = expiry
 
         // iCloud KV aktualisieren → andere Geräte merken es sofort

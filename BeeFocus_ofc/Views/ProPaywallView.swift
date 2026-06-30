@@ -5,7 +5,7 @@ struct ProPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var sub = SubscriptionManager.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
-    @State private var selectedID: String = SubscriptionManager.yearlyID
+    @State private var selectedID: String = SubscriptionManager.shared.activeProductID ?? SubscriptionManager.yearlyID
 
     private var c1: Color { appThemaFarben(aktivesThema).0 }
     private var c2: Color { appThemaFarben(aktivesThema).1 }
@@ -236,13 +236,20 @@ struct ProPaywallView: View {
     private func planCard(id: String, title: String, price: String,
                           period: String, badge: String?, savings: String?, hasTrial: Bool) -> some View {
         let isSelected = selectedID == id
-        return Button { selectedID = id } label: {
+        let isOwned = sub.activeProductID == id
+        return Button {
+            if !isOwned { selectedID = id }
+        } label: {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? accent : .white.opacity(0.25), lineWidth: 2)
+                        .stroke(isOwned ? Color.green.opacity(0.8) : (isSelected ? accent : .white.opacity(0.25)), lineWidth: 2)
                         .frame(width: 22, height: 22)
-                    if isSelected {
+                    if isOwned {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.green)
+                    } else if isSelected {
                         Circle().fill(accent).frame(width: 12, height: 12)
                     }
                 }
@@ -251,8 +258,14 @@ struct ProPaywallView: View {
                     HStack(spacing: 8) {
                         Text(title)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                        if let badge {
+                            .foregroundStyle(isOwned ? .white.opacity(0.5) : .white)
+                        if isOwned {
+                            Text("Current plan")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Color.green.opacity(0.7), in: Capsule())
+                        } else if let badge {
                             Text(badge)
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(.white)
@@ -261,12 +274,12 @@ struct ProPaywallView: View {
                         }
                     }
                     HStack(spacing: 6) {
-                        if hasTrial {
+                        if hasTrial && !isOwned {
                             Text("7 days free")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.green)
                         }
-                        if let savings {
+                        if let savings, !isOwned {
                             Text(savings)
                                 .font(.system(size: 11))
                                 .foregroundStyle(accent.opacity(0.9))
@@ -279,20 +292,20 @@ struct ProPaywallView: View {
                 VStack(alignment: .trailing, spacing: 1) {
                     Text(price)
                         .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isOwned ? .white.opacity(0.4) : .white)
                     Text(period)
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.white.opacity(isOwned ? 0.25 : 0.5))
                 }
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(isSelected ? accent.opacity(0.15) : .white.opacity(0.05))
+                    .fill(isOwned ? .white.opacity(0.03) : (isSelected ? accent.opacity(0.15) : .white.opacity(0.05)))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(isSelected ? accent.opacity(0.6) : .white.opacity(0.1), lineWidth: 1.5)
+                            .stroke(isOwned ? Color.green.opacity(0.3) : (isSelected ? accent.opacity(0.6) : .white.opacity(0.1)), lineWidth: 1.5)
                     )
             )
         }
@@ -302,12 +315,18 @@ struct ProPaywallView: View {
 
     // MARK: - CTA
 
+    private var isSelectedOwned: Bool { sub.activeProductID == selectedID }
+
     private var purchaseButton: some View {
         Button {
-            Task {
-                guard let product = sub.products.first(where: { $0.id == selectedID }) else { return }
-                await sub.purchase(product)
-                if sub.isPro { dismiss() }
+            if isSelectedOwned {
+                sub.manageSubscriptions()
+            } else {
+                Task {
+                    guard let product = sub.products.first(where: { $0.id == selectedID }) else { return }
+                    await sub.purchase(product)
+                    if sub.isPro { dismiss() }
+                }
             }
         } label: {
             ZStack {
@@ -322,20 +341,23 @@ struct ProPaywallView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 54)
             .background(
-                LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing),
+                isSelectedOwned
+                    ? LinearGradient(colors: [.green.opacity(0.6), .green.opacity(0.4)], startPoint: .leading, endPoint: .trailing)
+                    : LinearGradient(colors: [accent, accent2], startPoint: .leading, endPoint: .trailing),
                 in: RoundedRectangle(cornerRadius: 16)
             )
-            .shadow(color: accent.opacity(0.4), radius: 12, y: 4)
+            .shadow(color: (isSelectedOwned ? Color.green : accent).opacity(0.4), radius: 12, y: 4)
         }
         .disabled(sub.isLoading)
     }
 
     private var buttonLabel: String {
+        if isSelectedOwned { return "Manage Subscription" }
         let hasTrial = effectiveTrialLabel != nil
         switch selectedID {
         case SubscriptionManager.lifetimeID: return "Buy Lifetime"
         case SubscriptionManager.yearlyID:   return hasTrial ? "Start 7-day free trial" : "Subscribe yearly"
-        default:                              return hasTrial ? "Start 7-day free trial" : "Subscribe monthly"
+        default:                             return hasTrial ? "Start 7-day free trial" : "Subscribe monthly"
         }
     }
 

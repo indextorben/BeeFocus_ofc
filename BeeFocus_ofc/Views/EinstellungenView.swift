@@ -6,7 +6,6 @@ struct EinstellungenView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var todoStore: TodoStore
 
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("showPastTasksGlobal") private var showPastTasksGlobal = false
     @AppStorage("filterCurrentMonthOnly") private var filterCurrentMonthOnly = false
     @AppStorage("autoDeleteCompletedEnabled") private var autoDeleteCompletedEnabled = false
@@ -55,8 +54,13 @@ struct EinstellungenView: View {
 
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var sub = SubscriptionManager.shared
+    @ObservedObject private var giftManager = GiftCodeManager.shared
     @State private var showPaywall = false
     @State private var showAmbientSounds = false
+    @State private var showGiftCodeSheet = false
+    @State private var giftCodeInput = ""
+    @State private var isRedeemingCode = false
+    @State private var giftCodeError: String? = nil
     let languages = ["Deutsch", "Englisch"]
 
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
@@ -68,27 +72,15 @@ struct EinstellungenView: View {
     private var backgroundGradient: some View {
         let (tc1, tc2, _) = appThemaFarben(aktivesThema)
         return ZStack {
-            if darkModeEnabled {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.06, green: 0.06, blue: 0.14),
-                        Color(red: 0.10, green: 0.08, blue: 0.20),
-                        Color(red: 0.08, green: 0.06, blue: 0.16)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.94, green: 0.92, blue: 1.0),
-                        Color(red: 0.97, green: 0.95, blue: 1.0),
-                        Color(red: 0.92, green: 0.96, blue: 1.0)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
+            LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.06, blue: 0.14),
+                    Color(red: 0.10, green: 0.08, blue: 0.20),
+                    Color(red: 0.08, green: 0.06, blue: 0.16)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
 
             // Ambient orbs for depth
             GeometryReader { geo in
@@ -96,7 +88,7 @@ struct EinstellungenView: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                tc1.opacity(darkModeEnabled ? 0.25 : 0.12),
+                                tc1.opacity(0.25),
                                 Color.clear
                             ],
                             center: .center,
@@ -112,7 +104,7 @@ struct EinstellungenView: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                tc2.opacity(darkModeEnabled ? 0.20 : 0.10),
+                                tc2.opacity(0.20),
                                 Color.clear
                             ],
                             center: .center,
@@ -128,12 +120,12 @@ struct EinstellungenView: View {
             // Animated wave decoration
             GeometryReader { geo in
                 WaveShape(phase: wavePhase2, amplitude: 18, frequency: 1.5)
-                    .fill(tc2.opacity(darkModeEnabled ? 0.10 : 0.07))
+                    .fill(tc2.opacity(0.10))
                     .frame(width: geo.size.width, height: geo.size.height * 0.38)
                     .position(x: geo.size.width * 0.5,
                                y: geo.size.height - geo.size.height * 0.38 * 0.5)
                 WaveShape(phase: wavePhase1, amplitude: 12, frequency: 2.1)
-                    .fill(tc1.opacity(darkModeEnabled ? 0.16 : 0.11))
+                    .fill(tc1.opacity(0.16))
                     .frame(width: geo.size.width, height: geo.size.height * 0.27)
                     .position(x: geo.size.width * 0.5,
                                y: geo.size.height - geo.size.height * 0.27 * 0.5)
@@ -309,6 +301,27 @@ struct EinstellungenView: View {
             }
             .sheet(isPresented: $showPaywall) { ProPaywallView() }
             .sheet(isPresented: $showAmbientSounds) { AmbientSoundView() }
+            .sheet(isPresented: $showGiftCodeSheet, onDismiss: { giftCodeInput = ""; giftCodeError = nil }) {
+                GiftCodeSheet(
+                    codeInput: $giftCodeInput,
+                    isLoading: $isRedeemingCode,
+                    errorMessage: $giftCodeError,
+                    onRedeem: {
+                        Task {
+                            isRedeemingCode = true
+                            giftCodeError = nil
+                            do {
+                                try await GiftCodeManager.shared.redeem(code: giftCodeInput)
+                                showGiftCodeSheet = false
+                                showBanner(message: localizer.localizedString(forKey: "gift_code_success"))
+                            } catch {
+                                giftCodeError = error.localizedDescription
+                            }
+                            isRedeemingCode = false
+                        }
+                    }
+                )
+            }
             .sheet(isPresented: $showingCategoryEdit) {
                 CategoryEditView().environmentObject(todoStore)
             }
@@ -331,7 +344,6 @@ struct EinstellungenView: View {
                 wavePhase2 = .pi * 2
             }
         }
-        .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
     }
 
     // MARK: - Hero Header
@@ -359,7 +371,7 @@ struct EinstellungenView: View {
         return VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(c1.opacity(darkModeEnabled ? 0.15 : 0.08))
+                    .fill(c1.opacity(0.15))
                     .frame(width: 84, height: 84)
                     .scaleEffect(headerAppeared ? 1.0 : 0.5)
                     .opacity(headerAppeared ? 1 : 0)
@@ -456,8 +468,6 @@ struct EinstellungenView: View {
 
     private var darstellungCard: some View {
         glassCard {
-            iconToggleRow(icon: "moon.fill", color: .indigo, label: localizer.localizedString(forKey: "Darkmode"), isOn: $darkModeEnabled)
-            cardDivider()
             iconToggleRow(icon: "clock.arrow.circlepath", color: .blue, label: localizer.localizedString(forKey: "Vergangene anzeigen"), isOn: $showPastTasksGlobal)
             cardDivider()
             iconToggleRow(icon: "calendar", color: .orange, label: localizer.localizedString(forKey: "show_current_month_only"), isOn: $filterCurrentMonthOnly)
@@ -635,28 +645,6 @@ struct EinstellungenView: View {
                 .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
-            #if DEBUG
-            cardDivider()
-            Button {
-                fokuspunktePeak += 1000
-            } label: {
-                HStack(spacing: 12) {
-                    iconBadge(icon: "plus.circle.fill", color: .yellow)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("TEST: +1000 Fokuspunkte")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.primary)
-                        Text("Aktuell: \(fokuspunktePeak) FP")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-            }
-            .buttonStyle(.plain)
-            #endif
         }
     }
 
@@ -880,7 +868,7 @@ struct EinstellungenView: View {
 
     private var proCard: some View {
         VStack(spacing: 0) {
-            Button { if !sub.isPro { showPaywall = true } } label: {
+            Button { showPaywall = true } label: {
                 HStack(spacing: 14) {
                     ZStack {
                         LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0),
@@ -896,7 +884,7 @@ struct EinstellungenView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(sub.isPro ? "BeeFocus Pro ✓" : "BeeFocus Pro")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(darkModeEnabled ? .white : .primary)
+                            .foregroundStyle(.white)
                         if sub.isPro {
                             if let exp = sub.expirationDate {
                                 Text(String(format: localizer.localizedString(forKey: "pro_active_until"), exp.formatted(.dateTime.day().month().year())))
@@ -916,7 +904,11 @@ struct EinstellungenView: View {
 
                     Spacer()
 
-                    if !sub.isPro {
+                    if sub.isPro {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.3))
+                    } else {
                         Text(localizer.localizedString(forKey: "pro_upgrade"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.white)
@@ -956,6 +948,40 @@ struct EinstellungenView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            // Geschenk-Code
+            Divider().padding(.horizontal, 16)
+            if giftManager.isGifted {
+                HStack {
+                    Image(systemName: "gift.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.purple)
+                    Text(localizer.localizedString(forKey: "gift_code_already_gifted"))
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            } else {
+                Button { showGiftCodeSheet = true } label: {
+                    HStack {
+                        Image(systemName: "gift.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.purple)
+                        Text(localizer.localizedString(forKey: "gift_code_redeem_button"))
+                            .font(.system(size: 14))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
@@ -977,7 +1003,7 @@ struct EinstellungenView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "ki_settings_title"))
                             .font(.system(size: 16))
-                            .foregroundStyle(darkModeEnabled ? .white : .primary)
+                            .foregroundStyle(.white)
                         Text(providerSubtitle)
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
@@ -1045,8 +1071,8 @@ struct EinstellungenView: View {
                 .fill(.ultraThinMaterial)
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(LinearGradient(
-                    colors: [c1.opacity(darkModeEnabled ? 0.14 : 0.09),
-                             c2.opacity(darkModeEnabled ? 0.07 : 0.05)],
+                    colors: [c1.opacity(0.14),
+                             c2.opacity(0.07)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
@@ -1057,16 +1083,16 @@ struct EinstellungenView: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: hasTema
-                            ? [c1.opacity(darkModeEnabled ? 0.50 : 0.32), c2.opacity(darkModeEnabled ? 0.22 : 0.16)]
-                            : [Color.white.opacity(darkModeEnabled ? 0.12 : 0.60), Color.white.opacity(darkModeEnabled ? 0.04 : 0.20)],
+                            ? [c1.opacity(0.50), c2.opacity(0.22)]
+                            : [Color.white.opacity(0.12), Color.white.opacity(0.04)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
                     lineWidth: 1
                 )
         )
-        .shadow(color: Color.black.opacity(darkModeEnabled ? 0.25 : 0.08), radius: 16, x: 0, y: 6)
-        .shadow(color: c1.opacity(darkModeEnabled ? 0.18 : 0.09), radius: 20, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.25), radius: 16, x: 0, y: 6)
+        .shadow(color: c1.opacity(0.18), radius: 20, x: 0, y: 2)
         .animation(.easeInOut(duration: 0.5), value: aktivesThema))
     }
 
@@ -1549,5 +1575,84 @@ extension Bundle {
     }
     var versionAndBuild: String {
         "v\(appVersion) (\(buildNumber))"
+    }
+}
+
+// MARK: - GiftCodeSheet
+
+struct GiftCodeSheet: View {
+    @Binding var codeInput: String
+    @Binding var isLoading: Bool
+    @Binding var errorMessage: String?
+    let onRedeem: () -> Void
+
+    @ObservedObject private var localizer = LocalizationManager.shared
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 28) {
+                Image(systemName: "gift.fill")
+                    .font(.system(size: 52))
+                    .foregroundStyle(
+                        LinearGradient(colors: [.purple, Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .padding(.top, 16)
+
+                VStack(spacing: 8) {
+                    TextField(localizer.localizedString(forKey: "gift_code_input_placeholder"),
+                              text: $codeInput)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                        .padding(14)
+                        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+
+                    if let error = errorMessage {
+                        Text(error)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                Button {
+                    onRedeem()
+                } label: {
+                    if isLoading {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    } else {
+                        Text(localizer.localizedString(forKey: "gift_code_redeem"))
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                }
+                .background(
+                    LinearGradient(colors: [.purple, Color(red: 0.3, green: 0.6, blue: 1.0)],
+                                   startPoint: .leading, endPoint: .trailing),
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+                .disabled(codeInput.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
+                .opacity(codeInput.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+                .padding(.horizontal, 24)
+
+                Spacer()
+            }
+            .navigationTitle(localizer.localizedString(forKey: "gift_code_sheet_title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(localizer.localizedString(forKey: "gift_code_cancel")) { dismiss() }
+                }
+            }
+        }
     }
 }

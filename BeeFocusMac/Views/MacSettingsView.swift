@@ -227,7 +227,7 @@ struct MacSettingsView: View {
         let accent2 = aktivesThema.isEmpty ? Color(red: 0.3,  green: 0.6,  blue: 1.0) : c2
 
         return Button {
-            if !subManager.isPro { showPaywall = true }
+            showPaywall = true
         } label: {
             HStack(spacing: 14) {
                 ZStack {
@@ -266,9 +266,14 @@ struct MacSettingsView: View {
                 Spacer()
 
                 if subManager.isPro {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.system(size: 20))
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.system(size: 20))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.3))
+                    }
                 } else {
                     Label("Upgrade", systemImage: "arrow.up.circle.fill")
                         .font(.system(size: 13, weight: .semibold))
@@ -296,7 +301,6 @@ struct MacSettingsView: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(subManager.isPro)
     }
 
     // MARK: - Section Cards
