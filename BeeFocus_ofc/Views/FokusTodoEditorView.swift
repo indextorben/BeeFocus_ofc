@@ -44,12 +44,10 @@ struct FokusTodoEditorView: View {
     @State private var showSubTaskDeleteAlert = false
 
     // MARK: - KI-Beschreibung
-    @ObservedObject private var sub = SubscriptionManager.shared
     @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
     @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
     @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
     @State private var isGeneratingDescription = false
-    @State private var showDescPaywall = false
     @State private var showAIKeyAlert = false
     @State private var descGenerationTask: Task<Void, Never>? = nil
 
@@ -214,7 +212,6 @@ struct FokusTodoEditorView: View {
         } message: {
             Text("Please set up an AI provider in Settings first.")
         }
-        .sheet(isPresented: $showDescPaywall) { ProPaywallView() }
         .sheet(isPresented: $showCamera) {
             CameraPicker { img in
                 if let img { selectedImages.append(IdentifiableUIImage(image: img)) }
@@ -274,7 +271,6 @@ struct FokusTodoEditorView: View {
             EmptyView()
         } else {
             Button {
-                guard sub.isPro else { showDescPaywall = true; return }
                 if isGeneratingDescription {
                     descGenerationTask?.cancel()
                     isGeneratingDescription = false
@@ -289,26 +285,18 @@ struct FokusTodoEditorView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(themeC1)
                     } else {
-                        Image(systemName: sub.isPro ? "sparkles" : "sparkles")
+                        Image(systemName: "sparkles")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(sub.isPro ? themeC1 : .secondary)
-                        Text(sub.isPro ? "KI" : "KI ✦")
+                            .foregroundStyle(themeC1)
+                        Text("KI")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(sub.isPro ? themeC1 : .secondary)
+                            .foregroundStyle(themeC1)
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(isGeneratingDescription
-                              ? themeC1.opacity(0.12)
-                              : (sub.isPro ? themeC1.opacity(0.12) : Color.secondary.opacity(0.08)))
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(sub.isPro ? themeC1.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5)
-                )
+                .background(Capsule().fill(themeC1.opacity(0.12)))
+                .overlay(Capsule().stroke(themeC1.opacity(0.3), lineWidth: 0.5))
             }
             .buttonStyle(.plain)
             .animation(.easeInOut(duration: 0.2), value: isGeneratingDescription)

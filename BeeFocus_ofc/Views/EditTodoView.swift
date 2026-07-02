@@ -40,24 +40,20 @@ struct EditTodoView: View {
     @State private var showSubTaskDeleteAlert = false
 
     // MARK: - KI-Beschreibung
-    @ObservedObject private var sub = SubscriptionManager.shared
     @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
     @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
     @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
     @State private var isGeneratingDescription = false
-    @State private var showDescPaywall = false
     @State private var showAIKeyAlert = false
     @State private var descGenerationTask: Task<Void, Never>? = nil
 
     // MARK: - KI-Aufteilen
     @State private var isGeneratingSubTasks = false
-    @State private var showSubTaskPaywall = false
     @State private var showAISubTaskKeyAlert = false
     @State private var subTaskGenerationTask: Task<Void, Never>? = nil
 
     // MARK: - KI-Erinnerung
     @State private var isGeneratingReminder = false
-    @State private var showReminderPaywall = false
     @State private var showAIReminderKeyAlert = false
     @State private var reminderGenerationTask: Task<Void, Never>? = nil
     @State private var showCamera = false
@@ -310,7 +306,6 @@ struct EditTodoView: View {
         } message: {
             Text("Please set up an AI provider in Settings first.")
         }
-        .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
         .alert("AI provider not configured", isPresented: $showAIKeyAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -321,8 +316,6 @@ struct EditTodoView: View {
         } message: {
             Text("Please set up an AI provider in Settings first.")
         }
-        .sheet(isPresented: $showDescPaywall) { ProPaywallView() }
-        .sheet(isPresented: $showReminderPaywall) { ProPaywallView() }
     }
     
     // MARK: - Sections
@@ -334,7 +327,6 @@ struct EditTodoView: View {
                     .frame(height: 100)
                 if !title.trimmingCharacters(in: .whitespaces).isEmpty {
                     Button {
-                        guard sub.isPro else { showDescPaywall = true; return }
                         if isGeneratingDescription {
                             descGenerationTask?.cancel()
                             isGeneratingDescription = false
@@ -348,13 +340,13 @@ struct EditTodoView: View {
                                 Text("Stop").font(.system(size: 11, weight: .medium))
                             } else {
                                 Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
-                                Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
+                                Text("KI").font(.system(size: 11, weight: .semibold))
                             }
                         }
-                        .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                        .foregroundStyle(Color.accentColor)
                         .padding(.horizontal, 9).padding(.vertical, 4)
-                        .background(Capsule().fill(sub.isPro ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.08)))
-                        .overlay(Capsule().stroke(sub.isPro ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5))
+                        .background(Capsule().fill(Color.accentColor.opacity(0.1)))
+                        .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 4).padding(.trailing, 4)
@@ -410,7 +402,6 @@ struct EditTodoView: View {
                         TextField("", text: $reminderTitle, prompt: Text(dynamicDefaultReminderTitle))
                         if !title.trimmingCharacters(in: .whitespaces).isEmpty {
                             Button {
-                                guard sub.isPro else { showReminderPaywall = true; return }
                                 if isGeneratingReminder {
                                     reminderGenerationTask?.cancel()
                                     isGeneratingReminder = false
@@ -424,13 +415,13 @@ struct EditTodoView: View {
                                         Text("Stop").font(.system(size: 11, weight: .medium))
                                     } else {
                                         Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
-                                        Text(sub.isPro ? "KI" : "KI ✦").font(.system(size: 11, weight: .semibold))
+                                        Text("KI").font(.system(size: 11, weight: .semibold))
                                     }
                                 }
-                                .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                                .foregroundStyle(Color.accentColor)
                                 .padding(.horizontal, 9).padding(.vertical, 4)
-                                .background(Capsule().fill(sub.isPro ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.08)))
-                                .overlay(Capsule().stroke(sub.isPro ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5))
+                                .background(Capsule().fill(Color.accentColor.opacity(0.1)))
+                                .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
                             }
                             .buttonStyle(.plain)
                             .animation(.easeInOut(duration: 0.2), value: isGeneratingReminder)
@@ -579,7 +570,6 @@ struct EditTodoView: View {
             Spacer()
             if !title.trimmingCharacters(in: .whitespaces).isEmpty {
                 Button {
-                    guard sub.isPro else { showSubTaskPaywall = true; return }
                     if isGeneratingSubTasks {
                         subTaskGenerationTask?.cancel()
                         isGeneratingSubTasks = false
@@ -593,14 +583,13 @@ struct EditTodoView: View {
                             Text("Stopp").font(.system(size: 11, weight: .medium))
                         } else {
                             Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
-                            Text(sub.isPro ? "KI aufteilen" : "KI aufteilen ✦")
-                                .font(.system(size: 11, weight: .semibold))
+                            Text("KI aufteilen").font(.system(size: 11, weight: .semibold))
                         }
                     }
-                    .foregroundStyle(sub.isPro ? Color.accentColor : .secondary)
+                    .foregroundStyle(Color.accentColor)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Capsule().fill(sub.isPro ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.08)))
-                    .overlay(Capsule().stroke(sub.isPro ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 0.5))
+                    .background(Capsule().fill(Color.accentColor.opacity(0.1)))
+                    .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
                 }
                 .buttonStyle(.plain)
                 .animation(.easeInOut(duration: 0.2), value: isGeneratingSubTasks)

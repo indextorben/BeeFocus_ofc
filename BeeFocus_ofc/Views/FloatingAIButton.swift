@@ -8,7 +8,6 @@ struct FloatingAIButton: View {
     @AppStorage("floatingAIOnRight")     private var onRight: Bool = true
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @AppStorage("floatingAIEnabled")     private var isEnabled: Bool = true
-    @ObservedObject private var sub = SubscriptionManager.shared
 
     @State private var posY: CGFloat = 0
     @State private var dragOffsetY: CGFloat = 0
@@ -16,7 +15,6 @@ struct FloatingAIButton: View {
     @State private var showKI = false
     @State private var showQuickAdd = false
     @State private var isPressing = false
-    @State private var showPaywall = false
 
     @EnvironmentObject var todoStore: TodoStore
 
@@ -66,9 +64,6 @@ struct FloatingAIButton: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
-            .sheet(isPresented: $showPaywall) {
-                ProPaywallView()
-            }
         )
     }
 
@@ -91,7 +86,7 @@ struct FloatingAIButton: View {
         .contentShape(Circle())
         .onTapGesture {
             guard !isDragging else { return }
-            if sub.isPro { showKI = true } else { showPaywall = true }
+            showKI = true
         }
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
             guard !isDragging else { return }
@@ -100,7 +95,7 @@ struct FloatingAIButton: View {
             guard !isDragging else { return }
             let gen = UIImpactFeedbackGenerator(style: .medium)
             gen.impactOccurred()
-            if sub.isPro { showQuickAdd = true } else { showPaywall = true }
+            showQuickAdd = true
         })
     }
 

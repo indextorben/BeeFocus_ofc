@@ -31,7 +31,7 @@ final class SubscriptionManager: ObservableObject {
 
     init() {
         // Sofort iCloud-Cache lesen für schnelle UI
-        isPro = kvStore.bool(forKey: Self.kvIsProKey) || kvStore.bool(forKey: GiftCodeManager.kvGiftedKey)
+        isPro = kvStore.bool(forKey: Self.kvIsProKey)
         if let ts = kvStore.object(forKey: Self.kvExpiryKey) as? Double {
             expirationDate = Date(timeIntervalSince1970: ts)
         }
@@ -142,8 +142,7 @@ final class SubscriptionManager: ObservableObject {
             }
         }
 
-        let isGifted = kvStore.bool(forKey: GiftCodeManager.kvGiftedKey)
-        isPro = active || isGifted
+        isPro = active
         activeProductID = active ? latestProductID : nil
         expirationDate = expiry
 

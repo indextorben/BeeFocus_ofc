@@ -18,7 +18,6 @@ struct QuickAddSheet: View {
     @AppStorage("selectedLanguage")    private var selectedLanguage = "Deutsch"
 
     @ObservedObject private var speech = SpeechManager.shared
-    @ObservedObject private var sub = SubscriptionManager.shared
     private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
 
     @State private var userInput: String = ""
@@ -29,7 +28,6 @@ struct QuickAddSheet: View {
     @State private var examplesAppeared = false
 
     @State private var isGeneratingSubTasks = false
-    @State private var showSubTaskPaywall = false
     @State private var showAISubTaskKeyAlert = false
     @State private var subTaskGenerationTask: Task<Void, Never>? = nil
 
@@ -78,7 +76,6 @@ struct QuickAddSheet: View {
         } message: {
             Text("Please set up an AI provider in Settings first.")
         }
-        .sheet(isPresented: $showSubTaskPaywall) { ProPaywallView() }
     }
 
     // MARK: - Input View
@@ -312,7 +309,6 @@ struct QuickAddSheet: View {
 
             // KI-Aufteilen Button
             Button {
-                guard sub.isPro else { showSubTaskPaywall = true; return }
                 if isGeneratingSubTasks {
                     subTaskGenerationTask?.cancel()
                     isGeneratingSubTasks = false
@@ -326,15 +322,14 @@ struct QuickAddSheet: View {
                         Text("Stop").font(.system(size: 13, weight: .medium))
                     } else {
                         Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
-                        Text(sub.isPro ? "Split into subtasks with AI" : "Split with AI ✦")
-                            .font(.system(size: 13, weight: .semibold))
+                        Text("Split into subtasks with AI").font(.system(size: 13, weight: .semibold))
                     }
                 }
-                .foregroundStyle(sub.isPro ? themeC1 : .secondary)
+                .foregroundStyle(themeC1)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(themeC1.opacity(sub.isPro ? 0.3 : 0.1), lineWidth: 0.5))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(themeC1.opacity(0.3), lineWidth: 0.5))
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 24)

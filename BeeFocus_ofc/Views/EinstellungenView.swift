@@ -54,13 +54,8 @@ struct EinstellungenView: View {
 
     @ObservedObject private var localizer = LocalizationManager.shared
     @ObservedObject private var sub = SubscriptionManager.shared
-    @ObservedObject private var giftManager = GiftCodeManager.shared
     @State private var showPaywall = false
     @State private var showAmbientSounds = false
-    @State private var showGiftCodeSheet = false
-    @State private var giftCodeInput = ""
-    @State private var isRedeemingCode = false
-    @State private var giftCodeError: String? = nil
     let languages = ["Deutsch", "Englisch"]
 
     private var themeColors: (Color, Color, Color) { appThemaFarben(aktivesThema) }
@@ -301,27 +296,6 @@ struct EinstellungenView: View {
             }
             .sheet(isPresented: $showPaywall) { ProPaywallView() }
             .sheet(isPresented: $showAmbientSounds) { AmbientSoundView() }
-            .sheet(isPresented: $showGiftCodeSheet, onDismiss: { giftCodeInput = ""; giftCodeError = nil }) {
-                GiftCodeSheet(
-                    codeInput: $giftCodeInput,
-                    isLoading: $isRedeemingCode,
-                    errorMessage: $giftCodeError,
-                    onRedeem: {
-                        Task {
-                            isRedeemingCode = true
-                            giftCodeError = nil
-                            do {
-                                try await GiftCodeManager.shared.redeem(code: giftCodeInput)
-                                showGiftCodeSheet = false
-                                showBanner(message: localizer.localizedString(forKey: "gift_code_success"))
-                            } catch {
-                                giftCodeError = error.localizedDescription
-                            }
-                            isRedeemingCode = false
-                        }
-                    }
-                )
-            }
             .sheet(isPresented: $showingCategoryEdit) {
                 CategoryEditView().environmentObject(todoStore)
             }
@@ -949,39 +923,6 @@ struct EinstellungenView: View {
                 .buttonStyle(.plain)
             }
 
-            // Geschenk-Code
-            Divider().padding(.horizontal, 16)
-            if giftManager.isGifted {
-                HStack {
-                    Image(systemName: "gift.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.purple)
-                    Text(localizer.localizedString(forKey: "gift_code_already_gifted"))
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-            } else {
-                Button { showGiftCodeSheet = true } label: {
-                    HStack {
-                        Image(systemName: "gift.fill")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.purple)
-                        Text(localizer.localizedString(forKey: "gift_code_redeem_button"))
-                            .font(.system(size: 14))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-                .buttonStyle(.plain)
-            }
         }
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
@@ -1578,81 +1519,3 @@ extension Bundle {
     }
 }
 
-// MARK: - GiftCodeSheet
-
-struct GiftCodeSheet: View {
-    @Binding var codeInput: String
-    @Binding var isLoading: Bool
-    @Binding var errorMessage: String?
-    let onRedeem: () -> Void
-
-    @ObservedObject private var localizer = LocalizationManager.shared
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 28) {
-                Image(systemName: "gift.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(
-                        LinearGradient(colors: [.purple, Color(red: 0.3, green: 0.6, blue: 1.0)],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    .padding(.top, 16)
-
-                VStack(spacing: 8) {
-                    TextField(localizer.localizedString(forKey: "gift_code_input_placeholder"),
-                              text: $codeInput)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .multilineTextAlignment(.center)
-                        .font(.system(size: 22, weight: .semibold, design: .monospaced))
-                        .padding(14)
-                        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-
-                    if let error = errorMessage {
-                        Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                Button {
-                    onRedeem()
-                } label: {
-                    if isLoading {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    } else {
-                        Text(localizer.localizedString(forKey: "gift_code_redeem"))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    }
-                }
-                .background(
-                    LinearGradient(colors: [.purple, Color(red: 0.3, green: 0.6, blue: 1.0)],
-                                   startPoint: .leading, endPoint: .trailing),
-                    in: RoundedRectangle(cornerRadius: 14)
-                )
-                .disabled(codeInput.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
-                .opacity(codeInput.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
-                .padding(.horizontal, 24)
-
-                Spacer()
-            }
-            .navigationTitle(localizer.localizedString(forKey: "gift_code_sheet_title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(localizer.localizedString(forKey: "gift_code_cancel")) { dismiss() }
-                }
-            }
-        }
-    }
-}

@@ -187,7 +187,6 @@ struct RootView: View {
     @AppStorage("appLaunchCount")        private var launchCount: Int = 0
     @AppStorage("reviewRequestedAt")     private var reviewRequestedAt: Int = 0
 
-    @ObservedObject private var sub = SubscriptionManager.shared
     @State private var showPaywall = false
     @State private var showFocusCoach = false
     @State private var coachMinutesWorked = 0
@@ -202,6 +201,7 @@ struct RootView: View {
         ContentView()
             .environmentObject(todoStore)
             .environmentObject(timerManager)
+            .preferredColorScheme(.dark)
             .overlay {
                 FloatingAIButton()
                     .environmentObject(todoStore)
@@ -217,7 +217,7 @@ struct RootView: View {
                 .presentationDragIndicator(.visible)
             }
             .onReceive(NotificationCenter.default.publisher(for: .focusSessionCompleted)) { note in
-                guard focusCoachEnabled, sub.isPro else { return }
+                guard focusCoachEnabled else { return }
                 guard hasAIKey else { return }
                 let minutes = note.userInfo?["minutes"] as? Int ?? 0
                 coachMinutesWorked = minutes
