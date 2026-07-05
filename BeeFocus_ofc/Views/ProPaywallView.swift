@@ -172,13 +172,13 @@ struct ProPaywallView: View {
 
     private var featuresSection: some View {
         VStack(spacing: 0) {
-            featureRow(icon: "infinity",        color: accent,                               text: "Unlimited categories")
-            featureRow(icon: "storefront.fill", color: .orange,                              text: "All Focus Store items unlocked immediately")
-            featureRow(icon: "sparkles",        color: .purple,                              text: "AI assistant, Focus Coach & weekly recap")
-            featureRow(icon: "mic.fill",        color: .teal,                                text: "Voice input & AI voice output")
-            featureRow(icon: "chart.bar.fill",  color: .indigo,                              text: "Advanced statistics & heatmap")
-            featureRow(icon: "medal.fill",      color: Color(red: 0.6, green: 0.3, blue: 0.9), text: "Badges, streak & achievement system")
-            featureRow(icon: "timer",           color: .cyan,                                text: "All timer modes & premium themes")
+            featureRow(icon: "infinity",                  color: accent,                                  text: "Unlimited tasks, categories & filters")
+            featureRow(icon: "storefront.fill",           color: .orange,                                 text: "All Focus Store content unlocked")
+            featureRow(icon: "speaker.wave.3.fill",       color: .purple,                                 text: "Ambient focus sounds")
+            featureRow(icon: "chart.bar.fill",            color: .indigo,                                 text: "Advanced statistics & heatmap")
+            featureRow(icon: "heart.text.clipboard.fill", color: .teal,                                   text: "Unlimited habits & full journal history")
+            featureRow(icon: "medal.fill",                color: Color(red: 0.6, green: 0.3, blue: 0.9),  text: "Badges, streaks & achievement system")
+            featureRow(icon: "timer",                     color: .cyan,                                   text: "All timer modes & premium themes")
         }
         .padding(4)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
