@@ -2,7 +2,6 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import EventKit
-import FoundationModels
 
 extension View {
     @ViewBuilder
@@ -125,26 +124,6 @@ struct AddTodoView: View {
     @State private var reminderBody: String = ""
     private let allowedDynamicTypeRange: ClosedRange<DynamicTypeSize> = .xSmall ... .large
 
-    // KI-Aufteilen
-    @State private var isGeneratingSubTasks = false
-    @State private var showAISubTaskKeyAlert = false
-    @State private var subTaskGenerationTask: Task<Void, Never>? = nil
-
-    // KI-Schnelleingabe
-    @State private var showQuickInput = false
-    @State private var quickInputText = ""
-    @State private var isParsingQuickInput = false
-    @State private var showAIQuickKeyAlert = false
-    @State private var quickInputTask: Task<Void, Never>? = nil
-
-    // KI-Erinnerung
-    @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
-    @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
-    @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
-    @State private var isGeneratingReminder = false
-    @State private var showAIReminderKeyAlert = false
-    @State private var reminderGenerationTask: Task<Void, Never>? = nil
-
     private var dynamicDefaultReminderTitle: String {
         let loc = LocalizationManager.shared
         let isGerman = (loc.currentLanguageCode == "de")
@@ -191,7 +170,6 @@ struct AddTodoView: View {
 
     private var contentView: some View {
         let formContent = Form {
-            quickInputSection
             basicInfoSection
             categoryAndPrioritySection
             dueDateSection
@@ -232,21 +210,6 @@ struct AddTodoView: View {
                 Button(localizer.localizedString(forKey: "ok"), role: .cancel) { }
             } message: {
                 Text(localizer.localizedString(forKey: "category_missing_message"))
-            }
-            .alert("AI provider not configured", isPresented: $showAISubTaskKeyAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Please set up an AI provider in Settings first.")
-            }
-            .alert("AI provider not configured", isPresented: $showAIQuickKeyAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Please set up an AI provider in Settings first.")
-            }
-            .alert("AI provider not configured", isPresented: $showAIReminderKeyAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Please set up an AI provider in Settings first.")
             }
             .onAppear {
                 // Kategorie automatisch setzen oder Default anlegen
@@ -295,71 +258,6 @@ struct AddTodoView: View {
 
         func body(content: Content) -> some View {
             content.contentViewInteractiveDismiss(hasUnsavedChanges: hasUnsavedChanges)
-        }
-    }
-
-    // MARK: - KI-Schnelleingabe Section
-    private var quickInputSection: some View {
-        Section {
-            Toggle(isOn: $showQuickInput) {
-                Label {
-                    Text("Quick input with AI")
-                } icon: {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(Color.accentColor)
-                }
-            }
-            .tint(Color.accentColor)
-
-            if showQuickInput {
-                ZStack(alignment: .topLeading) {
-                    if quickInputText.isEmpty {
-                        Text("e.g. Dentist Wednesday 3pm, 30 min before, high priority")
-                            .foregroundStyle(Color.secondary.opacity(0.6))
-                            .font(.body)
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
-                            .allowsHitTesting(false)
-                    }
-                    TextEditor(text: $quickInputText)
-                        .frame(minHeight: 80)
-                        .scrollContentBackground(.hidden)
-                }
-
-                Button {
-                    if isParsingQuickInput {
-                        quickInputTask?.cancel()
-                        isParsingQuickInput = false
-                    } else {
-                        quickInputTask = Task { await parseQuickInput() }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        if isParsingQuickInput {
-                            ProgressView().scaleEffect(0.8)
-                            Text("Stop")
-                        } else {
-                            Image(systemName: "sparkles")
-                            Text("Fill in fields")
-                        }
-                    }
-                    .font(.system(size: 14, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
-                }
-                .buttonStyle(.plain)
-                .disabled(quickInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isParsingQuickInput)
-                .animation(.easeInOut(duration: 0.2), value: isParsingQuickInput)
-            }
-        } header: {
-            Text("AI Quick Input")
-        } footer: {
-            if showQuickInput {
-                Text("AI automatically fills in title, date, time, priority and reminder.")
-                    .font(.footnote)
-            }
         }
     }
 
@@ -433,35 +331,7 @@ struct AddTodoView: View {
                     Text(reminder1d).tag(1440)
                 }
                 if reminderSelection >= 0 {
-                    HStack {
-                        TextField("", text: $reminderTitle, prompt: Text(dynamicDefaultReminderTitle))
-                        if !title.trimmingCharacters(in: .whitespaces).isEmpty {
-                            Button {
-                                if isGeneratingReminder {
-                                    reminderGenerationTask?.cancel()
-                                    isGeneratingReminder = false
-                                } else {
-                                    reminderGenerationTask = Task { await generateReminder() }
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    if isGeneratingReminder {
-                                        ProgressView().scaleEffect(0.7)
-                                        Text("Stop").font(.system(size: 11, weight: .medium))
-                                    } else {
-                                        Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
-                                        Text("KI").font(.system(size: 11, weight: .semibold))
-                                    }
-                                }
-                                .foregroundStyle(Color.accentColor)
-                                .padding(.horizontal, 9).padding(.vertical, 4)
-                                .background(Capsule().fill(Color.accentColor.opacity(0.1)))
-                                .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
-                            }
-                            .buttonStyle(.plain)
-                            .animation(.easeInOut(duration: 0.2), value: isGeneratingReminder)
-                        }
-                    }
+                    TextField("", text: $reminderTitle, prompt: Text(dynamicDefaultReminderTitle))
                     TextField("", text: $reminderBody, prompt: Text(dynamicDefaultReminderBody), axis: .vertical)
                         .lineLimit(4)
                 } else {
@@ -628,37 +498,7 @@ struct AddTodoView: View {
     }
 
     private var subTasksSection: some View {
-        Section(header: HStack {
-            Text(localizer.localizedString(forKey: "subtasks"))
-            Spacer()
-            if !title.trimmingCharacters(in: .whitespaces).isEmpty {
-                Button {
-                    if isGeneratingSubTasks {
-                        subTaskGenerationTask?.cancel()
-                        isGeneratingSubTasks = false
-                    } else {
-                        subTaskGenerationTask = Task { await generateSubTasks() }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        if isGeneratingSubTasks {
-                            ProgressView().scaleEffect(0.65)
-                            Text("Stop").font(.system(size: 11, weight: .medium))
-                        } else {
-                            Image(systemName: "sparkles").font(.system(size: 11, weight: .semibold))
-                            Text("KI aufteilen").font(.system(size: 11, weight: .semibold))
-                        }
-                    }
-                    .foregroundStyle(Color.accentColor)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Capsule().fill(Color.accentColor.opacity(0.1)))
-                    .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
-                }
-                .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.2), value: isGeneratingSubTasks)
-                .textCase(nil)
-            }
-        }) {
+        Section(header: Text(localizer.localizedString(forKey: "subtasks"))) {
             ForEach(subTasks) { subTask in
                 HStack {
                     Text(subTask.title)
@@ -816,331 +656,6 @@ struct AddTodoView: View {
         // Always use the persisted category (handles duplicate name gracefully)
         category = todoStore.categories.first(where: { $0.name == trimmedName }) ?? newCategory
         newCategoryName = ""
-    }
-
-    private func generateSubTasks() async {
-        let t = title.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
-        isGeneratingSubTasks = true
-
-        var contextParts: [String] = ["Task: \(t)"]
-        if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            contextParts.append("Description: \(description)")
-        }
-        contextParts.append("Priority: \(priority.displayName)")
-        if let cat = category { contextParts.append("Category: \(cat.name)") }
-        let context = contextParts.joined(separator: "\n")
-
-        let prompt = """
-        Split this task into 3 to 6 meaningful, concrete subtasks in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
-        \(context)
-
-        Rules:
-        - Each subtask is an actionable step
-        - Maximum 8 words per subtask
-        - One subtask per line, no numbering, no bullet points
-        - Reply ONLY with the subtasks, one per line
-        """
-
-        var raw = ""
-        do {
-            switch aiProvider {
-            case "apple":
-                if #available(iOS 26.0, *) {
-                    guard case .available = SystemLanguageModel.default.availability else {
-                        isGeneratingSubTasks = false; return
-                    }
-                    let session = LanguageModelSession()
-                    for try await partial in session.streamResponse(to: prompt) {
-                        try Task.checkCancellation()
-                        raw = partial.content
-                    }
-                }
-            case "openai":
-                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAISubTaskKeyAlert = true; isGeneratingSubTasks = false }; return
-                }
-                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                }
-            case "groq":
-                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAISubTaskKeyAlert = true; isGeneratingSubTasks = false }; return
-                }
-                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                }
-            default:
-                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAISubTaskKeyAlert = true; isGeneratingSubTasks = false }; return
-                }
-                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                }
-            }
-        } catch is CancellationError {
-            await MainActor.run { isGeneratingSubTasks = false }; return
-        } catch {}
-
-        await MainActor.run {
-            let newTasks = raw
-                .components(separatedBy: "\n")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .map { line -> String in
-                    var s = line
-                    // Strip leading "- ", "• ", "1. ", "2. " etc.
-                    if s.hasPrefix("- ") || s.hasPrefix("• ") { s = String(s.dropFirst(2)) }
-                    if s.count > 2, s[s.index(s.startIndex, offsetBy: 1)] == "." || s[s.index(s.startIndex, offsetBy: 1)] == ")" {
-                        s = String(s.dropFirst(3))
-                    }
-                    return s.trimmingCharacters(in: .whitespaces)
-                }
-                .filter { !$0.isEmpty }
-                .map { SubTask(title: $0) }
-
-            withAnimation {
-                for task in newTasks where !subTasks.contains(where: { $0.title == task.title }) {
-                    subTasks.append(task)
-                }
-            }
-            isGeneratingSubTasks = false
-        }
-    }
-
-    private func parseQuickInput() async {
-        let input = quickInputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !input.isEmpty else { return }
-        isParsingQuickInput = true
-
-        let df = DateFormatter()
-        df.locale = Locale(identifier: "de_DE")
-        df.dateFormat = "EEEE, d. MMMM yyyy"
-        let todayStr = df.string(from: Date())
-
-        let prompt = """
-        Today is \(todayStr). Analyze this task description and extract the data. Write title and description in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
-
-        Input: \(input)
-
-        Rules:
-        - DATE always as ISO-8601 (YYYY-MM-DD), "none" if not specified
-        - TIME as HH:MM, "none" if not specified
-        - PRIORITY: high, medium or low
-        - REMINDER: a number from [-1, 0, 5, 15, 30, 60, 120, 1440], -1 if not mentioned
-        - Reply ONLY in this format (no additional lines):
-        TITLE: <title>
-        DESCRIPTION: <short description or empty>
-        DATE: <YYYY-MM-DD or none>
-        TIME: <HH:MM or none>
-        PRIORITY: <high|medium|low>
-        REMINDER: <number>
-        """
-
-        var raw = ""
-        do {
-            switch aiProvider {
-            case "apple":
-                if #available(iOS 26.0, *) {
-                    guard case .available = SystemLanguageModel.default.availability else {
-                        isParsingQuickInput = false; return
-                    }
-                    let session = LanguageModelSession()
-                    for try await partial in session.streamResponse(to: prompt) {
-                        try Task.checkCancellation()
-                        raw = partial.content
-                    }
-                }
-            case "openai":
-                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIQuickKeyAlert = true; isParsingQuickInput = false }; return
-                }
-                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                }
-            case "groq":
-                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIQuickKeyAlert = true; isParsingQuickInput = false }; return
-                }
-                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                }
-            default:
-                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIQuickKeyAlert = true; isParsingQuickInput = false }; return
-                }
-                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                }
-            }
-        } catch is CancellationError {
-            await MainActor.run { isParsingQuickInput = false }; return
-        } catch {}
-
-        await MainActor.run {
-            applyQuickInputResult(raw)
-            isParsingQuickInput = false
-            showQuickInput = false
-        }
-    }
-
-    @MainActor
-    private func applyQuickInputResult(_ raw: String) {
-        var parsedTitle = ""
-        var parsedDescription = ""
-        var parsedDateStr = ""
-        var parsedTimeStr = ""
-        var parsedPriority = ""
-        var parsedReminder = -1
-
-        for line in raw.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("TITLE:") {
-                parsedTitle = trimmed.dropFirst("TITLE:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("DESCRIPTION:") {
-                parsedDescription = trimmed.dropFirst("DESCRIPTION:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("DATE:") {
-                parsedDateStr = trimmed.dropFirst("DATE:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("TIME:") {
-                parsedTimeStr = trimmed.dropFirst("TIME:".count).trimmingCharacters(in: .whitespaces)
-            } else if trimmed.hasPrefix("PRIORITY:") {
-                parsedPriority = trimmed.dropFirst("PRIORITY:".count).trimmingCharacters(in: .whitespaces).lowercased()
-            } else if trimmed.hasPrefix("REMINDER:") {
-                parsedReminder = Int(trimmed.dropFirst("REMINDER:".count).trimmingCharacters(in: .whitespaces)) ?? -1
-            }
-        }
-
-        if !parsedTitle.isEmpty { title = parsedTitle }
-        if !parsedDescription.isEmpty && parsedDescription.lowercased() != "empty" { description = parsedDescription }
-
-        autoMatchCategory(from: parsedTitle + " " + parsedDescription + " " + quickInputText)
-
-        if parsedDateStr != "none", !parsedDateStr.isEmpty {
-            let isoFmt = DateFormatter()
-            isoFmt.dateFormat = "yyyy-MM-dd"
-            if let date = isoFmt.date(from: parsedDateStr) {
-                var components = Calendar.current.dateComponents([.year, .month, .day], from: date)
-                if parsedTimeStr != "none", !parsedTimeStr.isEmpty {
-                    let parts = parsedTimeStr.split(separator: ":").compactMap { Int($0) }
-                    if parts.count == 2 { components.hour = parts[0]; components.minute = parts[1] }
-                } else {
-                    components.hour = 9; components.minute = 0
-                }
-                if let finalDate = Calendar.current.date(from: components) {
-                    dueDate = finalDate
-                    hasDueDate = true
-                }
-            }
-        }
-
-        switch parsedPriority {
-        case "high": priority = .high
-        case "low": priority = .low
-        default: priority = .medium
-        }
-
-        let allowed = [-1, 0, 5, 15, 30, 60, 120, 1440]
-        if allowed.contains(parsedReminder) { reminderSelection = parsedReminder }
-    }
-
-    private func generateReminder() async {
-        let t = title.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
-        isGeneratingReminder = true
-        reminderTitle = ""
-        reminderBody = ""
-
-        var contextParts: [String] = ["Task: \(t)"]
-        if !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            contextParts.append("Description: \(description)")
-        }
-        contextParts.append("Priority: \(priority.displayName)")
-        if let cat = category { contextParts.append("Category: \(cat.name)") }
-        if hasDueDate {
-            let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .short
-            contextParts.append("Due date: \(fmt.string(from: dueDate))")
-        }
-        let context = contextParts.joined(separator: "\n")
-
-        let prompt = """
-        Create a reminder title and reminder text for this task in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
-        \(context)
-
-        Rules:
-        - Title: maximum 6 words, direct and motivating
-        - Text: maximum 2 sentences, concrete and helpful
-        - No Markdown, no bullet points
-        - Reply ONLY in this format (no additional lines):
-        TITLE: <title>
-        TEXT: <text>
-        """
-
-        var raw = ""
-        do {
-            switch aiProvider {
-            case "apple":
-                if #available(iOS 26.0, *) {
-                    guard case .available = SystemLanguageModel.default.availability else {
-                        isGeneratingReminder = false; return
-                    }
-                    let session = LanguageModelSession()
-                    for try await partial in session.streamResponse(to: prompt) {
-                        try Task.checkCancellation()
-                        raw = partial.content
-                        await MainActor.run { parseReminderResponse(raw) }
-                    }
-                }
-            case "openai":
-                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIReminderKeyAlert = true; isGeneratingReminder = false }; return
-                }
-                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { parseReminderResponse(raw) }
-                }
-            case "groq":
-                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIReminderKeyAlert = true; isGeneratingReminder = false }; return
-                }
-                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { parseReminderResponse(raw) }
-                }
-            default:
-                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIReminderKeyAlert = true; isGeneratingReminder = false }; return
-                }
-                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { parseReminderResponse(raw) }
-                }
-            }
-        } catch is CancellationError {
-            // stopped by user, keep partial
-        } catch {
-            // keep partial result
-        }
-        await MainActor.run { isGeneratingReminder = false }
-    }
-
-    @MainActor
-    private func parseReminderResponse(_ raw: String) {
-        let lines = raw.components(separatedBy: "\n")
-        for line in lines {
-            if line.hasPrefix("TITLE:") {
-                reminderTitle = line.dropFirst("TITLE:".count).trimmingCharacters(in: .whitespaces)
-            } else if line.hasPrefix("TEXT:") {
-                reminderBody = line.dropFirst("TEXT:".count).trimmingCharacters(in: .whitespaces)
-            }
-        }
     }
 
     private func saveTodo() {

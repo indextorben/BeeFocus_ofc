@@ -179,20 +179,12 @@ struct RootView: View {
     @EnvironmentObject var todoStore: TodoStore
     @EnvironmentObject var timerManager: TimerManager
 
-    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
-    @AppStorage("focusCoachEnabled")     private var focusCoachEnabled: Bool = true
-
     // Review
     @Environment(\.requestReview) private var requestReview
     @AppStorage("appLaunchCount")        private var launchCount: Int = 0
     @AppStorage("reviewRequestedAt")     private var reviewRequestedAt: Int = 0
 
     @State private var showPaywall = false
-    @State private var showFocusCoach = false
-    @State private var coachMinutesWorked = 0
-
-    private var themeC1: Color { appThemaFarben(aktivesThema).0 }
-    private var themeC2: Color { appThemaFarben(aktivesThema).1 }
 
     // Milestones an denen die Bewertungsanfrage erscheint
     private let reviewMilestones = [5, 15, 40, 80]
@@ -202,29 +194,6 @@ struct RootView: View {
             .environmentObject(todoStore)
             .environmentObject(timerManager)
             .preferredColorScheme(.dark)
-            .overlay {
-                FloatingAIButton()
-                    .environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showFocusCoach) {
-                FocusCoachSheet(
-                    minutesWorked: coachMinutesWorked,
-                    todos: todoStore.todos,
-                    themeC1: themeC1,
-                    themeC2: themeC2
-                )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .focusSessionCompleted)) { note in
-                guard focusCoachEnabled else { return }
-                guard hasAIKey else { return }
-                let minutes = note.userInfo?["minutes"] as? Int ?? 0
-                coachMinutesWorked = minutes
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    showFocusCoach = true
-                }
-            }
             .sheet(isPresented: $showPaywall) {
                 ProPaywallView()
             }
@@ -244,15 +213,6 @@ struct RootView: View {
         reviewRequestedAt = launchCount
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             requestReview()
-        }
-    }
-
-    private var hasAIKey: Bool {
-        let provider = UserDefaults.standard.string(forKey: "aiProvider") ?? "gemini"
-        switch provider {
-        case "openai": return KeychainHelper.load(for: OpenAIService.keychainKey) != nil
-        case "groq":   return KeychainHelper.load(for: GroqService.keychainKey) != nil
-        default:       return KeychainHelper.load(for: GeminiService.keychainKey) != nil
         }
     }
 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Quick-Add: Natürliche Sprache → Aufgabe
+// MARK: - Quick-Add: Simple Task Entry
 
 struct QuickAddSheet: View {
 
@@ -10,44 +10,22 @@ struct QuickAddSheet: View {
     let themeC1: Color
     let themeC2: Color
 
-    @AppStorage("aiProvider")          private var aiProvider: String = "gemini"
-    @AppStorage("geminiSelectedModel") private var geminiModel: String = GeminiService.models[0]
-    @AppStorage("openaiSelectedModel") private var openaiModel: String = OpenAIService.models[0]
-    @AppStorage("groqSelectedModel")   private var groqModel:   String = GroqService.models[0]
-    @AppStorage("darkModeEnabled")     private var darkModeEnabled = false
-    @AppStorage("selectedLanguage")    private var selectedLanguage = "Deutsch"
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
 
-    @ObservedObject private var speech = SpeechManager.shared
-    private var speechLang: String { selectedLanguage == "Deutsch" ? "de-DE" : "en-US" }
-
-    @State private var userInput: String = ""
-    @State private var isProcessing = false
-    @State private var parsedTask: ParsedTask? = nil
-    @State private var errorText: String = ""
+    @State private var title: String = ""
+    @State private var priority: TodoPriority = .medium
+    @State private var hasDueDate: Bool = false
+    @State private var dueDate: Date = Date()
+    @State private var category: Category? = nil
     @State private var addedSuccessfully = false
-    @State private var examplesAppeared = false
 
-    @State private var isGeneratingSubTasks = false
-    @State private var showAISubTaskKeyAlert = false
-    @State private var subTaskGenerationTask: Task<Void, Never>? = nil
-
-    @FocusState private var inputFocused: Bool
-
-    struct ParsedTask {
-        var title: String
-        var priority: TodoPriority
-        var dueDate: Date?
-        var category: Category?
-        var note: String
-        var subTasks: [SubTask] = []
-    }
+    @FocusState private var titleFocused: Bool
 
     // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
                 (darkModeEnabled
                     ? Color(red: 0.07, green: 0.07, blue: 0.10)
                     : Color(red: 0.94, green: 0.94, blue: 0.97))
@@ -56,8 +34,6 @@ struct QuickAddSheet: View {
                 VStack(spacing: 0) {
                     if addedSuccessfully {
                         successView
-                    } else if let task = parsedTask {
-                        previewView(task: task)
                     } else {
                         inputView
                     }
@@ -70,11 +46,6 @@ struct QuickAddSheet: View {
                     Button(String(localized: "Cancel")) { dismiss() }
                 }
             }
-        }
-        .alert("AI provider not configured", isPresented: $showAISubTaskKeyAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Please set up an AI provider in Settings first.")
         }
     }
 
@@ -90,7 +61,7 @@ struct QuickAddSheet: View {
                     .fill(LinearGradient(colors: [themeC1.opacity(0.2), themeC2.opacity(0.1)],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 80, height: 80)
-                Image(systemName: "sparkles")
+                Image(systemName: "plus.circle.fill")
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundStyle(LinearGradient(colors: [themeC1, themeC2],
                                                     startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -100,245 +71,66 @@ struct QuickAddSheet: View {
                 Text(String(localized: "quickadd_headline"))
                     .font(.system(size: 22, weight: .bold))
                     .multilineTextAlignment(.center)
-                Text(String(localized: "quickadd_sub"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
             }
 
-            // Text input
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .bottom, spacing: 10) {
-                    // Mic button
-                    Button {
-                        if speech.isRecording {
-                            speech.stopRecording()
-                            if !speech.liveText.isEmpty {
-                                userInput = speech.liveText
-                                Task { await parse() }
-                            }
-                        } else {
-                            speech.requestPermissions()
-                            speech.startRecording(languageCode: speechLang)
-                            inputFocused = false
-                        }
-                    } label: {
-                        Image(systemName: speech.isRecording ? "waveform" : "mic.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(speech.isRecording ? .white : themeC1)
-                            .frame(width: 38, height: 38)
-                            .background(speech.isRecording ? Color.red : themeC1.opacity(0.12), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    TextField(String(localized: "quickadd_placeholder"), text: $userInput, axis: .vertical)
+            // Form
+            VStack(spacing: 16) {
+                // Title
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField(String(localized: "quickadd_placeholder"), text: $title)
                         .font(.system(size: 16))
-                        .lineLimit(1...5)
-                        .focused($inputFocused)
+                        .focused($titleFocused)
                         .submitLabel(.done)
-                        .onSubmit { if !userInput.trimmingCharacters(in: .whitespaces).isEmpty { Task { await parse() } } }
-                        .onChange(of: speech.liveText) { live in
-                            if speech.isRecording { userInput = live }
-                        }
-
-                    if isProcessing {
-                        ProgressView()
-                            .scaleEffect(0.85)
-                            .tint(themeC1)
-                    } else {
-                        Button {
-                            Task { await parse() }
-                        } label: {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundStyle(
-                                    userInput.trimmingCharacters(in: .whitespaces).isEmpty
-                                        ? AnyShapeStyle(Color.secondary.opacity(0.4))
-                                        : AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2],
-                                                                        startPoint: .topLeading,
-                                                                        endPoint: .bottomTrailing))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(userInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                }
-                .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(themeC1.opacity(0.25), lineWidth: 1)
-                )
-
-                if !errorText.isEmpty {
-                    Text(errorText)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .padding(.horizontal, 4)
-                }
-            }
-            .padding(.horizontal, 24)
-
-            // Examples
-            VStack(alignment: .leading, spacing: 8) {
-                Text(String(localized: "quickadd_examples_label"))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 4)
-
-                ForEach(Array(examplePrompts.enumerated()), id: \.offset) { index, example in
-                    Button {
-                        userInput = example
-                        inputFocused = false
-                        Task { await parse() }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "text.bubble")
-                                .font(.caption)
-                                .foregroundStyle(themeC1)
-                            Text(example)
-                                .font(.system(size: 13))
-                                .foregroundStyle(darkModeEnabled ? .white.opacity(0.8) : .primary)
-                                .multilineTextAlignment(.leading)
-                            Spacer()
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(themeC1.opacity(0.5))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
-                    .opacity(examplesAppeared ? 1 : 0)
-                    .offset(x: examplesAppeared ? 0 : 22)
-                    .animation(
-                        .spring(response: 0.5, dampingFraction: 0.78)
-                            .delay(0.08 + Double(index) * 0.07),
-                        value: examplesAppeared
-                    )
-                }
-            }
-            .padding(.horizontal, 24)
-
-            Spacer()
-        }
-        .onAppear {
-            inputFocused = true
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.15)) {
-                examplesAppeared = true
-            }
-        }
-    }
-
-    // MARK: - Preview View
-
-    private func previewView(task: ParsedTask) -> some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            // Task card
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 10) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 22))
-                        .foregroundStyle(themeC1)
-                    Text(task.title)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(darkModeEnabled ? .white : .primary)
-                    Spacer()
+                        .padding(14)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(themeC1.opacity(0.25), lineWidth: 1)
+                        )
                 }
 
+                // Priority
                 HStack(spacing: 8) {
-                    priorityBadge(task.priority)
-
-                    if let date = task.dueDate {
-                        Label(date.formatted(date: .abbreviated, time: date.formatted(.dateTime.hour().minute()) == "00:00" ? .omitted : .shortened),
-                              systemImage: "calendar")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
-                            .background(.ultraThinMaterial, in: Capsule())
-                    }
-
-                    if let cat = task.category {
-                        Label(cat.name, systemImage: "tag")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
-                            .background(.ultraThinMaterial, in: Capsule())
+                    ForEach(TodoPriority.allCases) { p in
+                        priorityChip(p)
                     }
                 }
 
-                if !task.note.isEmpty {
-                    Text(task.note)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
+                // Due date toggle
+                Toggle(isOn: $hasDueDate.animation()) {
+                    Label("Set date", systemImage: "calendar")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(darkModeEnabled ? .white.opacity(0.85) : .primary)
                 }
-            }
-            .padding(20)
-            .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(LinearGradient(colors: [themeC1.opacity(0.10), themeC2.opacity(0.05)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(themeC1.opacity(0.3), lineWidth: 1)
-            )
-            .padding(.horizontal, 24)
-
-            // Teilaufgaben
-            if !task.subTasks.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(task.subTasks) { sub in
-                        HStack(spacing: 8) {
-                            Image(systemName: "circle").font(.system(size: 11)).foregroundStyle(.secondary)
-                            Text(sub.title).font(.system(size: 13)).foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                    }
-                }
+                .tint(themeC1)
                 .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .padding(.horizontal, 24)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
-            // KI-Aufteilen Button
-            Button {
-                if isGeneratingSubTasks {
-                    subTaskGenerationTask?.cancel()
-                    isGeneratingSubTasks = false
-                } else {
-                    subTaskGenerationTask = Task { await generateSubTasks(for: task) }
+                if hasDueDate {
+                    DatePicker("", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                        .tint(themeC1)
+                        .padding(14)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    if isGeneratingSubTasks {
-                        ProgressView().scaleEffect(0.75).tint(themeC1)
-                        Text("Stop").font(.system(size: 13, weight: .medium))
-                    } else {
-                        Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
-                        Text("Split into subtasks with AI").font(.system(size: 13, weight: .semibold))
+
+                // Category
+                if !todoStore.categories.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            categoryChip(nil, name: "None")
+                            ForEach(todoStore.categories) { cat in
+                                categoryChip(cat, name: cat.name)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
-                .foregroundStyle(themeC1)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(themeC1.opacity(0.3), lineWidth: 0.5))
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .animation(.easeInOut(duration: 0.2), value: isGeneratingSubTasks)
 
-            // Buttons
-            VStack(spacing: 12) {
+                // Add button
                 Button {
-                    addTask(task)
+                    addTask()
                 } label: {
                     Label(String(localized: "quickadd_add"), systemImage: "plus.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
@@ -346,31 +138,20 @@ struct QuickAddSheet: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
-                            LinearGradient(colors: [themeC1, themeC2],
-                                           startPoint: .leading, endPoint: .trailing),
+                            title.trimmingCharacters(in: .whitespaces).isEmpty
+                                ? LinearGradient(colors: [Color.gray.opacity(0.4)], startPoint: .leading, endPoint: .trailing)
+                                : LinearGradient(colors: [themeC1, themeC2], startPoint: .leading, endPoint: .trailing),
                             in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                         )
                 }
                 .buttonStyle(.plain)
-
-                Button {
-                    parsedTask = nil
-                    userInput = ""
-                    errorText = ""
-                    inputFocused = true
-                } label: {
-                    Text(String(localized: "quickadd_retry"))
-                        .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
+                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal, 24)
 
             Spacer()
         }
-        .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity),
-                                removal: .opacity))
+        .onAppear { titleFocused = true }
     }
 
     // MARK: - Success View
@@ -397,187 +178,59 @@ struct QuickAddSheet: View {
         }
     }
 
-    // MARK: - AI Parsing
+    // MARK: - Helpers
 
-    private func parse() async {
-        let trimmed = userInput.trimmingCharacters(in: .whitespaces)
+    private func priorityChip(_ p: TodoPriority) -> some View {
+        let color: Color = p == .high ? .red : p == .medium ? .orange : .green
+        let selected = priority == p
+        return Button { withAnimation(.spring(response: 0.3)) { priority = p } } label: {
+            HStack(spacing: 6) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(p.displayName)
+                    .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? (darkModeEnabled ? .white : color) : .secondary)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(selected ? color.opacity(0.2) : Color.clear, in: Capsule())
+            .overlay(Capsule().stroke(selected ? color.opacity(0.5) : themeC1.opacity(0.2), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func categoryChip(_ cat: Category?, name: String) -> some View {
+        let color: Color = cat?.color ?? themeC1.opacity(0.6)
+        let selected = category?.id == cat?.id && (cat != nil || category == nil)
+        return Button {
+            withAnimation(.spring(response: 0.3)) { category = cat }
+        } label: {
+            HStack(spacing: 6) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(name)
+                    .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? (darkModeEnabled ? .white : color) : .secondary)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 7)
+            .background(selected ? color.opacity(darkModeEnabled ? 0.25 : 0.15) : Color.clear, in: Capsule())
+            .overlay(Capsule().stroke(selected ? color.opacity(0.5) : Color.clear, lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func addTask() {
+        let trimmed = title.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        errorText = ""
-        isProcessing = true
-        inputFocused = false
-
-        let categoryNames = todoStore.categories.map { $0.name }.joined(separator: ", ")
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.dateFormat = "EEEE, d. MMMM yyyy"
-        let today = formatter.string(from: Date())
-
-        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
-        let prompt = """
-        Today is \(today).
-        Extract a structured task from the following text. Write title and note in \(lang).
-        Available categories: \(categoryNames.isEmpty ? "none" : categoryNames)
-
-        Reply ONLY with this JSON object (no Markdown, no text before or after):
-        {"title":"...","priority":"low|medium|high","dueDate":"YYYY-MM-DDTHH:mm:ss" or null,"category":"category name from the list" or null,"note":"" or short note}
-
-        Rules:
-        - title: short, clear task title
-        - priority: "high" if urgent/important, "medium" standard, "low" if optional
-        - dueDate: derive date from relative text (tomorrow, next week, Friday, etc.). Include time if specified, otherwise null for the time.
-        - category: only pick from the available list, otherwise null
-        - note: only if there is genuinely additional info in the text, otherwise empty string
-
-        Text: \(trimmed)
-        """
-
-        var fullResponse = ""
-        do {
-            let stream = aiStream(prompt: prompt)
-            for try await chunk in stream {
-                fullResponse += chunk
-            }
-            let task = try parseJSON(fullResponse)
-            await MainActor.run {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    parsedTask = task
-                    isProcessing = false
-                }
-            }
-        } catch {
-            await MainActor.run {
-                errorText = String(localized: "quickadd_error")
-                isProcessing = false
-            }
-        }
-    }
-
-    private func aiStream(prompt: String) -> AsyncThrowingStream<String, Error> {
-        switch aiProvider {
-        case "openai":
-            let key = KeychainHelper.load(for: OpenAIService.keychainKey) ?? ""
-            return OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel)
-        case "groq":
-            let key = KeychainHelper.load(for: GroqService.keychainKey) ?? ""
-            return GroqService.stream(prompt: prompt, apiKey: key, model: groqModel)
-        default:
-            let key = KeychainHelper.load(for: GeminiService.keychainKey) ?? ""
-            return GeminiService.stream(prompt: prompt, apiKey: key)
-        }
-    }
-
-    private func parseJSON(_ raw: String) throws -> ParsedTask {
-        // Extract JSON object from response
-        let jsonStr: String
-        if let start = raw.range(of: "{"), let end = raw.range(of: "}", options: .backwards) {
-            jsonStr = String(raw[start.lowerBound...end.upperBound])
-        } else {
-            throw ParserError.noJSON
-        }
-
-        guard let data = jsonStr.data(using: .utf8),
-              let obj  = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw ParserError.invalidJSON
-        }
-
-        let title    = obj["title"] as? String ?? userInput
-        let priStr   = obj["priority"] as? String ?? "medium"
-        let dateStr  = obj["dueDate"] as? String
-        let catName  = obj["category"] as? String
-        let note     = obj["note"] as? String ?? ""
-
-        let priority: TodoPriority = priStr == "high" ? .high : priStr == "low" ? .low : .medium
-
-        var dueDate: Date? = nil
-        if let ds = dateStr {
-            let iso = ISO8601DateFormatter()
-            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            dueDate = iso.date(from: ds)
-            if dueDate == nil {
-                iso.formatOptions = [.withFullDate, .withTime, .withColonSeparatorInTime]
-                dueDate = iso.date(from: ds)
-            }
-        }
-
-        var category = catName.flatMap { name in
-            todoStore.categories.first { $0.name.lowercased() == name.lowercased() }
-        }
-        // Fallback: string matching when AI returned no category
-        if category == nil {
-            let searchText = (title + " " + note + " " + userInput).lowercased()
-            category = todoStore.categories.first { searchText.contains($0.name.lowercased()) }
-        }
-
-        return ParsedTask(title: title, priority: priority, dueDate: dueDate, category: category, note: note)
-    }
-
-    private func generateSubTasks(for task: ParsedTask) async {
-        isGeneratingSubTasks = true
-
-        var contextParts: [String] = ["Task: \(task.title)"]
-        if !task.note.isEmpty { contextParts.append("Description: \(task.note)") }
-        contextParts.append("Priority: \(task.priority.displayName)")
-        if let cat = task.category { contextParts.append("Category: \(cat.name)") }
-        let context = contextParts.joined(separator: "\n")
-
-        let prompt = """
-        Split this task into 3 to 6 meaningful, concrete subtasks in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
-        \(context)
-
-        Rules:
-        - Each subtask is an actionable step
-        - Maximum 8 words per subtask
-        - One subtask per line, no numbering, no bullet points
-        - Reply ONLY with the subtasks, one per line
-        """
-
-        var raw = ""
-        do {
-            for try await chunk in aiStream(prompt: prompt) {
-                try Task.checkCancellation()
-                raw += chunk
-            }
-        } catch is CancellationError {
-            await MainActor.run { isGeneratingSubTasks = false }; return
-        } catch {}
-
-        await MainActor.run {
-            let newTasks = raw
-                .components(separatedBy: "\n")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .map { line -> String in
-                    var s = line
-                    if s.hasPrefix("- ") || s.hasPrefix("• ") { s = String(s.dropFirst(2)) }
-                    if s.count > 2, s[s.index(s.startIndex, offsetBy: 1)] == "." || s[s.index(s.startIndex, offsetBy: 1)] == ")" {
-                        s = String(s.dropFirst(3))
-                    }
-                    return s.trimmingCharacters(in: .whitespaces)
-                }
-                .filter { !$0.isEmpty }
-                .map { SubTask(title: $0) }
-
-            withAnimation {
-                parsedTask?.subTasks = newTasks
-            }
-            isGeneratingSubTasks = false
-        }
-    }
-
-    private func addTask(_ task: ParsedTask) {
         let item = TodoItem(
-            title: task.title,
-            description: task.note,
-            dueDate: task.dueDate,
-            category: task.category,
-            categoryID: task.category?.id,
-            priority: task.priority,
-            subTasks: task.subTasks
+            title: trimmed,
+            dueDate: hasDueDate ? dueDate : nil,
+            category: category,
+            categoryID: category?.id,
+            priority: priority,
+            subTasks: []
         )
         todoStore.addTodo(item)
-
         let gen = UINotificationFeedbackGenerator()
         gen.notificationOccurred(.success)
-
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             addedSuccessfully = true
         }
@@ -585,27 +238,4 @@ struct QuickAddSheet: View {
             dismiss()
         }
     }
-
-    // MARK: - Helpers
-
-    private func priorityBadge(_ priority: TodoPriority) -> some View {
-        let (label, color): (String, Color) = switch priority {
-        case .high:   (String(localized: "priority_high"),   .red)
-        case .medium: (String(localized: "priority_medium"), .orange)
-        case .low:    (String(localized: "priority_low"),    .green)
-        }
-        return Text(label)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(color.opacity(0.15), in: Capsule())
-    }
-
-    private var examplePrompts: [String] {
-        ["Call dentist tomorrow afternoon, important",
-         "Buy groceries on Friday",
-         "Finish project report by end of next week, high priority"]
-    }
-
-    enum ParserError: Error { case noJSON, invalidJSON }
 }

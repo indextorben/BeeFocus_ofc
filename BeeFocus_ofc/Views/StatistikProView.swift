@@ -1,19 +1,9 @@
 import SwiftUI
-import FoundationModels
 
 struct StatistikProView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var todoStore: TodoStore
     @ObservedObject private var sub = SubscriptionManager.shared
-
-    @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
-    @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
-    @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
-
-    @State private var insightText = ""
-    @State private var isGeneratingInsight = false
-    @State private var showAIKeyAlert = false
-    @State private var insightTask: Task<Void, Never>? = nil
 
     private var completedTodos: [TodoItem] {
         todoStore.todos.filter { $0.isCompleted && $0.completedAt != nil }
@@ -100,7 +90,6 @@ struct StatistikProView: View {
                     timeCard
                     if !categoryData.isEmpty { categoryCard }
                     if !priorityData.isEmpty { priorityCard }
-                    insightCard
                 }
                 .padding(16)
                 .padding(.bottom, 30)
@@ -112,11 +101,6 @@ struct StatistikProView: View {
                     Button("Close") { dismiss() }
                 }
             }
-        }
-        .alert("AI Provider Not Configured", isPresented: $showAIKeyAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Please set up an AI provider in Settings first.")
         }
     }
 
@@ -232,55 +216,6 @@ struct StatistikProView: View {
         }
     }
 
-    // MARK: - AI Insight Card
-
-    private var insightCard: some View {
-        statCard(title: "AI Productivity Insight", icon: "sparkles", color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
-            VStack(alignment: .leading, spacing: 12) {
-                if insightText.isEmpty && !isGeneratingInsight {
-                    Text("Let the AI analyze your productivity patterns and generate a personal insight.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text(insightText.isEmpty ? "Analyzing…" : insightText)
-                        .font(.system(size: 13))
-                        .foregroundStyle(insightText.isEmpty ? .secondary : .primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .animation(.easeIn, value: insightText)
-                }
-
-                Button {
-                    if isGeneratingInsight {
-                        insightTask?.cancel()
-                        isGeneratingInsight = false
-                    } else {
-                        insightTask = Task { await generateInsight() }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        if isGeneratingInsight {
-                            ProgressView().scaleEffect(0.75)
-                            Text("Stop")
-                        } else {
-                            Image(systemName: "sparkles")
-                            Text(insightText.isEmpty ? "Generate Insight" : "Regenerate")
-                        }
-                    }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
-                    .padding(.horizontal, 14).padding(.vertical, 8)
-                    .background(
-                        Capsule().fill(Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.12))
-                    )
-                    .overlay(Capsule().stroke(Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.3), lineWidth: 0.5))
-                }
-                .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.2), value: isGeneratingInsight)
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     @ViewBuilder
@@ -337,87 +272,4 @@ struct StatistikProView: View {
         }
     }
 
-    // MARK: - AI Insight Generation
-
-    private func generateInsight() async {
-        guard completedTodos.count >= 3 else {
-            await MainActor.run {
-                insightText = "Not enough data yet. Complete more tasks to generate an insight."
-            }
-            return
-        }
-        isGeneratingInsight = true
-        insightText = ""
-
-        let topDay = weekdayData.max(by: { $0.value < $1.value })
-        let topTime = timeData.max(by: { $0.value < $1.value })
-        let topCat = categoryData.first
-
-        var context = "Total completed tasks: \(completedTodos.count)\n"
-        if let d = topDay, d.value > 0 { context += "Most productive weekday: \(d.label) (\(d.value) tasks)\n" }
-        if let t = topTime, t.value > 0 { context += "Most active time of day: \(t.label) (\(t.value) tasks)\n" }
-        if let c = topCat { context += "Strongest category: \(c.name) (\(Int(c.rate * 100))% completion rate)\n" }
-        for p in priorityData { context += "Priority \(p.label): \(Int(p.rate * 100))%\n" }
-
-        let prompt = """
-        Analyze this productivity data from an app user and provide a short, personal, and motivating insight in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
-        \(context)
-        Rules:
-        - Maximum 3 sentences
-        - Reference the data specifically
-        - Phrase it positively and motivatingly
-        - No markdown, no bullet points
-        - Reply with the insight ONLY
-        """
-
-        var raw = ""
-        do {
-            switch aiProvider {
-            case "apple":
-                if #available(iOS 26.0, *) {
-                    guard case .available = SystemLanguageModel.default.availability else {
-                        isGeneratingInsight = false; return
-                    }
-                    let session = LanguageModelSession()
-                    for try await partial in session.streamResponse(to: prompt) {
-                        try Task.checkCancellation()
-                        raw = partial.content
-                        await MainActor.run { insightText = raw }
-                    }
-                }
-            case "openai":
-                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIKeyAlert = true; isGeneratingInsight = false }; return
-                }
-                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { insightText = raw }
-                }
-            case "groq":
-                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIKeyAlert = true; isGeneratingInsight = false }; return
-                }
-                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { insightText = raw }
-                }
-            default:
-                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIKeyAlert = true; isGeneratingInsight = false }; return
-                }
-                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { insightText = raw }
-                }
-            }
-        } catch is CancellationError {
-            // partial result stays
-        } catch {
-            // keep partial
-        }
-        await MainActor.run { isGeneratingInsight = false }
-    }
 }

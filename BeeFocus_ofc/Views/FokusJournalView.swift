@@ -9,9 +9,6 @@ struct FokusJournalView: View {
     @State private var showEntrySheet = false
     @State private var entrySheetDate: Date = Date()
     @State private var editEntry: JournalEntry? = nil
-    @State private var showAIAnalysis = false
-    @State private var aiAnalysisText = ""
-    @State private var isLoadingAI = false
     @ObservedObject private var localizer = LocalizationManager.shared
 
     private var last7Days: [Date] {
@@ -44,12 +41,6 @@ struct FokusJournalView: View {
                     // Today prompt
                     if !store.hasTodayEntry() {
                         todayPromptCard
-                            .padding(.horizontal, 20)
-                    }
-
-                    // AI Analysis button (Pro)
-                    if store.entries.count >= 3 {
-                        aiAnalysisButton
                             .padding(.horizontal, 20)
                     }
 
@@ -95,10 +86,6 @@ struct FokusJournalView: View {
                 Spacer()
             }
 
-            // AI overlay
-            if showAIAnalysis {
-                aiOverlay
-            }
         }
         .sheet(isPresented: $showEntrySheet) {
             JournalEntrySheet(existing: nil, initialDate: entrySheetDate, accent: accent)
@@ -259,43 +246,6 @@ struct FokusJournalView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - AI Analysis
-
-    private var aiAnalysisButton: some View {
-        Button {
-            guard sub.isPro else {
-                NotificationCenter.default.post(name: .showPaywall, object: nil)
-                dismiss()
-                return
-            }
-            runAIAnalysis()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: isLoadingAI ? "ellipsis" : "sparkles")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(sub.isPro ? accent : .gray)
-                    .symbolEffect(.variableColor, isActive: isLoadingAI)
-                Text(isLoadingAI ? localizer.localizedString(forKey: "journal_ai_analyzing") : localizer.localizedString(forKey: "journal_ai_weekly_analysis"))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(sub.isPro ? .white : .white.opacity(0.4))
-                Spacer()
-                if !sub.isPro {
-                    Text("Pro")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color(red: 0.55, green: 0.35, blue: 1.0), in: Capsule())
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 13)
-            .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.08), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .disabled(isLoadingAI)
-    }
-
     private func moodColor(for avg: Double) -> Color {
         switch avg {
         case ..<2.5: return Color(red: 0.9, green: 0.3, blue: 0.3)
@@ -343,90 +293,6 @@ struct FokusJournalView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - AI Overlay
-
-    private var aiOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.7).ignoresSafeArea()
-                .onTapGesture { showAIAnalysis = false }
-
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(accent)
-                    Text(localizer.localizedString(forKey: "journal_ai_weekly_analysis"))
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                    Spacer()
-                    Button { showAIAnalysis = false } label: {
-                        Image(systemName: "xmark")
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-                }
-
-                ScrollView {
-                    Text(aiAnalysisText)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .lineSpacing(4)
-                }
-                .frame(maxHeight: 300)
-            }
-            .padding(20)
-            .background(Color(red: 0.1, green: 0.08, blue: 0.18), in: RoundedRectangle(cornerRadius: 20))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.1), lineWidth: 1))
-            .padding(24)
-        }
-    }
-
-    // MARK: - AI Analysis Logic
-
-    private func runAIAnalysis() {
-        isLoadingAI = true
-        aiAnalysisText = ""
-        let entries = store.recentEntries(days: 7)
-        guard !entries.isEmpty else { isLoadingAI = false; return }
-
-        let df = DateFormatter(); df.dateStyle = .short; df.timeStyle = .none
-        let summary = entries.map { e in
-            "Datum: \(df.string(from: e.date)), Stimmung: \(e.moodScore)/5, Gut lief: \(e.wentWell), Ablenkung: \(e.distraction), Morgen-Ziel: \(e.tomorrowPriority)"
-        }.joined(separator: "\n")
-
-        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
-        let prompt = "You are a productivity coach. Analyze these focus journal entries from the past week and provide a short, motivating analysis (3–5 sentences) with concrete insights and one tip. Respond in \(lang). No Markdown.\n\n\(summary)"
-
-        let provider = UserDefaults.standard.string(forKey: "aiProvider") ?? "gemini"
-
-        Task {
-            do {
-                var result = ""
-                let stream: AsyncThrowingStream<String, Error>
-                switch provider {
-                case "openai":
-                    guard let key = KeychainHelper.load(for: OpenAIService.keychainKey) else { throw NSError(domain: "", code: 0) }
-                    stream = OpenAIService.stream(prompt: prompt, apiKey: key, model: "gpt-4o-mini")
-                case "groq":
-                    guard let key = KeychainHelper.load(for: GroqService.keychainKey) else { throw NSError(domain: "", code: 0) }
-                    stream = GroqService.stream(prompt: prompt, apiKey: key, model: "llama-3.3-70b-versatile")
-                default:
-                    guard let key = KeychainHelper.load(for: GeminiService.keychainKey) else { throw NSError(domain: "", code: 0) }
-                    stream = GeminiService.stream(prompt: prompt, apiKey: key)
-                }
-                for try await chunk in stream { result += chunk }
-                await MainActor.run {
-                    aiAnalysisText = result
-                    isLoadingAI = false
-                    showAIAnalysis = true
-                }
-            } catch {
-                await MainActor.run {
-                    aiAnalysisText = LocalizationManager.shared.localizedString(forKey: "journal_ai_unavailable")
-                    isLoadingAI = false
-                    showAIAnalysis = true
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Entry Card

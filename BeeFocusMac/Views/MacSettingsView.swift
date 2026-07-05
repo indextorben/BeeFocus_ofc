@@ -21,10 +21,6 @@ struct MacSettingsView: View {
     @AppStorage("autoDeleteCompletedEnabled")    private var autoDeleteCompletedEnabled     = false
     @AppStorage("autoDeleteCompletedDays")       private var autoDeleteCompletedDays: Int   = 30
 
-    // AI
-    @AppStorage("mac_ai_provider") private var aiProviderRaw: String = MacAIProvider.groq.rawValue
-    private var aiProvider: MacAIProvider { MacAIProvider(rawValue: aiProviderRaw) ?? .groq }
-
     @State private var headerAppeared         = false
     @State private var sectionsAppeared       = false
     @State private var showResetStatsConfirm  = false
@@ -34,9 +30,6 @@ struct MacSettingsView: View {
     @State private var bannerDismissTask: Task<Void, Never>? = nil
     @State private var showPaywall            = false
     @State private var showAutoDeleteConfirm  = false
-    @State private var aiKeyInput: String     = ""
-    @State private var aiKeyVisible: Bool     = false
-    @State private var aiKeySaved: Bool       = false
 
     private let allThemes: [(id: String, label: String)] = [
         ("", "Standard"), ("Ocean", "Ocean"), ("Forest", "Forest"),
@@ -83,9 +76,6 @@ struct MacSettingsView: View {
                         sectionGroup(icon: "gearshape", label: "Verhalten", color: .teal) { verhaltensCard }
                     }
                     animatedSection(delay: 0.26) {
-                        sectionGroup(icon: "sparkles", label: "KI Quick Input", color: .purple) { kiCard }
-                    }
-                    animatedSection(delay: 0.30) {
                         sectionGroup(icon: "checkmark.circle.fill", label: "Automatisches Löschen", color: .mint) { autoDeleteCard }
                     }
                     animatedSection(delay: 0.34) {
@@ -359,75 +349,6 @@ struct MacSettingsView: View {
                 .padding(.horizontal, 14)
             }
             .frame(height: 82)
-        }
-    }
-
-    // ── KI Quick Input ────────────────────────────────────────────────
-    private var kiCard: some View {
-        glassCard {
-            HStack(spacing: 12) {
-                iconBadge(icon: "sparkles", color: .purple)
-                Text("Anbieter")
-                    .font(.system(size: 16))
-                Spacer()
-                Picker("", selection: $aiProviderRaw) {
-                    ForEach(MacAIProvider.allCases, id: \.rawValue) { p in
-                        Text(p.label).tag(p.rawValue)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 120)
-                .onChange(of: aiProviderRaw) { _ in
-                    aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? ""
-                    aiKeySaved = false
-                }
-            }
-            .padding(.horizontal, 16).padding(.vertical, 12)
-
-            cardDivider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    iconBadge(icon: "key.fill", color: .orange)
-                    Group {
-                        if aiKeyVisible {
-                            TextField("API Key", text: $aiKeyInput)
-                        } else {
-                            SecureField("API Key", text: $aiKeyInput)
-                        }
-                    }
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13, design: .monospaced))
-                    .onAppear { aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? "" }
-
-                    Button { aiKeyVisible.toggle() } label: {
-                        Image(systemName: aiKeyVisible ? "eye.slash" : "eye")
-                            .font(.system(size: 12)).foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        MacKeychain.save(aiKeyInput.trimmingCharacters(in: .whitespaces),
-                                         for: aiProvider.keychainKey)
-                        aiKeySaved = true
-                        bannerColor = .green
-                        showBanner(message: "API Key gespeichert")
-                    } label: {
-                        Text(aiKeySaved ? "✓" : "Speichern")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(aiKeySaved ? .green : themeColors.0)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(aiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-                .padding(.horizontal, 16).padding(.vertical, 11)
-
-                Text(aiProvider == .groq
-                     ? "Groq: kostenlos unter console.groq.com → API Keys"
-                     : "OpenAI: platform.openai.com → API Keys")
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-                    .padding(.horizontal, 16).padding(.bottom, 10)
-            }
         }
     }
 

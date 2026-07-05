@@ -2,7 +2,6 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import EventKit
-import FoundationModels
 
 // MARK: - FokusTodoEditorView
 
@@ -42,14 +41,6 @@ struct FokusTodoEditorView: View {
     @State private var newSubTaskTitle = ""
     @State private var subTaskPendingDelete: SubTask? = nil
     @State private var showSubTaskDeleteAlert = false
-
-    // MARK: - KI-Beschreibung
-    @AppStorage("aiProvider")           private var aiProvider: String = "gemini"
-    @AppStorage("openaiSelectedModel")  private var openaiModel: String = OpenAIService.models[0]
-    @AppStorage("groqSelectedModel")    private var groqModel: String = GroqService.models[0]
-    @State private var isGeneratingDescription = false
-    @State private var showAIKeyAlert = false
-    @State private var descGenerationTask: Task<Void, Never>? = nil
 
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var selectedImages: [IdentifiableUIImage] = []
@@ -207,11 +198,6 @@ struct FokusTodoEditorView: View {
         } message: { sub in
             Text("Are you sure you want to delete \"\(sub.title)\"?")
         }
-        .alert("AI provider not configured", isPresented: $showAIKeyAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Please set up an AI provider in Settings first.")
-        }
         .sheet(isPresented: $showCamera) {
             CameraPicker { img in
                 if let img { selectedImages.append(IdentifiableUIImage(image: img)) }
@@ -237,148 +223,27 @@ struct FokusTodoEditorView: View {
 
                 if !bodyText.isEmpty || true {
                     Divider().opacity(0.15).padding(.horizontal, 14)
-                    ZStack(alignment: .topTrailing) {
-                        TextEditor(text: $bodyText)
-                            .font(.system(size: 15))
-                            .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
-                            .frame(minHeight: 72, maxHeight: 160)
-                            .scrollContentBackground(.hidden)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .overlay(alignment: .topLeading) {
-                                if bodyText.isEmpty {
-                                    Text("Description (optional)")
-                                        .font(.system(size: 15))
-                                        .foregroundStyle(.secondary.opacity(0.6))
-                                        .padding(.horizontal, 14)
-                                        .padding(.top, 12)
-                                        .allowsHitTesting(false)
-                                }
+                    TextEditor(text: $bodyText)
+                        .font(.system(size: 15))
+                        .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
+                        .frame(minHeight: 72, maxHeight: 160)
+                        .scrollContentBackground(.hidden)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .overlay(alignment: .topLeading) {
+                            if bodyText.isEmpty {
+                                Text("Description (optional)")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.secondary.opacity(0.6))
+                                    .padding(.horizontal, 14)
+                                    .padding(.top, 12)
+                                    .allowsHitTesting(false)
                             }
-                        aiDescriptionButton
-                            .padding(.top, 8)
-                            .padding(.trailing, 10)
-                    }
+                        }
                 }
             }
             .themeGlass(cornerRadius: 16)
         }
-    }
-
-    @ViewBuilder
-    private var aiDescriptionButton: some View {
-        if title.trimmingCharacters(in: .whitespaces).isEmpty {
-            EmptyView()
-        } else {
-            Button {
-                if isGeneratingDescription {
-                    descGenerationTask?.cancel()
-                    isGeneratingDescription = false
-                } else {
-                    descGenerationTask = Task { await generateDescription() }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    if isGeneratingDescription {
-                        ProgressView().scaleEffect(0.7).tint(themeC1)
-                        Text("Stopp")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(themeC1)
-                    } else {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(themeC1)
-                        Text("KI")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(themeC1)
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(themeC1.opacity(0.12)))
-                .overlay(Capsule().stroke(themeC1.opacity(0.3), lineWidth: 0.5))
-            }
-            .buttonStyle(.plain)
-            .animation(.easeInOut(duration: 0.2), value: isGeneratingDescription)
-        }
-    }
-
-    private func generateDescription() async {
-        let t = title.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
-        isGeneratingDescription = true
-        bodyText = ""
-
-        var contextParts: [String] = ["Task: \(t)"]
-        contextParts.append("Priority: \(priority.displayName)")
-        if let cat = category { contextParts.append("Category: \(cat.name)") }
-        if hasDueDate {
-            let fmt = DateFormatter(); fmt.dateStyle = .medium; fmt.timeStyle = .none
-            contextParts.append("Due date: \(fmt.string(from: dueDate))")
-        }
-        let context = contextParts.joined(separator: "\n")
-
-        let prompt = """
-        Write a short, motivating description for this task in \(LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English").
-        \(context)
-
-        Rules:
-        - Maximum 3 sentences
-        - Mention concrete hints or useful next steps
-        - Phrase it naturally and helpfully
-        - No bullet points, no Markdown
-        - Reply ONLY with the description
-        """
-
-        var raw = ""
-        do {
-            switch aiProvider {
-            case "apple":
-                if #available(iOS 26.0, *) {
-                    guard case .available = SystemLanguageModel.default.availability else {
-                        isGeneratingDescription = false; return
-                    }
-                    let session = LanguageModelSession()
-                    for try await partial in session.streamResponse(to: prompt) {
-                        try Task.checkCancellation()
-                        raw = partial.content
-                        await MainActor.run { bodyText = raw }
-                    }
-                }
-            case "openai":
-                guard let key = KeychainHelper.load(for: OpenAIService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
-                }
-                for try await chunk in OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { bodyText = raw }
-                }
-            case "groq":
-                guard let key = KeychainHelper.load(for: GroqService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
-                }
-                for try await chunk in GroqService.stream(prompt: prompt, apiKey: key, model: groqModel) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { bodyText = raw }
-                }
-            default:
-                guard let key = KeychainHelper.load(for: GeminiService.keychainKey), !key.isEmpty else {
-                    await MainActor.run { showAIKeyAlert = true; isGeneratingDescription = false }; return
-                }
-                for try await chunk in GeminiService.stream(prompt: prompt, apiKey: key) {
-                    try Task.checkCancellation()
-                    raw += chunk
-                    await MainActor.run { bodyText = raw }
-                }
-            }
-        } catch is CancellationError {
-            // stopped by user, keep what was generated
-        } catch {
-            // keep partial result if anything was generated
-        }
-        await MainActor.run { isGeneratingDescription = false }
     }
 
     // MARK: - Priorität

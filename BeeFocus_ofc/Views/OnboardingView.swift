@@ -11,7 +11,7 @@ struct OnboardingView: View {
 
     // Step management
     @State private var step: Int = 0
-    private let totalSteps = 4
+    private let totalSteps = 3
 
     // Language step
     @State private var selectedLang: String = {
@@ -19,21 +19,12 @@ struct OnboardingView: View {
         return code == "en" ? "Englisch" : "Deutsch"
     }()
 
-    // KI step
-    @State private var kiProvider: String = "groq"   // default to free option
-    @State private var kiKey: String = ""
-    @State private var kiKeyVisible: Bool = false
-    @State private var kiSaving: Bool = false
-    @State private var kiStatus: KIOnboardStatus = .empty
-    @State private var showGeminiGuide: Bool = false
-
     // Notifications step
     @State private var notifStatus: NotifOnboardStatus = .unknown
 
     private var isDark: Bool { colorScheme == .dark }
     private var accent: Color { .purple }
 
-    enum KIOnboardStatus { case empty, saved, valid, invalid }
     enum NotifOnboardStatus { case unknown, granted, denied }
 
     var body: some View {
@@ -49,7 +40,6 @@ struct OnboardingView: View {
                     stepView(for: 0).opacity(step == 0 ? 1 : 0)
                     stepView(for: 1).opacity(step == 1 ? 1 : 0)
                     stepView(for: 2).opacity(step == 2 ? 1 : 0)
-                    stepView(for: 3).opacity(step == 3 ? 1 : 0)
                 }
                 .animation(.easeInOut(duration: 0.35), value: step)
             }
@@ -58,16 +48,6 @@ struct OnboardingView: View {
             // Apply auto-detected language on first open
             if localizer.selectedLanguage != selectedLang {
                 localizer.selectedLanguage = selectedLang
-            }
-        }
-        .sheet(isPresented: $showGeminiGuide) {
-            NavigationStack {
-                GeminiKeyGuideView()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(loc("done")) { showGeminiGuide = false }
-                        }
-                    }
             }
         }
     }
@@ -102,9 +82,8 @@ struct OnboardingView: View {
     private func stepView(for index: Int) -> some View {
         switch index {
         case 0: languageStep
-        case 1: kiStep
-        case 2: notificationsStep
-        case 3: readyStep
+        case 1: notificationsStep
+        case 2: readyStep
         default: EmptyView()
         }
     }
@@ -178,228 +157,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Step 1: KI-Anbieter
-
-    private var kiStep: some View {
-        VStack(spacing: 0) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    stepIcon(systemName: "sparkles", color: .purple)
-
-                    VStack(spacing: 10) {
-                        Text(loc("onboarding_ki_title"))
-                            .font(.title2.weight(.bold))
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(isDark ? .white : .primary)
-                        Text(loc("onboarding_ki_sub"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-
-                    // Provider picker
-                    HStack(spacing: 12) {
-                        kiProviderButton(
-                            title: "Groq",
-                            icon: "bolt.fill",
-                            color: .orange,
-                            badge: loc("onboarding_ki_free_badge"),
-                            tag: "groq"
-                        )
-                        kiProviderButton(
-                            title: "Gemini",
-                            icon: "sparkles",
-                            color: .purple,
-                            badge: loc("onboarding_ki_google_badge"),
-                            tag: "gemini"
-                        )
-                    }
-                    .padding(.horizontal, 4)
-
-                    // Key input card
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label(loc("ki_api_key_label"), systemImage: "key.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(isDark ? .white : .primary)
-
-                        HStack(spacing: 8) {
-                            Group {
-                                if kiKeyVisible {
-                                    TextField(kiPlaceholder, text: $kiKey)
-                                } else {
-                                    SecureField(kiPlaceholder, text: $kiKey)
-                                }
-                            }
-                            .font(.system(size: 14, design: .monospaced))
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .onChange(of: kiKey) { _ in
-                                if kiStatus == .valid || kiStatus == .invalid { kiStatus = .saved }
-                            }
-
-                            Button { kiKeyVisible.toggle() } label: {
-                                Image(systemName: kiKeyVisible ? "eye.slash" : "eye")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(12)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(kiKeyBorderColor, lineWidth: 1.5)
-                        )
-
-                        HStack {
-                            kiStatusBadge
-                            Spacer()
-                            if kiProvider == "gemini" {
-                                Button {
-                                    showGeminiGuide = true
-                                } label: {
-                                    Label(loc("gemini_guide_short_btn"), systemImage: "questionmark.circle")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(accent)
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                Link(destination: URL(string: "https://console.groq.com/keys")!) {
-                                    Label(loc("onboarding_ki_get_key"), systemImage: "arrow.up.right")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.orange)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .padding(16)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.horizontal, 4)
-                    .animation(.easeInOut(duration: 0.2), value: kiProvider)
-
-                    // Info row
-                    HStack(spacing: 10) {
-                        Image(systemName: "gift.fill").foregroundStyle(.green)
-                        Text(kiInfoText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 8)
-                    .animation(.easeInOut(duration: 0.2), value: kiProvider)
-                }
-                .padding(.top, 24)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
-            }
-
-            Spacer(minLength: 0)
-            bottomBar(
-                primaryLabel: kiKey.trimmingCharacters(in: .whitespaces).isEmpty
-                    ? loc("onboarding_skip") : loc("ki_key_save"),
-                primaryAction: { saveKIAndAdvance() },
-                isLoading: kiSaving
-            )
-        }
-    }
-
-    private func kiProviderButton(title: String, icon: String, color: Color, badge: String, tag: String) -> some View {
-        Button {
-            kiProvider = tag
-            kiKey = ""
-            kiStatus = .empty
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(kiProvider == tag ? color : .secondary)
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(kiProvider == tag ? color : (isDark ? .white : .primary))
-                Text(badge)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(kiProvider == tag ? color.opacity(0.8) : .secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(kiProvider == tag ? color.opacity(0.12) : Color.white.opacity(isDark ? 0.06 : 0.6))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(kiProvider == tag ? color.opacity(0.6) : Color.clear, lineWidth: 2)
-            }
-        }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: kiProvider)
-    }
-
-    private var kiPlaceholder: String {
-        kiProvider == "gemini" ? "AIza..." : "gsk_..."
-    }
-
-    private var kiInfoText: String {
-        kiProvider == "gemini"
-            ? loc("onboarding_gemini_free")
-            : loc("onboarding_groq_free")
-    }
-
-    private var kiKeyBorderColor: Color {
-        switch kiStatus {
-        case .valid:   return .green.opacity(0.6)
-        case .invalid: return .red.opacity(0.6)
-        case .saved:   return accent.opacity(0.4)
-        case .empty:   return Color.white.opacity(0.1)
-        }
-    }
-
-    @ViewBuilder
-    private var kiStatusBadge: some View {
-        if kiSaving {
-            ProgressView().scaleEffect(0.8)
-        } else {
-            switch kiStatus {
-            case .valid:
-                Label(loc("ki_key_valid"), systemImage: "checkmark.circle.fill")
-                    .font(.caption.weight(.semibold)).foregroundStyle(.green)
-            case .invalid:
-                Label(loc("ki_key_invalid"), systemImage: "xmark.circle.fill")
-                    .font(.caption.weight(.semibold)).foregroundStyle(.red)
-            case .saved:
-                Label(loc("gemini_key_saved"), systemImage: "checkmark.seal.fill")
-                    .font(.caption.weight(.semibold)).foregroundStyle(.blue)
-            case .empty:
-                EmptyView()
-            }
-        }
-    }
-
-    private func saveKIAndAdvance() {
-        let trimmed = kiKey.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty { advance(); return }
-        kiSaving = true
-        if kiProvider == "gemini" {
-            KeychainHelper.save(trimmed, for: GeminiService.keychainKey)
-            Task {
-                let ok = await GeminiService.validate(apiKey: trimmed)
-                kiSaving = false
-                kiStatus = ok ? .valid : .invalid
-                if ok { try? await Task.sleep(nanoseconds: 600_000_000) }
-                advance()
-            }
-        } else {
-            KeychainHelper.save(trimmed, for: GroqService.keychainKey)
-            // Set Groq as active provider
-            UserDefaults.standard.set("groq", forKey: "aiProvider")
-            Task {
-                let ok = await GroqService.validate(apiKey: trimmed)
-                kiSaving = false
-                kiStatus = ok ? .valid : .invalid
-                if ok { try? await Task.sleep(nanoseconds: 600_000_000) }
-                advance()
-            }
-        }
-    }
-
-    // MARK: - Step 2: Notifications
+    // MARK: - Step 1: Notifications
 
     private var notificationsStep: some View {
         VStack(spacing: 0) {
@@ -491,7 +249,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 3: Ready
+    // MARK: - Step 2: Ready
 
     private var readyStep: some View {
         VStack(spacing: 0) {

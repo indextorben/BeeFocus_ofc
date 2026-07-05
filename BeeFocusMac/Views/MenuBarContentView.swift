@@ -83,14 +83,6 @@ struct MenuBarContentView: View {
     @State private var newDueDate      = Date()
     @State private var newReminderOffset: Int? = nil
 
-    // AI quick input
-    @State private var smartInputText  = ""
-    @State private var isParsing       = false
-    @State private var parseError: String? = nil
-    @State private var aiDidFill       = false
-    @AppStorage("mac_ai_provider") private var aiProviderRaw: String = MacAIProvider.groq.rawValue
-    private var aiProvider: MacAIProvider { MacAIProvider(rawValue: aiProviderRaw) ?? .groq }
-
     // Settings panel
     @State private var showingSettings       = false
     @State private var showAutoDeleteConfirm = false
@@ -548,10 +540,6 @@ struct MenuBarContentView: View {
             }
             .themeGlass(cornerRadius: 12)
 
-            // AI settings
-            settingsSectionLabel("KI Quick Input", icon: "sparkles")
-            aiSettingsPanel
-
             // Auto-Delete
             settingsSectionLabel("Automatisches Löschen", icon: "checkmark.circle.fill")
             VStack(spacing: 0) {
@@ -767,82 +755,6 @@ struct MenuBarContentView: View {
         .padding(.vertical, 10)
     }
 
-    // MARK: - AI Settings Panel
-
-    @State private var aiKeyInput: String = ""
-    @State private var aiKeyVisible: Bool = false
-    @State private var aiKeySaved: Bool   = false
-
-    private var aiSettingsPanel: some View {
-        VStack(spacing: 0) {
-            // Provider picker
-            HStack {
-                Text("Anbieter").font(.system(size: 13, weight: .medium))
-                Spacer()
-                Picker("", selection: $aiProviderRaw) {
-                    ForEach(MacAIProvider.allCases, id: \.rawValue) { p in
-                        Text(p.label).tag(p.rawValue)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 160)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 11)
-
-            Divider().opacity(0.12).padding(.leading, 14)
-
-            // API Key input
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Group {
-                        if aiKeyVisible {
-                            TextField("API Key", text: $aiKeyInput)
-                        } else {
-                            SecureField("API Key", text: $aiKeyInput)
-                        }
-                    }
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13, design: .monospaced))
-                    .onAppear {
-                        aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? ""
-                    }
-                    .onChange(of: aiProviderRaw) { _ in
-                        aiKeyInput = MacKeychain.load(for: aiProvider.keychainKey) ?? ""
-                        aiKeySaved = false
-                    }
-
-                    Button {
-                        aiKeyVisible.toggle()
-                    } label: {
-                        Image(systemName: aiKeyVisible ? "eye.slash" : "eye")
-                            .font(.system(size: 12)).foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        MacKeychain.save(aiKeyInput.trimmingCharacters(in: .whitespaces), for: aiProvider.keychainKey)
-                        aiKeySaved = true
-                    } label: {
-                        Text(aiKeySaved ? "✓" : "Speichern")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(aiKeySaved ? .green : themeC1)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(aiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-                .padding(.horizontal, 14).padding(.vertical, 11)
-
-                // Hint
-                Text(aiProvider == .groq
-                    ? "Groq: kostenlos unter console.groq.com → API Keys"
-                    : "OpenAI: platform.openai.com → API Keys")
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-                    .padding(.horizontal, 14).padding(.bottom, 10)
-            }
-        }
-        .themeGlass(cornerRadius: 12)
-    }
-
     private func settingsSectionLabel(_ text: String, icon: String) -> some View {
         Label(text, systemImage: icon)
             .font(.system(size: 11, weight: .semibold))
@@ -894,9 +806,6 @@ struct MenuBarContentView: View {
 
     private var inlineAddForm: some View {
         VStack(alignment: .leading, spacing: 14) {
-
-            // Smart AI Input
-            smartInputSection
 
             VStack(alignment: .leading, spacing: 6) {
                 formLabel("Titel", icon: "pencil.line")
@@ -995,93 +904,6 @@ struct MenuBarContentView: View {
         .padding(.bottom, 16)
     }
 
-    // MARK: - Smart AI Input
-
-    private var smartInputSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            formLabel("KI Quick Input", icon: "sparkles")
-
-            HStack(spacing: 8) {
-                TextField("z.B. Zahnarzt Mittwoch 15 Uhr hohe Prio", text: $smartInputText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .onSubmit { runSmartParse() }
-
-                Button {
-                    if isParsing { return }
-                    runSmartParse()
-                } label: {
-                    Group {
-                        if isParsing {
-                            ProgressView().controlSize(.small).frame(width: 18, height: 18)
-                        } else {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(smartInputText.isEmpty ? Color.secondary : themeC1)
-                        }
-                    }
-                    .frame(width: 32, height: 32)
-                    .background(themeC1.opacity(smartInputText.isEmpty ? 0.06 : 0.14), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(smartInputText.trimmingCharacters(in: .whitespaces).isEmpty || isParsing)
-                .help("Mit KI ausfüllen (Return)")
-            }
-            .padding(.horizontal, 12).padding(.vertical, 9)
-            .themeGlass(cornerRadius: 10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(aiDidFill ? themeC1.opacity(0.5) : Color.clear, lineWidth: aiDidFill ? 1.5 : 0)
-            )
-
-            if let err = parseError {
-                Label(err, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11)).foregroundStyle(.orange)
-            }
-            if aiDidFill {
-                Label("Felder automatisch ausgefüllt", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 11)).foregroundStyle(themeC1)
-            }
-
-            if MacKeychain.load(for: aiProvider.keychainKey) == nil {
-                Button {
-                    withAnimation { showingAddForm = false; showingSettings = true }
-                } label: {
-                    Label("API-Key in Einstellungen hinterlegen →", systemImage: "key.fill")
-                        .font(.system(size: 11)).foregroundStyle(themeC1.opacity(0.8))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func runSmartParse() {
-        let input = smartInputText.trimmingCharacters(in: .whitespaces)
-        guard !input.isEmpty else { return }
-        parseError = nil
-        aiDidFill  = false
-        isParsing  = true
-        Task {
-            do {
-                let result = try await MacAIQuickInputService.parse(input: input, provider: aiProvider)
-                await MainActor.run {
-                    if !result.title.isEmpty       { newTitle    = result.title }
-                    if !result.description.isEmpty { /* description not in inline form */ }
-                    newPriority = result.priority
-                    if let date = result.date      { newDueDate = date; newHasDueDate = true }
-                    if let rem = result.reminderOffset { newReminderOffset = rem }
-                    aiDidFill = true
-                    isParsing = false
-                }
-            } catch {
-                await MainActor.run {
-                    parseError = error.localizedDescription
-                    isParsing  = false
-                }
-            }
-        }
-    }
-
     // MARK: - Priority chips
 
     private func inlinePriorityChip(_ p: MacTodoPriority) -> some View {
@@ -1140,7 +962,7 @@ struct MenuBarContentView: View {
     private func dismissAddForm() {
         withAnimation(.spring(response: 0.3)) { showingAddForm = false }
         newTitle = ""; newPriority = .medium; newHasDueDate = false; newDueDate = Date()
-        newReminderOffset = nil; smartInputText = ""; aiDidFill = false; parseError = nil
+        newReminderOffset = nil
         newSubTasks = []; newSubTaskInput = ""
     }
 

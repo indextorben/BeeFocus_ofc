@@ -36,11 +36,7 @@ struct EinstellungenView: View {
     @AppStorage("fokuspunktePeak") private var fokuspunktePeak: Int = 0
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
 
-    // Shared KI (nur für Statusanzeige in der Card)
-    @AppStorage("aiProvider")        private var aiProvider: String = "gemini"
-    @AppStorage("floatingAIEnabled") private var floatingAIEnabled: Bool = true
-
-    @State private var showNotificationBanner = false
+@State private var showNotificationBanner = false
     @State private var notificationMessage = ""
     @State private var bannerColor: Color = .green
     @State private var showingCategoryEdit = false
@@ -239,9 +235,6 @@ struct EinstellungenView: View {
                         }
                         sectionGroup(icon: "checkmark.circle.fill", label: localizer.localizedString(forKey: "Automatisches Löschen"), color: .mint) {
                             autoDeleteCard
-                        }
-                        sectionGroup(icon: "sparkles", label: String(localized: "ki_settings_title"), color: .purple) {
-                            kiCard
                         }
                         sectionGroup(icon: "headphones", label: "Ambient Sounds", color: Color(red: 0.4, green: 0.6, blue: 1.0)) { // name stays as-is (brand)
                             ambientSoundsCard
@@ -838,7 +831,7 @@ struct EinstellungenView: View {
         }
     }
 
-    // MARK: - KI Card
+    // MARK: - Pro Card
 
     private var proCard: some View {
         VStack(spacing: 0) {
@@ -934,37 +927,6 @@ struct EinstellungenView: View {
                     lineWidth: 1.5
                 )
         )
-    }
-
-    private var kiCard: some View {
-        glassCard {
-            NavigationLink(destination: KIEinstellungenView()) {
-                HStack(spacing: 12) {
-                    iconBadge(icon: "sparkles", color: .purple)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "ki_settings_title"))
-                            .font(.system(size: 16))
-                            .foregroundStyle(.white)
-                        Text(providerSubtitle)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var providerSubtitle: String {
-        switch aiProvider {
-        case "openai": return "OpenAI"
-        case "groq":   return "Groq"
-        default:       return "Google Gemini"
-        }
     }
 
     private var datenschutzCard: some View {

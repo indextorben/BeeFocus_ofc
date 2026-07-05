@@ -7,15 +7,8 @@ struct WochenrueckblickSheet: View {
     let themeC2: Color
 
     @Environment(\.dismiss)            private var dismiss
-    @AppStorage("aiProvider")          private var aiProvider: String = "gemini"
-    @AppStorage("geminiSelectedModel") private var geminiModel: String = GeminiService.models[0]
-    @AppStorage("openaiSelectedModel") private var openaiModel: String = OpenAIService.models[0]
-    @AppStorage("groqSelectedModel")   private var groqModel:   String = GroqService.models[0]
     @AppStorage("darkModeEnabled")     private var darkModeEnabled = false
 
-    @State private var reviewText: String = ""
-    @State private var isGenerating = false
-    @State private var generated = false
     @State private var appeared = false
 
     // MARK: - Week data
@@ -88,14 +81,7 @@ struct WochenrueckblickSheet: View {
                             .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.05), value: appeared)
                         statsGrid
                         dayBarsSection
-                        if generated {
-                            aiReviewCard
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                    removal: .opacity))
-                        } else {
-                            generateButton
-                        }
+                        closeButton
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -289,157 +275,22 @@ struct WochenrueckblickSheet: View {
         return String(fmt.string(from: date).prefix(2))
     }
 
-    // MARK: - Generate Button
+    // MARK: - Close Button
 
-    private var generateButton: some View {
-        Button {
-            Task { await generateReview() }
-        } label: {
-            HStack(spacing: 10) {
-                if isGenerating {
-                    ProgressView().scaleEffect(0.85).tint(.white)
-                    Text(String(localized: "review_generating"))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                } else {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text(String(localized: "review_generate_btn"))
-                        .font(.system(size: 16, weight: .semibold))
-                }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                isGenerating
-                    ? AnyShapeStyle(Color.secondary.opacity(0.4))
-                    : AnyShapeStyle(LinearGradient(colors: [themeC1, themeC2],
-                                                    startPoint: .leading, endPoint: .trailing)),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
+    private var closeButton: some View {
+        Button { dismiss() } label: {
+            Text(String(localized: "review_close"))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(colors: [themeC1, themeC2],
+                                   startPoint: .leading, endPoint: .trailing),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
         }
         .buttonStyle(.plain)
-        .disabled(isGenerating)
-    }
-
-    // MARK: - AI Review Card
-
-    private var aiReviewCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(themeC1)
-                Text(String(localized: "review_ai_label"))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                Button {
-                    withAnimation { generated = false; reviewText = "" }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Text(reviewText)
-                .font(.system(size: 15))
-                .foregroundStyle(darkModeEnabled ? .white.opacity(0.9) : .primary)
-                .fixedSize(horizontal: false, vertical: true)
-                .animation(.easeIn(duration: 0.05), value: reviewText)
-
-            Button { dismiss() } label: {
-                Text(String(localized: "review_close"))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(themeC1)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(themeC1.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(18)
-        .glassCard(c1: themeC1, c2: themeC2, dark: darkModeEnabled)
-    }
-
-    // MARK: - AI Generation
-
-    private func generateReview() async {
-        isGenerating = true
-
-        let lang = LocalizationManager.shared.selectedLanguage == "Deutsch" ? "German" : "English"
-
-        let fmt = DateFormatter()
-        fmt.locale = Locale.current
-        fmt.dateFormat = "EEEE"
-
-        let dayLines = thisWeekDays.enumerated().map { i, day in
-            let tasks = todoStore.dailyStats[day] ?? 0
-            let focus = todoStore.dailyFocusMinutes[day] ?? 0
-            let dayName = fmt.string(from: day)
-            let last = todoStore.dailyStats[lastWeekDays[safe: i] ?? day] ?? 0
-            return "\(dayName): \(tasks) tasks done, \(focus) min focus (last week: \(last) tasks)"
-        }.joined(separator: "\n")
-
-        let completedNames = completedTodosThisWeek.prefix(10).map { "• \($0.title)" }.joined(separator: "\n")
-
-        let bestLine: String
-        if let best = bestDayThisWeek {
-            bestLine = "Best day: \(fmt.string(from: best.day)) with \(best.count) tasks"
-        } else {
-            bestLine = "No tasks completed this week"
-        }
-
-        let prompt = """
-        You are a motivating productivity coach writing a weekly review. Be warm, personal, and encouraging but honest.
-
-        Weekly stats:
-        \(dayLines)
-
-        Total this week: \(thisWeekCompleted) tasks done, \(thisWeekFocus) min focus
-        Total last week: \(lastWeekCompleted) tasks done, \(lastWeekFocus) min focus
-        \(bestLine)
-
-        Completed tasks this week:
-        \(completedNames.isEmpty ? "None recorded" : completedNames)
-
-        Write a personal weekly review in \(lang) of 3-4 sentences. Mention specific numbers. Be encouraging about improvements, honest about slow days. End with one actionable tip for next week. Do NOT use bullet points or headers – flowing text only.
-        """
-
-        do {
-            let stream = aiStream(prompt: prompt)
-            for try await chunk in stream {
-                await MainActor.run { reviewText += chunk }
-            }
-            await MainActor.run {
-                isGenerating = false
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { generated = true }
-            }
-        } catch {
-            await MainActor.run {
-                reviewText = error.localizedDescription
-                isGenerating = false
-                withAnimation { generated = true }
-            }
-        }
-    }
-
-    private func aiStream(prompt: String) -> AsyncThrowingStream<String, Error> {
-        switch aiProvider {
-        case "openai":
-            let key = KeychainHelper.load(for: OpenAIService.keychainKey) ?? ""
-            return OpenAIService.stream(prompt: prompt, apiKey: key, model: openaiModel)
-        case "groq":
-            let key = KeychainHelper.load(for: GroqService.keychainKey) ?? ""
-            return GroqService.stream(prompt: prompt, apiKey: key, model: groqModel)
-        default:
-            let key = KeychainHelper.load(for: GeminiService.keychainKey) ?? ""
-            return GeminiService.stream(prompt: prompt, apiKey: key)
-        }
     }
 
     // MARK: - Background

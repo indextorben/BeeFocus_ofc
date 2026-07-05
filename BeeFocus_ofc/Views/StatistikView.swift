@@ -32,13 +32,7 @@ struct StatistikView: View {
     @AppStorage("wochenrueckblickEnabled") private var wochenrueckblickEnabled: Bool = false
     @State private var showWochenrueckblick = false
     @State private var showChallenges = false
-    @State private var showKIGesamtbericht = false
-    @State private var showKIAnalyse = false
     @State private var showProStatistik = false
-    @State private var showKIReflexion = false
-    @State private var showKIWochenbericht = false
-    @State private var showKIZerteiler = false
-    @State private var showKIStrategie = false
     @State private var selectedHeatmapDay: Date? = nil
     @State private var selectedHeatmapWeekday: Int? = nil // 0=Mo … 6=So
     @State private var heatmapWidth: CGFloat = 320
@@ -481,8 +475,6 @@ struct StatistikView: View {
         AnyView(sectionsTop)
         AnyView(sectionsMiddle)
         AnyView(sectionsProStatistik)
-        AnyView(sectionsKI)
-        AnyView(sectionsGesamtbericht)
     }
 
     @ViewBuilder private var sectionsTop: some View {
@@ -572,105 +564,9 @@ struct StatistikView: View {
                         iconNavRow(icon: "chart.bar.xaxis", color: Color(red: 0.2, green: 0.6, blue: 1.0), label: loc("stat_pro_statistics_desc"))
                     }
                     .buttonStyle(.plain)
-                    kiProBadge(color: Color(red: 0.2, green: 0.6, blue: 1.0))
                 }
             }
         }
-    }
-
-    // MARK: KI-Features
-    @ViewBuilder private var sectionsKI: some View {
-        animatedSection(delay: 0.60) {
-            sectionGroup(icon: "brain.head.profile", label: loc("stat_ai_task_analysis_label"), color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
-                glassCard {
-                    Button { showKIAnalyse = true } label: {
-                        iconNavRow(icon: "brain.head.profile", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: loc("stat_ai_task_analysis_desc"))
-                    }
-                    .buttonStyle(.plain)
-                    kiProBadge(color: Color(red: 0.55, green: 0.35, blue: 1.0))
-                }
-            }
-        }
-        animatedSection(delay: 0.62) {
-            sectionGroup(icon: "moon.stars.fill", label: loc("stat_ai_daily_reflection_label"), color: Color(red: 1.0, green: 0.5, blue: 0.8)) {
-                glassCard {
-                    Button { showKIReflexion = true } label: {
-                        iconNavRow(icon: "moon.stars.fill", color: Color(red: 1.0, green: 0.5, blue: 0.8), label: loc("stat_ai_daily_reflection_desc"))
-                    }
-                    .buttonStyle(.plain)
-                    kiProBadge(color: Color(red: 1.0, green: 0.5, blue: 0.8))
-                }
-            }
-        }
-        animatedSection(delay: 0.64) {
-            sectionGroup(icon: "chart.bar.doc.horizontal.fill", label: loc("stat_ai_weekly_report_label"), color: Color(red: 0.2, green: 0.75, blue: 1.0)) {
-                glassCard {
-                    Button { showKIWochenbericht = true } label: {
-                        iconNavRow(icon: "chart.bar.doc.horizontal.fill", color: Color(red: 0.2, green: 0.75, blue: 1.0), label: loc("stat_ai_weekly_report_desc"))
-                    }
-                    .buttonStyle(.plain)
-                    kiProBadge(color: Color(red: 0.2, green: 0.75, blue: 1.0))
-                }
-            }
-        }
-        animatedSection(delay: 0.66) {
-            sectionGroup(icon: "scissors", label: loc("stat_ai_task_splitter_label"), color: Color(red: 0.3, green: 0.85, blue: 0.5)) {
-                glassCard {
-                    Button { showKIZerteiler = true } label: {
-                        iconNavRow(icon: "scissors", color: Color(red: 0.3, green: 0.85, blue: 0.5), label: loc("stat_ai_task_splitter_desc"))
-                    }
-                    .buttonStyle(.plain)
-                    kiProBadge(color: Color(red: 0.3, green: 0.85, blue: 0.5))
-                }
-            }
-        }
-        animatedSection(delay: 0.68) {
-            sectionGroup(icon: "flame.fill", label: loc("stat_ai_focus_strategy_label"), color: Color(red: 1.0, green: 0.55, blue: 0.1)) {
-                glassCard {
-                    Button { showKIStrategie = true } label: {
-                        iconNavRow(icon: "flame.fill", color: Color(red: 1.0, green: 0.55, blue: 0.1), label: loc("stat_ai_focus_strategy_desc"))
-                    }
-                    .buttonStyle(.plain)
-                    kiProBadge(color: Color(red: 1.0, green: 0.55, blue: 0.1))
-                }
-            }
-        }
-    }
-
-    // MARK: - KI-Gesamtbericht
-
-    @ViewBuilder private var sectionsGesamtbericht: some View {
-        animatedSection(delay: 0.75) {
-            sectionGroup(icon: "doc.text.magnifyingglass", label: loc("stat_ai_overall_report_label"), color: Color(red: 0.55, green: 0.35, blue: 1.0)) {
-                glassCard {
-                    Button { showKIGesamtbericht = true } label: {
-                        iconNavRow(icon: "doc.text.magnifyingglass", color: Color(red: 0.55, green: 0.35, blue: 1.0), label: loc("stat_ai_overall_report_desc"))
-                    }
-                    .buttonStyle(.plain)
-                    HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
-                        Text(loc("stat_export_hint"))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.55, green: 0.35, blue: 1.0))
-                    }
-                    .padding(.horizontal, 14).padding(.bottom, 10)
-                }
-            }
-        }
-    }
-
-    private func kiProBadge(color: Color) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(color)
-            Text(loc("stat_pro_ki_feature"))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(color)
-        }
-        .padding(.horizontal, 14).padding(.bottom, 10)
     }
 
     // MARK: - Body
@@ -717,32 +613,6 @@ struct StatistikView: View {
             .sheet(isPresented: $showChallenges) {
                 FokusChallengesView().environmentObject(todoStore)
             }
-            .sheet(isPresented: $showKIAnalyse) {
-                KIAufgabenAnalyseView(todos: todoStore.todos)
-                    .environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showKIReflexion) {
-                KITagesreflexionView(todos: todoStore.todos)
-                    .environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showKIWochenbericht) {
-                KIWochenberichtView(todos: todoStore.todos)
-                    .environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showKIZerteiler) {
-                KIAufgabenZerteilerView()
-                    .environmentObject(todoStore)
-            }
-            .sheet(isPresented: $showKIStrategie) {
-                KIFokusStrategieView(todos: todoStore.todos)
-                    .environmentObject(todoStore)
-            }
-
-            .sheet(isPresented: $showKIGesamtbericht) {
-                KIGesamtberichtView()
-                    .environmentObject(todoStore)
-            }
-
             .sheet(isPresented: $showProStatistik) {
                 StatistikProView()
                     .environmentObject(todoStore)

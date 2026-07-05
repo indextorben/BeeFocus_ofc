@@ -57,7 +57,6 @@ struct TagesplanerView: View {
     @State private var shareItems: [Any] = []
     @State private var now: Date = Date()
     @State private var showingBausteinPicker = false
-    @State private var showingKITagesplan = false
     @State private var draggingID: UUID? = nil
     @State private var dragDelta: CGFloat = 0
     @State private var lastSnappedDelta: Int = 0
@@ -216,17 +215,6 @@ struct TagesplanerView: View {
             ActivityShareSheet(items: shareItems)
                 .ignoresSafeArea()
         }
-        .sheet(isPresented: $showingKITagesplan) {
-            if #available(iOS 26.0, *) {
-                KITagesplanSheet(
-                    todos: todoStore.todos,
-                    selectedDate: selectedDate,
-                    themeC1: themeC1,
-                    themeC2: themeC2
-                )
-                .environmentObject(todoStore)
-            }
-        }
     }
 
     // MARK: - Selected date label
@@ -384,16 +372,6 @@ struct TagesplanerView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                Button {
-                    showingKITagesplan = true
-                } label: {
-                    Label("KI", systemImage: "sparkles")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(themeC1)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(themeC1.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(.plain)
             }
         }
         .padding(14)
