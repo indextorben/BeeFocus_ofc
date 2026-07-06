@@ -274,14 +274,14 @@ struct EditTodoView: View {
         } message: {
             Text(localizer.localizedString(forKey: "discard_changes_message"))
         }
-        .alert("Delete subtask?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
-            Button("Delete", role: .destructive) {
+        .alert(localizer.localizedString(forKey: "delete_subtask_title"), isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
+            Button(localizer.localizedString(forKey: "delete_button"), role: .destructive) {
                 subTasks.removeAll { $0.id == sub.id }
                 subTaskPendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { subTaskPendingDelete = nil }
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { subTaskPendingDelete = nil }
         } message: { sub in
-            Text("Are you sure you want to delete \"\(sub.title)\"?")
+            Text(String(format: localizer.localizedString(forKey: "delete_subtask_message"), sub.title))
         }
     }
     
@@ -349,23 +349,23 @@ struct EditTodoView: View {
     }
     
     private var recurrenceSection: some View {
-        Section(header: Text("Recurrence")) {
-            Toggle("Repeat", isOn: $recurrenceEnabled)
+        Section(header: Text(localizer.localizedString(forKey: "recurrence_section_header"))) {
+            Toggle(localizer.localizedString(forKey: "recurrence_enabled_toggle"), isOn: $recurrenceEnabled)
 
             if recurrenceEnabled {
-                Picker("Frequency", selection: $recurrenceFrequency) {
-                    Text("Daily").tag("daily")
-                    Text("Weekly").tag("weekly")
-                    Text("Monthly").tag("monthly")
+                Picker(localizer.localizedString(forKey: "recurrence_frequency_picker"), selection: $recurrenceFrequency) {
+                    Text(localizer.localizedString(forKey: "recurrence_daily")).tag("daily")
+                    Text(localizer.localizedString(forKey: "recurrence_weekly")).tag("weekly")
+                    Text(localizer.localizedString(forKey: "recurrence_monthly")).tag("monthly")
                 }
                 .pickerStyle(.segmented)
 
                 Stepper(value: $recurrenceInterval, in: 1...30) {
-                    Text("Interval: \(recurrenceInterval)")
+                    Text("\(localizer.localizedString(forKey: "recurrence_interval")): \(recurrenceInterval)")
                 }
                 if recurrenceFrequency == "weekly" {
                     VStack(alignment: .leading) {
-                        Text("Weekdays")
+                        Text(localizer.localizedString(forKey: "recurrence_weekdays_label"))
                         WeekdayPicker(selectedWeekdays: $weeklyWeekdays, localizer: localizer)
                     }
                 }
@@ -732,7 +732,7 @@ private struct WeekdayPicker: View {
     
     private var weekdaySymbols: [String] {
         let df = DateFormatter()
-        df.locale = Locale(identifier: "en_US")
+        df.locale = localizer.currentLocale
         return df.shortWeekdaySymbols // Sunday-first
     }
     private let weekdayOrder: [Int] = [2, 3, 4, 5, 6, 7, 1] // Monday-first order (1=Sun..7=Sat)

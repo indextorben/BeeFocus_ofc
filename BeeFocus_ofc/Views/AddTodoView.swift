@@ -393,7 +393,7 @@ struct AddTodoView: View {
     private func shortWeekdaySymbol(_ weekday: Int) -> String {
         // weekday: 1=Sunday ... 7=Saturday
         let df = DateFormatter()
-        df.locale = Locale.current
+        df.locale = LocalizationManager.shared.currentLocale
         // Some SDKs expose optional weekday symbol arrays. Safely unwrap and fall back to veryShort symbols if empty.
         let primary: [String] = df.shortWeekdaySymbols ?? []
         let fallback: [String] = df.veryShortWeekdaySymbols ?? []

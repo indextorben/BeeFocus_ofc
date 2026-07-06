@@ -28,10 +28,11 @@ enum TodoPriority: String, Codable, Identifiable, CaseIterable {
     }
 
     var displayName: String {
+        let loc = LocalizationManager.shared
         switch self {
-        case .low: return "Niedrig"
-        case .medium: return "Mittel"
-        case .high: return "Hoch"
+        case .low: return loc.localizedString(forKey: "priority_low")
+        case .medium: return loc.localizedString(forKey: "priority_medium")
+        case .high: return loc.localizedString(forKey: "priority_high")
         }
     }
 }

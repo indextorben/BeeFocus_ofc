@@ -10,6 +10,7 @@ struct FokusTodoEditorView: View {
     @EnvironmentObject var todoStore: TodoStore
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     let existingTodo: TodoItem?
     let prefilledDate: Date?
@@ -127,17 +128,17 @@ struct FokusTodoEditorView: View {
                 .transaction { $0.animation = appeared ? $0.animation : nil }
                 .onAppear { appeared = true }
             }
-            .navigationTitle(isEditMode ? "Edit Task" : "New Task")
+            .navigationTitle(isEditMode ? localizer.localizedString(forKey: "edit_todo_title") : localizer.localizedString(forKey: "new_task_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(localizer.localizedString(forKey: "cancel_button")) {
                         if hasUnsavedChanges() { showDiscardDialog = true } else { dismiss() }
                     }
                     .foregroundStyle(themeC1)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    Button(localizer.localizedString(forKey: "save_button")) { save() }
                         .fontWeight(.semibold)
                         .foregroundStyle(title.isEmpty ? .secondary : themeC1)
                         .disabled(title.isEmpty)
@@ -145,58 +146,58 @@ struct FokusTodoEditorView: View {
             }
         }
         .interactiveDismissDisabled(hasUnsavedChanges())
-        .confirmationDialog("Discard changes?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
-            Button("Discard", role: .destructive) { dismiss() }
+        .confirmationDialog(localizer.localizedString(forKey: "discard_changes_title"), isPresented: $showDiscardDialog, titleVisibility: .visible) {
+            Button(localizer.localizedString(forKey: "discard_changes"), role: .destructive) { dismiss() }
             if isEditMode {
-                Button("Delete task", role: .destructive) {
+                Button(localizer.localizedString(forKey: "delete_task"), role: .destructive) {
                     if let t = existingTodo { todoStore.deleteTodo(t) }
                     dismiss()
                 }
             }
-            Button("Keep editing", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "keep_editing"), role: .cancel) {}
         } message: {
-            Text("Unsaved changes will be lost.")
+            Text(localizer.localizedString(forKey: "unsaved_changes_message"))
         }
-        .confirmationDialog("Delete task?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
+        .confirmationDialog(localizer.localizedString(forKey: "alert_delete_task"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(localizer.localizedString(forKey: "delete_button"), role: .destructive) {
                 if let t = existingTodo { todoStore.deleteTodo(t) }
                 dismiss()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) {}
         } message: {
-            Text("\"\(title)\" will be permanently deleted.")
+            Text(String(format: localizer.localizedString(forKey: "delete_task_confirm_message"), title))
         }
-        .alert("New Category", isPresented: $showAddCategoryAlert) {
-            TextField("Category name", text: $newCategoryName)
-            Button("Add") { addCategory() }
-            Button("Cancel", role: .cancel) { newCategoryName = "" }
+        .alert(localizer.localizedString(forKey: "new_category_title"), isPresented: $showAddCategoryAlert) {
+            TextField(localizer.localizedString(forKey: "category_name_placeholder"), text: $newCategoryName)
+            Button(localizer.localizedString(forKey: "add")) { addCategory() }
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { newCategoryName = "" }
         }
-        .alert("Camera access required", isPresented: $showCameraPermAlert) {
-            Button("Settings") {
+        .alert(localizer.localizedString(forKey: "camera_access_required"), isPresented: $showCameraPermAlert) {
+            Button(localizer.localizedString(forKey: "settings_button")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) {}
         }
-        .alert("No calendar access", isPresented: $calendarAccessDenied) {
-            Button("Settings") {
+        .alert(localizer.localizedString(forKey: "calendar_no_access_title"), isPresented: $calendarAccessDenied) {
+            Button(localizer.localizedString(forKey: "settings_button")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) {}
         } message: {
-            Text("Please allow BeeFocus to access your calendar in Settings.")
+            Text(localizer.localizedString(forKey: "calendar_no_access_message"))
         }
-        .alert("Delete subtask?", isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
-            Button("Delete", role: .destructive) {
+        .alert(localizer.localizedString(forKey: "delete_subtask_title"), isPresented: $showSubTaskDeleteAlert, presenting: subTaskPendingDelete) { sub in
+            Button(localizer.localizedString(forKey: "delete_button"), role: .destructive) {
                 withAnimation { subTasks.removeAll { $0.id == sub.id } }
                 subTaskPendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { subTaskPendingDelete = nil }
+            Button(localizer.localizedString(forKey: "cancel_button"), role: .cancel) { subTaskPendingDelete = nil }
         } message: { sub in
-            Text("Are you sure you want to delete \"\(sub.title)\"?")
+            Text(String(format: localizer.localizedString(forKey: "delete_subtask_message"), sub.title))
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker { img in
@@ -211,9 +212,9 @@ struct FokusTodoEditorView: View {
     // MARK: - Titel & Beschreibung
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Title", icon: "pencil.line")
+            sectionLabel(localizer.localizedString(forKey: "title_placeholder"), icon: "pencil.line")
             VStack(spacing: 0) {
-                TextField("Task name", text: $title)
+                TextField(localizer.localizedString(forKey: "title_placeholder"), text: $title)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                     .submitLabel(.next)
@@ -232,7 +233,7 @@ struct FokusTodoEditorView: View {
                         .padding(.vertical, 6)
                         .overlay(alignment: .topLeading) {
                             if bodyText.isEmpty {
-                                Text("Description (optional)")
+                                Text(localizer.localizedString(forKey: "description_optional_placeholder"))
                                     .font(.system(size: 15))
                                     .foregroundStyle(.secondary.opacity(0.6))
                                     .padding(.horizontal, 14)
@@ -249,7 +250,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Priorität
     private var prioritySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Priority", icon: "flag.fill")
+            sectionLabel(localizer.localizedString(forKey: "priority"), icon: "flag.fill")
             HStack(spacing: 10) {
                 ForEach(TodoPriority.allCases) { p in
                     priorityChip(p)
@@ -285,11 +286,11 @@ struct FokusTodoEditorView: View {
     // MARK: - Datum & Zeit
     private var dateTimeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Date & Time", icon: "calendar.badge.clock")
+            sectionLabel(localizer.localizedString(forKey: "date_time"), icon: "calendar.badge.clock")
             VStack(spacing: 0) {
                 // Datum-Toggle
                 Toggle(isOn: $hasDueDate.animation(.spring(response: 0.35))) {
-                    Label("Set date", systemImage: "calendar")
+                    Label(localizer.localizedString(forKey: "set_date_toggle"), systemImage: "calendar")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }
@@ -311,7 +312,7 @@ struct FokusTodoEditorView: View {
                     HStack(spacing: 0) {
                         // Von
                         VStack(spacing: 6) {
-                            Text("From")
+                            Text(localizer.localizedString(forKey: "time_from_label"))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.secondary)
                             DatePicker("", selection: $dueDate, displayedComponents: .hourAndMinute)
@@ -334,7 +335,7 @@ struct FokusTodoEditorView: View {
                                 Image(systemName: hasEndTime ? "arrow.right" : "arrow.right")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(hasEndTime ? themeC1 : themeC1.opacity(0.35))
-                                Text(hasEndTime ? "Until" : "no end")
+                                Text(hasEndTime ? localizer.localizedString(forKey: "time_until_label") : localizer.localizedString(forKey: "time_no_end_label"))
                                     .font(.system(size: 9, weight: .medium))
                                     .foregroundStyle(hasEndTime ? themeC1 : .secondary)
                             }
@@ -344,7 +345,7 @@ struct FokusTodoEditorView: View {
 
                         // Until
                         VStack(spacing: 6) {
-                            Text("To")
+                            Text(localizer.localizedString(forKey: "time_to_label"))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(Color.secondary.opacity(hasEndTime ? 1.0 : 0.35))
                             if hasEndTime {
@@ -396,18 +397,18 @@ struct FokusTodoEditorView: View {
 
     private var reminderSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Reminder", icon: "bell.fill")
+            sectionLabel(localizer.localizedString(forKey: "reminder_label"), icon: "bell.fill")
             VStack(spacing: 0) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        reminderChip(-1,   label: "None")
-                        reminderChip(0,    label: "On time")
-                        reminderChip(5,    label: "5 min")
-                        reminderChip(15,   label: "15 min")
-                        reminderChip(30,   label: "30 min")
-                        reminderChip(60,   label: "1 hr")
-                        reminderChip(120,  label: "2 hr")
-                        reminderChip(1440, label: "1 day")
+                        reminderChip(-1,   label: localizer.localizedString(forKey: "reminder_none"))
+                        reminderChip(0,    label: localizer.localizedString(forKey: "reminder_chip_on_time"))
+                        reminderChip(5,    label: localizer.localizedString(forKey: "reminder_chip_5m"))
+                        reminderChip(15,   label: localizer.localizedString(forKey: "reminder_chip_15m"))
+                        reminderChip(30,   label: localizer.localizedString(forKey: "reminder_chip_30m"))
+                        reminderChip(60,   label: localizer.localizedString(forKey: "reminder_chip_1h"))
+                        reminderChip(120,  label: localizer.localizedString(forKey: "reminder_chip_2h"))
+                        reminderChip(1440, label: localizer.localizedString(forKey: "reminder_chip_1d"))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
@@ -419,7 +420,7 @@ struct FokusTodoEditorView: View {
                         Image(systemName: "bell.badge.fill")
                             .font(.system(size: 13))
                             .foregroundStyle(themeC1)
-                        Text("Benachrichtigung um \(fireTime.formatted(.dateTime.hour().minute()))")
+                        Text(String(format: localizer.localizedString(forKey: "reminder_fire_time"), fireTime.formatted(.dateTime.hour().minute())))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -458,10 +459,10 @@ struct FokusTodoEditorView: View {
     // MARK: - Kalender
     private var calendarSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Calendar", icon: "calendar.badge.plus")
+            sectionLabel(localizer.localizedString(forKey: "calendar_section_label"), icon: "calendar.badge.plus")
             VStack(spacing: 0) {
                 Toggle(isOn: $addToCalendar.animation(.spring(response: 0.35))) {
-                    Label("Add to calendar", systemImage: "calendar")
+                    Label(localizer.localizedString(forKey: "add_to_calendar_toggle"), systemImage: "calendar")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }
@@ -471,7 +472,7 @@ struct FokusTodoEditorView: View {
                 if addToCalendar {
                     Divider().opacity(0.15).padding(.horizontal, 14)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Choose calendar")
+                        Text(localizer.localizedString(forKey: "choose_calendar"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 14)
@@ -489,11 +490,11 @@ struct FokusTodoEditorView: View {
     // MARK: - Kategorie
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Category", icon: "folder.fill")
+            sectionLabel(localizer.localizedString(forKey: "category"), icon: "folder.fill")
             VStack(spacing: 0) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        categoryChip(nil, name: "None")
+                        categoryChip(nil, name: localizer.localizedString(forKey: "category_none_label"))
                         ForEach(todoStore.categories) { cat in
                             categoryChip(cat, name: cat.name)
                         }
@@ -506,7 +507,7 @@ struct FokusTodoEditorView: View {
                     newCategoryName = ""
                     showAddCategoryAlert = true
                 } label: {
-                    Label("Neue Kategorie", systemImage: "plus.circle")
+                    Label(localizer.localizedString(forKey: "add_category"), systemImage: "plus.circle")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(themeC1)
                 }
@@ -539,7 +540,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Subtasks
     private var subtasksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Subtasks", icon: "checklist")
+            sectionLabel(localizer.localizedString(forKey: "subtasks"), icon: "checklist")
             VStack(spacing: 0) {
                 if !subTasks.isEmpty {
                     ForEach(subTasks) { sub in
@@ -580,7 +581,7 @@ struct FokusTodoEditorView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(themeC1)
-                    TextField("Neue Teilaufgabe", text: $newSubTaskTitle)
+                    TextField(localizer.localizedString(forKey: "new_subtask_placeholder"), text: $newSubTaskTitle)
                         .font(.system(size: 15))
                         .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
                         .submitLabel(.done)
@@ -603,10 +604,10 @@ struct FokusTodoEditorView: View {
     // MARK: - Wiederholung
     private var recurrenceSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Repeat", icon: "arrow.clockwise")
+            sectionLabel(localizer.localizedString(forKey: "recurrence_section_header"), icon: "arrow.clockwise")
             VStack(spacing: 0) {
                 Toggle(isOn: $recurrenceEnabled) {
-                    Label("Repeat", systemImage: "repeat")
+                    Label(localizer.localizedString(forKey: "recurrence_enabled_toggle"), systemImage: "repeat")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                 }
@@ -617,15 +618,15 @@ struct FokusTodoEditorView: View {
                     Divider().opacity(0.15).padding(.horizontal, 14)
                     VStack(spacing: 12) {
                         Picker("", selection: $recurrenceFreq) {
-                            Text("Daily").tag("daily")
-                            Text("Weekly").tag("weekly")
-                            Text("Monthly").tag("monthly")
+                            Text(localizer.localizedString(forKey: "recurrence_daily")).tag("daily")
+                            Text(localizer.localizedString(forKey: "recurrence_weekly")).tag("weekly")
+                            Text(localizer.localizedString(forKey: "recurrence_monthly")).tag("monthly")
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 4)
 
                         HStack {
-                            Text("Every")
+                            Text(localizer.localizedString(forKey: "recurrence_every_label"))
                                 .font(.system(size: 14))
                                 .foregroundStyle(.secondary)
                             Stepper("\(recurrenceInterval) \(freqLabel)", value: $recurrenceInterval, in: 1...30)
@@ -645,15 +646,18 @@ struct FokusTodoEditorView: View {
     }
 
     private var freqLabel: String {
+        let loc = LocalizationManager.shared
         switch recurrenceFreq {
-        case "weekly":  return recurrenceInterval == 1 ? "week" : "weeks"
-        case "monthly": return recurrenceInterval == 1 ? "month" : "months"
-        default:        return recurrenceInterval == 1 ? "day"   : "days"
+        case "weekly":  return recurrenceInterval == 1 ? loc.localizedString(forKey: "freq_week")  : loc.localizedString(forKey: "freq_weeks")
+        case "monthly": return recurrenceInterval == 1 ? loc.localizedString(forKey: "freq_month") : loc.localizedString(forKey: "freq_months")
+        default:        return recurrenceInterval == 1 ? loc.localizedString(forKey: "freq_day")   : loc.localizedString(forKey: "freq_days")
         }
     }
 
     private var weekdayPickerRow: some View {
-        let symbols = ["Mo","Tu","We","Th","Fr","Sa","Su"]
+        let df = DateFormatter()
+        df.locale = LocalizationManager.shared.currentLocale
+        let allSymbols = df.veryShortWeekdaySymbols ?? ["S","M","T","W","T","F","S"]
         let indices = [2, 3, 4, 5, 6, 7, 1]
         return HStack(spacing: 6) {
             ForEach(0..<7, id: \.self) { i in
@@ -664,7 +668,7 @@ struct FokusTodoEditorView: View {
                         if selected { weeklyWeekdays.remove(day) } else { weeklyWeekdays.insert(day) }
                     }
                 } label: {
-                    Text(symbols[i])
+                    Text(allSymbols[(indices[i] - 1)])
                         .font(.system(size: 12, weight: .semibold))
                         .frame(width: 34, height: 34)
                         .foregroundStyle(selected ? .white : (isDark ? .white.opacity(0.6) : .secondary))
@@ -680,7 +684,7 @@ struct FokusTodoEditorView: View {
     // MARK: - Fotos
     private var photosSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Photos", icon: "photo.fill")
+            sectionLabel(localizer.localizedString(forKey: "photos_section_label"), icon: "photo.fill")
             VStack(spacing: 0) {
                 if !selectedImages.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -711,7 +715,7 @@ struct FokusTodoEditorView: View {
                 }
                 HStack(spacing: 0) {
                     PhotosPicker(selection: $selectedItems, maxSelectionCount: 5, matching: .images) {
-                        Label("Galerie", systemImage: "photo.on.rectangle")
+                        Label(localizer.localizedString(forKey: "gallery_label"), systemImage: "photo.on.rectangle")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(themeC1)
                             .frame(maxWidth: .infinity)
@@ -724,7 +728,7 @@ struct FokusTodoEditorView: View {
                     Button {
                         checkCamera()
                     } label: {
-                        Label("Camera", systemImage: "camera")
+                        Label(localizer.localizedString(forKey: "camera_label"), systemImage: "camera")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(themeC1)
                             .frame(maxWidth: .infinity)
@@ -742,7 +746,7 @@ struct FokusTodoEditorView: View {
     private var actionButtons: some View {
         VStack(spacing: 12) {
             Button { save() } label: {
-                Text("Save")
+                Text(localizer.localizedString(forKey: "save_button"))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -760,7 +764,7 @@ struct FokusTodoEditorView: View {
 
             if isEditMode {
                 Button { showDeleteConfirm = true } label: {
-                    Label("Delete task", systemImage: "trash")
+                    Label(localizer.localizedString(forKey: "delete_task"), systemImage: "trash")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity)
