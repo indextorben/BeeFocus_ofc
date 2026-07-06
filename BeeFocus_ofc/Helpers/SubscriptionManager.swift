@@ -142,9 +142,22 @@ final class SubscriptionManager: ObservableObject {
                         if !hasLifetime { latestProductID = transaction.productID }
                     }
                 } else {
-                    // Lifetime – kein Ablaufdatum, hat immer Vorrang
                     hasLifetime = true
                     latestProductID = transaction.productID
+                }
+            }
+        }
+
+        // Fallback für Lifetime: Transaction.all durchsuchen falls currentEntitlements leer
+        if !active {
+            for await result in Transaction.all {
+                if let transaction = try? checkVerified(result),
+                   transaction.productID == Self.lifetimeID,
+                   transaction.revocationDate == nil {
+                    active = true
+                    hasLifetime = true
+                    latestProductID = transaction.productID
+                    break
                 }
             }
         }
