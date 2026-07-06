@@ -44,6 +44,8 @@ struct TagesplanBaustein: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var titel: String = ""
     var beschreibung: String = ""
+    var titelDe: String? = nil
+    var beschreibungDe: String? = nil
     var hatStartZeit: Bool = true
     var startStunde: Int = 9
     var startMinute: Int = 0
@@ -56,8 +58,16 @@ struct TagesplanBaustein: Identifiable, Codable, Equatable {
     var symbol: String = "square.fill"
     var verwendungen: Int = 0      // Wie oft eingefügt — für Smart-Ranking
 
+    func localizedTitel(languageCode: String) -> String {
+        languageCode == "de" ? (titelDe ?? titel) : titel
+    }
+
+    func localizedBeschreibung(languageCode: String) -> String {
+        languageCode == "de" ? (beschreibungDe ?? beschreibung) : beschreibung
+    }
+
     var zeitLabel: String {
-        guard hatStartZeit else { return "No fixed time" }
+        guard hatStartZeit else { return "–" }
         let s = String(format: "%02d:%02d", startStunde, startMinute)
         guard hatEndZeit else { return s }
         let e = String(format: "%02d:%02d", endStunde, endMinute)
@@ -116,7 +126,7 @@ class BausteinStore: ObservableObject {
 
     @Published var bausteine: [TagesplanBaustein] = []
 
-    private init() { laden(); vorbelegenFallsLeer() }
+    private init() { laden(); vorbelegenFallsLeer(); migrateGermanTitlesIfNeeded() }
 
     func upsert(_ b: TagesplanBaustein) {
         if let idx = bausteine.firstIndex(where: { $0.id == b.id }) {
@@ -196,113 +206,49 @@ class BausteinStore: ObservableObject {
 
     // MARK: - 10 Standard-Bausteine (werden nur angelegt wenn die Liste leer ist)
 
+    private static let defaultPresets: [(titel: String, titelDe: String, beschreibung: String, beschreibungDe: String,
+                                          startH: Int, startM: Int, endH: Int, endM: Int,
+                                          wochentage: [Int], highPrio: Bool,
+                                          farbe: BausteinFarbe, symbol: String)] = [
+        ("Morning Routine",    "Morgenroutine",       "Breakfast, personal care, start the day",         "Frühstück, Körperpflege, in den Tag starten",    7,  0, 7, 30, [],        false, .gelb,  "sun.max.fill"),
+        ("Emails & Messages",  "E-Mails & Nachrichten","Clear inbox, check Slack/Teams",                  "Posteingang leeren, Slack/Teams checken",         8,  0, 8, 30, [1,2,3,4,5], false, .blau,  "envelope.fill"),
+        ("Daily Planning",     "Tagesplanung",        "Set priorities, check calendar",                  "Prioritäten setzen, Kalender checken",            8, 30, 9,  0, [1,2,3,4,5], false, .teal,  "list.bullet.clipboard.fill"),
+        ("Deep Work",          "Tiefarbeit",          "Deep concentration, phone away",                  "Volle Konzentration, Handy weg",                  9,  0, 11, 0, [1,2,3,4,5], true,  .indigo,"brain.head.profile"),
+        ("Focus Block",        "Fokus-Block",         "Concentrated work unit",                          "Konzentrierte Arbeitseinheit",                   14,  0, 16, 0, [1,2,3,4,5], false, .rot,   "bolt.fill"),
+        ("Lunch Break",        "Mittagspause",        "Eat, short break",                               "Essen, kurze Auszeit",                           12,  0, 13, 0, [],        false, .gruen, "fork.knife"),
+        ("Exercise & Training","Sport & Training",    "Gym, running, or home workout",                  "Fitnessstudio, Laufen oder Heimtraining",         17,  0, 18, 0, [1,3,5],   false, .orange,"dumbbell.fill"),
+        ("Walk",               "Spaziergang",         "Fresh air, clear your head",                     "Frische Luft, Kopf frei machen",                 17, 30, 18, 0, [],        false, .mint,  "figure.walk"),
+        ("Reading",            "Lesen",               "Book, article, or professional text",            "Buch, Artikel oder Fachtext",                    20,  0, 21, 0, [],        false, .lila,  "book.fill"),
+        ("Daily Reflection",   "Tagesreflexion",      "What went well? What to improve tomorrow?",      "Was lief gut? Was morgen verbessern?",            21, 30, 22, 0, [],        false, .cyan,  "moon.fill"),
+    ]
+
     private func vorbelegenFallsLeer() {
         guard bausteine.isEmpty else { return }
-        let presets: [TagesplanBaustein] = [
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Morning Routine"
-                b.beschreibung = "Breakfast, personal care, start the day"
-                b.startStunde = 7; b.startMinute = 0
-                b.endStunde   = 7; b.endMinute   = 30
-                b.wochentage  = []   // täglich
-                b.farbe = .gelb; b.symbol = "sun.max.fill"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Emails & Messages"
-                b.beschreibung = "Clear inbox, check Slack/Teams"
-                b.startStunde = 8; b.startMinute = 0
-                b.endStunde   = 8; b.endMinute   = 30
-                b.wochentage  = [1,2,3,4,5]  // Mo–Fr
-                b.farbe = .blau; b.symbol = "envelope.fill"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Daily Planning"
-                b.beschreibung = "Set priorities, check calendar"
-                b.startStunde = 8; b.startMinute = 30
-                b.endStunde   = 9; b.endMinute   = 0
-                b.wochentage  = [1,2,3,4,5]
-                b.farbe = .teal; b.symbol = "list.bullet.clipboard.fill"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Deep Work"
-                b.beschreibung = "Deep concentration, phone away"
-                b.startStunde = 9;  b.startMinute = 0
-                b.endStunde   = 11; b.endMinute   = 0
-                b.wochentage  = [1,2,3,4,5]
-                b.isHighPriority = true
-                b.farbe = .indigo; b.symbol = "brain.head.profile"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Focus Block"
-                b.beschreibung = "Concentrated work unit"
-                b.startStunde = 14; b.startMinute = 0
-                b.endStunde   = 16; b.endMinute   = 0
-                b.wochentage  = [1,2,3,4,5]
-                b.farbe = .rot; b.symbol = "bolt.fill"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Lunch Break"
-                b.beschreibung = "Eat, short break"
-                b.startStunde = 12; b.startMinute = 0
-                b.endStunde   = 13; b.endMinute   = 0
-                b.wochentage  = []
-                b.farbe = .gruen; b.symbol = "fork.knife"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Exercise & Training"
-                b.beschreibung = "Gym, running, or home workout"
-                b.startStunde = 17; b.startMinute = 0
-                b.endStunde   = 18; b.endMinute   = 0
-                b.wochentage  = [1,3,5]  // Mo, Mi, Fr
-                b.farbe = .orange; b.symbol = "dumbbell.fill"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Walk"
-                b.beschreibung = "Fresh air, clear your head"
-                b.startStunde = 17; b.startMinute = 30
-                b.endStunde   = 18; b.endMinute   = 0
-                b.wochentage  = []
-                b.farbe = .mint; b.symbol = "figure.walk"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Reading"
-                b.beschreibung = "Book, article, or professional text"
-                b.startStunde = 20; b.startMinute = 0
-                b.endStunde   = 21; b.endMinute   = 0
-                b.wochentage  = []
-                b.farbe = .lila; b.symbol = "book.fill"
-                return b
-            }(),
-            {
-                var b = TagesplanBaustein()
-                b.titel = "Daily Reflection"
-                b.beschreibung = "What went well? What to improve tomorrow?"
-                b.startStunde = 21; b.startMinute = 30
-                b.endStunde   = 22; b.endMinute   = 0
-                b.wochentage  = []
-                b.farbe = .cyan; b.symbol = "moon.fill"
-                return b
-            }(),
-        ]
-        bausteine = presets
+        bausteine = Self.defaultPresets.map { p in
+            var b = TagesplanBaustein()
+            b.titel = p.titel; b.titelDe = p.titelDe
+            b.beschreibung = p.beschreibung; b.beschreibungDe = p.beschreibungDe
+            b.startStunde = p.startH; b.startMinute = p.startM
+            b.endStunde = p.endH; b.endMinute = p.endM
+            b.wochentage = p.wochentage; b.isHighPriority = p.highPrio
+            b.farbe = p.farbe; b.symbol = p.symbol
+            return b
+        }
         speichern()
+    }
+
+    private func migrateGermanTitlesIfNeeded() {
+        guard bausteine.contains(where: { $0.titelDe == nil }) else { return }
+        let lookup = Dictionary(uniqueKeysWithValues: Self.defaultPresets.map { ($0.titel, $0) })
+        var changed = false
+        for i in bausteine.indices where bausteine[i].titelDe == nil {
+            if let p = lookup[bausteine[i].titel] {
+                bausteine[i].titelDe = p.titelDe
+                bausteine[i].beschreibungDe = p.beschreibungDe
+                changed = true
+            }
+        }
+        if changed { speichern() }
     }
 
     private func laden() {

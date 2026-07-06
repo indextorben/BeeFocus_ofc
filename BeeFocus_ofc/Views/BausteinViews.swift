@@ -10,6 +10,7 @@ struct BausteinPickerSheet: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema = ""
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var localizer = LocalizationManager.shared
     @State private var showingVerwaltung = false
     @State private var suche: String = ""
     @FocusState private var sucheFocused: Bool
@@ -17,6 +18,7 @@ struct BausteinPickerSheet: View {
     private var isDark: Bool { colorScheme == .dark }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     // Smart-scored top picks (max 4) für die Chips-Leiste oben
     private var topPicks: [TagesplanBaustein] {
@@ -47,15 +49,15 @@ struct BausteinPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Insert Block")
+            .navigationTitle(loc("baustein_insert_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button(loc("baustein_close")) { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showingVerwaltung = true } label: {
-                        Label("Manage", systemImage: "slider.horizontal.3")
+                        Label(loc("baustein_manage"), systemImage: "slider.horizontal.3")
                     }
                 }
             }
@@ -78,7 +80,7 @@ struct BausteinPickerSheet: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(sucheFocused || !suche.isEmpty ? themeC1 : .secondary)
-                    TextField("Search…", text: $suche)
+                    TextField(loc("baustein_search"), text: $suche)
                         .font(.system(size: 15))
                         .focused($sucheFocused)
                         .submitLabel(.search)
@@ -107,7 +109,7 @@ struct BausteinPickerSheet: View {
                     keineErgebnisse
                 } else {
                     pickerSection(
-                        titel: suche.isEmpty ? "All Blocks" : "Results",
+                        titel: suche.isEmpty ? loc("baustein_all") : loc("baustein_results"),
                         symbol: suche.isEmpty ? nil : "magnifyingglass",
                         bausteine: bausteine
                     )
@@ -128,7 +130,7 @@ struct BausteinPickerSheet: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(themeC1)
-                Text("Fitting now")
+                Text(loc("baustein_fitting"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isDark ? .white.opacity(0.45) : .secondary)
             }
@@ -150,7 +152,7 @@ struct BausteinPickerSheet: View {
                                         .foregroundStyle(b.farbe.color)
                                 }
                                 VStack(alignment: .leading, spacing: 1) {
-                                    Text(b.titel)
+                                    Text(b.localizedTitel(languageCode: localizer.currentLanguageCode))
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                                         .lineLimit(1)
@@ -216,7 +218,7 @@ struct BausteinPickerSheet: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(b.titel)
+                        Text(b.localizedTitel(languageCode: localizer.currentLanguageCode))
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(isDark ? .white : .primary)
                         if b.isHighPriority {
@@ -283,10 +285,10 @@ struct BausteinPickerSheet: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 32))
                 .foregroundStyle(themeC1.opacity(0.35))
-            Text("No blocks found")
+            Text(loc("baustein_none_found"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isDark ? .white.opacity(0.7) : .primary)
-            Text("Try a different search term.")
+            Text(loc("baustein_try_other"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -299,17 +301,17 @@ struct BausteinPickerSheet: View {
             Image(systemName: "square.3.layers.3d")
                 .font(.system(size: 48))
                 .foregroundStyle(themeC1.opacity(0.4))
-            Text("No blocks yet")
+            Text(loc("baustein_empty_title"))
                 .font(.headline)
                 .foregroundStyle(isDark ? .white : .primary)
-            Text("Create blocks you can repeatedly insert into your daily plan.")
+            Text(loc("baustein_empty_hint"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button {
                 showingVerwaltung = true
             } label: {
-                Label("Create first block", systemImage: "plus")
+                Label(loc("baustein_create_first"), systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
@@ -333,10 +335,12 @@ struct BausteinListView: View {
     @StateObject private var store = BausteinStore.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema = ""
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var isDark: Bool { colorScheme == .dark }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     @State private var editingBaustein: TagesplanBaustein? = nil
     @State private var showingNew = false
@@ -353,7 +357,7 @@ struct BausteinListView: View {
                 }
             }
         }
-        .navigationTitle("Blocks")
+        .navigationTitle(loc("baustein_list_title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -406,7 +410,7 @@ struct BausteinListView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(b.titel.isEmpty ? "New Block" : b.titel)
+                    Text(b.titel.isEmpty ? loc("baustein_new") : b.localizedTitel(languageCode: localizer.currentLanguageCode))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(isDark ? .white : .primary)
                     if b.isHighPriority {
@@ -449,10 +453,10 @@ struct BausteinListView: View {
             Image(systemName: "square.3.layers.3d")
                 .font(.system(size: 52))
                 .foregroundStyle(themeC1.opacity(0.35))
-            Text("No blocks yet")
+            Text(loc("baustein_empty_title"))
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(isDark ? .white : .primary)
-            Text("Create reusable time blocks for your daily plan.")
+            Text(loc("baustein_list_empty_hint"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -460,7 +464,7 @@ struct BausteinListView: View {
             Button {
                 editingBaustein = TagesplanBaustein()
             } label: {
-                Label("Create first block", systemImage: "plus")
+                Label(loc("baustein_create_first"), systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -484,6 +488,7 @@ struct BausteinEditSheet: View {
     @AppStorage("aktivesStatistikThema") private var aktivesThema = ""
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     @State private var baustein: TagesplanBaustein
     @State private var showDeleteConfirm = false
@@ -492,8 +497,11 @@ struct BausteinEditSheet: View {
     private var isDark: Bool { colorScheme == .dark }
     private var themeC1: Color { appThemaFarben(aktivesThema).0 }
     private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
-    private let wochentageNamen = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    private var wochentageNamen: [String] {
+        ["weekday_mon", "weekday_tue", "weekday_wed", "weekday_thu", "weekday_fri", "weekday_sat", "weekday_sun"].map { loc($0) }
+    }
     private let symbole = [
         "square.fill", "circle.fill", "star.fill", "bolt.fill", "flame.fill",
         "brain.head.profile", "book.fill", "dumbbell.fill", "fork.knife",
@@ -530,14 +538,14 @@ struct BausteinEditSheet: View {
                     .padding(.vertical, 12)
                 }
             }
-            .navigationTitle(isExisting ? "Edit Block" : "New Block")
+            .navigationTitle(isExisting ? loc("baustein_edit") : loc("baustein_new"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(loc("cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(loc("Speichern")) {
                         onSave(baustein)
                         dismiss()
                     }
@@ -563,7 +571,7 @@ struct BausteinEditSheet: View {
                     .foregroundStyle(baustein.farbe.color)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(baustein.titel.isEmpty ? "Title…" : baustein.titel)
+                Text(baustein.titel.isEmpty ? loc("baustein_title_placeholder") : baustein.titel)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(isDark ? .white : .primary)
                 Text(baustein.zeitLabel)
@@ -586,8 +594,8 @@ struct BausteinEditSheet: View {
     // MARK: Titel
 
     private var titelSection: some View {
-        editSection(label: "Title") {
-            TextField("e.g. Deep Work Session", text: $baustein.titel)
+        editSection(label: loc("baustein_label_title")) {
+            TextField(loc("baustein_title_hint"), text: $baustein.titel)
                 .font(.system(size: 16))
                 .padding(14)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -597,11 +605,11 @@ struct BausteinEditSheet: View {
     // MARK: Zeit
 
     private var zeitSection: some View {
-        editSection(label: "Time Range") {
+        editSection(label: loc("baustein_label_time")) {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     iconBadge("clock", color: baustein.farbe.color)
-                    Text("Set start time")
+                    Text(loc("baustein_set_start"))
                         .font(.system(size: 15))
                     Spacer()
                     Toggle("", isOn: $baustein.hatStartZeit).labelsHidden()
@@ -612,7 +620,7 @@ struct BausteinEditSheet: View {
                     Divider().padding(.horizontal, 14)
                     HStack(spacing: 12) {
                         iconBadge("play.fill", color: .green)
-                        Text("From")
+                        Text(loc("baustein_from"))
                             .font(.system(size: 15))
                         Spacer()
                         zeitPicker(stunde: $baustein.startStunde, minute: $baustein.startMinute)
@@ -622,7 +630,7 @@ struct BausteinEditSheet: View {
                     Divider().padding(.horizontal, 14)
                     HStack(spacing: 12) {
                         iconBadge("stop.fill", color: .red)
-                        Text("Until (optional)")
+                        Text(loc("baustein_until"))
                             .font(.system(size: 15))
                         Spacer()
                         Toggle("", isOn: $baustein.hatEndZeit).labelsHidden()
@@ -633,7 +641,7 @@ struct BausteinEditSheet: View {
                         Divider().padding(.horizontal, 14)
                         HStack(spacing: 12) {
                             iconBadge("flag.fill", color: .red)
-                            Text("End")
+                            Text(loc("baustein_end_label"))
                                 .font(.system(size: 15))
                             Spacer()
                             zeitPicker(stunde: $baustein.endStunde, minute: $baustein.endMinute)
@@ -673,9 +681,9 @@ struct BausteinEditSheet: View {
     // MARK: Wochentage
 
     private var wochentageSection: some View {
-        editSection(label: "Recurring on") {
+        editSection(label: loc("baustein_label_recurring")) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Choose days on which this block appears as a suggestion.")
+                Text(loc("baustein_recurring_hint"))
                     .font(.caption)
                     .foregroundStyle(isDark ? .white.opacity(0.4) : .secondary)
                     .padding(.horizontal, 2)
@@ -713,7 +721,7 @@ struct BausteinEditSheet: View {
     // MARK: Symbol
 
     private var symbolSection: some View {
-        editSection(label: "Icon") {
+        editSection(label: loc("baustein_label_icon")) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                 ForEach(symbole, id: \.self) { sym in
                     let isOn = baustein.symbol == sym
@@ -742,7 +750,7 @@ struct BausteinEditSheet: View {
     // MARK: Farbe
 
     private var farbeSection: some View {
-        editSection(label: "Color") {
+        editSection(label: loc("baustein_label_color")) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(BausteinFarbe.allCases, id: \.rawValue) { f in
@@ -779,11 +787,11 @@ struct BausteinEditSheet: View {
     // MARK: Optionen
 
     private var optionenSection: some View {
-        editSection(label: "Options") {
+        editSection(label: loc("baustein_label_options")) {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     iconBadge("exclamationmark.circle.fill", color: .orange)
-                    Text("High Priority")
+                    Text(loc("baustein_high_priority"))
                         .font(.system(size: 15))
                     Spacer()
                     Toggle("", isOn: $baustein.isHighPriority).labelsHidden()
@@ -802,7 +810,7 @@ struct BausteinEditSheet: View {
                 onSave(baustein)
                 dismiss()
             } label: {
-                Text("Save")
+                Text(loc("Speichern"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -819,7 +827,7 @@ struct BausteinEditSheet: View {
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
-                    Label("Delete Block", systemImage: "trash")
+                    Label(loc("baustein_delete"), systemImage: "trash")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -828,14 +836,14 @@ struct BausteinEditSheet: View {
                         .foregroundStyle(.red)
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.25), lineWidth: 1))
                 }
-                .confirmationDialog("Delete Block?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                    Button("Delete", role: .destructive) {
+                .confirmationDialog(loc("baustein_delete_confirm"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                    Button(loc("baustein_delete"), role: .destructive) {
                         store.loeschen(baustein)
                         dismiss()
                     }
-                    Button("Cancel", role: .cancel) {}
+                    Button(loc("cancel"), role: .cancel) {}
                 } message: {
-                    Text("\"\(baustein.titel)\" will be permanently deleted.")
+                    Text("\"\(baustein.titel)\" \(loc("baustein_delete_msg"))")
                 }
             }
         }

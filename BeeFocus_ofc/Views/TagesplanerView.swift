@@ -1278,17 +1278,19 @@ struct TagesplanerView: View {
             .frame(width: 20)
 
             // Karten nebeneinander, jede mit eigenem Offset + eigener Höhe
-            HStack(alignment: .top, spacing: 6) {
-                ForEach(tasks) { task in
-                    let taskStart  = task.dueDate ?? groupStart
-                    let taskEnd    = task.endDate ?? task.dueDate ?? taskStart
-                    let topPad     = max(CGFloat(taskStart.timeIntervalSince(groupStart) / 60) * minsPerPt, 0)
-                    let cardH      = max(CGFloat(max(taskEnd.timeIntervalSince(taskStart) / 60, 30)) * minsPerPt, 40)
-                    parallelCard(task: task, cardHeight: cardH, timeFmt: timeFmt)
-                        .padding(.top, topPad)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 6) {
+                    ForEach(tasks) { task in
+                        let taskStart  = task.dueDate ?? groupStart
+                        let taskEnd    = task.endDate ?? task.dueDate ?? taskStart
+                        let topPad     = max(CGFloat(taskStart.timeIntervalSince(groupStart) / 60) * minsPerPt, 0)
+                        let cardH      = max(CGFloat(max(taskEnd.timeIntervalSince(taskStart) / 60, 30)) * minsPerPt, 40)
+                        parallelCard(task: task, cardHeight: cardH, timeFmt: timeFmt)
+                            .padding(.top, topPad)
+                    }
                 }
+                .frame(minHeight: rowH, alignment: .top)
             }
-            .frame(minHeight: rowH, alignment: .top)
             .padding(.leading, 10)
             .padding(.bottom, 6)
         }
@@ -1348,7 +1350,7 @@ struct TagesplanerView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
+        .frame(minWidth: 140, maxWidth: 220, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
         .background { RoundedRectangle(cornerRadius: 10).fill(bgColor) }
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: isActive ? 1.8 : 1.2))
         .opacity(task.isCompleted ? 0.55 : 1.0)
@@ -1947,7 +1949,7 @@ struct TagesplanQuickAddSheet: View {
                                         .foregroundStyle(b.farbe.color)
                                 }
                                 VStack(alignment: .leading, spacing: 1) {
-                                    Text(b.titel)
+                                    Text(b.localizedTitel(languageCode: localizer.currentLanguageCode))
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(isDark ? .white.opacity(0.9) : .primary)
                                         .lineLimit(1)
