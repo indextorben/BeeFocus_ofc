@@ -57,6 +57,11 @@ final class SubscriptionManager: ObservableObject {
         Task {
             await loadProducts()
             await refreshEntitlements()
+            // Wenn keine Berechtigung gefunden: stilles Sync im Hintergrund (für neue Geräte)
+            if !isPro {
+                try? await AppStore.sync()
+                await refreshEntitlements()
+            }
         }
 
         kvStore.synchronize()
@@ -126,6 +131,7 @@ final class SubscriptionManager: ObservableObject {
         var active = false
         var expiry: Date? = nil
         var latestProductID: String? = nil
+        var hasLifetime = false
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
@@ -133,11 +139,12 @@ final class SubscriptionManager: ObservableObject {
                 if let exp = transaction.expirationDate {
                     if expiry == nil || exp > expiry! {
                         expiry = exp
-                        latestProductID = transaction.productID
+                        if !hasLifetime { latestProductID = transaction.productID }
                     }
                 } else {
-                    // Lifetime – kein Ablaufdatum
-                    if latestProductID == nil { latestProductID = transaction.productID }
+                    // Lifetime – kein Ablaufdatum, hat immer Vorrang
+                    hasLifetime = true
+                    latestProductID = transaction.productID
                 }
             }
         }
