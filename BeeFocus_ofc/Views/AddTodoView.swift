@@ -347,23 +347,23 @@ struct AddTodoView: View {
     }
 
     private var recurrenceSection: some View {
-        Section(header: Text("Recurrence")) {
-            Toggle("Repeat", isOn: $recurrenceEnabled)
+        Section(header: Text(localizer.localizedString(forKey: "recurrence_section_header"))) {
+            Toggle(localizer.localizedString(forKey: "recurrence_enabled_toggle"), isOn: $recurrenceEnabled)
             if recurrenceEnabled {
-                Picker("Frequency", selection: $recurrenceFrequency) {
-                    Text("Daily").tag("daily")
-                    Text("Weekly").tag("weekly")
-                    Text("Monthly").tag("monthly")
+                Picker(localizer.localizedString(forKey: "recurrence_frequency_picker"), selection: $recurrenceFrequency) {
+                    Text(localizer.localizedString(forKey: "recurrence_daily")).tag("daily")
+                    Text(localizer.localizedString(forKey: "recurrence_weekly")).tag("weekly")
+                    Text(localizer.localizedString(forKey: "recurrence_monthly")).tag("monthly")
                 }
                 .pickerStyle(.segmented)
 
                 Stepper(value: $recurrenceInterval, in: 1...100) {
-                    Text("Interval: \(recurrenceInterval)")
+                    Text("\(localizer.localizedString(forKey: "recurrence_interval")): \(recurrenceInterval)")
                 }
 
                 if recurrenceFrequency == "weekly" {
                     VStack(alignment: .leading) {
-                        Text("Weekdays")
+                        Text(localizer.localizedString(forKey: "recurrence_weekdays_label"))
                         HStack {
                             ForEach(orderedWeekdays, id: \.self) { day in
                                 let dayShort = shortWeekdaySymbol(day)
@@ -393,7 +393,7 @@ struct AddTodoView: View {
     private func shortWeekdaySymbol(_ weekday: Int) -> String {
         // weekday: 1=Sunday ... 7=Saturday
         let df = DateFormatter()
-        df.locale = Locale(identifier: "en_US")
+        df.locale = Locale.current
         // Some SDKs expose optional weekday symbol arrays. Safely unwrap and fall back to veryShort symbols if empty.
         let primary: [String] = df.shortWeekdaySymbols ?? []
         let fallback: [String] = df.veryShortWeekdaySymbols ?? []
