@@ -116,12 +116,12 @@ final class SubscriptionManager: ObservableObject {
 
     func restorePurchases() async {
         isLoading = true
+        purchaseError = nil
         defer { isLoading = false }
-        do {
-            try await AppStore.sync()
-            await refreshEntitlements()
-        } catch {
-            purchaseError = error.localizedDescription
+        try? await AppStore.sync()
+        await refreshEntitlements()
+        if !isPro {
+            purchaseError = NSLocalizedString("restore_no_purchase_found", comment: "")
         }
     }
 
