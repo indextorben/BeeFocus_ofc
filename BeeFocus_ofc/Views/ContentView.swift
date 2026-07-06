@@ -122,7 +122,7 @@ struct ContentView: View {
             }
             .tag(4)
         }
-        .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
+        .environment(\.colorScheme, .dark)
         .onAppear {
             CloudKitManager.shared.runDiagnosticsOnLaunch()
             CloudKitManager.shared.fetchTodos { cloudTodos in

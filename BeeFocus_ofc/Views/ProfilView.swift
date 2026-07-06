@@ -35,7 +35,7 @@ struct ProfilView: View {
         }
         .navigationTitle(localizer.localizedString(forKey: "profil_nav_title"))
         .navigationBarTitleDisplayMode(.large)
-        .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
+        .environment(\.colorScheme, .dark)
     }
 
     // MARK: - Avatar Header

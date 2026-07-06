@@ -159,6 +159,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 RootView()
                     .environmentObject(todoStore)
                     .environmentObject(timerManager)
+                    .preferredColorScheme(.dark)
             )
             shakeWindow.rootViewController = rootVC
 

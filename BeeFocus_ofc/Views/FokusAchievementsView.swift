@@ -42,7 +42,7 @@ struct FokusAchievementsView: View {
         }
         .navigationTitle(String(localized: "ach_nav_title"))
         .navigationBarTitleDisplayMode(.large)
-        .environment(\.colorScheme, darkModeEnabled ? .dark : .light)
+        .environment(\.colorScheme, .dark)
         .overlay(alignment: .top) {
             if let id = newlyUnlockedID,
                let a = FokusAchievement.all.first(where: { $0.id == id }) {
