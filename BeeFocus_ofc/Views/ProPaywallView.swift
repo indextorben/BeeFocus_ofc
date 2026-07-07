@@ -7,6 +7,7 @@ struct ProPaywallView: View {
     @ObservedObject private var localizer = LocalizationManager.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @State private var selectedID: String = SubscriptionManager.shared.activeProductID ?? SubscriptionManager.yearlyID
+    @State private var showOfferCodeRedemption = false
 
     private var c1: Color { appThemaFarben(aktivesThema).0 }
     private var c2: Color { appThemaFarben(aktivesThema).1 }
@@ -109,6 +110,7 @@ struct ProPaywallView: View {
             }
         }
         .task { await sub.loadProducts() }
+        .offerCodeRedemption(isPresented: $showOfferCodeRedemption)
     }
 
     // MARK: - Header
@@ -375,13 +377,24 @@ struct ProPaywallView: View {
                     .padding(.horizontal, 20)
             }
 
-            Button {
-                Task { await sub.restorePurchases() }
-            } label: {
-                Text(loc("paywall_restore"))
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .underline()
+            HStack(spacing: 20) {
+                Button {
+                    Task { await sub.restorePurchases() }
+                } label: {
+                    Text(loc("paywall_restore"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .underline()
+                }
+
+                Button {
+                    showOfferCodeRedemption = true
+                } label: {
+                    Text(loc("paywall_redeem_code"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .underline()
+                }
             }
 
             HStack(spacing: 16) {
