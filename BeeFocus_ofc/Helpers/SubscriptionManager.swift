@@ -50,6 +50,7 @@ final class SubscriptionManager: ObservableObject {
         foregroundTask = Task {
             for await _ in NotificationCenter.default
                 .notifications(named: UIApplication.willEnterForegroundNotification) {
+                try? await AppStore.sync()
                 await self.refreshEntitlements()
             }
         }
