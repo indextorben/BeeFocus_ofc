@@ -4,6 +4,7 @@ import StoreKit
 struct ProPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var sub = SubscriptionManager.shared
+    @ObservedObject private var localizer = LocalizationManager.shared
     @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
     @State private var selectedID: String = SubscriptionManager.shared.activeProductID ?? SubscriptionManager.yearlyID
 
@@ -11,6 +12,7 @@ struct ProPaywallView: View {
     private var c2: Color { appThemaFarben(aktivesThema).1 }
     private var accent:  Color { aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : c1 }
     private var accent2: Color { aktivesThema.isEmpty ? Color(red: 0.3,  green: 0.6,  blue: 1.0) : c2 }
+    private func loc(_ key: String) -> String { localizer.localizedString(forKey: key) }
 
     // Trial-Info aus dem StoreKit Intro-Offer des gewählten Produkts
     private var trialLabel: String? {
@@ -28,12 +30,12 @@ struct ProPaywallView: View {
         case .year:  days = offer.period.value * 365
         @unknown default: days = 0
         }
-        return days > 0 ? "Try free for \(days) days" : nil
+        return days > 0 ? loc("paywall_trial_days") : nil
     }
 
     // Fallback wenn Produkte noch nicht geladen
     private var fallbackTrialLabel: String? {
-        selectedID == SubscriptionManager.lifetimeID ? nil : "Try free for 7 days"
+        selectedID == SubscriptionManager.lifetimeID ? nil : loc("paywall_trial_days")
     }
 
     private var effectiveTrialLabel: String? {
@@ -75,8 +77,8 @@ struct ProPaywallView: View {
                         .padding(.bottom, 8)
 
                     // Hinweis unter Button
-                    if let trial = effectiveTrialLabel {
-                        Text("Ends automatically – no payment during the trial period.")
+                    if let _ = effectiveTrialLabel {
+                        Text(loc("paywall_trial_footer"))
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.35))
                             .multilineTextAlignment(.center)
@@ -128,7 +130,7 @@ struct ProPaywallView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.white)
 
-            Text("Get the most out of your productivity")
+            Text(loc("paywall_subtitle"))
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
@@ -148,7 +150,7 @@ struct ProPaywallView: View {
                 Text(label)
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
-                Text("Then at the selected subscription price — cancel anytime")
+                Text(loc("paywall_trial_desc"))
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.55))
             }
@@ -172,13 +174,13 @@ struct ProPaywallView: View {
 
     private var featuresSection: some View {
         VStack(spacing: 0) {
-            featureRow(icon: "infinity",                  color: accent,                                  text: "Unlimited tasks, categories & filters")
-            featureRow(icon: "storefront.fill",           color: .orange,                                 text: "All Focus Store content unlocked")
-            featureRow(icon: "speaker.wave.3.fill",       color: .purple,                                 text: "Ambient focus sounds")
-            featureRow(icon: "chart.bar.fill",            color: .indigo,                                 text: "Advanced statistics & heatmap")
-            featureRow(icon: "heart.text.clipboard.fill", color: .teal,                                   text: "Unlimited habits & full journal history")
-            featureRow(icon: "medal.fill",                color: Color(red: 0.6, green: 0.3, blue: 0.9),  text: "Badges, streaks & achievement system")
-            featureRow(icon: "timer",                     color: .cyan,                                   text: "All timer modes & premium themes")
+            featureRow(icon: "infinity",                  color: accent,                                  text: loc("paywall_feat_tasks"))
+            featureRow(icon: "storefront.fill",           color: .orange,                                 text: loc("paywall_feat_store"))
+            featureRow(icon: "speaker.wave.3.fill",       color: .purple,                                 text: loc("paywall_feat_sounds"))
+            featureRow(icon: "chart.bar.fill",            color: .indigo,                                 text: loc("paywall_feat_stats"))
+            featureRow(icon: "heart.text.clipboard.fill", color: .teal,                                   text: loc("paywall_feat_habits"))
+            featureRow(icon: "medal.fill",                color: Color(red: 0.6, green: 0.3, blue: 0.9),  text: loc("paywall_feat_badges"))
+            featureRow(icon: "timer",                     color: .cyan,                                   text: loc("paywall_feat_timer"))
         }
         .padding(4)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
@@ -207,22 +209,22 @@ struct ProPaywallView: View {
     private var plansSection: some View {
         VStack(spacing: 10) {
             if sub.products.isEmpty {
-                planCard(id: SubscriptionManager.monthlyID,  title: "Monthly",  price: "2.99 €",  period: "/ month", badge: nil,              savings: nil,           hasTrial: true)
-                planCard(id: SubscriptionManager.yearlyID,   title: "Yearly",   price: "17.99 €", period: "/ year",  badge: "Most popular",    savings: "~50% savings", hasTrial: true)
-                planCard(id: SubscriptionManager.lifetimeID, title: "Lifetime", price: "29.99 €", period: "one-time", badge: nil,              savings: nil,           hasTrial: false)
+                planCard(id: SubscriptionManager.monthlyID,  title: loc("paywall_plan_monthly"),  price: "2.99 €",  period: loc("paywall_period_month"), badge: nil,                        savings: nil,                        hasTrial: true)
+                planCard(id: SubscriptionManager.yearlyID,   title: loc("paywall_plan_yearly"),   price: "17.99 €", period: loc("paywall_period_year"),  badge: loc("paywall_badge_popular"), savings: loc("paywall_savings_fallback"), hasTrial: true)
+                planCard(id: SubscriptionManager.lifetimeID, title: loc("paywall_plan_lifetime"), price: "29.99 €", period: loc("paywall_period_onetime"), badge: nil,                       savings: nil,                        hasTrial: false)
             } else {
                 if let m = sub.monthly {
-                    planCard(id: m.id, title: "Monthly", price: m.displayPrice, period: "/ month",
+                    planCard(id: m.id, title: loc("paywall_plan_monthly"), price: m.displayPrice, period: loc("paywall_period_month"),
                              badge: nil, savings: nil, hasTrial: hasIntroOffer(m))
                 }
                 if let y = sub.yearly {
-                    planCard(id: y.id, title: "Yearly", price: y.displayPrice, period: "/ year",
-                             badge: "Most popular",
+                    planCard(id: y.id, title: loc("paywall_plan_yearly"), price: y.displayPrice, period: loc("paywall_period_year"),
+                             badge: loc("paywall_badge_popular"),
                              savings: sub.yearlySavingsPercent().map { "\($0)% savings" },
                              hasTrial: hasIntroOffer(y))
                 }
                 if let l = sub.lifetime {
-                    planCard(id: l.id, title: "Lifetime", price: l.displayPrice, period: "one-time",
+                    planCard(id: l.id, title: loc("paywall_plan_lifetime"), price: l.displayPrice, period: loc("paywall_period_onetime"),
                              badge: nil, savings: nil, hasTrial: false)
                 }
             }
@@ -260,7 +262,7 @@ struct ProPaywallView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(isOwned ? .white.opacity(0.5) : .white)
                         if isOwned {
-                            Text("Current plan")
+                            Text(loc("paywall_current_plan"))
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 8).padding(.vertical, 3)
@@ -275,7 +277,7 @@ struct ProPaywallView: View {
                     }
                     HStack(spacing: 6) {
                         if hasTrial && !isOwned {
-                            Text("7 days free")
+                            Text(loc("paywall_7_days_free"))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.green)
                         }
@@ -352,12 +354,12 @@ struct ProPaywallView: View {
     }
 
     private var buttonLabel: String {
-        if isSelectedOwned { return "Manage Subscription" }
+        if isSelectedOwned { return loc("paywall_btn_manage") }
         let hasTrial = effectiveTrialLabel != nil
         switch selectedID {
-        case SubscriptionManager.lifetimeID: return "Buy Lifetime"
-        case SubscriptionManager.yearlyID:   return hasTrial ? "Start 7-day free trial" : "Subscribe yearly"
-        default:                             return hasTrial ? "Start 7-day free trial" : "Subscribe monthly"
+        case SubscriptionManager.lifetimeID: return loc("paywall_btn_lifetime")
+        case SubscriptionManager.yearlyID:   return hasTrial ? loc("paywall_btn_trial") : loc("paywall_btn_yearly")
+        default:                             return hasTrial ? loc("paywall_btn_trial") : loc("paywall_btn_monthly")
         }
     }
 
@@ -376,21 +378,21 @@ struct ProPaywallView: View {
             Button {
                 Task { await sub.restorePurchases() }
             } label: {
-                Text("Restore purchases")
+                Text(loc("paywall_restore"))
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.5))
                     .underline()
             }
 
             HStack(spacing: 16) {
-                Link("Privacy Policy", destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/datenschutz.html")!)
+                Link(loc("privacy_policy"), destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/datenschutz.html")!)
                 Text("·").foregroundStyle(.white.opacity(0.25))
-                Link("Terms of Use", destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/nutzungsbedingungen.html")!)
+                Link(loc("terms_of_use"), destination: URL(string: "https://www.torbenlehneke.de/apps/beefocus/nutzungsbedingungen.html")!)
             }
             .font(.system(size: 11))
             .foregroundStyle(.white.opacity(0.35))
 
-            Text("Subscriptions renew automatically. Cancel anytime in App Store settings.")
+            Text(loc("paywall_legal"))
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.3))
                 .multilineTextAlignment(.center)
