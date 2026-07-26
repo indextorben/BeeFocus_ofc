@@ -73,18 +73,20 @@ final class AmbientSoundManager: ObservableObject {
     private var phaseR: Float = 0
     private var brownPrev: Float = 0
 
-    private init() {
-        setupSession()
-    }
+    private init() {}
 
-    private func setupSession() {
+    private func activateSession() {
         do {
             let s = AVAudioSession.sharedInstance()
-            try s.setCategory(.playback, options: [.mixWithOthers, .duckOthers])
+            try s.setCategory(.playback, options: [.mixWithOthers])
             try s.setActive(true)
         } catch {
             print("AmbientSound session error: \(error)")
         }
+    }
+
+    private func deactivateSession() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     func play(_ sound: AmbientSound) {
@@ -92,8 +94,10 @@ final class AmbientSoundManager: ObservableObject {
         currentSound = sound
         guard sound != .off else {
             isPlaying = false
+            deactivateSession()
             return
         }
+        activateSession()
         buildEngine(sound: sound)
         do {
             try engine.start()
@@ -107,6 +111,7 @@ final class AmbientSoundManager: ObservableObject {
     func stop() {
         teardown()
         currentSound = .off
+        deactivateSession()
     }
 
     func toggle(_ sound: AmbientSound) {

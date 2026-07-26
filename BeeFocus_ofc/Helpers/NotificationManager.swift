@@ -39,7 +39,21 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             intentIdentifiers: [],
             options: [.customDismissAction]
         )
-        center.setNotificationCategories([openCategory])
+
+        let waterActions = [
+            UNNotificationAction(identifier: "water_add_150", title: "💧 150 ml", options: []),
+            UNNotificationAction(identifier: "water_add_200", title: "💧 200 ml", options: []),
+            UNNotificationAction(identifier: "water_add_300", title: "💧 300 ml", options: []),
+            UNNotificationAction(identifier: "water_add_500", title: "💧 500 ml", options: []),
+        ]
+        let waterCategory = UNNotificationCategory(
+            identifier: "WATER_REMINDER",
+            actions: waterActions,
+            intentIdentifiers: [],
+            options: []
+        )
+
+        center.setNotificationCategories([openCategory, waterCategory])
     }
 
     // MARK: - Timer Notifications
@@ -255,6 +269,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             content.title = "💧 Time to drink"
             content.body  = "Drink a glass of water – your body will thank you!"
             content.sound = .default
+            content.categoryIdentifier = "WATER_REMINDER"
             var comps = DateComponents(); comps.hour = hour; comps.minute = 0
             let request = UNNotificationRequest(
                 identifier: "\(waterReminderPrefix)\(index)", content: content,
@@ -392,8 +407,15 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     ) {
         let id = response.notification.request.identifier
         let info = response.notification.request.content.userInfo
+        let actionID = response.actionIdentifier
 
-        if let action = info["action"] as? String, action == "openToday" {
+        if actionID == "water_add_150" || actionID == "water_add_200" ||
+           actionID == "water_add_300" || actionID == "water_add_500" {
+            let mlString = actionID.replacingOccurrences(of: "water_add_", with: "")
+            if let ml = Int(mlString) {
+                Task { @MainActor in WasserStore.shared.add(ml: ml) }
+            }
+        } else if let action = info["action"] as? String, action == "openToday" {
             NotificationCenter.default.post(name: .openTodayDueFromNotification, object: nil)
         } else if id.hasPrefix("water_") {
             NotificationCenter.default.post(name: .openWasserTrackerFromNotification, object: nil)
