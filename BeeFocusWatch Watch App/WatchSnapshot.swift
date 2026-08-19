@@ -19,6 +19,8 @@ struct WatchSnapshot: Codable {
     let countdownEvents: [WatchCountdown]
     let isPro: Bool
     let planTasks: [WatchTask]
+    let todayTasks: [WatchTask]
+    let weekTasks: [WatchTask]
 
     init(dueTodayCount: Int, overdueCount: Int, completedTodayCount: Int,
          totalOpenCount: Int, focusMinutesToday: Int, topTasks: [WatchTask],
@@ -26,7 +28,8 @@ struct WatchSnapshot: Codable {
          activeMonthLabel: String = "", todayBausteine: [WatchBaustein] = [],
          waterTodayML: Int = 0, waterGoalML: Int = 2000,
          habits: [WatchHabit] = [], countdownEvents: [WatchCountdown] = [],
-         isPro: Bool = false, planTasks: [WatchTask] = []) {
+         isPro: Bool = false, planTasks: [WatchTask] = [],
+         todayTasks: [WatchTask] = [], weekTasks: [WatchTask] = []) {
         self.dueTodayCount = dueTodayCount
         self.overdueCount = overdueCount
         self.completedTodayCount = completedTodayCount
@@ -43,6 +46,8 @@ struct WatchSnapshot: Codable {
         self.countdownEvents = countdownEvents
         self.isPro = isPro
         self.planTasks = planTasks
+        self.todayTasks = todayTasks
+        self.weekTasks = weekTasks
     }
 
     init(from decoder: Decoder) throws {
@@ -63,22 +68,37 @@ struct WatchSnapshot: Codable {
         countdownEvents     = (try? c.decode([WatchCountdown].self, forKey: .countdownEvents)) ?? []
         isPro               = (try? c.decode(Bool.self, forKey: .isPro)) ?? false
         planTasks           = (try? c.decode([WatchTask].self, forKey: .planTasks)) ?? []
+        todayTasks          = (try? c.decode([WatchTask].self, forKey: .todayTasks)) ?? []
+        weekTasks           = (try? c.decode([WatchTask].self, forKey: .weekTasks)) ?? []
     }
+
+    private static let sampleToday: [WatchTask] = [
+        WatchTask(id: UUID(), title: "Deep Work", isHighPriority: true,
+                  dueDate: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()),
+                  endDate: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()),
+                  priorityRaw: "high", categoryName: "Arbeit", categoryColorHex: "4A90E2",
+                  taskDescription: "", subTasksTotal: 3, subTasksCompleted: 1, isFavorite: true, isOverdue: false),
+        WatchTask(id: UUID(), title: "E-Mails", isHighPriority: false,
+                  dueDate: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()),
+                  endDate: nil, priorityRaw: "medium", categoryName: nil, categoryColorHex: nil,
+                  taskDescription: "", subTasksTotal: 0, subTasksCompleted: 0, isFavorite: false, isOverdue: false),
+    ]
+
+    private static let sampleWeek: [WatchTask] = [
+        WatchTask(id: UUID(), title: "Zahnarzt", isHighPriority: false,
+                  dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
+                  endDate: nil, priorityRaw: "medium", categoryName: "Gesundheit", categoryColorHex: "34C759",
+                  taskDescription: "", subTasksTotal: 0, subTasksCompleted: 0, isFavorite: false, isOverdue: false),
+        WatchTask(id: UUID(), title: "Projekt abgeben", isHighPriority: true,
+                  dueDate: Calendar.current.date(byAdding: .day, value: 2, to: Date()),
+                  endDate: nil, priorityRaw: "high", categoryName: "Arbeit", categoryColorHex: "4A90E2",
+                  taskDescription: "", subTasksTotal: 0, subTasksCompleted: 0, isFavorite: false, isOverdue: false),
+    ]
 
     static let placeholder = WatchSnapshot(
         dueTodayCount: 4, overdueCount: 1, completedTodayCount: 2,
         totalOpenCount: 9, focusMinutesToday: 65,
-        topTasks: [
-            WatchTask(id: UUID(), title: "Deep Work", isHighPriority: true,
-                      dueDate: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()),
-                      endDate: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()),
-                      priorityRaw: "high", categoryName: "Arbeit", categoryColorHex: "4A90E2",
-                      taskDescription: "", subTasksTotal: 3, subTasksCompleted: 1, isFavorite: true, isOverdue: false),
-            WatchTask(id: UUID(), title: "E-Mails", isHighPriority: false,
-                      dueDate: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()),
-                      endDate: nil, priorityRaw: "medium", categoryName: nil, categoryColorHex: nil,
-                      taskDescription: "", subTasksTotal: 0, subTasksCompleted: 0, isFavorite: false, isOverdue: false),
-        ],
+        topTasks: sampleToday,
         activeTheme: "",
         monthTasks: [],
         activeMonthLabel: "Juni 2026",
@@ -90,7 +110,11 @@ struct WatchSnapshot: Codable {
         ],
         countdownEvents: [
             WatchCountdown(id: UUID(), name: "Urlaub", symbol: "airplane", farbName: "blau", tageVerbleibend: 12),
-        ]
+        ],
+        isPro: false,
+        planTasks: sampleToday,
+        todayTasks: sampleToday,
+        weekTasks: sampleWeek
     )
 }
 

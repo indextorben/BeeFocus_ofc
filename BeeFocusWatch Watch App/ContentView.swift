@@ -34,15 +34,15 @@ private let dateFmt: DateFormatter = {
 // MARK: - Tab
 
 enum WatchTab: String, CaseIterable {
+    case heute = "Heute"
     case alle  = "Alle"
-    case tag   = "Tag"
     case monat = "Monat"
     case mehr  = "Mehr"
 
     var icon: String {
         switch self {
+        case .heute: return "sun.max.fill"
         case .alle:  return "list.bullet"
-        case .tag:   return "clock.fill"
         case .monat: return "calendar"
         case .mehr:  return "ellipsis.circle.fill"
         }
@@ -53,7 +53,8 @@ enum WatchTab: String, CaseIterable {
 
 struct ContentView: View {
     @StateObject private var session = WatchSessionManager.shared
-    @State private var activeTab: WatchTab = .alle
+    @State private var activeTab: WatchTab = .heute
+    @Environment(\.scenePhase) private var scenePhase
 
     var accent: Color { themeAccent(for: session.snapshot.activeTheme) }
 
@@ -63,10 +64,10 @@ struct ContentView: View {
                 tabBar
                 Group {
                     switch activeTab {
+                    case .heute:
+                        HeuteWocheView(session: session, accent: accent)
                     case .alle:
                         AlleView(session: session, accent: accent)
-                    case .tag:
-                        TagView(session: session, accent: accent)
                     case .monat:
                         MonatView(session: session, accent: accent)
                     case .mehr:
@@ -74,6 +75,10 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+        .onChange(of: scenePhase) { phase in
+            // Beim Aktivwerden der Watch-App immer einen frischen Sync anstoßen
+            if phase == .active { session.requestFreshSnapshot() }
         }
     }
 
@@ -227,6 +232,7 @@ struct TaskRow: View {
     let task: WatchTask
     let accent: Color
     @Binding var doneIDs: Set<UUID>
+    var weekdayLabel: String? = nil
     let onComplete: () -> Void
 
     var isDone: Bool { doneIDs.contains(task.id) }
@@ -262,13 +268,30 @@ struct TaskRow: View {
                         .strikethrough(isDone)
                         .lineLimit(2)
 
-                    if let due = task.dueDate, hasRelevantTime(due) || task.endDate != nil {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock").font(.system(size: 9))
-                                .foregroundStyle(task.isOverdue ? .orange : .secondary)
-                            Text(timeStr(due: due, end: task.endDate))
-                                .font(.system(size: 11))
-                                .foregroundStyle(task.isOverdue ? .orange : .secondary)
+                    if let weekdayLabel {
+                        Text(weekdayLabel)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(accent)
+                    }
+
+                    if let due = task.dueDate {
+                        if task.isOverdue {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.orange)
+                                Text(overdueLabel(due: due))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.orange)
+                            }
+                        } else if hasRelevantTime(due) || task.endDate != nil {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock").font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                                Text(timeStr(due: due, end: task.endDate))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
 
@@ -309,39 +332,73 @@ struct TaskRow: View {
         guard let end else { return timeFmt.string(from: due) }
         return "\(timeFmt.string(from: due)) – \(timeFmt.string(from: end))"
     }
+
+    private func overdueLabel(due: Date) -> String {
+        let dateStr = dateFmt.string(from: due)
+        return hasRelevantTime(due) ? "\(dateStr) · \(timeFmt.string(from: due))" : dateStr
+    }
 }
 
-// MARK: - Tag (Tagesplan-Blöcke)
+// MARK: - Heute & Diese Woche
 
-struct TagView: View {
+private let weekdayFmt: DateFormatter = {
+    let f = DateFormatter(); f.locale = Locale(identifier: "de"); f.dateFormat = "EEEE"; return f
+}()
+
+struct HeuteWocheView: View {
     @ObservedObject var session: WatchSessionManager
+    @State private var doneIDs: Set<UUID> = []
     let accent: Color
+
+    var snap: WatchSnapshot { session.snapshot }
+
+    // Bereits erledigte (lokal getippte) Aufgaben ausblenden, damit die Anzeige
+    // sofort reagiert, bevor der neue Snapshot vom iPhone eintrifft.
+    private var todayTasks: [WatchTask] { snap.todayTasks.filter { !doneIDs.contains($0.id) } }
+    private var weekTasks: [WatchTask]  { snap.weekTasks.filter { !doneIDs.contains($0.id) } }
+
+    // Diese Woche nach Wochentag gruppieren (chronologisch, dueDate ist hier immer gesetzt)
+    private var weekGroups: [(label: String, tasks: [WatchTask])] {
+        let cal = Calendar.current
+        let grouped = Dictionary(grouping: weekTasks) { task -> Date in
+            cal.startOfDay(for: task.dueDate ?? Date())
+        }
+        return grouped.keys.sorted().map { day in
+            (label: weekdayFmt.string(from: day).capitalized, tasks: grouped[day] ?? [])
+        }
+    }
 
     var body: some View {
         List {
-            if session.snapshot.todayBausteine.isEmpty {
-                Section {
-                    VStack(spacing: 8) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.secondary)
-                        Text("Kein Tagesplan angelegt")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+            // MARK: Heute
+            Section(header: sectionHeader("Heute", systemImage: "sun.max.fill")) {
+                if todayTasks.isEmpty {
+                    emptyRow(icon: "checkmark.seal.fill",
+                             text: "Für heute ist alles erledigt.",
+                             color: .green)
+                } else {
+                    ForEach(todayTasks) { task in
+                        TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
+                            session.completeTask(id: task.id)
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
                 }
-                .listRowBackground(Color.clear)
-            } else {
-                Section(header:
-                    Text(dateFmt.string(from: Date()).uppercased())
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(accent)
-                ) {
-                    ForEach(session.snapshot.todayBausteine) { baustein in
-                        BausteinRow(baustein: baustein)
+            }
+
+            // MARK: Diese Woche
+            Section(header: sectionHeader("Diese Woche", systemImage: "calendar")) {
+                if weekTasks.isEmpty {
+                    emptyRow(icon: "calendar",
+                             text: "Keine weiteren Aufgaben diese Woche.",
+                             color: .secondary)
+                } else {
+                    ForEach(weekGroups, id: \.label) { group in
+                        ForEach(group.tasks) { task in
+                            TaskRow(task: task, accent: accent,
+                                    doneIDs: $doneIDs, weekdayLabel: group.label) {
+                                session.completeTask(id: task.id)
+                            }
+                        }
                     }
                 }
             }
@@ -350,50 +407,20 @@ struct TagView: View {
         .refreshable { session.requestFreshSnapshot() }
         .onAppear { session.requestFreshSnapshot() }
     }
-}
 
-struct BausteinRow: View {
-    let baustein: WatchBaustein
-
-    var body: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(baustein.farbe.opacity(0.2))
-                    .frame(width: 32, height: 32)
-                Image(systemName: baustein.symbol)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(baustein.farbe)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 4) {
-                    if baustein.isHighPriority {
-                        Image(systemName: "exclamationmark")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.orange)
-                    }
-                    Text(baustein.titel)
-                        .font(.system(size: 14, weight: .semibold))
-                        .lineLimit(2)
-                }
-                Text(baustein.zeitLabel)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                if !baustein.beschreibung.isEmpty {
-                    Text(baustein.beschreibung)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
+    private func sectionHeader(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage).font(.system(size: 10, weight: .semibold))
+            Text(title.uppercased()).font(.system(size: 11, weight: .semibold))
         }
-        .padding(.vertical, 4)
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(baustein.farbe.opacity(0.08))
-                .padding(.vertical, 2)
-        )
+        .foregroundStyle(accent)
+    }
+
+    private func emptyRow(icon: String, text: String, color: Color) -> some View {
+        Label(text, systemImage: icon)
+            .font(.footnote)
+            .foregroundStyle(color)
+            .listRowBackground(Color.clear)
     }
 }
 

@@ -37,6 +37,9 @@ struct WidgetSnapshot: Codable {
     let countdownEvents: [WatchCountdown]
     let isPro: Bool
     let planTasks: [WidgetTask]
+    // Watch "Heute" & "Diese Woche" – Calendar-basiert, entkoppelt vom Widget-Filter
+    let todayTasks: [WidgetTask]
+    let weekTasks: [WidgetTask]
 }
 
 struct WidgetTask: Codable, Identifiable {
@@ -165,8 +168,26 @@ extension TodoStore {
         let focusToday = dailyFocusMinutes[today] ?? 0
         let activeTheme = UserDefaults.standard.string(forKey: "aktivesStatistikThema") ?? ""
 
+        let weekEnd = cal.date(byAdding: .day, value: 7, to: today) ?? today
+
         let filteredForWidget: [TodoItem]
         switch widgetTaskFilter {
+        case "week":
+            filteredForWidget = todos
+                .filter { todo in
+                    guard !todo.isCompleted else { return false }
+                    guard let due = todo.dueDate else { return true }
+                    return due < weekEnd
+                }
+                .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        case "month":
+            filteredForWidget = todos
+                .filter { todo in
+                    guard !todo.isCompleted else { return false }
+                    guard let due = todo.dueDate else { return true }
+                    return due <= monthEnd
+                }
+                .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
         case "priority":
             filteredForWidget = todos
                 .filter { !$0.isCompleted && $0.priority == .high }
@@ -223,6 +244,54 @@ extension TodoStore {
 
         let isPro = NSUbiquitousKeyValueStore.default.bool(forKey: "beefocus_isPro")
 
+        // MARK: - Watch "Heute" & "Diese Woche" (Calendar-basiert)
+        // Heute: nicht erledigte Aufgaben, deren Fälligkeitsdatum auf den heutigen
+        // lokalen Kalendertag fällt. Diese Woche: restliche Aufgaben der aktuellen
+        // Kalenderwoche (ab morgen bis Wochenende) – Heute wird nicht doppelt gezeigt.
+        let now = Date()
+        let weekInterval = cal.dateInterval(of: .weekOfYear, for: now)
+        // Exklusives Ende der aktuellen Woche (= Start der nächsten Woche)
+        let currentWeekEnd = weekInterval?.end ?? (cal.date(byAdding: .day, value: 7, to: today) ?? today)
+
+        func hasTime(_ date: Date) -> Bool {
+            cal.component(.hour, from: date) != 0 || cal.component(.minute, from: date) != 0
+        }
+
+        let todayTasks = todos.filter { todo in
+            guard !todo.isCompleted, let due = todo.dueDate else { return false }
+            return due < tomorrow   // heute fällig oder überfällig
+        }
+        .sorted { a, b in
+            let ad = a.dueDate!, bd = b.dueDate!
+            let aOver = ad < today, bOver = bd < today
+            if aOver != bOver { return aOver }   // überfällige zuerst
+            if aOver && bOver { return ad < bd } // beide überfällig: ältestes zuerst
+            // beide heute: mit Uhrzeit zuerst, chronologisch, dann stabil nach Titel
+            let at = hasTime(ad), bt = hasTime(bd)
+            if at != bt { return at }
+            if at && bt { return ad < bd }
+            return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+        }
+        .prefix(50)
+        .map { makeWidgetTask($0, today: today) }
+
+        let weekTasks = todos.filter { todo in
+            guard !todo.isCompleted, let due = todo.dueDate else { return false }
+            return due >= tomorrow && due < currentWeekEnd   // Rest der Woche, ohne Heute
+        }
+        .sorted { a, b in
+            let ad = a.dueDate!, bd = b.dueDate!
+            if !cal.isDate(ad, inSameDayAs: bd) { return ad < bd }   // nach Tag
+            let at = hasTime(ad), bt = hasTime(bd)
+            if at != bt { return at }
+            if at && bt { return ad < bd }
+            return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+        }
+        .prefix(50)
+        .map { makeWidgetTask($0, today: today) }
+
+        print("[Phone] Watch-Snapshot: \(todayTasks.count) heute, \(weekTasks.count) diese Woche (Rest)")
+
         let snapshot = WidgetSnapshot(
             dueTodayCount: todayTodos.count,
             overdueCount: overdueCount,
@@ -239,7 +308,9 @@ extension TodoStore {
             habits: watchHabits,
             countdownEvents: Array(watchCountdowns),
             isPro: isPro,
-            planTasks: planTasks
+            planTasks: planTasks,
+            todayTasks: Array(todayTasks),
+            weekTasks: Array(weekTasks)
         )
 
         if let defaults = UserDefaults(suiteName: beeFocusAppGroup),
