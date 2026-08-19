@@ -1,8 +1,31 @@
 import Foundation
 import CloudKit
 import Combine
+import os
+
+/// Strukturiertes, datenschutzfreundliches Sync-Logging (keine Nutzerinhalte wie Titel).
+enum SyncLog {
+    private static let logger = Logger(subsystem: "com.TorbenLehneke.BeeFocus", category: "sync")
+
+    static func event(_ message: String) {
+        logger.log("[SYNC] \(message, privacy: .public)")
+    }
+
+    static func error(operation: String, todoID: UUID? = nil, error: Error) {
+        let idPart = todoID?.uuidString ?? "-"
+        var retryPart = "-"
+        if let ck = error as? CKError, let retry = ck.userInfo[CKErrorRetryAfterKey] as? TimeInterval {
+            retryPart = "\(retry)s"
+        }
+        let code = (error as? CKError)?.code.rawValue ?? -1
+        logger.error("[SYNC ERROR] op=\(operation, privacy: .public) todoID=\(idPart, privacy: .public) ckCode=\(code) retryAfter=\(retryPart, privacy: .public) desc=\(error.localizedDescription, privacy: .public)")
+    }
+}
 
 final class CloudKitManager: ObservableObject {
+    /// Feldname für Tombstone-Flag im CloudKit-"Todo"-Record.
+    static let isDeletedKey = "isDeleted"
+    static let deletedAtKey = "deletedAt"
     #if DEBUG
     static let diagnosticsEnabled = true
     #else
@@ -138,9 +161,24 @@ final class CloudKitManager: ObservableObject {
             guard let self = self else { return }
             switch result {
             case .success:
+                // 2) Konfliktregel: Eine bestätigte Löschung darf nicht durch eine
+                // ÄLTERE Bearbeitung wieder auferstehen. Wenn der Cloud-Record bereits
+                // ein Tombstone ist und später gelöscht wurde als diese Bearbeitung
+                // (deletedAt > updatedAt), überspringen wir das Schreiben.
+                if let existing = existingRecord,
+                   (existing[Self.isDeletedKey] as? Bool) == true {
+                    let deletedAt = (existing[Self.deletedAtKey] as? Date) ?? .distantFuture
+                    if deletedAt > todo.updatedAt {
+                        SyncLog.event("Upsert skipped – tombstone newer than edit (todoID=\(todo.id) deletedAt=\(deletedAt) > updatedAt=\(todo.updatedAt))")
+                        return
+                    }
+                }
                 // 2) Record befüllen (Update oder Neu)
                 let record: CKRecord = existingRecord ?? CKRecord(recordType: "Todo")
                 record["id"] = todo.id.uuidString as CKRecordValue
+                // Lebendiger Datensatz: evtl. vorhandenen Tombstone aufheben.
+                record[Self.isDeletedKey] = false as CKRecordValue
+                record[Self.deletedAtKey] = nil
                 record["title"] = todo.title as CKRecordValue
                 record["description"] = todo.description as CKRecordValue
                 record["isCompleted"] = todo.isCompleted as CKRecordValue
@@ -177,15 +215,32 @@ final class CloudKitManager: ObservableObject {
                     record["categoryID"] = nil
                 }
 
+                // Ordner-Zuweisung (String-Feld) plattformübergreifend synchronisieren.
+                // Gleiches Feld wie die macOS-App ("customFolder"), damit Ordner-Zuweisungen
+                // zwischen iPhone und Mac übereinstimmen. Kein separates Folder-Record-Schema.
+                if let folder = todo.customFolder, !folder.isEmpty {
+                    record["customFolder"] = folder as CKRecordValue
+                } else {
+                    record["customFolder"] = nil
+                }
+
                 let saveOp = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
-                saveOp.savePolicy = .allKeys  // Verhindert "client oplock error": lokale Version gewinnt immer
-                saveOp.modifyRecordsResultBlock = { (result: Result<Void, Error>) in
+                saveOp.savePolicy = .allKeys  // Verhindert "client oplock error": lokale Version gewinnt immer (record-level LWW)
+                saveOp.modifyRecordsResultBlock = { [weak self] (result: Result<Void, Error>) in
                     DispatchQueue.main.async {
                         switch result {
                         case .success:
-                            print("✅ Todo gespeichert: \(record.recordID.recordName)")
+                            SyncLog.event("Todo uploaded (todoID=\(todo.id))")
                         case .failure(let error):
-                            print("❌ Fehler beim Speichern: \(error.localizedDescription)")
+                            SyncLog.error(operation: "saveTodo", todoID: todo.id, error: error)
+                            if let ckError = error as? CKError,
+                               [.networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited, .zoneBusy].contains(ckError.code) {
+                                let delay = ckError.userInfo[CKErrorRetryAfterKey] as? TimeInterval ?? 2.0
+                                SyncLog.event("Retry saveTodo in \(delay)s (todoID=\(todo.id))")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                                    self?.saveTodo(todo)
+                                }
+                            }
                         }
                     }
                 }
@@ -265,8 +320,14 @@ final class CloudKitManager: ObservableObject {
                             categoryID = UUID(uuidString: catIDString)
                         }
 
+                        // Ordner-Zuweisung aus CloudKit lesen (von Mac oder iPhone gesetzt)
+                        let customFolder = record["customFolder"] as? String
+
                         let updatedAt = (record["updatedAt"] as? Date) ?? createdAt
                         let calendarEventIdentifier = record["calendarEventIdentifier"] as? String
+
+                        let isDeleted = (record[Self.isDeletedKey] as? Bool) ?? ((record[Self.isDeletedKey] as? NSNumber)?.boolValue ?? false)
+                        let deletedAt = record[Self.deletedAtKey] as? Date
 
                         let todo = TodoItem(
                             id: id,
@@ -285,7 +346,10 @@ final class CloudKitManager: ObservableObject {
                             calendarEventIdentifier: calendarEventIdentifier,
                             calendarEnabled: calendarEnabled,
                             isFavorite: isFavorite,
-                            endDate: endDate
+                            customFolder: customFolder,
+                            endDate: endDate,
+                            isDeleted: isDeleted,
+                            deletedAt: deletedAt
                         )
                         result.append(todo)
                     }
@@ -298,10 +362,10 @@ final class CloudKitManager: ObservableObject {
                     if message.contains("recordName") && message.contains("not marked queryable") {
                         print("⚠️ CloudKit-Hinweis: Deine Abfrage/SORTIERUNG nutzt implizit 'recordName'. Stelle sicher, dass du im CloudKit Dashboard für deine gewünschten Filter/SORTIERFelder (z. B. 'createdAt') einen Query-Index aktivierst oder verzichte auf Sortierung/Filter auf nicht indexierten Feldern.")
                     }
-                    print("❌ Fehler beim Abrufen: \(message)")
-                    if let ckError = error as? CKError, [.networkUnavailable, .serviceUnavailable, .requestRateLimited].contains(ckError.code) {
+                    SyncLog.error(operation: "fetchTodos", error: error)
+                    if let ckError = error as? CKError, [.networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited, .zoneBusy].contains(ckError.code) {
                         let delay = ckError.userInfo[CKErrorRetryAfterKey] as? TimeInterval ?? 1.5
-                        print("⏳ Temporärer Fehler (\(ckError.code.rawValue)). Erneuter Versuch in \(delay)s…")
+                        SyncLog.event("Retry fetchTodos in \(delay)s")
                         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                             self.fetchTodos(completion: completion)
                         }
@@ -322,65 +386,140 @@ final class CloudKitManager: ObservableObject {
         validateSchema()
     }
     
-    // MARK: - Todo löschen in CloudKit
+    // MARK: - Todo löschen in CloudKit (Soft-Delete / Tombstone)
+    //
+    // WICHTIG: Wir löschen den Record NICHT physisch. Ein Hard-Delete kommuniziert
+    // die Löschung anderen Geräten nur durch die *Abwesenheit* des Records – ein
+    // Gerät, das die Aufgabe noch lokal hält, lädt sie beim nächsten Merge wieder
+    // hoch ("Resurrection"). Stattdessen markieren wir den Record als Tombstone
+    // (isDeleted=true, deletedAt=now). Alle Geräte lesen den Tombstone, entfernen
+    // die Aufgabe lokal und legen sie nie wieder neu an.
     func deleteTodo(_ todo: TodoItem) {
+        writeTombstone(for: todo)
+    }
+
+    /// Schreibt/aktualisiert einen Tombstone für die gegebene Todo-ID.
+    /// Fetch-then-modify über das `id`-Feld; existiert kein Record, wird ein
+    /// minimaler Tombstone angelegt (idempotent).
+    private func writeTombstone(for todo: TodoItem, retryCount: Int = 0) {
+        let now = Date()
         let predicate = NSPredicate(format: "id == %@", todo.id.uuidString)
         let query = CKQuery(recordType: "Todo", predicate: predicate)
         let operation = CKQueryOperation(query: query)
-        var recordIDsToDelete: [CKRecord.ID] = []
+        var existing: CKRecord?
         operation.recordMatchedBlock = { (_: CKRecord.ID, result: Result<CKRecord, Error>) in
-            if case .success(let record) = result { recordIDsToDelete.append(record.recordID) }
+            if case .success(let record) = result { existing = record }
         }
-        operation.queryResultBlock = { (result: Result<CKQueryOperation.Cursor?, Error>) in
+        operation.queryResultBlock = { [weak self] (result: Result<CKQueryOperation.Cursor?, Error>) in
+            guard let self = self else { return }
             switch result {
             case .success:
-                if recordIDsToDelete.isEmpty {
-                    // Fallback: Versuche Löschung über den Titel (nicht eindeutig, aber besser als gar nicht)
-                    let titlePredicate = NSPredicate(format: "title == %@", todo.title)
-                    let titleQuery = CKQuery(recordType: "Todo", predicate: titlePredicate)
-                    let titleOp = CKQueryOperation(query: titleQuery)
-                    var titleIDs: [CKRecord.ID] = []
-                    titleOp.recordMatchedBlock = { (_: CKRecord.ID, res: Result<CKRecord, Error>) in
-                        if case .success(let rec) = res { titleIDs.append(rec.recordID) }
-                    }
-                    titleOp.queryResultBlock = { (_: Result<CKQueryOperation.Cursor?, Error>) in
-                        if titleIDs.isEmpty {
-                            DispatchQueue.main.async { print("ℹ️ Kein Record zum Löschen gefunden (Fallback Titel) für title=\(todo.title)") }
-                            return
-                        }
-                        let fallbackModify = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: titleIDs)
-                        fallbackModify.modifyRecordsResultBlock = { (modRes: Result<Void, Error>) in
-                            DispatchQueue.main.async {
-                                switch modRes {
-                                case .success:
-                                    print("🗑️ CloudKit: Todo per Titel gelöscht (\(titleIDs.count) Records)")
-                                case .failure(let err):
-                                    print("❌ CloudKit Fallback-Löschen fehlgeschlagen: \(err.localizedDescription)")
-                                }
-                            }
-                        }
-                        self.database.add(fallbackModify)
-                    }
-                    self.database.add(titleOp)
-                    return
-                }
-                let modify = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordIDsToDelete)
-                modify.modifyRecordsResultBlock = { (modResult: Result<Void, Error>) in
+                let record = existing ?? CKRecord(recordType: "Todo")
+                record["id"] = todo.id.uuidString as CKRecordValue
+                // Minimaldaten sicherstellen, damit der Record gültig ist, wenn er neu angelegt wird.
+                if record["title"] == nil { record["title"] = todo.title as CKRecordValue }
+                if record["createdAt"] == nil { record["createdAt"] = todo.createdAt as CKRecordValue }
+                record[Self.isDeletedKey] = true as CKRecordValue
+                record[Self.deletedAtKey] = now as CKRecordValue
+                record["updatedAt"] = now as CKRecordValue
+                let modify = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
+                modify.savePolicy = .allKeys
+                modify.modifyRecordsResultBlock = { [weak self] (modResult: Result<Void, Error>) in
                     DispatchQueue.main.async {
                         switch modResult {
                         case .success:
-                            print("🗑️ CloudKit: Todo gelöscht (\(recordIDsToDelete.count) Records)")
+                            SyncLog.event("Todo tombstoned (todoID=\(todo.id))")
                         case .failure(let error):
-                            print("❌ CloudKit Löschen fehlgeschlagen: \(error.localizedDescription)")
+                            SyncLog.error(operation: "deleteTodo", todoID: todo.id, error: error)
+                            if let ckError = error as? CKError,
+                               [.networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited, .zoneBusy].contains(ckError.code),
+                               retryCount < 5 {
+                                let delay = ckError.userInfo[CKErrorRetryAfterKey] as? TimeInterval ?? 2.0
+                                SyncLog.event("Retry tombstone in \(delay)s (todoID=\(todo.id))")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                                    self?.writeTombstone(for: todo, retryCount: retryCount + 1)
+                                }
+                            }
                         }
                     }
                 }
                 self.database.add(modify)
             case .failure(let error):
-                DispatchQueue.main.async { print("❌ Query für Löschen fehlgeschlagen: \(error.localizedDescription)") }
+                SyncLog.error(operation: "deleteTodo.query", todoID: todo.id, error: error)
+                if let ckError = error as? CKError,
+                   [.networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited, .zoneBusy].contains(ckError.code),
+                   retryCount < 5 {
+                    let delay = ckError.userInfo[CKErrorRetryAfterKey] as? TimeInterval ?? 2.0
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        self.writeTombstone(for: todo, retryCount: retryCount + 1)
+                    }
+                }
             }
         }
         database.add(operation)
+    }
+
+    /// Explizite Wiederherstellung (Undo/Papierkorb): hebt einen Tombstone
+    /// eindeutig auf – gewinnt bewusst gegen einen älteren Löschzustand.
+    func restoreTodo(_ todo: TodoItem) {
+        var restored = todo
+        restored.isDeleted = false
+        restored.deletedAt = nil
+        restored.updatedAt = Date() // frischer Zeitstempel ⇒ gewinnt gegen deletedAt
+        SyncLog.event("Todo restore requested (todoID=\(todo.id))")
+        saveTodo(restored)
+    }
+
+    /// Physisches Löschen (Purge) – nur für endgültige Bereinigung alter Tombstones.
+    private func purgeRecordIDs(_ ids: [CKRecord.ID], label: String) {
+        guard !ids.isEmpty else { return }
+        let modify = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: ids)
+        modify.modifyRecordsResultBlock = { (res: Result<Void, Error>) in
+            switch res {
+            case .success: SyncLog.event("Purged \(ids.count) records (\(label))")
+            case .failure(let error): SyncLog.error(operation: "purge.\(label)", error: error)
+            }
+        }
+        database.add(modify)
+    }
+
+    private static let lastTombstonePurgeKey = "lastTombstonePurgeDate"
+
+    /// Startet die Tombstone-Bereinigung höchstens **einmal pro Kalendertag**
+    /// (gedrosselt via UserDefaults). Gedacht für den Aufruf beim App-Start.
+    func purgeOldTombstonesIfDue(olderThanDays days: Int = 60) {
+        let now = Date()
+        if let last = UserDefaults.standard.object(forKey: Self.lastTombstonePurgeKey) as? Date,
+           Calendar.current.isDate(last, inSameDayAs: now) {
+            return // heute bereits ausgeführt
+        }
+        UserDefaults.standard.set(now, forKey: Self.lastTombstonePurgeKey)
+        SyncLog.event("Tombstone purge due – running (olderThanDays=\(days))")
+        purgeOldTombstones(olderThanDays: days)
+    }
+
+    /// Bereinigt alte Tombstones (deletedAt älter als `olderThanDays`, Default 60).
+    /// Sicher, solange kein Gerät länger als dieser Zeitraum offline war.
+    func purgeOldTombstones(olderThanDays days: Int = 60) {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let predicate = NSPredicate(format: "%K == 1 AND %K < %@", Self.isDeletedKey, Self.deletedAtKey, cutoff as NSDate)
+        let query = CKQuery(recordType: "Todo", predicate: predicate)
+        var ids: [CKRecord.ID] = []
+        let op = CKQueryOperation(query: query)
+        op.resultsLimit = 400
+        op.recordMatchedBlock = { (_: CKRecord.ID, result: Result<CKRecord, Error>) in
+            if case .success(let rec) = result { ids.append(rec.recordID) }
+        }
+        op.queryResultBlock = { [weak self] (result: Result<CKQueryOperation.Cursor?, Error>) in
+            switch result {
+            case .success:
+                DispatchQueue.main.async { self?.purgeRecordIDs(ids, label: "old-tombstones") }
+            case .failure(let error):
+                // Fehlender Query-Index ist kein kritischer Fehler – nur Aufräumen entfällt.
+                SyncLog.error(operation: "purgeOldTombstones.query", error: error)
+            }
+        }
+        database.add(op)
     }
 
     /// Uploads local todos to CloudKit if there is local data to push.
@@ -660,19 +799,43 @@ final class CloudKitManager: ObservableObject {
     }
 
     /// Upserts a daily completion stat for a given date.
+    ///
+    /// **Monotoner Upsert (max):** Der geteilte `DailyStat`-Record wird von BEIDEN
+    /// Plattformen beschrieben – iOS zählt lokal erledigte Aufgaben, der Mac erhöht
+    /// denselben Record (`MacTodoStore.recordCompletion`). Früher überschrieb iOS den
+    /// Record mit seinem lokalen Wert und konnte damit die Beiträge des Macs (oder
+    /// umgekehrt) auslöschen. Jetzt lesen wir den aktuellen Cloud-Wert und schreiben
+    /// nur, wenn er dadurch STEIGT (`max(existing, count)`). Zusammen mit dem bereits
+    /// vorhandenen max-Merge in `applyDailyStatsFromCloud` ist der Zähler damit
+    /// geräteübergreifend monoton und verlustfrei. Rücknahmen einer Erledigung senken
+    /// den geteilten Zähler bewusst nicht mehr (kein Datenverlust > exakte Rücknahme).
     func saveDailyStat(date: Date, count: Int) {
         let key = dateKey(for: date)
-        // Use a deterministic record ID to avoid duplicates and to not require a query index
+        // Deterministische Record-ID: kein Query-Index nötig, keine Duplikate.
         let recordID = CKRecord.ID(recordName: "DailyStat-" + key)
-        let record = CKRecord(recordType: "DailyStat", recordID: recordID)
-        record["dateKey"] = key as CKRecordValue
-        record["count"] = NSNumber(value: count)
-        record["updatedAt"] = Date() as CKRecordValue
-        database.save(record) { _, error in
-            if let error = error {
-                print("❌ Fehler beim Speichern DailyStat: \(error.localizedDescription)")
-            } else {
-                print("✅ DailyStat upsert: key=\(key) count=\(count)")
+        database.fetch(withRecordID: recordID) { [weak self] fetched, error in
+            guard let self = self else { return }
+            // Transienter Lesefehler (Netzwerk o. ä.): NICHT blind neu anlegen/überschreiben,
+            // sonst droht genau der Clobber, den wir verhindern wollen. `unknownItem` = Record
+            // existiert noch nicht → regulär anlegen.
+            if let ckErr = error as? CKError, ckErr.code != .unknownItem {
+                print("ℹ️ DailyStat: Lesen fehlgeschlagen (\(ckErr.code.rawValue)) – Write übersprungen für key=\(key)")
+                return
+            }
+            let record = fetched ?? CKRecord(recordType: "DailyStat", recordID: recordID)
+            let existing = (record["count"] as? NSNumber)?.intValue ?? 0
+            let newValue = max(existing, count)
+            // Keinen unnötigen Write auslösen, wenn sich der Cloud-Wert nicht erhöht.
+            if fetched != nil && newValue == existing { return }
+            record["dateKey"]   = key as CKRecordValue
+            record["count"]     = NSNumber(value: newValue)
+            record["updatedAt"] = Date() as CKRecordValue
+            self.database.save(record) { _, saveError in
+                if let saveError = saveError {
+                    print("❌ Fehler beim Speichern DailyStat: \(saveError.localizedDescription)")
+                } else {
+                    print("✅ DailyStat upsert (max): key=\(key) count=\(newValue)")
+                }
             }
         }
     }

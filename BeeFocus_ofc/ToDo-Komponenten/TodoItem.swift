@@ -106,6 +106,28 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var customFolder: String? = nil   // Benutzerdefinierter Ordner (Drag & Drop)
     var endDate: Date? = nil          // Geplantes Ende der Aufgabe (für Dauer-Blocks)
 
+    // MARK: - Tombstone (Soft-Delete)
+    // Diese beiden Felder sind TRANSIENT: Sie werden bewusst NICHT über `CodingKeys`
+    // lokal persistiert (der lokale `todos`-Array enthält nie gelöschte Einträge).
+    // Sie tragen ausschließlich den Löschzustand eines frisch aus CloudKit geladenen
+    // Datensatzes in `mergeFromCloud`, damit Löschungen geräteübergreifend propagieren.
+    var isDeleted: Bool = false
+    var deletedAt: Date? = nil
+
+    // Explizite CodingKeys: listet exakt die bisher persistierten Felder auf.
+    // WICHTIG: `isDeleted`/`deletedAt` fehlen hier absichtlich → bestehende lokale
+    // JSON-Daten bleiben unverändert dekodierbar (kein Datenverlust) und das
+    // gespeicherte Format ändert sich nicht (abwärtskompatibel).
+    private enum CodingKeys: String, CodingKey {
+        case id, title, description, isCompleted, dueDate
+        case reminderOffsetMinutes, reminderTitle, reminderBody
+        case recurrenceEnabled, recurrenceRule, lastCompletionDate, nextResetDate
+        case category, categoryID, priority, subTasks
+        case createdAt, updatedAt, completedAt, lastResetDate
+        case calendarEventIdentifier, focusTimeInMinutes, imageDataArray
+        case calendarEnabled, isFavorite, customFolder, endDate
+    }
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -133,7 +155,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         calendarEnabled: Bool = false,
         isFavorite: Bool = false,
         customFolder: String? = nil,
-        endDate: Date? = nil
+        endDate: Date? = nil,
+        isDeleted: Bool = false,
+        deletedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -162,6 +186,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.isFavorite = isFavorite
         self.customFolder = customFolder
         self.endDate = endDate
+        self.isDeleted = isDeleted
+        self.deletedAt = deletedAt
     }
 
     // true wenn ein Zeitraum gesetzt ist und gerade läuft (dueDate ≤ now ≤ endDate)

@@ -1,5 +1,32 @@
 import Foundation
 import CloudKit
+import SwiftUI
+
+// MARK: - MacCategory
+
+/// Kategorie-Modell, kompatibel zum iOS-`Category`-Modell (Record-Typ "Category":
+/// Felder id, name, colorHex). Wird auf dem Mac nur gelesen/zugewiesen – verwaltet
+/// (erstellt/umbenannt/gelöscht) werden Kategorien weiterhin auf dem iPhone.
+struct MacCategory: Identifiable, Codable, Hashable {
+    var id: UUID = UUID()
+    var name: String
+    var colorHex: String
+
+    var color: Color { Color(macHex: colorHex) }
+}
+
+extension Color {
+    init(macHex hex: String) {
+        var s = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if s.hasPrefix("#") { s.removeFirst() }
+        var rgb: UInt64 = 0
+        Scanner(string: s).scanHexInt64(&rgb)
+        let r = Double((rgb & 0xFF0000) >> 16) / 255
+        let g = Double((rgb & 0x00FF00) >> 8)  / 255
+        let b = Double(rgb & 0x0000FF)         / 255
+        self.init(red: r, green: g, blue: b)
+    }
+}
 
 // MARK: - MacTodoPriority
 
@@ -102,6 +129,12 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
     var reminderOffsetMinutes: Int?          // nil = no reminder, 0 = at due time, >0 = minutes before
     var recurrenceEnabled: Bool
     var recurrenceRule: MacRecurrenceRule
+    var categoryID: UUID?                     // Verweis auf eine (auf iOS verwaltete) Kategorie
+    var completedAt: Date?                    // Zeitpunkt des Erledigens (iOS-kompatibel)
+
+    // Tombstone (Soft-Delete) – geräteübergreifend mit iOS geteilt.
+    var isDeleted: Bool = false
+    var deletedAt: Date? = nil
 
     init(
         id: UUID = UUID(),
@@ -118,7 +151,11 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         endTime: Date? = nil,
         reminderOffsetMinutes: Int? = nil,
         recurrenceEnabled: Bool = false,
-        recurrenceRule: MacRecurrenceRule = .none
+        recurrenceRule: MacRecurrenceRule = .none,
+        categoryID: UUID? = nil,
+        completedAt: Date? = nil,
+        isDeleted: Bool = false,
+        deletedAt: Date? = nil
     ) {
         self.id                    = id
         self.title                 = title
@@ -135,6 +172,10 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.reminderOffsetMinutes = reminderOffsetMinutes
         self.recurrenceEnabled     = recurrenceEnabled
         self.recurrenceRule        = recurrenceRule
+        self.categoryID            = categoryID
+        self.completedAt           = completedAt
+        self.isDeleted             = isDeleted
+        self.deletedAt             = deletedAt
     }
 
     // MARK: - CloudKit Mapping
@@ -155,9 +196,18 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         self.updatedAt   = record["updatedAt"] as? Date ?? Date()
         self.isFavorite   = record["isFavorite"] as? Bool ?? false
         self.customFolder = record["customFolder"] as? String
+        self.completedAt  = record["completedAt"] as? Date
+        self.isDeleted    = (record["isDeleted"] as? Bool) ?? ((record["isDeleted"] as? NSNumber)?.boolValue ?? false)
+        self.deletedAt    = record["deletedAt"] as? Date
+        if let catIDString = record["categoryID"] as? String {
+            self.categoryID = UUID(uuidString: catIDString)
+        } else {
+            self.categoryID = nil
+        }
         self.priority     = MacTodoPriority(rawValue: record["priority"] as? String ?? "medium") ?? .medium
-        self.endTime               = record["endTime"] as? Date
-        self.reminderOffsetMinutes = record["reminderOffsetMinutes"] as? Int
+        // iOS-kompatibles Feld "endDate" bevorzugen, Legacy-Mac-Feld "endTime" als Fallback
+        self.endTime               = (record["endDate"] as? Date) ?? (record["endTime"] as? Date)
+        self.reminderOffsetMinutes = (record["reminderOffsetMinutes"] as? Int) ?? (record["reminderOffsetMinutes"] as? NSNumber)?.intValue
         self.recurrenceEnabled     = record["recurrenceEnabled"] as? Bool ?? false
 
         // Primary: iOS-compatible Data field; fallback: legacy Mac String field
@@ -194,8 +244,20 @@ struct MacTodoItem: Identifiable, Codable, Equatable {
         record["recurrenceEnabled"] = recurrenceEnabled as CKRecordValue
         if let folder = customFolder { record["customFolder"] = folder as CKRecordValue }
         if let due = dueDate { record["dueDate"] = due as CKRecordValue }
-        if let end = endTime { record["endTime"] = end as CKRecordValue }
+        // iOS nutzt das Feld "endDate" für den Zeitraum-/Dauer-Endpunkt. Wir schreiben
+        // in dasselbe Feld, damit der Zeitraum zwischen Mac und iPhone synchronisiert.
+        // Das alte Mac-Feld "endTime" wird zur Migration bereinigt.
+        record["endDate"] = endTime as CKRecordValue?
+        record["endTime"] = nil
         if let rem = reminderOffsetMinutes { record["reminderOffsetMinutes"] = rem as CKRecordValue }
+        // Kategorie: nur die ID schreiben. Den eingebetteten iOS-"category"-Blob leeren,
+        // damit iOS die Kategorie stets frisch über categoryID auflöst (keine veralteten Daten).
+        record["categoryID"] = categoryID?.uuidString as CKRecordValue?
+        record["category"]   = nil
+        record["completedAt"] = completedAt as CKRecordValue?
+        // Normale Speicherung ist immer "lebendig": vorhandenen Tombstone-Zustand löschen.
+        record["isDeleted"] = false as CKRecordValue
+        record["deletedAt"] = nil
         if let data = try? JSONEncoder().encode(subTasks) {
             record["subTasks"] = data as CKRecordValue
         }

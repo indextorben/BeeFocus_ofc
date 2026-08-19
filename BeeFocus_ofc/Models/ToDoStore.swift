@@ -114,7 +114,9 @@ class TodoStore: ObservableObject {
             let insertIndex = todos.count
             todos.insert(t, at: insertIndex)
             saveTodos()
-            CloudKitManager.shared.saveTodo(t)
+            // Wiederherstellung (Redo Create): evtl. Tombstone eindeutig aufheben.
+            removeFromGraveyard(t.id)
+            CloudKitManager.shared.restoreTodo(t)
             DispatchQueue.main.async { self.objectWillChange.send() }
             stack.append(.delete(todo: t, originalIndex: insertIndex))
 
@@ -129,8 +131,9 @@ class TodoStore: ObservableObject {
                 saveTodos()
                 DispatchQueue.main.async { self.objectWillChange.send() }
 
-                // Cloud delete
+                // Cloud delete (Tombstone) + dauerhaftes Graveyard
                 CloudKitManager.shared.deleteTodo(removed)
+                addToGraveyard(removed.id)
 
                 // Append to trash
                 deletedTodos.append(TrashEntry(todo: removed, originalIndex: idx, deletedAt: Date()))
@@ -210,7 +213,7 @@ class TodoStore: ObservableObject {
             if !todos.contains(where: { $0.id == t.id }) {
                 todos.insert(t, at: insertIndex)
                 saveTodos()
-                CloudKitManager.shared.saveTodo(t)
+                CloudKitManager.shared.restoreTodo(t)
                 DispatchQueue.main.async { self.objectWillChange.send() }
             }
             // Remove any matching trash entries for restored todo
@@ -279,6 +282,9 @@ class TodoStore: ObservableObject {
             print("📥 Initial fetch: \(cloudTodos.count) todos from CloudKit")
             self?.mergeFromCloud(cloudTodos)
         }
+
+        // Alte Tombstones höchstens einmal pro Tag aufräumen (gedrosselt).
+        CloudKitManager.shared.purgeOldTombstonesIfDue()
         
         // Beobachte abgeschlossene Fokus-Sessions aus dem Timer
         NotificationCenter.default.addObserver(forName: .focusSessionCompleted, object: nil, queue: .main) { [weak self] note in
@@ -766,8 +772,8 @@ class TodoStore: ObservableObject {
                     self.lastDeletedIndex = insertIndex
                     self.saveTodos()
                     self.objectWillChange.send()
-                    // Restore in CloudKit
-                    CloudKitManager.shared.saveTodo(last.todo)
+                    // Restore in CloudKit (Tombstone eindeutig aufheben)
+                    CloudKitManager.shared.restoreTodo(last.todo)
                 }
                 // Remove from trash history and graveyard
                 _ = self.deletedTodos.popLast()
@@ -783,7 +789,7 @@ class TodoStore: ObservableObject {
                     }
                     self.saveTodos()
                     self.objectWillChange.send()
-                    CloudKitManager.shared.saveTodo(todo)
+                    CloudKitManager.shared.restoreTodo(todo)
                 }
                 self.removeFromGraveyard(todo.id)
                 // Reset flags to avoid repeated stale reinsertions
@@ -805,6 +811,9 @@ class TodoStore: ObservableObject {
                     self.todos.remove(at: idx)
                     self.saveTodos()
                     self.objectWillChange.send()
+                    // Redo einer Löschung: auch in der Cloud wieder als Tombstone markieren.
+                    CloudKitManager.shared.deleteTodo(todo)
+                    self.addToGraveyard(todo.id)
                 }
                 // Reset flags to avoid repeated redoes on stale state
                 self.lastDeletedTodo = nil
@@ -814,6 +823,8 @@ class TodoStore: ObservableObject {
                     self.todos.remove(at: idx)
                     self.saveTodos()
                     self.objectWillChange.send()
+                    CloudKitManager.shared.deleteTodo(last.todo)
+                    self.addToGraveyard(last.todo.id)
                 }
             }
         }
@@ -905,7 +916,11 @@ class TodoStore: ObservableObject {
     func assignTodo(_ todoID: UUID, toFolder folder: String?) {
         guard let idx = todos.firstIndex(where: { $0.id == todoID }) else { return }
         todos[idx].customFolder = folder
+        // updatedAt anheben und in die Cloud pushen, damit die Ordner-Zuweisung
+        // zum Mac synchronisiert (gleiches Muster wie updateTodo/toggleCompletion).
+        todos[idx].updatedAt = Date()
         saveTodos()
+        CloudKitManager.shared.saveTodo(todos[idx])
     }
 
     private func saveCustomFolders() {
@@ -1147,7 +1162,21 @@ class TodoStore: ObservableObject {
 
         // Cloud → Lokal: Einfügen/Aktualisieren mit verbesserter Conflict Resolution
         for cloud in cloudTodos {
-            // Lokal gelöschte Todos nicht zurück einfügen; CloudKit-Löschung erneut anstoßen
+            // 1) Cloud-Tombstone empfangen (Löschung von einem anderen Gerät):
+            //    lokal entfernen, dauerhaft ins Graveyard, niemals wieder anlegen.
+            if cloud.isDeleted {
+                if localByID[cloud.id] != nil {
+                    localByID.removeValue(forKey: cloud.id)
+                    changed = true
+                    NotificationManager.shared.cancelNotification(id: cloud.id.uuidString)
+                    SyncLog.event("Remote delete received → removed locally (todoID=\(cloud.id))")
+                }
+                addToGraveyard(cloud.id)
+                continue
+            }
+
+            // 2) Lokal gelöscht, aber Cloud hält noch eine LEBENDIGE Kopie (z. B. ein
+            //    veraltetes Gerät hat sie erneut hochgeladen): Tombstone erneut anstoßen.
             if deletedIDStrings.contains(cloud.id.uuidString) {
                 CloudKitManager.shared.deleteTodo(cloud)
                 continue
@@ -1181,9 +1210,13 @@ class TodoStore: ObservableObject {
             }
         }
 
-        // Optional: Lokal → Cloud pushen (für Einträge, die es nur lokal gibt)
-        // Hier pushen wir sie hoch, damit Geräte konsistent werden.
+        // Optional: Lokal → Cloud pushen (für Einträge, die es nur lokal gibt).
+        // WICHTIG: gelöschte IDs (Graveyard/Papierkorb) NIE hochladen – das war der
+        // Kern der "Resurrection". Tombstones sind Teil von cloudTodos, daher werden
+        // gelöschte IDs bereits durch die contains-Prüfung ausgeschlossen; die
+        // zusätzliche Graveyard-Prüfung ist Absicherung gegen Timing-Lücken.
         for (id, local) in localByID {
+            if deletedIDStrings.contains(id.uuidString) { continue }
             if !cloudTodos.contains(where: { $0.id == id }) {
                 CloudKitManager.shared.saveTodo(local)
             }
@@ -1211,6 +1244,18 @@ class TodoStore: ObservableObject {
             }
         }
         let newTodos = finalByID.values.sorted { $0.updatedAt > $1.updatedAt }
+
+        // Ordner-Namen, die per Cloud (z. B. vom Mac) an Aufgaben hängen, in die lokale
+        // Ordnerliste übernehmen, damit der Ordner auch dann sichtbar ist, wenn er auf
+        // diesem Gerät noch nie manuell angelegt wurde.
+        var foldersChanged = false
+        for t in newTodos {
+            if let f = t.customFolder, !f.isEmpty, !customFolders.contains(f) {
+                customFolders.append(f)
+                foldersChanged = true
+            }
+        }
+        if foldersChanged { saveCustomFolders() }
 
         if newTodos != todos {
             todos = newTodos
@@ -1312,7 +1357,7 @@ class TodoStore: ObservableObject {
         todos.insert(entry.todo, at: insertIndex)
         saveTodos()
         DispatchQueue.main.async { self.objectWillChange.send() }
-        CloudKitManager.shared.saveTodo(entry.todo)
+        CloudKitManager.shared.restoreTodo(entry.todo)
         saveTrash()
         removeFromGraveyard(entry.todo.id)
     }
@@ -1321,12 +1366,16 @@ class TodoStore: ObservableObject {
         guard deletedTodos.indices.contains(index) else { return }
         let entry = deletedTodos.remove(at: index)
         saveTrash()
-        // Already removed from local todos; ensure Cloud is deleted as well
+        // Already removed from local todos; ensure Cloud is tombstoned as well
         CloudKitManager.shared.deleteTodo(entry.todo)
+        addToGraveyard(entry.todo.id)
     }
-    
+
     func emptyTrash() {
-        for entry in deletedTodos { CloudKitManager.shared.deleteTodo(entry.todo) }
+        for entry in deletedTodos {
+            CloudKitManager.shared.deleteTodo(entry.todo)
+            addToGraveyard(entry.todo.id)
+        }
         deletedTodos.removeAll()
         saveTrash()
     }
