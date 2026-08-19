@@ -20,6 +20,12 @@ struct WatchCountdown: Codable, Identifiable {
     let tageVerbleibend: Int
 }
 
+struct WatchSubtask: Codable, Identifiable {
+    let id: UUID
+    let title: String
+    let isCompleted: Bool
+}
+
 struct WidgetSnapshot: Codable {
     let dueTodayCount: Int
     let overdueCount: Int
@@ -57,6 +63,8 @@ struct WidgetTask: Codable, Identifiable {
     let subTasksCompleted: Int
     let isFavorite: Bool
     let isOverdue: Bool
+    let isCompleted: Bool
+    let subtasks: [WatchSubtask]
 
     init(id: UUID, title: String, isHighPriority: Bool,
          dueDate: Date? = nil, endDate: Date? = nil,
@@ -64,7 +72,8 @@ struct WidgetTask: Codable, Identifiable {
          categoryName: String? = nil, categoryColorHex: String? = nil,
          taskDescription: String = "",
          subTasksTotal: Int = 0, subTasksCompleted: Int = 0,
-         isFavorite: Bool = false, isOverdue: Bool = false) {
+         isFavorite: Bool = false, isOverdue: Bool = false,
+         isCompleted: Bool = false, subtasks: [WatchSubtask] = []) {
         self.id = id
         self.title = title
         self.isHighPriority = isHighPriority
@@ -78,6 +87,8 @@ struct WidgetTask: Codable, Identifiable {
         self.subTasksCompleted = subTasksCompleted
         self.isFavorite = isFavorite
         self.isOverdue = isOverdue
+        self.isCompleted = isCompleted
+        self.subtasks = subtasks
     }
 }
 
@@ -257,7 +268,14 @@ extension TodoStore {
             cal.component(.hour, from: date) != 0 || cal.component(.minute, from: date) != 0
         }
 
-        let todayTasks = todos.filter { todo in
+        // Heute erledigt (nur heute abgehakt) – erscheinen durchgestrichen und lassen
+        // sich auf der Watch wieder öffnen (Undo bei versehentlichem Abhaken).
+        func wasCompletedToday(_ todo: TodoItem) -> Bool {
+            guard todo.isCompleted, let done = todo.completedAt else { return false }
+            return cal.isDate(done, inSameDayAs: now)
+        }
+
+        let todayOpen = todos.filter { todo in
             guard !todo.isCompleted, let due = todo.dueDate else { return false }
             return due < tomorrow   // heute fällig oder überfällig
         }
@@ -272,10 +290,14 @@ extension TodoStore {
             if at && bt { return ad < bd }
             return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
-        .prefix(50)
-        .map { makeWidgetTask($0, today: today) }
+        let todayDone = todos.filter { todo in
+            guard wasCompletedToday(todo), let due = todo.dueDate else { return false }
+            return due < tomorrow
+        }
+        .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+        let todayTasks = (todayOpen + todayDone).prefix(50).map { makeWidgetTask($0, today: today) }
 
-        let weekTasks = todos.filter { todo in
+        let weekOpen = todos.filter { todo in
             guard !todo.isCompleted, let due = todo.dueDate else { return false }
             return due >= tomorrow && due < currentWeekEnd   // Rest der Woche, ohne Heute
         }
@@ -287,10 +309,14 @@ extension TodoStore {
             if at && bt { return ad < bd }
             return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
-        .prefix(50)
-        .map { makeWidgetTask($0, today: today) }
+        let weekDone = todos.filter { todo in
+            guard wasCompletedToday(todo), let due = todo.dueDate else { return false }
+            return due >= tomorrow && due < currentWeekEnd
+        }
+        .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        let weekTasks = (weekOpen + weekDone).prefix(50).map { makeWidgetTask($0, today: today) }
 
-        print("[Phone] Watch-Snapshot: \(todayTasks.count) heute, \(weekTasks.count) diese Woche (Rest)")
+        print("[Phone] Watch-Snapshot: \(todayOpen.count) heute offen (+\(todayDone.count) erledigt), \(weekOpen.count) diese Woche (+\(weekDone.count) erledigt)")
 
         let snapshot = WidgetSnapshot(
             dueTodayCount: todayTodos.count,
@@ -335,7 +361,9 @@ extension TodoStore {
             subTasksTotal: todo.subTasks.count,
             subTasksCompleted: todo.subTasks.filter { $0.isCompleted }.count,
             isFavorite: todo.isFavorite,
-            isOverdue: todo.isOverdue
+            isOverdue: todo.isOverdue,
+            isCompleted: todo.isCompleted,
+            subtasks: todo.subTasks.map { WatchSubtask(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) }
         )
     }
 

@@ -170,7 +170,7 @@ struct MehrView: View {
 
 struct AlleView: View {
     @ObservedObject var session: WatchSessionManager
-    @State private var doneIDs: Set<UUID> = []
+    @State private var overrides: [UUID: Bool] = [:]
     let accent: Color
 
     var snap: WatchSnapshot { session.snapshot }
@@ -193,15 +193,15 @@ struct AlleView: View {
             } else {
                 Section {
                     ForEach(snap.planTasks) { task in
-                        TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
-                            session.completeTask(id: task.id)
-                        }
+                        TaskNavigationRow(session: session, task: task, accent: accent,
+                                          overrides: $overrides)
                     }
                 }
             }
         }
         .listStyle(.plain)
         .refreshable { session.requestFreshSnapshot() }
+        .onChange(of: session.snapshotVersion) { _ in overrides.removeAll() }
     }
 
     private var statsRow: some View {
@@ -228,114 +228,305 @@ struct AlleView: View {
 
 // MARK: - Task Row
 
+// Zeitbezogene Helfer (frei, damit sie auch Detailansicht/Row nutzen können)
+func watchHasTime(_ date: Date) -> Bool {
+    let cal = Calendar.current
+    return cal.component(.hour, from: date) != 0 || cal.component(.minute, from: date) != 0
+}
+func watchTimeStr(due: Date, end: Date?) -> String {
+    guard let end else { return timeFmt.string(from: due) }
+    return "\(timeFmt.string(from: due)) – \(timeFmt.string(from: end))"
+}
+func watchOverdueLabel(due: Date) -> String {
+    let dateStr = dateFmt.string(from: due)
+    return watchHasTime(due) ? "\(dateStr) · \(timeFmt.string(from: due))" : dateStr
+}
+
+func taskRowAccent(_ task: WatchTask, accent: Color) -> Color {
+    if task.isOverdue { return .orange }
+    if let hex = task.categoryColorHex { return Color(hexString: hex) }
+    return task.priorityRaw == "high" ? .red : accent
+}
+
+// Reine Darstellungs-Row. Tippen erledigt NICHT – das übernimmt die Detailansicht,
+// damit versehentliches Abhaken nicht mehr passiert.
 struct TaskRow: View {
     let task: WatchTask
     let accent: Color
-    @Binding var doneIDs: Set<UUID>
+    let isCompleted: Bool
     var weekdayLabel: String? = nil
-    let onComplete: () -> Void
 
-    var isDone: Bool { doneIDs.contains(task.id) }
-    var rowAccent: Color {
-        if task.isOverdue { return .orange }
-        if let hex = task.categoryColorHex { return Color(hexString: hex) }
-        return task.priorityRaw == "high" ? .red : accent
-    }
+    private var rowAccent: Color { taskRowAccent(task, accent: accent) }
 
     var body: some View {
-        Button {
-            guard !isDone else { return }
-            withAnimation(.spring(response: 0.3)) { doneIDs.insert(task.id) }
-            onComplete()
-        } label: {
-            HStack(alignment: .top, spacing: 10) {
-                ZStack {
-                    Circle()
-                        .strokeBorder(isDone ? Color.green : rowAccent, lineWidth: 2)
-                        .frame(width: 22, height: 22)
-                    if isDone {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.green)
+        HStack(alignment: .top, spacing: 10) {
+            ZStack {
+                Circle()
+                    .strokeBorder(isCompleted ? Color.green : rowAccent, lineWidth: 2)
+                    .frame(width: 22, height: 22)
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.green)
+                }
+            }
+            .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(task.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isCompleted ? .secondary : .primary)
+                    .strikethrough(isCompleted)
+                    .lineLimit(2)
+
+                if let weekdayLabel {
+                    Text(weekdayLabel)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(accent)
+                }
+
+                if let due = task.dueDate {
+                    if task.isOverdue && !isCompleted {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.orange)
+                            Text(watchOverdueLabel(due: due))
+                                .font(.system(size: 11))
+                                .foregroundStyle(.orange)
+                        }
+                    } else if watchHasTime(due) || task.endDate != nil {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock").font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                            Text(watchTimeStr(due: due, end: task.endDate))
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
-                .padding(.top, 1)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(task.title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(isDone ? .secondary : .primary)
-                        .strikethrough(isDone)
-                        .lineLimit(2)
-
-                    if let weekdayLabel {
-                        Text(weekdayLabel)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(accent)
-                    }
-
-                    if let due = task.dueDate {
-                        if task.isOverdue {
-                            HStack(spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.orange)
-                                Text(overdueLabel(due: due))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.orange)
-                            }
-                        } else if hasRelevantTime(due) || task.endDate != nil {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock").font(.system(size: 9))
-                                    .foregroundStyle(.secondary)
-                                Text(timeStr(due: due, end: task.endDate))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            }
+                HStack(spacing: 8) {
+                    if let cat = task.categoryName {
+                        HStack(spacing: 4) {
+                            Circle().fill(task.categoryColor).frame(width: 6, height: 6)
+                            Text(cat).font(.system(size: 11)).foregroundStyle(task.categoryColor).lineLimit(1)
                         }
                     }
-
-                    HStack(spacing: 8) {
-                        if let cat = task.categoryName {
-                            HStack(spacing: 4) {
-                                Circle().fill(task.categoryColor).frame(width: 6, height: 6)
-                                Text(cat).font(.system(size: 11)).foregroundStyle(task.categoryColor).lineLimit(1)
-                            }
-                        }
-                        if task.subTasksTotal > 0 {
+                    if task.subTasksTotal > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checklist").font(.system(size: 9)).foregroundStyle(.secondary)
                             Text("\(task.subTasksCompleted)/\(task.subTasksTotal)")
                                 .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
-                        if task.isFavorite {
-                            Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(.yellow)
-                        }
+                    }
+                    if task.isFavorite {
+                        Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(.yellow)
                     }
                 }
             }
-            .padding(.vertical, 4)
-            .opacity(isDone ? 0.5 : 1)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 4)
+        .opacity(isCompleted ? 0.6 : 1)
+    }
+}
+
+// List-Row mit Navigation ins Detail + Swipe zum schnellen Erledigen/Wiederöffnen.
+struct TaskNavigationRow: View {
+    @ObservedObject var session: WatchSessionManager
+    let task: WatchTask
+    let accent: Color
+    var weekdayLabel: String? = nil
+    @Binding var overrides: [UUID: Bool]
+
+    private var effectiveCompleted: Bool { overrides[task.id] ?? task.isCompleted }
+
+    var body: some View {
+        NavigationLink {
+            TodoDetailView(session: session, taskID: task.id, fallback: task,
+                           accent: accent, overrides: $overrides)
+        } label: {
+            TaskRow(task: task, accent: accent,
+                    isCompleted: effectiveCompleted, weekdayLabel: weekdayLabel)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button {
+                setCompleted(!effectiveCompleted)
+            } label: {
+                Label(effectiveCompleted ? "Öffnen" : "Erledigt",
+                      systemImage: effectiveCompleted ? "arrow.uturn.left" : "checkmark")
+            }
+            .tint(effectiveCompleted ? .orange : .green)
+        }
         .listRowBackground(
             RoundedRectangle(cornerRadius: 12)
-                .fill(rowAccent.opacity(0.08))
+                .fill(taskRowAccent(task, accent: accent).opacity(0.08))
                 .padding(.vertical, 2)
         )
     }
 
-    private func hasRelevantTime(_ date: Date) -> Bool {
-        let cal = Calendar.current
-        return cal.component(.hour, from: date) != 0 || cal.component(.minute, from: date) != 0
+    private func setCompleted(_ value: Bool) {
+        withAnimation(.spring(response: 0.3)) { overrides[task.id] = value }
+        session.setTaskCompleted(id: task.id, completed: value)
+        #if os(watchOS)
+        WKInterfaceDevice.current().play(value ? .success : .click)
+        #endif
+    }
+}
+
+// MARK: - Detailansicht (Unteraufgaben + Erledigen/Wiederherstellen)
+
+struct TodoDetailView: View {
+    @ObservedObject var session: WatchSessionManager
+    let taskID: UUID
+    let fallback: WatchTask
+    let accent: Color
+    @Binding var overrides: [UUID: Bool]
+
+    @State private var subOverrides: [UUID: Bool] = [:]
+
+    // Immer den aktuellsten Stand aus dem Snapshot verwenden (Subtasks aktualisieren sich live)
+    private var task: WatchTask {
+        session.snapshot.allTasks.first(where: { $0.id == taskID }) ?? fallback
+    }
+    private var completed: Bool { overrides[taskID] ?? task.isCompleted }
+    private var rowAccent: Color { taskRowAccent(task, accent: accent) }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                // Titel
+                Text(task.title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .strikethrough(completed)
+                    .foregroundStyle(completed ? .secondary : .primary)
+
+                // Meta: Fälligkeit / Kategorie
+                metaBlock
+
+                if !task.taskDescription.isEmpty {
+                    Text(task.taskDescription)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+
+                // Unteraufgaben
+                if !task.subtasks.isEmpty {
+                    Divider().padding(.vertical, 2)
+                    HStack(spacing: 5) {
+                        Image(systemName: "checklist").font(.system(size: 11, weight: .semibold))
+                        Text("UNTERAUFGABEN").font(.system(size: 11, weight: .semibold))
+                        Spacer()
+                        Text("\(subDoneCount)/\(task.subtasks.count)")
+                            .font(.system(size: 11)).foregroundStyle(.secondary)
+                    }
+                    .foregroundStyle(accent)
+
+                    ForEach(task.subtasks) { sub in
+                        subtaskRow(sub)
+                    }
+                }
+
+                // Aktionsbutton
+                Divider().padding(.vertical, 2)
+                Button(action: toggleCompleted) {
+                    HStack {
+                        Spacer()
+                        Image(systemName: completed ? "arrow.uturn.left" : "checkmark.circle.fill")
+                        Text(completed ? "Wieder öffnen" : "Erledigen")
+                        Spacer()
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(completed ? .orange : .white)
+                    .padding(.vertical, 9)
+                    .background(completed ? Color.orange.opacity(0.15) : Color.green)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .navigationTitle("Aufgabe")
+        .onChange(of: session.snapshotVersion) { _ in
+            // Optimistische Overrides nur verwerfen, wenn der neue Snapshot die
+            // Aufgabe enthält UND den erwarteten Stand bestätigt. Ist die Aufgabe
+            // nicht mehr enthalten (z. B. erledigt und aus "Alle" herausgefiltert),
+            // bleibt der Override erhalten, damit die Anzeige korrekt bleibt.
+            guard let snapTask = session.snapshot.allTasks.first(where: { $0.id == taskID }) else { return }
+            if let ov = overrides[taskID], ov == snapTask.isCompleted {
+                overrides.removeValue(forKey: taskID)
+            }
+            for sub in snapTask.subtasks {
+                if let so = subOverrides[sub.id], so == sub.isCompleted {
+                    subOverrides.removeValue(forKey: sub.id)
+                }
+            }
+        }
     }
 
-    private func timeStr(due: Date, end: Date?) -> String {
-        guard let end else { return timeFmt.string(from: due) }
-        return "\(timeFmt.string(from: due)) – \(timeFmt.string(from: end))"
+    private var subDoneCount: Int {
+        task.subtasks.filter { subOverrides[$0.id] ?? $0.isCompleted }.count
     }
 
-    private func overdueLabel(due: Date) -> String {
-        let dateStr = dateFmt.string(from: due)
-        return hasRelevantTime(due) ? "\(dateStr) · \(timeFmt.string(from: due))" : dateStr
+    @ViewBuilder private var metaBlock: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            if let due = task.dueDate {
+                HStack(spacing: 5) {
+                    Image(systemName: task.isOverdue && !completed ? "exclamationmark.triangle.fill" : "calendar")
+                        .font(.system(size: 11))
+                        .foregroundStyle(task.isOverdue && !completed ? .orange : .secondary)
+                    Text(dueLabel(due))
+                        .font(.system(size: 12))
+                        .foregroundStyle(task.isOverdue && !completed ? .orange : .secondary)
+                }
+            }
+            if let cat = task.categoryName {
+                HStack(spacing: 5) {
+                    Circle().fill(task.categoryColor).frame(width: 7, height: 7)
+                    Text(cat).font(.system(size: 12)).foregroundStyle(task.categoryColor)
+                }
+            }
+        }
+    }
+
+    private func subtaskRow(_ sub: WatchSubtask) -> some View {
+        let done = subOverrides[sub.id] ?? sub.isCompleted
+        return Button {
+            withAnimation(.spring(response: 0.25)) { subOverrides[sub.id] = !done }
+            session.toggleSubtask(taskId: taskID, subtaskId: sub.id)
+            #if os(watchOS)
+            WKInterfaceDevice.current().play(.click)
+            #endif
+        } label: {
+            HStack(spacing: 9) {
+                Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(done ? .green : rowAccent)
+                Text(sub.title)
+                    .font(.system(size: 13))
+                    .strikethrough(done)
+                    .foregroundStyle(done ? .secondary : .primary)
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func toggleCompleted() {
+        let newVal = !completed
+        withAnimation(.spring(response: 0.3)) { overrides[taskID] = newVal }
+        session.setTaskCompleted(id: taskID, completed: newVal)
+        #if os(watchOS)
+        WKInterfaceDevice.current().play(newVal ? .success : .click)
+        #endif
+    }
+
+    private func dueLabel(_ due: Date) -> String {
+        let d = dateFmt.string(from: due)
+        return watchHasTime(due) ? "\(d) · \(watchTimeStr(due: due, end: task.endDate))" : d
     }
 }
 
@@ -347,15 +538,13 @@ private let weekdayFmt: DateFormatter = {
 
 struct HeuteWocheView: View {
     @ObservedObject var session: WatchSessionManager
-    @State private var doneIDs: Set<UUID> = []
+    @State private var overrides: [UUID: Bool] = [:]
     let accent: Color
 
     var snap: WatchSnapshot { session.snapshot }
 
-    // Bereits erledigte (lokal getippte) Aufgaben ausblenden, damit die Anzeige
-    // sofort reagiert, bevor der neue Snapshot vom iPhone eintrifft.
-    private var todayTasks: [WatchTask] { snap.todayTasks.filter { !doneIDs.contains($0.id) } }
-    private var weekTasks: [WatchTask]  { snap.weekTasks.filter { !doneIDs.contains($0.id) } }
+    private var todayTasks: [WatchTask] { snap.todayTasks }
+    private var weekTasks: [WatchTask]  { snap.weekTasks }
 
     // Diese Woche nach Wochentag gruppieren (chronologisch, dueDate ist hier immer gesetzt)
     private var weekGroups: [(label: String, tasks: [WatchTask])] {
@@ -378,9 +567,8 @@ struct HeuteWocheView: View {
                              color: .green)
                 } else {
                     ForEach(todayTasks) { task in
-                        TaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
-                            session.completeTask(id: task.id)
-                        }
+                        TaskNavigationRow(session: session, task: task, accent: accent,
+                                          overrides: $overrides)
                     }
                 }
             }
@@ -394,10 +582,8 @@ struct HeuteWocheView: View {
                 } else {
                     ForEach(weekGroups, id: \.label) { group in
                         ForEach(group.tasks) { task in
-                            TaskRow(task: task, accent: accent,
-                                    doneIDs: $doneIDs, weekdayLabel: group.label) {
-                                session.completeTask(id: task.id)
-                            }
+                            TaskNavigationRow(session: session, task: task, accent: accent,
+                                              weekdayLabel: group.label, overrides: $overrides)
                         }
                     }
                 }
@@ -406,6 +592,7 @@ struct HeuteWocheView: View {
         .listStyle(.plain)
         .refreshable { session.requestFreshSnapshot() }
         .onAppear { session.requestFreshSnapshot() }
+        .onChange(of: session.snapshotVersion) { _ in overrides.removeAll() }
     }
 
     private func sectionHeader(_ title: String, systemImage: String) -> some View {
@@ -428,7 +615,7 @@ struct HeuteWocheView: View {
 
 struct MonatView: View {
     @ObservedObject var session: WatchSessionManager
-    @State private var doneIDs: Set<UUID> = []
+    @State private var overrides: [UUID: Bool] = [:]
     let accent: Color
 
     var body: some View {
@@ -444,70 +631,15 @@ struct MonatView: View {
                         .listRowBackground(Color.clear)
                 } else {
                     ForEach(session.snapshot.monthTasks) { task in
-                        MonatTaskRow(task: task, accent: accent, doneIDs: $doneIDs) {
-                            session.completeTask(id: task.id)
-                        }
+                        TaskNavigationRow(session: session, task: task, accent: accent,
+                                          overrides: $overrides)
                     }
                 }
             }
         }
         .listStyle(.plain)
         .refreshable { session.requestFreshSnapshot() }
-    }
-}
-
-struct MonatTaskRow: View {
-    let task: WatchTask
-    let accent: Color
-    @Binding var doneIDs: Set<UUID>
-    let onComplete: () -> Void
-
-    var isDone: Bool { doneIDs.contains(task.id) }
-    var rowAccent: Color {
-        if let hex = task.categoryColorHex { return Color(hexString: hex) }
-        return task.priorityRaw == "high" ? .red : accent
-    }
-
-    var body: some View {
-        Button {
-            guard !isDone else { return }
-            withAnimation(.spring(response: 0.3)) { doneIDs.insert(task.id) }
-            onComplete()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18))
-                    .foregroundStyle(isDone ? .green : rowAccent)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(task.title)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(isDone ? .secondary : .primary)
-                        .strikethrough(isDone)
-                        .lineLimit(2)
-
-                    HStack(spacing: 6) {
-                        if let due = task.dueDate {
-                            Text(dateFmt.string(from: due))
-                                .font(.system(size: 11))
-                                .foregroundStyle(task.isOverdue ? .orange : .secondary)
-                        }
-                        if task.subTasksTotal > 0 {
-                            Text("\(task.subTasksCompleted)/\(task.subTasksTotal)")
-                                .font(.system(size: 11)).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 3)
-            .opacity(isDone ? 0.5 : 1)
-        }
-        .buttonStyle(.plain)
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(rowAccent.opacity(0.08))
-                .padding(.vertical, 2)
-        )
+        .onChange(of: session.snapshotVersion) { _ in overrides.removeAll() }
     }
 }
 

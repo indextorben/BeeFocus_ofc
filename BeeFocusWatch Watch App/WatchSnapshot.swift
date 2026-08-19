@@ -72,6 +72,11 @@ struct WatchSnapshot: Codable {
         weekTasks           = (try? c.decode([WatchTask].self, forKey: .weekTasks)) ?? []
     }
 
+    // Alle Aufgaben-Sammlungen zusammengeführt – für ID-Lookup in der Detailansicht.
+    var allTasks: [WatchTask] {
+        todayTasks + weekTasks + planTasks + monthTasks + topTasks
+    }
+
     private static let sampleToday: [WatchTask] = [
         WatchTask(id: UUID(), title: "Deep Work", isHighPriority: true,
                   dueDate: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()),
@@ -167,6 +172,14 @@ struct WatchCountdown: Codable, Identifiable {
     }
 }
 
+// MARK: - WatchSubtask
+
+struct WatchSubtask: Codable, Identifiable {
+    let id: UUID
+    let title: String
+    let isCompleted: Bool
+}
+
 // MARK: - WatchTask
 
 struct WatchTask: Codable, Identifiable {
@@ -183,6 +196,8 @@ struct WatchTask: Codable, Identifiable {
     let subTasksCompleted: Int
     let isFavorite: Bool
     let isOverdue: Bool
+    let isCompleted: Bool
+    let subtasks: [WatchSubtask]
 
     init(id: UUID, title: String, isHighPriority: Bool,
          dueDate: Date? = nil, endDate: Date? = nil,
@@ -190,7 +205,8 @@ struct WatchTask: Codable, Identifiable {
          categoryName: String? = nil, categoryColorHex: String? = nil,
          taskDescription: String = "",
          subTasksTotal: Int = 0, subTasksCompleted: Int = 0,
-         isFavorite: Bool = false, isOverdue: Bool = false) {
+         isFavorite: Bool = false, isOverdue: Bool = false,
+         isCompleted: Bool = false, subtasks: [WatchSubtask] = []) {
         self.id = id
         self.title = title
         self.isHighPriority = isHighPriority
@@ -204,6 +220,8 @@ struct WatchTask: Codable, Identifiable {
         self.subTasksCompleted = subTasksCompleted
         self.isFavorite = isFavorite
         self.isOverdue = isOverdue
+        self.isCompleted = isCompleted
+        self.subtasks = subtasks
     }
 
     init(from decoder: Decoder) throws {
@@ -221,6 +239,8 @@ struct WatchTask: Codable, Identifiable {
         subTasksCompleted = (try? c.decode(Int.self, forKey: .subTasksCompleted)) ?? 0
         isFavorite       = (try? c.decode(Bool.self, forKey: .isFavorite)) ?? false
         isOverdue        = (try? c.decode(Bool.self, forKey: .isOverdue)) ?? false
+        isCompleted      = (try? c.decode(Bool.self, forKey: .isCompleted)) ?? false
+        subtasks         = (try? c.decode([WatchSubtask].self, forKey: .subtasks)) ?? []
     }
 
     var priorityColor: Color {

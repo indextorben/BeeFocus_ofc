@@ -7,6 +7,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     @Published var snapshot: WatchSnapshot = .placeholder
     @Published var hasRealSnapshot: Bool = false
+    // Erhöht sich bei jedem angewandten Snapshot – Views verwerfen damit ihren
+    // optimistischen Zwischenstand, sobald der bestätigte Stand vom iPhone da ist.
+    @Published var snapshotVersion: Int = 0
 
     // Watch-lokaler Speicher (nicht App Group – die ist gerätegebunden)
     private let localKey = "watchLocalSnapshot"
@@ -41,6 +44,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         DispatchQueue.main.async {
             self.snapshot = snap
             self.hasRealSnapshot = true
+            self.snapshotVersion &+= 1
         }
     }
 
@@ -76,9 +80,25 @@ final class WatchSessionManager: NSObject, ObservableObject {
     // MARK: - Watch → iPhone
 
     func completeTask(id: UUID) {
-        let msg: [String: Any] = ["completeTask": id.uuidString]
+        setTaskCompleted(id: id, completed: true)
+    }
+
+    // Erledigt-Status gezielt setzen (ermöglicht Wiederherstellen nach versehentlichem Abhaken)
+    func setTaskCompleted(id: UUID, completed: Bool) {
+        let msg: [String: Any] = ["setTaskCompleted": id.uuidString, "completed": completed]
+        send(msg)
+    }
+
+    func toggleSubtask(taskId: UUID, subtaskId: UUID) {
+        let msg: [String: Any] = ["toggleSubtask": taskId.uuidString, "subtaskId": subtaskId.uuidString]
+        send(msg)
+    }
+
+    private func send(_ msg: [String: Any]) {
         if WCSession.default.isReachable {
-            WCSession.default.sendMessage(msg, replyHandler: nil)
+            WCSession.default.sendMessage(msg, replyHandler: nil) { _ in
+                WCSession.default.transferUserInfo(msg)
+            }
         } else {
             WCSession.default.transferUserInfo(msg)
         }

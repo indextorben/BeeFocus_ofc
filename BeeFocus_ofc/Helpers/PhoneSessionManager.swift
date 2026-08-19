@@ -86,10 +86,24 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     // MARK: - Watch → iOS (live messages)
 
     private func completeWatchTask(id: UUID) {
+        setWatchTask(id: id, completed: true)
+    }
+
+    // Setzt den Erledigt-Status gezielt (ermöglicht Undo von der Watch).
+    private func setWatchTask(id: UUID, completed: Bool) {
         guard let store = todoStore,
               let todo = store.todos.first(where: { $0.id == id }),
-              !todo.isCompleted else { return }
+              todo.isCompleted != completed else { return }
         store.toggleTodo(todo)
+        store.writeWidgetSnapshot()
+    }
+
+    private func toggleWatchSubtask(taskId: UUID, subtaskId: UUID) {
+        guard let store = todoStore,
+              var todo = store.todos.first(where: { $0.id == taskId }),
+              let idx = todo.subTasks.firstIndex(where: { $0.id == subtaskId }) else { return }
+        todo.subTasks[idx].isCompleted.toggle()
+        store.updateTodo(todo)
         store.writeWidgetSnapshot()
     }
 
@@ -108,17 +122,42 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
     // MARK: - WCSessionDelegate
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        if message["requestSnapshot"] != nil {
-            print("[Phone] didReceiveMessage – requestSnapshot (kein replyHandler)")
+    // Gemeinsame Verarbeitung von Aktionen (sendMessage und transferUserInfo).
+    // Gibt true zurück, wenn die Nachricht eine Aktion war.
+    @discardableResult
+    private func handleAction(_ payload: [String: Any]) -> Bool {
+        if payload["requestSnapshot"] != nil {
             DispatchQueue.main.async { self.todoStore?.writeWidgetSnapshot() }
-        } else if let idString = message["completeTask"] as? String, let id = UUID(uuidString: idString) {
-            DispatchQueue.main.async { self.completeWatchTask(id: id) }
-        } else if let ml = message["addWater"] as? Int {
-            Task { @MainActor in self.handleAddWater(ml: ml) }
-        } else if let idString = message["toggleHabit"] as? String, let id = UUID(uuidString: idString) {
-            Task { @MainActor in self.handleToggleHabit(id: id) }
+            return true
         }
+        if let idString = payload["setTaskCompleted"] as? String, let id = UUID(uuidString: idString) {
+            let completed = payload["completed"] as? Bool ?? true
+            DispatchQueue.main.async { self.setWatchTask(id: id, completed: completed) }
+            return true
+        }
+        if let idString = payload["completeTask"] as? String, let id = UUID(uuidString: idString) {
+            DispatchQueue.main.async { self.completeWatchTask(id: id) }
+            return true
+        }
+        if let taskString = payload["toggleSubtask"] as? String, let taskId = UUID(uuidString: taskString),
+           let subString = payload["subtaskId"] as? String, let subId = UUID(uuidString: subString) {
+            DispatchQueue.main.async { self.toggleWatchSubtask(taskId: taskId, subtaskId: subId) }
+            return true
+        }
+        if let ml = payload["addWater"] as? Int {
+            Task { @MainActor in self.handleAddWater(ml: ml) }
+            return true
+        }
+        if let idString = payload["toggleHabit"] as? String, let id = UUID(uuidString: idString) {
+            Task { @MainActor in self.handleToggleHabit(id: id) }
+            return true
+        }
+        return false
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        print("[Phone] didReceiveMessage – keys=\(message.keys.joined(separator: ","))")
+        handleAction(message)
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any],
@@ -139,8 +178,8 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
     // Aktionen + Snapshot-Anfragen via transferUserInfo (auch wenn iPhone nicht erreichbar war)
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        print("[Phone] didReceiveUserInfo – keys=\(userInfo.keys.joined(separator: ","))")
         if userInfo["requestSnapshot"] != nil {
-            print("[Phone] didReceiveUserInfo – requestSnapshot (via transferUserInfo)")
             DispatchQueue.main.async {
                 self.todoStore?.writeWidgetSnapshot()
                 // Snapshot auch direkt via transferUserInfo zurückschicken
@@ -148,13 +187,9 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
                     self.sendSnapshotViaTransferUserInfo(data)
                 }
             }
-        } else if let idString = userInfo["completeTask"] as? String, let id = UUID(uuidString: idString) {
-            DispatchQueue.main.async { self.completeWatchTask(id: id) }
-        } else if let ml = userInfo["addWater"] as? Int {
-            Task { @MainActor in self.handleAddWater(ml: ml) }
-        } else if let idString = userInfo["toggleHabit"] as? String, let id = UUID(uuidString: idString) {
-            Task { @MainActor in self.handleToggleHabit(id: id) }
+            return
         }
+        handleAction(userInfo)
     }
 
     func session(_ session: WCSession,
