@@ -9,6 +9,12 @@ final class SpeechManager: NSObject, ObservableObject {
     @Published var isRecording = false
     @Published var liveText = ""
     @Published var sttAuthorized = false
+    /// Aktueller Eingangspegel 0...1, für die Waveform-Visualisierung.
+    @Published var audioLevel: Double = 0
+
+    /// Bei langem Diktat (z. B. Brain Dump) auf `false` setzen, damit eine
+    /// Sprechpause die Aufnahme nicht sofort beendet.
+    var autoStopOnFinal = true
 
     // MARK: - TTS
     @Published var isSpeaking = false
@@ -68,7 +74,9 @@ final class SpeechManager: NSObject, ObservableObject {
         recognitionTask = speechRecognizer?.recognitionTask(with: req) { [weak self] result, error in
             Task { @MainActor [weak self] in
                 if let result { self?.liveText = result.bestTranscription.formattedString }
-                if error != nil || result?.isFinal == true { self?.stopRecording() }
+                guard let self else { return }
+                if error != nil { self.stopRecording(); return }
+                if result?.isFinal == true, self.autoStopOnFinal { self.stopRecording() }
             }
         }
 
@@ -76,6 +84,8 @@ final class SpeechManager: NSObject, ObservableObject {
         inputNode.installTap(onBus: 0, bufferSize: 1024,
                              format: inputNode.outputFormat(forBus: 0)) { [weak self] buf, _ in
             self?.recognitionRequest?.append(buf)
+            let level = SpeechManager.peakLevel(of: buf)
+            Task { @MainActor [weak self] in self?.audioLevel = level }
         }
         audioEngine.prepare()
         do { try audioEngine.start() } catch { return }
@@ -91,6 +101,7 @@ final class SpeechManager: NSObject, ObservableObject {
         recognitionTask?.cancel()
         recognitionTask = nil
         isRecording = false
+        audioLevel = 0
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -172,6 +183,18 @@ final class SpeechManager: NSObject, ObservableObject {
         try? AVAudioSession.sharedInstance()
             .setCategory(.playback, mode: .default, options: .duckOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
+    }
+
+    /// Normalisierter Spitzenpegel eines Audio-Puffers, für die Waveform.
+    nonisolated static func peakLevel(of buffer: AVAudioPCMBuffer) -> Double {
+        guard let channel = buffer.floatChannelData?[0] else { return 0 }
+        let count = Int(buffer.frameLength)
+        guard count > 0 else { return 0 }
+        var sum: Float = 0
+        for i in 0..<count { sum += channel[i] * channel[i] }
+        let rms = (sum / Float(count)).squareRoot()
+        // RMS ist typischerweise sehr klein; auf einen brauchbaren Bereich skalieren.
+        return min(1, Double(rms) * 12)
     }
 
     private func bestMaleVoice(languageCode: String) -> AVSpeechSynthesisVoice? {

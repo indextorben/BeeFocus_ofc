@@ -26,6 +26,10 @@ extension UIColor {
 }
 
 class TodoStore: ObservableObject {
+    /// Gemeinsame Instanz. Wird von der App, den App Intents und den
+    /// Intelligence-Features genutzt, damit alle auf denselben Daten arbeiten.
+    static let shared = TodoStore()
+
     @Published var todos: [TodoItem] = []
     @Published var categories: [Category] = []
     @Published var dailyStats: [Date: Int] = [:] // Erledigte Aufgaben pro Tag
@@ -526,6 +530,29 @@ class TodoStore: ObservableObject {
         }
     }
     
+    /// Setzt oder entfernt das Genmoji-Symbol einer Kategorie.
+    /// Die Todos halten eine Kopie ihrer Kategorie – die wird mitgezogen,
+    /// damit das Symbol überall sofort sichtbar ist.
+    func setCategoryIcon(_ category: Category, iconData: Data?, description: String?) {
+        guard let index = categories.firstIndex(where: { $0.id == category.id }) else { return }
+        categories[index].iconData = iconData
+        categories[index].iconDescription = description
+        saveCategories()
+        CloudKitManager.shared.saveCategory(categories[index])
+
+        let updated = categories[index]
+        var todosChanged = false
+        todos.indices.forEach { i in
+            if todos[i].categoryID == updated.id || todos[i].category?.id == updated.id {
+                todos[i].category = updated
+                todos[i].categoryID = updated.id
+                todosChanged = true
+            }
+        }
+        if todosChanged { saveTodos() }
+        objectWillChange.send()
+    }
+
     func moveCategory(from source: IndexSet, to destination: Int) {
         categories.move(fromOffsets: source, toOffset: destination)
         saveCategories()

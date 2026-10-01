@@ -14,9 +14,37 @@ struct Category: Identifiable, Codable, Hashable {
     var id = UUID()
     var name: String
     var colorHex: String
-    
+
+    /// Genmoji als Kategorie-Symbol. Enthält die Bilddaten eines
+    /// `NSAdaptiveImageGlyph` (HEIC). `nil`, wenn kein Symbol gesetzt ist.
+    var iconData: Data? = nil
+
+    /// Kurzbeschreibung des Genmoji, z. B. für VoiceOver.
+    var iconDescription: String? = nil
+
     var color: Color {
         Color(hex: colorHex)
+    }
+
+    var hasIcon: Bool { iconData != nil }
+
+    /// Das Genmoji als Bild zum Anzeigen.
+    var iconImage: UIImage? {
+        guard let iconData else { return nil }
+        return UIImage(data: iconData)
+    }
+
+    // Gleichheit bewusst ohne die Symboldaten: Todos halten eine Kopie ihrer
+    // Kategorie, und Vergleiche wie `todo.category == category` müssen weiterhin
+    // greifen, auch wenn nur das Symbol geändert wurde.
+    static func == (lhs: Category, rhs: Category) -> Bool {
+        lhs.id == rhs.id && lhs.name == rhs.name && lhs.colorHex == rhs.colorHex
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(colorHex)
     }
 }
 
