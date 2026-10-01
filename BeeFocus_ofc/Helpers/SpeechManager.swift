@@ -58,6 +58,13 @@ final class SpeechManager: NSObject, ObservableObject {
         guard let req = recognitionRequest else { return }
         req.shouldReportPartialResults = true
 
+        // Diktiertes Material ist hochsensibel (Journal, Brain Dump, Stimmung).
+        // Wenn das Gerät Offline-Erkennung kann, bleibt das Audio auf dem Gerät
+        // statt an Apples Server zu gehen.
+        if speechRecognizer?.supportsOnDeviceRecognition == true {
+            req.requiresOnDeviceRecognition = true
+        }
+
         recognitionTask = speechRecognizer?.recognitionTask(with: req) { [weak self] result, error in
             Task { @MainActor [weak self] in
                 if let result { self?.liveText = result.bestTranscription.formattedString }

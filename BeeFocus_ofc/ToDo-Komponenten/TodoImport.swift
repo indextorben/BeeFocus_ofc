@@ -11,11 +11,16 @@ struct TodoImport {
     @discardableResult
     static func importFrom(url: URL, todoStore: TodoStore, completion: ((Result<Int, Error>) -> Void)? = nil) -> Void {
         do {
-            let data = try Data(contentsOf: url)
+            let accessGranted = url.startAccessingSecurityScopedResource()
+            defer { if accessGranted { url.stopAccessingSecurityScopedResource() } }
+
+            // Größe prüfen, bevor die Datei im Speicher landet.
+            let data = try TodoImportLimits.readData(at: url)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
 
             let importedTodos = try decoder.decode([TodoItem].self, from: data)
+                .prefix(TodoImportLimits.maxTodos)
 
             DispatchQueue.main.async {
                 let skipOverdue = UserDefaults.standard.bool(forKey: "skipOverdueOnImport")
@@ -23,23 +28,9 @@ struct TodoImport {
                 var count = 0
                 for todo in importedTodos {
                     if skipOverdue, let due = todo.dueDate, due < now { continue }
-                    let newTodo = TodoItem(
-                        title: todo.title,
-                        description: todo.description,
-                        isCompleted: false,
-                        dueDate: todo.dueDate,
-                        category: todo.category,
-                        priority: todo.priority,
-                        subTasks: todo.subTasks,
-                        createdAt: todo.createdAt,
-                        completedAt: todo.completedAt,
-                        lastResetDate: todo.lastResetDate,
-                        calendarEventIdentifier: todo.calendarEventIdentifier,
-                        focusTimeInMinutes: todo.focusTimeInMinutes,
-                        imageDataArray: todo.imageDataArray,
-                        calendarEnabled: todo.calendarEnabled,
-                        isFavorite: todo.isFavorite
-                    )
+                    // Fremde Felder bereinigen – insbesondere wird keine
+                    // Kalender-Event-ID aus der Datei übernommen.
+                    let newTodo = TodoImportLimits.sanitized(todo)
                     todoStore.todos.append(newTodo)
                     count += 1
                 }

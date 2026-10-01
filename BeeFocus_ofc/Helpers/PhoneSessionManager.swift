@@ -109,6 +109,10 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
 
     @MainActor
     private func handleAddWater(ml: Int) {
+        // Werte aus dem Watch-Kanal werden nicht ungeprüft übernommen:
+        // ein unplausibler Wert würde die Tagesstatistik dauerhaft verfälschen.
+        let ml = min(max(ml, 0), 5_000)
+        guard ml > 0 else { return }
         WasserStore.shared.add(ml: ml)
         todoStore?.writeWidgetSnapshot()
     }

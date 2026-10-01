@@ -28,7 +28,7 @@ final class MacSubscriptionManager: ObservableObject {
     private let kvStore = NSUbiquitousKeyValueStore.default
 
     init() {
-        isPro = kvStore.bool(forKey: Self.kvIsProKey)
+        isPro = Self.cachedIsPro(in: kvStore)
         if let ts = kvStore.object(forKey: Self.kvExpiryKey) as? Double {
             expirationDate = Date(timeIntervalSince1970: ts)
         }
@@ -61,6 +61,25 @@ final class MacSubscriptionManager: ObservableObject {
         listenerTask?.cancel()
         foregroundTask?.cancel()
         iCloudTask?.cancel()
+    }
+
+    // MARK: - Entitlement-Cache
+
+    /// Liest den in iCloud gespiegelten Pro-Status.
+    ///
+    /// Der Cache ist **nicht** autoritativ: `NSUbiquitousKeyValueStore` liegt im
+    /// Schreibbereich des Clients und kann manipuliert werden. Er dient nur dazu,
+    /// die UI bis zur StoreKit-Prüfung in `refreshEntitlements()` nicht flackern zu
+    /// lassen. Deshalb wird ein gecachtes `true` verworfen, sobald das gespeicherte
+    /// Ablaufdatum in der Vergangenheit liegt – sonst bliebe ein abgelaufenes Abo
+    /// bis zum nächsten erfolgreichen Refresh als Pro aktiv.
+    nonisolated static func cachedIsPro(in store: NSUbiquitousKeyValueStore = .default) -> Bool {
+        guard store.bool(forKey: kvIsProKey) else { return false }
+        if let ts = store.object(forKey: kvExpiryKey) as? Double {
+            return Date(timeIntervalSince1970: ts) > Date()
+        }
+        // Kein Ablaufdatum = Lifetime-Kauf.
+        return true
     }
 
     // MARK: - Load Products

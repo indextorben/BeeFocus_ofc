@@ -23,6 +23,10 @@ struct BeeFocus_ofcApp: App {
     @State private var nfcToastText = ""
     @State private var nfcToastDismissTask: Task<Void, Never>? = nil
 
+    /// Deep Links dürfen den Fokus-Schutz nicht ohne Zutun des Nutzers abschalten:
+    /// jede beliebige Website oder App kann `beefocus://stop` auslösen.
+    @State private var showUnblockConfirm = false
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -44,6 +48,18 @@ struct BeeFocus_ofcApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .confirmationDialog(
+                    String(localized: "deeplink_unblock_confirm_title"),
+                    isPresented: $showUnblockConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button(String(localized: "deeplink_unblock_confirm_action"), role: .destructive) {
+                        disableFocusModeConfirmed()
+                    }
+                    Button(String(localized: "cancel"), role: .cancel) {}
+                } message: {
+                    Text(String(localized: "deeplink_unblock_confirm_msg"))
+                }
                 .overlay(alignment: .top) {
                     if nfcToastVisible {
                         NFCToastBanner(icon: nfcToastIcon, text: nfcToastText)
@@ -62,15 +78,16 @@ struct BeeFocus_ofcApp: App {
         if #available(iOS 16, *) {
             switch action {
             case "focus":
+                // Schutz einschalten ist unkritisch und bleibt ohne Rückfrage.
                 FokusModeManager.shared.enableFocusMode()
                 showNFCToast(icon: "shield.fill", text: String(localized: "nfc_toast_focus_on"))
             case "stop":
-                FokusModeManager.shared.disableFocusMode()
-                showNFCToast(icon: "shield.slash.fill", text: String(localized: "nfc_toast_focus_off"))
+                // Schutz ausschalten erfordert eine bewusste Bestätigung in der App,
+                // sonst könnte eine blockierte Website sich selbst freischalten.
+                requestFocusModeDisable()
             case "toggle":
                 if FokusModeManager.shared.isFocusModeActive {
-                    FokusModeManager.shared.disableFocusMode()
-                    showNFCToast(icon: "shield.slash.fill", text: String(localized: "nfc_toast_focus_off"))
+                    requestFocusModeDisable()
                 } else {
                     FokusModeManager.shared.enableFocusMode()
                     showNFCToast(icon: "shield.fill", text: String(localized: "nfc_toast_focus_on"))
@@ -79,6 +96,20 @@ struct BeeFocus_ofcApp: App {
                 break
             }
         }
+    }
+
+    /// Fragt nach, bevor ein Deep Link die App- und Website-Blockierung aufhebt.
+    @MainActor
+    private func requestFocusModeDisable() {
+        guard FokusModeManager.shared.isFocusModeActive else { return }
+        showUnblockConfirm = true
+    }
+
+    @MainActor
+    private func disableFocusModeConfirmed() {
+        guard #available(iOS 16, *) else { return }
+        FokusModeManager.shared.disableFocusMode()
+        showNFCToast(icon: "shield.slash.fill", text: String(localized: "nfc_toast_focus_off"))
     }
 
     @MainActor

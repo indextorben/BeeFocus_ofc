@@ -7,36 +7,20 @@ struct TodoImporter {
         defer { if accessGranted { url.stopAccessingSecurityScopedResource() } }
 
         do {
-            let data = try Data(contentsOf: url)
-            
+            // Größe prüfen, bevor die Datei im Speicher landet.
+            let data = try TodoImportLimits.readData(at: url)
+
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            
-            let importedTodos = try decoder.decode([TodoItem].self, from: data)
+
+            let decoded = try decoder.decode([TodoItem].self, from: data)
+            let importedTodos = decoded.prefix(TodoImportLimits.maxTodos)
             print("✅ \(LocalizationManager.shared.localizedString(forKey: "import_success_count")) \(importedTodos.count)")
 
             DispatchQueue.main.async {
-                let todosWithID = importedTodos.map { todo in
-                    TodoItem(
-                        title: todo.title,
-                        description: todo.description,
-                        isCompleted: false,
-                        dueDate: todo.dueDate,
-                        category: todo.category,
-                        priority: todo.priority,
-                        subTasks: todo.subTasks,
-                        createdAt: todo.createdAt,
-                        completedAt: todo.completedAt,
-                        lastResetDate: todo.lastResetDate,
-                        calendarEventIdentifier: todo.calendarEventIdentifier,
-                        focusTimeInMinutes: todo.focusTimeInMinutes,
-                        imageDataArray: todo.imageDataArray,
-                        calendarEnabled: todo.calendarEnabled,
-                        isFavorite: todo.isFavorite
-                    )
-                }
-
-                print("📦 \(LocalizationManager.shared.localizedString(forKey: "import_new_todos")): \(todosWithID.map(\.title))")
+                // Fremde Felder werden hier bereinigt – insbesondere wird keine
+                // Kalender-Event-ID aus der Datei übernommen.
+                let todosWithID = importedTodos.map(TodoImportLimits.sanitized)
                 store.todos.append(contentsOf: todosWithID)
                 store.saveTodos()
             }

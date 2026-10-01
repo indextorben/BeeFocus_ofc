@@ -253,7 +253,8 @@ extension TodoStore {
             .map { e in WatchCountdown(id: e.id, name: e.name, symbol: e.symbol,
                                        farbName: e.farbName, tageVerbleibend: e.tageVerbleibend) }
 
-        let isPro = NSUbiquitousKeyValueStore.default.bool(forKey: "beefocus_isPro")
+        // Abgelaufene Abos dürfen im Widget/Watch-Snapshot nicht als Pro gelten.
+        let isPro = SubscriptionManager.cachedIsPro()
 
         // MARK: - Watch "Heute" & "Diese Woche" (Calendar-basiert)
         // Heute: nicht erledigte Aufgaben, deren Fälligkeitsdatum auf den heutigen

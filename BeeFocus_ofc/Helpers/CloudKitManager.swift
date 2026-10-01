@@ -138,7 +138,7 @@ final class CloudKitManager: ObservableObject {
         // Prevent saving known test todos to CloudKit
         if isTestTitle(todo.title) {
             DispatchQueue.main.async {
-                print("⛔️ Save skipped for test todo title: \(todo.title)")
+                SyncLog.event("save skipped (test todo)")
             }
             return
         }
@@ -705,7 +705,7 @@ final class CloudKitManager: ObservableObject {
                 if let error = error {
                     print("❌ Fehler beim Speichern der Kategorie: \(error.localizedDescription)")
                 } else {
-                    print("✅ Kategorie gespeichert: \(category.name)")
+                    SyncLog.event("category saved id=\(category.id.uuidString)")
                 }
             }
         }
@@ -738,7 +738,7 @@ final class CloudKitManager: ObservableObject {
                     let ids = nameIDs
                     if ids.isEmpty {
                         DispatchQueue.main.async {
-                            print("ℹ️ CloudKit: Keine Kategorie-Records zum Löschen gefunden (id/name) für \(category.name)")
+                            SyncLog.event("no category records to delete id=\(category.id.uuidString)")
                         }
                         return
                     }
@@ -747,7 +747,7 @@ final class CloudKitManager: ObservableObject {
                         DispatchQueue.main.async {
                             switch res {
                             case .success:
-                                print("🗑️ Kategorie gelöscht (Fallback Name): \(category.name) – Records: \(ids.count)")
+                                SyncLog.event("category deleted (name fallback) id=\(category.id.uuidString) records=\(ids.count)")
                             case .failure(let error):
                                 print("❌ Fehler beim Löschen der Kategorie (Fallback Name): \(error.localizedDescription)")
                             }
@@ -764,7 +764,7 @@ final class CloudKitManager: ObservableObject {
                 DispatchQueue.main.async {
                     switch result {
                     case .success:
-                        print("🗑️ Kategorie gelöscht: \(category.name) – Records: \(recordIDsToDelete.count)")
+                        SyncLog.event("category deleted id=\(category.id.uuidString) records=\(recordIDsToDelete.count)")
                     case .failure(let error):
                         print("❌ Fehler beim Löschen der Kategorie: \(error.localizedDescription)")
                     }

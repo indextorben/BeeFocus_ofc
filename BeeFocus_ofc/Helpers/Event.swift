@@ -69,7 +69,7 @@ class EventManager {
         for event in events {
             do {
                 try eventStore.remove(event, span: .thisEvent)
-                print("🗑️ Event gelöscht: \(event.title ?? "Unbekannt")")
+                print("🗑️ Kalender-Event gelöscht")
             } catch {
                 print("❌ Fehler beim Löschen des Events: \(error)")
             }
