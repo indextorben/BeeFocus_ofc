@@ -685,7 +685,18 @@ final class CloudKitManager: ObservableObject {
                         let colorHex = rec["colorHex"] as? String,
                         let id = UUID(uuidString: idString)
                     else { return nil }
-                    return Category(id: id, name: name, colorHex: colorHex)
+                    // Genmoji kommt als CKAsset, damit auch größere Symbole sicher syncen.
+                    var iconData: Data? = nil
+                    if let asset = rec["iconAsset"] as? CKAsset, let url = asset.fileURL {
+                        iconData = try? Data(contentsOf: url)
+                    }
+                    return Category(
+                        id: id,
+                        name: name,
+                        colorHex: colorHex,
+                        iconData: iconData,
+                        iconDescription: rec["iconDescription"] as? String
+                    )
                 }
                 completion(cats)
             }
@@ -695,12 +706,48 @@ final class CloudKitManager: ObservableObject {
 
     func saveCategory(_ category: Category) {
         let recordID = CKRecord.ID(recordName: category.id.uuidString)
-        let record = CKRecord(recordType: "Category", recordID: recordID)
+        // Erst den vorhandenen Record holen, dann aktualisieren. So bleiben
+        // Felder erhalten, die diese App-Version nicht kennt – und ein Symbol
+        // geht nicht verloren, wenn die lokale Kopie es gerade nicht hat.
+        database.fetch(withRecordID: recordID) { [weak self] existing, _ in
+            let record = existing ?? CKRecord(recordType: "Category", recordID: recordID)
+            self?.writeCategoryFields(category, into: record)
+        }
+    }
+
+    private func writeCategoryFields(_ category: Category, into record: CKRecord) {
         record["id"] = category.id.uuidString as CKRecordValue
         record["name"] = category.name as CKRecordValue
         record["colorHex"] = category.colorHex as CKRecordValue
         record["updatedAt"] = Date() as CKRecordValue
+        if let description = category.iconDescription {
+            record["iconDescription"] = description as CKRecordValue
+        } else {
+            record["iconDescription"] = nil
+        }
+
+        // Genmoji als temporäre Datei anhängen; CloudKit lädt sie selbst hoch.
+        var temporaryIconURL: URL?
+        if let iconData = category.iconData {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("cat-icon-\(category.id.uuidString).heic")
+            do {
+                try iconData.write(to: url, options: .atomic)
+                record["iconAsset"] = CKAsset(fileURL: url)
+                temporaryIconURL = url
+            } catch {
+                print("❌ Kategorie-Symbol konnte nicht vorbereitet werden: \(error.localizedDescription)")
+            }
+        } else {
+            // Symbol wurde entfernt: Asset auch in der Cloud löschen.
+            record["iconAsset"] = nil
+        }
+
         database.save(record) { _, error in
+            // Die temporäre Datei erst nach dem Upload entfernen.
+            if let temporaryIconURL {
+                try? FileManager.default.removeItem(at: temporaryIconURL)
+            }
             DispatchQueue.main.async {
                 if let error = error {
                     print("❌ Fehler beim Speichern der Kategorie: \(error.localizedDescription)")

@@ -184,6 +184,11 @@ struct EinstellungenView: View {
         .ignoresSafeArea()
     }
 
+    // Apple-Intelligence-Einstellungen
+    @AppStorage("aiSpeakReplies") private var aiSpeakReplies: Bool = true
+    @AppStorage("aiAutoClassify") private var aiAutoClassify: Bool = true
+    @AppStorage("aiSemanticSearch") private var aiSemanticSearch: Bool = true
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
@@ -197,6 +202,11 @@ struct EinstellungenView: View {
                         proCard
                             .padding(.bottom, 4)
 
+                        // Immer sichtbar: auf älteren Systemen erklärt die Karte,
+                        // was geht (Schnellerfassung) und was iOS 26 braucht.
+                        sectionGroup(icon: "sparkles", label: localizer.localizedString(forKey: "ai_settings_title"), color: .purple) {
+                            appleIntelligenceCard
+                        }
                         sectionGroup(icon: "paintbrush.fill", label: localizer.localizedString(forKey: "Displaymodus"), color: .indigo) {
                             darstellungCard
                         }
@@ -431,6 +441,97 @@ struct EinstellungenView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// Einstellungen der Apple-Intelligence-Funktionen.
+    private var appleIntelligenceCard: some View {
+        glassCard {
+            // Zustandszeile: erklärt, falls Apple Intelligence nicht bereit ist.
+            HStack(spacing: 12) {
+                iconBadge(icon: aiStateSymbol, color: aiStateColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(aiStateHeadline)
+                        .font(.system(size: 16))
+                    Text(aiStateMessage)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            cardDivider()
+
+            // Schnellerfassung braucht kein Apple Intelligence und ist darum
+            // auf jedem Gerät verfügbar.
+            HStack(spacing: 12) {
+                iconBadge(icon: "wand.and.stars", color: .teal)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(localizer.localizedString(forKey: "quick_capture_menu_title"))
+                        .font(.system(size: 16))
+                    Text(localizer.localizedString(forKey: "ai_settings_quick_capture_body"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            if AIFeature.isSupportedOS {
+                cardDivider()
+
+                iconToggleRow(
+                    icon: "speaker.wave.2.fill", color: .purple,
+                    label: localizer.localizedString(forKey: "ai_settings_speak"),
+                    isOn: $aiSpeakReplies
+                )
+                cardDivider()
+                iconToggleRow(
+                    icon: "wand.and.sparkles", color: .pink,
+                    label: localizer.localizedString(forKey: "ai_settings_autoclassify"),
+                    isOn: $aiAutoClassify
+                )
+                cardDivider()
+                iconToggleRow(
+                    icon: "magnifyingglass", color: .blue,
+                    label: localizer.localizedString(forKey: "ai_settings_semantic"),
+                    isOn: $aiSemanticSearch
+                )
+            }
+
+            cardDivider()
+
+            Text(localizer.localizedString(forKey: "ai_settings_privacy"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+        }
+    }
+
+    // Zustand von Apple Intelligence, ohne die gegateten Typen direkt anzufassen.
+    private var aiStateHeadline: String {
+        if #available(iOS 26.0, *) { return AIAvailability.shared.headline }
+        return localizer.localizedString(forKey: "ai_state_os_title")
+    }
+
+    private var aiStateMessage: String {
+        if #available(iOS 26.0, *) { return AIAvailability.shared.message }
+        return localizer.localizedString(forKey: "ai_state_os_body")
+    }
+
+    private var aiStateSymbol: String {
+        if #available(iOS 26.0, *) { return AIAvailability.shared.symbol }
+        return "arrow.up.circle"
+    }
+
+    private var aiStateColor: Color {
+        AIFeature.isReady ? .purple : .gray
     }
 
     private var darstellungCard: some View {

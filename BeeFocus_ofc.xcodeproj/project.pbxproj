@@ -16,6 +16,8 @@
 		4CAAF9482FC383530066FDCD /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CAAF9472FC383530066FDCD /* ManagedSettingsUI.framework */; };
 		4CAAF9502FC383530066FDCD /* BeeFocusShieldExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4CAAF9452FC383530066FDCD /* BeeFocusShieldExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		86B155A9361B45D786613AC8 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8D885247F580478E8C853ED3 /* FamilyControls.framework */; };
+		AA01000000000000000002 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA01000000000000000001 /* AppIntents.framework */; };
+		AA01000000000000000004 /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA01000000000000000003 /* FoundationModels.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		DF03D380025D4A078E8C6B13 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CB7E88B5D4B788699D26E /* ManagedSettings.framework */; };
 /* End PBXBuildFile section */
 
@@ -111,6 +113,8 @@
 		4CCA1DCD2DFF618A007F640D /* BeeFocus_ofc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeeFocus_ofc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F2CB7E88B5D4B788699D26E /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		8D885247F580478E8C853ED3 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		AA01000000000000000001 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
+		AA01000000000000000003 /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
 		E9A086BF6BFB4437824025FA /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -305,6 +309,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA01000000000000000002 /* AppIntents.framework in Frameworks */,
+				AA01000000000000000004 /* FoundationModels.framework in Frameworks */,
 				4C8B69602E1C82D800C30F43 /* Lottie in Frameworks */,
 				86B155A9361B45D786613AC8 /* FamilyControls.framework in Frameworks */,
 				DF03D380025D4A078E8C6B13 /* ManagedSettings.framework in Frameworks */,
@@ -332,6 +338,8 @@
 			children = (
 				22C173DDB1774ABB88EF4150 /* ShieldConfigurationExtension.swift */,
 				E9A086BF6BFB4437824025FA /* ManagedSettingsUI.framework */,
+				AA01000000000000000001 /* AppIntents.framework */,
+				AA01000000000000000003 /* FoundationModels.framework */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -1579,7 +1587,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = ND9SX9FU46;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1603,7 +1611,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.1;
+				MARKETING_VERSION = 5.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1626,7 +1634,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = ND9SX9FU46;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1650,7 +1658,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.1;
+				MARKETING_VERSION = 5.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.TorbenLehneke.BeeFocus-ofc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

@@ -11,11 +11,11 @@ struct JournalEntry: Identifiable, Codable {
     var focusMinutes: Int = 0
 
     static let moods: [(emoji: String, label: String, color: Color)] = [
-        ("😩", "Sehr schlecht", Color(red: 0.9, green: 0.3, blue: 0.3)),
-        ("😕", "Schlecht",      Color(red: 0.9, green: 0.6, blue: 0.2)),
-        ("😐", "Neutral",       Color(red: 0.7, green: 0.7, blue: 0.3)),
-        ("🙂", "Gut",           Color(red: 0.3, green: 0.8, blue: 0.4)),
-        ("😁", "Super",         Color(red: 0.2, green: 0.7, blue: 1.0))
+        ("😩", "journal_mood_very_bad", Color(red: 0.9, green: 0.3, blue: 0.3)),
+        ("😕", "journal_mood_bad",      Color(red: 0.9, green: 0.6, blue: 0.2)),
+        ("😐", "journal_mood_neutral",  Color(red: 0.7, green: 0.7, blue: 0.3)),
+        ("🙂", "journal_mood_good",     Color(red: 0.3, green: 0.8, blue: 0.4)),
+        ("😁", "journal_mood_great",    Color(red: 0.2, green: 0.7, blue: 1.0))
     ]
 
     var moodEmoji: String { JournalEntry.moods[max(0, min(4, moodScore - 1))].emoji }

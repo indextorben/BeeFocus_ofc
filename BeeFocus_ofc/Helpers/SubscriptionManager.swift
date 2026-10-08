@@ -46,11 +46,10 @@ final class SubscriptionManager: ObservableObject {
             }
         }
 
-        // Vordergrund → StoreKit-Verifikation
+        // Vordergrund → StoreKit-Verifikation (ohne AppStore.sync, das Passwort-Prompts auslöst)
         foregroundTask = Task {
             for await _ in NotificationCenter.default
                 .notifications(named: UIApplication.willEnterForegroundNotification) {
-                try? await AppStore.sync()
                 await self.refreshEntitlements()
             }
         }
@@ -58,11 +57,6 @@ final class SubscriptionManager: ObservableObject {
         Task {
             await loadProducts()
             await refreshEntitlements()
-            // Wenn keine Berechtigung gefunden: stilles Sync im Hintergrund (für neue Geräte)
-            if !isPro {
-                try? await AppStore.sync()
-                await refreshEntitlements()
-            }
         }
 
         kvStore.synchronize()

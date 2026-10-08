@@ -45,21 +45,21 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Master
-                    sectionCard(header: "General", icon: "bell.fill", color: accent) {
+                    sectionCard(header: localizer.localizedString(forKey: "notif_section_general"), icon: "bell.fill", color: accent) {
                         notifItem(
                             icon: "bell.badge.fill", color: accent,
-                            label: "Notifications active", id: "master",
+                            label: localizer.localizedString(forKey: "notif_label_master"), id: "master",
                             isOn: $notificationsEnabled,
                             onEnable: { requestPermission() },
-                            onDisable: { showBanner("Notifications disabled", color: .red) }
+                            onDisable: { showBanner(localizer.localizedString(forKey: "notif_disabled"), color: .red) }
                         ) { EmptyView() }
                     }
 
                     // Tagesstruktur
-                    sectionCard(header: "Daily Structure", icon: "sun.max.fill", color: .orange) {
+                    sectionCard(header: localizer.localizedString(forKey: "notif_section_daily"), icon: "sun.max.fill", color: .orange) {
                         notifItem(
                             icon: "sun.max.fill", color: .orange,
-                            label: "Morning Overview", id: "morning",
+                            label: localizer.localizedString(forKey: "notif_label_morning"), id: "morning",
                             isOn: $morningSummaryEnabled,
                             onEnable: { scheduleMorningSummary() },
                             onDisable: { NotificationManager.shared.cancelDailyMorningSummary() }
@@ -70,7 +70,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "exclamationmark.circle.fill", color: .red.opacity(0.9),
-                            label: "Overdue tasks", id: "overdue",
+                            label: localizer.localizedString(forKey: "notif_label_overdue"), id: "overdue",
                             isOn: $overdueAlertEnabled,
                             onEnable: { scheduleOverdueAlert() },
                             onDisable: { NotificationManager.shared.cancelOverdueAlert() }
@@ -81,7 +81,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "calendar.badge.clock", color: .indigo,
-                            label: "Weekly review (Sundays)", id: "weekly",
+                            label: localizer.localizedString(forKey: "notif_label_weekly"), id: "weekly",
                             isOn: $weeklyReviewEnabled,
                             onEnable: { scheduleWeeklyReview() },
                             onDisable: { NotificationManager.shared.cancelWeeklyReview() }
@@ -91,10 +91,10 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Wohlbefinden
-                    sectionCard(header: "Wellbeing", icon: "heart.fill", color: .pink) {
+                    sectionCard(header: localizer.localizedString(forKey: "notif_section_wellbeing"), icon: "heart.fill", color: .pink) {
                         notifItem(
                             icon: "drop.fill", color: .cyan,
-                            label: "Water reminder", id: "water",
+                            label: localizer.localizedString(forKey: "notif_label_water"), id: "water",
                             isOn: $waterReminderEnabled,
                             onEnable: { NotificationManager.shared.scheduleWaterReminders(intervalHours: waterReminderInterval) },
                             onDisable: { NotificationManager.shared.cancelWaterReminders() }
@@ -110,7 +110,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "face.smiling", color: .yellow,
-                            label: "Mood check", id: "mood",
+                            label: localizer.localizedString(forKey: "notif_label_mood"), id: "mood",
                             isOn: $moodReminderEnabled,
                             onEnable: { scheduleMoodReminder() },
                             onDisable: { NotificationManager.shared.cancelMoodReminder() }
@@ -121,7 +121,7 @@ struct BenachrichtigungenView: View {
                         divider()
                         notifItem(
                             icon: "moon.stars.fill", color: .purple,
-                            label: "Evening reflection", id: "evening",
+                            label: localizer.localizedString(forKey: "notif_label_evening"), id: "evening",
                             isOn: $eveningReminderEnabled,
                             onEnable: { scheduleEveningReminder() },
                             onDisable: { NotificationManager.shared.cancelEveningReminder() }
@@ -131,10 +131,10 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Gewohnheiten
-                    sectionCard(header: "Habits", icon: "calendar.badge.checkmark", color: .green) {
+                    sectionCard(header: localizer.localizedString(forKey: "notif_section_habits"), icon: "calendar.badge.checkmark", color: .green) {
                         notifItem(
                             icon: "calendar.badge.checkmark", color: .green,
-                            label: "Habit reminder", id: "habit",
+                            label: localizer.localizedString(forKey: "notif_label_habit"), id: "habit",
                             isOn: $habitReminderEnabled,
                             onEnable: { NotificationManager.shared.scheduleHabitReminders(intervalHours: habitReminderInterval) },
                             onDisable: { NotificationManager.shared.cancelHabitReminder() }
@@ -149,14 +149,14 @@ struct BenachrichtigungenView: View {
                     }
 
                     // Test
-                    sectionCard(header: "Test", icon: "paperplane.fill", color: .teal) {
+                    sectionCard(header: localizer.localizedString(forKey: "notif_section_test"), icon: "paperplane.fill", color: .teal) {
                         Button {
                             NotificationManager.shared.sendTestNotification()
-                            showBanner("Test notification sent")
+                            showBanner(localizer.localizedString(forKey: "notif_test_sent"))
                         } label: {
                             HStack(spacing: 12) {
                                 iconBadge(icon: "paperplane.fill", color: .teal)
-                                Text("Test now")
+                                Text(localizer.localizedString(forKey: "notif_test_button"))
                                     .font(.system(size: 16))
                                     .foregroundStyle(.primary)
                                 Spacer()
@@ -191,7 +191,7 @@ struct BenachrichtigungenView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.75), value: showBannerView)
             }
         }
-        .navigationTitle("Notifications")
+        .navigationTitle(localizer.localizedString(forKey: "Benachrichtigungen"))
         .navigationBarTitleDisplayMode(.large)
         .onAppear { checkAuthStatus() }
     }
@@ -254,7 +254,7 @@ struct BenachrichtigungenView: View {
             divider()
             HStack(spacing: 12) {
                 iconBadge(icon: "clock.fill", color: .teal)
-                Text("Time").font(.system(size: 16))
+                Text(localizer.localizedString(forKey: "notif_time_label")).font(.system(size: 16))
                 Spacer()
                 DatePicker("", selection: Binding<Date>(
                     get: { Calendar.current.startOfDay(for: Date()).addingTimeInterval(time.wrappedValue) },
@@ -279,13 +279,13 @@ struct BenachrichtigungenView: View {
             divider()
             HStack(spacing: 12) {
                 iconBadge(icon: icon, color: color)
-                Text("Interval").font(.system(size: 16))
+                Text(localizer.localizedString(forKey: "notif_interval_label")).font(.system(size: 16))
                 Spacer()
                 Picker("", selection: selection) {
-                    Text("1 hr").tag(1)
-                    Text("2 hrs").tag(2)
-                    Text("3 hrs").tag(3)
-                    Text("4 hrs").tag(4)
+                    Text(localizer.localizedString(forKey: "notif_interval_1hr")).tag(1)
+                    Text(localizer.localizedString(forKey: "notif_interval_2hrs")).tag(2)
+                    Text(localizer.localizedString(forKey: "notif_interval_3hrs")).tag(3)
+                    Text(localizer.localizedString(forKey: "notif_interval_4hrs")).tag(4)
                 }
                 .pickerStyle(.menu)
                 .onChange(of: selection.wrappedValue) { _ in onChange() }
@@ -307,10 +307,10 @@ struct BenachrichtigungenView: View {
                     .font(.system(size: 18))
                     .foregroundStyle(.red)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Notifications blocked")
+                    Text(localizer.localizedString(forKey: "notif_blocked_title"))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.primary)
-                    Text("Enable in System Settings")
+                    Text(localizer.localizedString(forKey: "notif_blocked_subtitle"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }

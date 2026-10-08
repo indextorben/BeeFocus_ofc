@@ -171,6 +171,17 @@ struct AddTodoView: View {
     private var contentView: some View {
         let formContent = Form {
             basicInfoSection
+            if #available(iOS 26.0, *) {
+                AITodoAssistSection(
+                    title: $title,
+                    description: $description,
+                    category: $category,
+                    priority: $priority,
+                    subTasks: $subTasks,
+                    dueDate: $dueDate,
+                    hasDueDate: $hasDueDate
+                )
+            }
             categoryAndPrioritySection
             dueDateSection
             // Insert Recurrence Section here
@@ -267,6 +278,7 @@ struct AddTodoView: View {
             TextField(localizer.localizedString(forKey: "title_placeholder"), text: $title)
             TextEditor(text: $description)
                 .frame(height: 100)
+                .beeWritingTools()
         }
     }
 
@@ -274,7 +286,15 @@ struct AddTodoView: View {
         Section(header: Text(localizer.localizedString(forKey: "categorization"))) {
             Picker(localizer.localizedString(forKey: "category"), selection: $category) {
                 ForEach(todoStore.categories, id: \.self) { category in
-                    Text(category.name).tag(Optional(category))
+                    // Genmoji direkt im Picker zeigen, sofern gesetzt.
+                    Label {
+                        Text(category.name)
+                    } icon: {
+                        if let icon = category.iconImage {
+                            Image(uiImage: icon).resizable().scaledToFit()
+                        }
+                    }
+                    .tag(Optional(category))
                 }
             }
 
@@ -315,6 +335,10 @@ struct AddTodoView: View {
         let reminder2h = localizer.localizedString(forKey: "reminder_2h")
         let reminder1d = localizer.localizedString(forKey: "reminder_1d")
         return Section {
+            // Datum in normaler Sprache eingeben, z. B. "nächsten Dienstag früh".
+            if #available(iOS 26.0, *), AIFeature.isReady {
+                AINaturalDateField(date: $dueDate, hasDate: $hasDueDate)
+            }
             Toggle(localizer.localizedString(forKey: "enable_due_date"), isOn: $hasDueDate)
             if hasDueDate {
                 DatePicker(dateTimeLabel, selection: $dueDate, displayedComponents: components)

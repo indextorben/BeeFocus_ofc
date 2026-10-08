@@ -225,6 +225,7 @@ struct FokusTodoEditorView: View {
                 if !bodyText.isEmpty || true {
                     Divider().opacity(0.15).padding(.horizontal, 14)
                     TextEditor(text: $bodyText)
+                        .beeWritingTools()
                         .font(.system(size: 15))
                         .foregroundStyle(isDark ? .white.opacity(0.85) : .primary)
                         .frame(minHeight: 72, maxHeight: 160)

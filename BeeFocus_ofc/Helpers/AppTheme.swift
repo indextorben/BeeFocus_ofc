@@ -1026,7 +1026,9 @@ struct ThemeGlassModifier: ViewModifier {
                         LinearGradient(
                             colors: hasTema
                                 ? [c1.opacity(isDark ? 0.50 : 0.32), c2.opacity(isDark ? 0.22 : 0.16)]
-                                : [Color.white.opacity(isDark ? 0.13 : 0.65), Color.white.opacity(isDark ? 0.04 : 0.20)],
+                                : isDark
+                                    ? [Color.white.opacity(0.13), Color.white.opacity(0.04)]
+                                    : [Color.primary.opacity(0.14), Color.primary.opacity(0.06)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ),
                         lineWidth: 1

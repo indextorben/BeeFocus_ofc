@@ -21,6 +21,8 @@ struct WidgetEinstellungenView: View {
             Section {
                 Picker(localizer.localizedString(forKey: "widget_displayed_tasks"), selection: $taskFilter) {
                     Label(localizer.localizedString(forKey: "widget_due_today"), systemImage: "sun.max.fill").tag("today")
+                    Label(localizer.localizedString(forKey: "widget_this_week"), systemImage: "calendar").tag("week")
+                    Label(localizer.localizedString(forKey: "widget_this_month"), systemImage: "calendar.badge.clock").tag("month")
                     Label(localizer.localizedString(forKey: "widget_high_priority"), systemImage: "exclamationmark.2").tag("priority")
                     Label(localizer.localizedString(forKey: "widget_all_open"), systemImage: "list.bullet").tag("all")
                 }

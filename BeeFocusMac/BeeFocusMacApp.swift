@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let timerMgr  = MacTimerManager()
 
     private var statusItem:      NSStatusItem!
-    private var panel:           NSPanel!
+    private var panel:           InteractivePanel!
     private var labelHostingView: NSHostingView<AnyView>!
     private var eventMonitor:    Any?
     private var cancellables     = Set<AnyCancellable>()
@@ -108,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: Panel
 
     private func setupPanel() {
-        panel = NSPanel(
+        panel = InteractivePanel(
             contentRect: NSRect(x: 0, y: 0, width: 360, height: 500),
             styleMask:   [.titled, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing:     .buffered,
@@ -141,6 +141,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         hidePanel()
     }
+}
+
+// NSPanel subclass that can always become key, allowing SwiftUI buttons
+// inside the non-activating panel to receive click events properly.
+private final class InteractivePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
 }
 
 // NSHostingView subclass that accepts the first mouse click directly,

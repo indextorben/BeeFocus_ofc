@@ -266,8 +266,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         var index = 0
         while hour <= 20 && index < 13 {
             let content = UNMutableNotificationContent()
-            content.title = "💧 Time to drink"
-            content.body  = "Drink a glass of water – your body will thank you!"
+            content.title = localizer.localizedString(forKey: "water_reminder_title")
+            content.body  = localizer.localizedString(forKey: "water_reminder_body")
             content.sound = .default
             content.categoryIdentifier = "WATER_REMINDER"
             var comps = DateComponents(); comps.hour = hour; comps.minute = 0

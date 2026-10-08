@@ -186,10 +186,12 @@ struct ProduktivitaetsScoreView: View {
         return HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
+                .imageScale(.medium)
                 .foregroundStyle(color)
                 .frame(width: 24)
             Text(label)
                 .font(.system(size: 14))
+                .fontDesign(.default)
                 .foregroundStyle(.white.opacity(0.8))
             Spacer()
             GeometryReader { geo in

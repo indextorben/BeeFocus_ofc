@@ -8,9 +8,16 @@ struct PlusActionMenuView: View {
     let onNeu: () -> Void
     let onKalender: () -> Void
     let onImport: () -> Void
+    /// Öffnet "Schnell erfassen" – funktioniert auf jedem Gerät.
+    let onQuickCapture: () -> Void
+    /// Öffnet den Sprach-Assistenten (Apple Intelligence).
+    var onVoice: (() -> Void)? = nil
+    /// Öffnet den KI-Tagesplaner (Apple Intelligence).
+    var onPlanDay: (() -> Void)? = nil
 
     @State private var appeared = false
     @State private var pressedRow: Int? = nil
+    @ObservedObject private var localizer = LocalizationManager.shared
 
     private var isDark: Bool { colorScheme == .dark }
     private var c1: Color { appThemaFarben(aktivesThema).0 }
@@ -21,7 +28,18 @@ struct PlusActionMenuView: View {
         let gradient: [Color]
         let title: String
         let description: String
+        /// Markiert die Zeile als Apple-Intelligence-Funktion.
+        var isAI: Bool = false
     }
+
+    /// Bee Voice braucht ein Sprachmodell – die Zeile gibt es nur mit Apple Intelligence.
+    private var showsVoiceRow: Bool {
+        onVoice != nil && AIFeature.isReady
+    }
+
+    /// Den Tagesplaner gibt es immer: ohne Apple Intelligence übernimmt die
+    /// regelbasierte Variante (`QuickDayPlanSheet`).
+    private var showsPlanRow: Bool { onPlanDay != nil }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -61,7 +79,7 @@ struct PlusActionMenuView: View {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(c1)
-            Text("NEUE AUFGABE")
+            Text(localizer.localizedString(forKey: "plus_menu_header"))
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -73,9 +91,44 @@ struct PlusActionMenuView: View {
 
     private var actionsCard: some View {
         VStack(spacing: 0) {
+            // Erste Zeile: Satz sprechen oder tippen. Kein Apple Intelligence nötig.
+            row(index: 9,
+                item: ActionItem(icon: "wand.and.stars",
+                                 gradient: aiGradientColors,
+                                 title: localizer.localizedString(forKey: "quick_capture_menu_title"),
+                                 description: localizer.localizedString(forKey: "quick_capture_menu_desc"))
+            ) { onQuickCapture(); dismiss() }
+
+            divider
+
+            if showsVoiceRow, let onVoice {
+                row(index: 10,
+                    item: ActionItem(icon: "waveform",
+                                     gradient: aiGradientColors,
+                                     title: localizer.localizedString(forKey: "ai_voice_open"),
+                                     description: localizer.localizedString(forKey: "ai_voice_subtitle"),
+                                     isAI: true)
+                ) { onVoice(); dismiss() }
+
+                divider
+            }
+
+            if showsPlanRow, let onPlanDay {
+                row(index: 11,
+                    item: ActionItem(icon: "sparkles",
+                                     gradient: aiGradientColors,
+                                     title: localizer.localizedString(forKey: "ai_plan_open"),
+                                     description: localizer.localizedString(forKey: "ai_plan_subtitle"),
+                                     isAI: AIFeature.isReady)
+                ) { onPlanDay(); dismiss() }
+
+                divider
+            }
+
             row(index: 0,
                 item: ActionItem(icon: "plus.circle.fill", gradient: [c1, c2],
-                                 title: "Neue Aufgabe", description: "Aufgabe manuell erstellen")
+                                 title: localizer.localizedString(forKey: "plus_menu_new_task_title"),
+                                 description: localizer.localizedString(forKey: "plus_menu_new_task_desc"))
             ) { onNeu(); dismiss() }
 
             divider
@@ -83,8 +136,8 @@ struct PlusActionMenuView: View {
             row(index: 1,
                 item: ActionItem(icon: "calendar.badge.plus",
                                  gradient: [.indigo, Color(red: 0.3, green: 0.2, blue: 0.9)],
-                                 title: "Aus Kalender importieren",
-                                 description: "Add appointments as tasks")
+                                 title: localizer.localizedString(forKey: "plus_menu_calendar_title"),
+                                 description: localizer.localizedString(forKey: "plus_menu_calendar_desc"))
             ) { onKalender(); dismiss() }
 
             divider
@@ -92,8 +145,8 @@ struct PlusActionMenuView: View {
             row(index: 2,
                 item: ActionItem(icon: "square.and.arrow.down.fill",
                                  gradient: [.green, Color(red: 0.1, green: 0.65, blue: 0.35)],
-                                 title: "Datei importieren",
-                                 description: "Aufgaben aus JSON-Datei laden")
+                                 title: localizer.localizedString(forKey: "plus_menu_file_title"),
+                                 description: localizer.localizedString(forKey: "plus_menu_file_desc"))
             ) { onImport(); dismiss() }
         }
         .background {
@@ -128,6 +181,12 @@ struct PlusActionMenuView: View {
         Divider().opacity(0.25).padding(.leading, 74)
     }
 
+    /// Der Apple-Intelligence-Farbverlauf für die KI-Zeilen.
+    private var aiGradientColors: [Color] {
+        [Color(red: 0.42, green: 0.36, blue: 0.99),
+         Color(red: 0.94, green: 0.35, blue: 0.62)]
+    }
+
     @ViewBuilder
     private func row(index: Int, item: ActionItem, action: @escaping () -> Void) -> some View {
         let isPressed = pressedRow == index
@@ -143,9 +202,14 @@ struct PlusActionMenuView: View {
                 iconBadge(icon: item.icon, gradient: item.gradient, isPressed: isPressed)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 6) {
+                        Text(item.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        if item.isAI {
+                            AIBadge(text: nil)
+                        }
+                    }
                     Text(item.description)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)

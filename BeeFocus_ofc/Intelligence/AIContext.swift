@@ -33,6 +33,19 @@ enum AIContext {
         return collapsed.count <= limit ? collapsed : String(collapsed.prefix(limit)) + "…"
     }
 
+    /// Entschärft eine mehrzeilige Nutzereingabe, behält aber die Zeilen –
+    /// bei einer Einkaufsliste steckt die Struktur ja genau darin.
+    /// Jede Zeile wird einzeln geglättet und als Aufzählungspunkt ausgegeben,
+    /// damit keine Zeile wie eine neue Prompt-Anweisung wirken kann.
+    static func sanitizeInput(_ text: String, lineLimit: Int = 300, maxLines: Int = 40) -> String {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { sanitizeForPrompt($0, limit: lineLimit) }
+            .filter { !$0.isEmpty }
+        guard lines.count > 1 else { return lines.first ?? "" }
+        return lines.prefix(maxLines).map { "- " + $0 }.joined(separator: "\n")
+    }
+
     // MARK: - Basis
 
     /// Heutiges Datum inkl. Wochentag, damit das Modell "morgen" auflösen kann.

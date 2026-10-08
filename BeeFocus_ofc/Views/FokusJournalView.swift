@@ -565,6 +565,7 @@ struct JournalEntrySheet: View {
                     .foregroundStyle(.white.opacity(0.7))
             }
             TextEditor(text: text)
+                .beeWritingTools()
                 .font(.system(size: 15))
                 .foregroundStyle(.white)
                 .scrollContentBackground(.hidden)

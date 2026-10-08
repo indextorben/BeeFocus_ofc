@@ -107,6 +107,17 @@ struct TodoListView: View {
     
     //Fileimporter
     @State private var showingActionSheet = false
+    // Apple-Intelligence-Sheets
+    @State private var showingBeeVoice = false
+    @State private var showingDayPlanner = false
+    @State private var showingQuickCapture = false
+    @ObservedObject private var aiRouter = AIRouter.shared
+
+    // Intelligente Suche: Treffer, die nicht wörtlich im Titel stehen.
+    @AppStorage("aiSemanticSearch") private var aiSemanticSearch: Bool = true
+    @State private var semanticMatchIDs: Set<UUID> = []
+    @State private var isSemanticSearching = false
+    @State private var semanticSearchTask: Task<Void, Never>?
     @State private var showingEllipsisMenu = false
     @State private var showingFileImporter = false
     @State private var showingTemplates = false
@@ -166,6 +177,46 @@ struct TodoListView: View {
     private var collapsedSections: Set<String> {
         Set(collapsedSectionsString.components(separatedBy: ",").filter { !$0.isEmpty })
     }
+    /// Ergänzt die Wortsuche um inhaltlich passende Aufgaben.
+    /// Läuft nur, wenn Apple Intelligence bereit ist und die Wortsuche nichts findet.
+    private func runSemanticSearch(for query: String) {
+        semanticSearchTask?.cancel()
+        let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard aiSemanticSearch, AIFeature.isReady, clean.count >= 3 else {
+            semanticMatchIDs = []
+            return
+        }
+
+        // Findet die Wortsuche schon etwas, braucht es das Modell nicht.
+        let literalHits = todoStore.todos.contains {
+            !$0.isDeleted && ($0.title.localizedCaseInsensitiveContains(clean)
+                              || $0.description.localizedCaseInsensitiveContains(clean))
+        }
+        guard !literalHits else {
+            semanticMatchIDs = []
+            return
+        }
+
+        semanticSearchTask = Task {
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled, searchText.trimmingCharacters(in: .whitespacesAndNewlines) == clean else { return }
+
+            if #available(iOS 26.0, *) {
+                isSemanticSearching = true
+                defer { isSemanticSearching = false }
+                let candidates = todoStore.todos.filter { !$0.isDeleted }
+                do {
+                    let matches = try await AITodoIntelligence.shared.semanticSearch(query: clean, in: candidates)
+                    guard !Task.isCancelled else { return }
+                    semanticMatchIDs = Set(matches.map(\.id))
+                } catch {
+                    semanticMatchIDs = []
+                }
+            }
+        }
+    }
+
     private func setCollapsed(_ id: String, collapsed: Bool) {
         var s = collapsedSections
         if collapsed { s.insert(id) } else { s.remove(id) }
@@ -246,6 +297,9 @@ struct TodoListView: View {
                 .navigationTitle(localizer.localizedString(forKey: "tasks_title"))
                 .navigationBarTitleDisplayMode(.large)
                 .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(localizer.localizedString(forKey: "search_tasks")))
+                .onChange(of: searchText) { _, newValue in
+                    runSemanticSearch(for: newValue)
+                }
                 .sheet(isPresented: $showingAddTodo) {
                     FokusTodoEditorView().environmentObject(todoStore)
                 }
@@ -539,7 +593,8 @@ struct TodoListView: View {
             } else {
                 let inTitle = todo.title.localizedCaseInsensitiveContains(searchText)
                 let inDescription = todo.description.localizedCaseInsensitiveContains(searchText)
-                matchesSearch = inTitle || inDescription
+                // Zusätzlich die inhaltlich passenden Treffer der intelligenten Suche.
+                matchesSearch = inTitle || inDescription || semanticMatchIDs.contains(todo.id)
             }
 
             // Category
@@ -1275,11 +1330,49 @@ struct TodoListView: View {
                     PlusActionMenuView(
                         onNeu: { showingAddTodo = true },
                         onKalender: { showingCalendarImport = true },
-                        onImport: { showingFileImporter = true }
+                        onImport: { showingFileImporter = true },
+                        onQuickCapture: { showingQuickCapture = true },
+                        onVoice: AIFeature.isReady ? { showingBeeVoice = true } : nil,
+                        onPlanDay: { showingDayPlanner = true }
                     )
-                    .presentationDetents([.height(260)])
+                    .presentationDetents([.height(AIFeature.isReady ? 500 : 420)])
                     .presentationDragIndicator(.hidden)
                     .presentationCornerRadius(24)
+                }
+                .sheet(isPresented: $showingQuickCapture) {
+                    QuickCaptureSheet()
+                        .environmentObject(todoStore)
+                }
+                .sheet(isPresented: $showingBeeVoice) {
+                    if #available(iOS 26.0, *) {
+                        BeeVoiceSheet()
+                    }
+                }
+                .sheet(isPresented: $showingDayPlanner) {
+                    // Mit Apple Intelligence plant das Sprachmodell, sonst die
+                    // regelbasierte Variante – gleicher Ablauf, kein iOS 26 nötig.
+                    if #available(iOS 26.0, *), AIFeature.isReady {
+                        AIDayPlanSheet()
+                    } else {
+                        QuickDayPlanSheet()
+                            .environmentObject(todoStore)
+                    }
+                }
+                .onChange(of: aiRouter.pending) { _, destination in
+                    // Siri, Kurzbefehle und Widgets öffnen die Sheets hierüber.
+                    switch destination {
+                    case .voice:
+                        showingBeeVoice = true
+                        aiRouter.clear()
+                    case .planner:
+                        showingDayPlanner = true
+                        aiRouter.clear()
+                    case .quickCapture:
+                        showingQuickCapture = true
+                        aiRouter.clear()
+                    case .coach, .none:
+                        break
+                    }
                 }
                 .fileImporter(
                     isPresented: $showingFileImporter,
@@ -1567,7 +1660,8 @@ struct TodoListView: View {
         CategoryButton(
             title: LocalizedStringKey(category.name),
             isSelected: selectedCategory == category,
-            color: category.color
+            color: category.color,
+            icon: category.iconImage
         ) {
             selectedCategory = category
             showOnlyTodayFromNotification = false
@@ -2602,11 +2696,21 @@ struct CategoryButton: View {
     let title: LocalizedStringKey
     let isSelected: Bool
     let color: Color
+    /// Genmoji der Kategorie, falls eines gesetzt ist.
+    var icon: UIImage? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            HStack(spacing: 5) {
+                if let icon {
+                    Image(uiImage: icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 17, height: 17)
+                }
+                Text(title)
+            }
                 .font(.system(size: 14, weight: .semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)

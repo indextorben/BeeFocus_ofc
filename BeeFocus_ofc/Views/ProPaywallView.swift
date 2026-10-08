@@ -111,6 +111,14 @@ struct ProPaywallView: View {
         }
         .task { await sub.loadProducts() }
         .offerCodeRedemption(isPresented: $showOfferCodeRedemption)
+        .onChange(of: showOfferCodeRedemption) { isShowing in
+            if !isShowing {
+                Task { await sub.refreshEntitlements() }
+            }
+        }
+        .onChange(of: sub.isPro) { newValue in
+            if newValue { dismiss() }
+        }
     }
 
     // MARK: - Header

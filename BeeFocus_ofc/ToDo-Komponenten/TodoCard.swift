@@ -95,9 +95,9 @@ struct TodoCard: View {
         return priorityColor
     }
 
-    private var cardTintOpacity: Double { isDark ? 0.12 : 0.07 }
+    private var cardTintOpacity: Double { isDark ? 0.12 : 0.09 }
 
-    private var cardBorderOpacity: Double { isDark ? 0.38 : 0.22 }
+    private var cardBorderOpacity: Double { isDark ? 0.38 : 0.28 }
 
     private var hasInfoRow: Bool {
         todo.dueDate != nil
@@ -296,15 +296,23 @@ struct TodoCard: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color(red: 0.25, green: 0.55, blue: 1.0))
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color(red: 0.25, green: 0.55, blue: 1.0).opacity(isDark ? 0.18 : 0.10), in: Capsule())
+                    .background(Color(red: 0.25, green: 0.55, blue: 1.0).opacity(isDark ? 0.18 : 0.15), in: Capsule())
                 }
             }
 
             // Category
             if showCategory, let cat = todo.category?.name, !cat.isEmpty {
                 HStack(spacing: 3) {
-                    Image(systemName: "tag.fill")
-                        .font(.system(size: 9))
+                    // Genmoji der Kategorie, sonst das übliche Tag-Symbol.
+                    if let icon = todo.category?.iconImage {
+                        Image(uiImage: icon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 12, height: 12)
+                    } else {
+                        Image(systemName: "tag.fill")
+                            .font(.system(size: 9))
+                    }
                     Text(cat)
                         .font(.system(size: 11, weight: .medium))
                 }
@@ -331,7 +339,7 @@ struct TodoCard: View {
                     }
                     .foregroundStyle(cardAccent)
                     .padding(.horizontal, 7).padding(.vertical, 3)
-                    .background(cardAccent.opacity(isDark ? 0.18 : 0.10), in: Capsule())
+                    .background(cardAccent.opacity(isDark ? 0.18 : 0.15), in: Capsule())
                 }
                 .buttonStyle(.plain)
             }

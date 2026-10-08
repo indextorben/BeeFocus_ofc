@@ -94,6 +94,7 @@ struct MacTodoEditorView: View {
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var isFavorite: Bool
+    @State private var categoryID: UUID?
 
     // Extended
     @State private var subTasks: [MacSubTask]
@@ -106,6 +107,7 @@ struct MacTodoEditorView: View {
 
     @State private var showDiscardDialog = false
     @State private var showDeleteConfirm  = false
+    @State private var showCategoryManager = false
     @State private var appeared = false
 
     init(todo: MacTodoItem? = nil, prefilledDate: Date? = nil) {
@@ -119,6 +121,7 @@ struct MacTodoEditorView: View {
         _hasDueDate        = State(initialValue: todo?.dueDate != nil || prefilledDate != nil)
         _dueDate           = State(initialValue: base)
         _isFavorite        = State(initialValue: todo?.isFavorite ?? false)
+        _categoryID        = State(initialValue: todo?.categoryID)
         _subTasks          = State(initialValue: todo?.subTasks ?? [])
         _hasEndTime        = State(initialValue: todo?.endTime != nil)
         _endTime           = State(initialValue: todo?.endTime ?? Calendar.current.date(byAdding: .hour, value: 1, to: base) ?? base)
@@ -137,6 +140,7 @@ struct MacTodoEditorView: View {
                     VStack(spacing: 16) {
                         titleSection
                         prioritySection
+                        categorySection
                         dateTimeSection
                         reminderSection
                         recurrenceSection
@@ -256,6 +260,70 @@ struct MacTodoEditorView: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Kategorie
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                sectionLabel("Kategorie", icon: "folder.fill")
+                Spacer()
+                Button {
+                    showCategoryManager = true
+                } label: {
+                    Label("Verwalten", systemImage: "slider.horizontal.3")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(themeC1)
+                }
+                .buttonStyle(.plain)
+                .help("Kategorien erstellen, umbenennen oder löschen")
+            }
+            Menu {
+                Button("Keine") { categoryID = nil }
+                if !todoStore.categories.isEmpty { Divider() }
+                ForEach(todoStore.categories) { cat in
+                    Button(cat.name) { categoryID = cat.id }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    if let cat = todoStore.category(for: categoryID) {
+                        Circle().fill(cat.color).frame(width: 12, height: 12)
+                        Text(cat.name)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(isDark ? .white : .primary)
+                    } else {
+                        Image(systemName: "folder")
+                            .font(.system(size: 14)).foregroundStyle(.secondary)
+                        Text("Keine Kategorie")
+                            .font(.system(size: 15)).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 13)
+                .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .themeGlass(cornerRadius: 16)
+
+            if todoStore.categories.isEmpty {
+                Button {
+                    showCategoryManager = true
+                } label: {
+                    Label("Erste Kategorie anlegen", systemImage: "plus.circle")
+                        .font(.system(size: 11)).foregroundStyle(themeC1)
+                        .padding(.leading, 4)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .sheet(isPresented: $showCategoryManager) {
+            MacCategoryManagerView()
+                .environmentObject(todoStore)
+        }
     }
 
     // MARK: - Datum & Zeit
@@ -625,6 +693,7 @@ struct MacTodoEditorView: View {
         if isFavorite != (t?.isFavorite ?? false) { return true }
         if subTasks   != (t?.subTasks ?? [])     { return true }
         if hasEndTime != (t?.endTime != nil)     { return true }
+        if categoryID != t?.categoryID           { return true }
         if reminderOffset != t?.reminderOffsetMinutes { return true }
         if recurrenceEnabled != (t?.recurrenceEnabled ?? false) { return true }
         return false
@@ -642,6 +711,7 @@ struct MacTodoEditorView: View {
             updated.dueDate               = hasDueDate ? dueDate : nil
             updated.endTime               = (hasDueDate && hasEndTime) ? endTime : nil
             updated.isFavorite            = isFavorite
+            updated.categoryID            = categoryID
             updated.updatedAt             = Date()
             updated.subTasks              = subTasks
             updated.reminderOffsetMinutes = reminderOffset
@@ -659,7 +729,8 @@ struct MacTodoEditorView: View {
                 endTime:               (hasDueDate && hasEndTime) ? endTime : nil,
                 reminderOffsetMinutes: reminderOffset,
                 recurrenceEnabled:     recurrenceEnabled,
-                recurrenceRule:        recurrenceEnabled ? recurrenceRule : .none
+                recurrenceRule:        recurrenceEnabled ? recurrenceRule : .none,
+                categoryID:            categoryID
             )
             todoStore.addTodo(item)
         }
@@ -679,5 +750,212 @@ private extension Date {
     var endOfDay: Date {
         let cal = Calendar.current
         return cal.date(bySettingHour: 23, minute: 59, second: 59, of: cal.startOfDay(for: self)) ?? self
+    }
+}
+
+// MARK: - MacCategoryManagerView
+//
+// Verwaltung der (mit iOS geteilten) Kategorien direkt auf dem Mac: erstellen,
+// umbenennen, Farbe ändern, löschen. Nutzt dieselbe CloudKit-Datenquelle wie das
+// iPhone (Record-Typ "Category"). Löschen entfernt nur die Zuweisung an Aufgaben,
+// die Aufgaben selbst bleiben erhalten (kein Cascade-Delete).
+
+struct MacCategoryManagerView: View {
+    @EnvironmentObject var todoStore: MacTodoStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("aktivesStatistikThema") private var aktivesThema: String = ""
+
+    @State private var newName: String = ""
+    @State private var newColor: String = "#FF6B6B"
+    @State private var editingID: UUID? = nil
+    @State private var editingName: String = ""
+    @State private var pendingDelete: MacCategory? = nil
+
+    private var isDark: Bool { colorScheme == .dark }
+    private var themeC1: Color { appThemaFarben(aktivesThema).0 }
+    private var themeC2: Color { appThemaFarben(aktivesThema).1 }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Divider().opacity(0.15)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    addSection
+                    listSection
+                }
+                .padding(16)
+            }
+        }
+        .frame(width: 380, height: 460)
+        .background(ThemeBackgroundView())
+        .onAppear { newColor = todoStore.nextSuggestedCategoryColor() }
+        .confirmationDialog(
+            pendingDelete.map { "„\($0.name)" + "\" löschen?" } ?? "Kategorie löschen?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Löschen", role: .destructive) {
+                if let cat = pendingDelete { todoStore.deleteCategory(cat) }
+                pendingDelete = nil
+            }
+            Button("Abbrechen", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("Die Kategorie wird entfernt. Zugewiesene Aufgaben bleiben erhalten und verlieren nur diese Kategorie.")
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            HStack(spacing: 6) {
+                Image(systemName: "folder.fill.badge.gearshape")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(LinearGradient(colors: [themeC1, themeC2], startPoint: .topLeading, endPoint: .bottomTrailing))
+                Text("Kategorien").font(.system(size: 14, weight: .semibold))
+            }
+            Spacer()
+            Button("Fertig") { dismiss() }
+                .buttonStyle(.plain)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(themeC1)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    // MARK: Add
+
+    private var addSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NEUE KATEGORIE")
+                .font(.system(size: 11, weight: .semibold)).foregroundStyle(themeC1.opacity(0.85)).tracking(0.5)
+            HStack(spacing: 8) {
+                Circle().fill(Color(macHex: newColor)).frame(width: 16, height: 16)
+                TextField("Name", text: $newName, onCommit: addCategory)
+                    .textFieldStyle(.plain).font(.system(size: 14))
+                Button(action: addCategory) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(newName.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary.opacity(0.5) : themeC1)
+                }
+                .buttonStyle(.plain)
+                .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .themeGlass(cornerRadius: 10)
+
+            colorPalette(selected: $newColor)
+        }
+    }
+
+    private func colorPalette(selected: Binding<String>) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(MacTodoStore.suggestedCategoryColors, id: \.self) { hex in
+                    let isSel = selected.wrappedValue.uppercased() == hex.uppercased()
+                    Button { selected.wrappedValue = hex } label: {
+                        Circle()
+                            .fill(Color(macHex: hex))
+                            .frame(width: 22, height: 22)
+                            .overlay(Circle().stroke(Color.primary.opacity(isSel ? 0.9 : 0), lineWidth: 2))
+                            .overlay {
+                                if isSel {
+                                    Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    // MARK: List
+
+    private var listSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("VORHANDEN (\(todoStore.categories.count))")
+                .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary).tracking(0.5)
+            if todoStore.categories.isEmpty {
+                Text("Noch keine Kategorien. Lege oben deine erste an.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(todoStore.categories) { cat in
+                        categoryRow(cat)
+                        if cat.id != todoStore.categories.last?.id {
+                            Divider().opacity(0.1).padding(.leading, 38)
+                        }
+                    }
+                }
+                .themeGlass(cornerRadius: 12)
+            }
+        }
+    }
+
+    private func categoryRow(_ cat: MacCategory) -> some View {
+        let count = todoStore.todos.filter { $0.categoryID == cat.id }.count
+        return HStack(spacing: 10) {
+            Menu {
+                ForEach(MacTodoStore.suggestedCategoryColors, id: \.self) { hex in
+                    Button {
+                        todoStore.renameCategory(cat, to: cat.name, colorHex: hex)
+                    } label: { Text(hex) }
+                }
+            } label: {
+                Circle().fill(cat.color).frame(width: 18, height: 18)
+                    .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 1))
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 20)
+            .help("Farbe ändern")
+
+            if editingID == cat.id {
+                TextField("Name", text: $editingName, onCommit: { commitRename(cat) })
+                    .textFieldStyle(.plain).font(.system(size: 14))
+                Button { commitRename(cat) } label: {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(.green)
+                }.buttonStyle(.plain)
+            } else {
+                Text(cat.name).font(.system(size: 14, weight: .medium))
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.08), in: Capsule())
+                }
+                Spacer()
+                Button { startRename(cat) } label: {
+                    Image(systemName: "pencil").font(.system(size: 12)).foregroundStyle(.secondary)
+                }.buttonStyle(.plain).help("Umbenennen")
+                Button { pendingDelete = cat } label: {
+                    Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(Color.red.opacity(0.8))
+                }.buttonStyle(.plain).help("Löschen")
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 10)
+    }
+
+    // MARK: Actions
+
+    private func addCategory() {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        todoStore.addCategory(name: trimmed, colorHex: newColor)
+        newName = ""
+        newColor = todoStore.nextSuggestedCategoryColor()
+    }
+
+    private func startRename(_ cat: MacCategory) {
+        editingID = cat.id
+        editingName = cat.name
+    }
+
+    private func commitRename(_ cat: MacCategory) {
+        let trimmed = editingName.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty { todoStore.renameCategory(cat, to: trimmed) }
+        editingID = nil
+        editingName = ""
     }
 }

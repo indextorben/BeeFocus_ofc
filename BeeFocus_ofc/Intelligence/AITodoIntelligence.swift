@@ -18,6 +18,50 @@ final class AITodoIntelligence: ObservableObject {
 
     private init() {}
 
+    // MARK: - Eine Aufgabe verfassen
+
+    /// Verfasst aus freiem Text **genau eine** Aufgabe: Titel, Beschreibung,
+    /// Unteraufgaben, Datum, Priorität und Kategorie.
+    ///
+    /// Grundlage ist immer der regelbasierte Parser – er versteht Zeitangaben
+    /// wörtlich und liefert auch dann ein Ergebnis, wenn das Modell daneben
+    /// greift. Apple Intelligence verfeinert dieses Ergebnis nur.
+    func compose(from text: String, reference: Date = Date()) async throws -> QuickTodoDraft {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean.count >= 3 else { throw AIFeatureError.inputTooShort }
+
+        let fallback = QuickTodoParser.parse(clean, reference: reference)
+        guard AIAvailability.shared.isAvailable else { throw AIFeatureError.unavailable }
+
+        let context = AIContext.dateContext + "\n" + AIContext.categoryContext
+        let session = LanguageModelSession {
+            BeeAIPrompts.composeInstructions
+            context
+        }
+        let response = try await session.respond(
+            to: "Verfasse genau eine Aufgabe aus dieser Eingabe:\n\n\(AIContext.sanitizeInput(clean))",
+            generating: AIExtractedTodo.self,
+            options: GenerationOptions(temperature: 0.3)
+        )
+        return QuickTodoDraft(model: response.content, fallback: fallback)
+    }
+
+    /// Verfeinert mehrere Entwürfe nacheinander. Schlägt einer fehl, bleibt der
+    /// regelbasierte Entwurf stehen – es gehen also nie Eingaben verloren.
+    func refine(_ drafts: [QuickTodoDraft], limit: Int = 6) async -> [QuickTodoDraft] {
+        var result = drafts
+        for index in result.indices.prefix(limit) {
+            if Task.isCancelled { return result }
+            let draft = result[index]
+            let input = draft.source.isEmpty ? draft.title : draft.source
+            guard input.count >= 3 else { continue }
+            if let refined = try? await compose(from: input) {
+                result[index] = refined
+            }
+        }
+        return result
+    }
+
     // MARK: - Automatische Einordnung
 
     /// Schlägt Kategorie, Priorität, Quadrant und Dauer für einen Titel vor.

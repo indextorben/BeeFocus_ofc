@@ -145,17 +145,30 @@ struct CategoryRow: View {
     @FocusState var focusedCategoryID: UUID?
     let todoStore: TodoStore
     @ObservedObject private var localizer = LocalizationManager.shared
+    @State private var showGenmojiPicker = false
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(category.color)
-                    .frame(width: 14, height: 14)
-                Circle()
-                    .strokeBorder(Color.primary.opacity(0.08))
-                    .frame(width: 16, height: 16)
+            // Antippen öffnet die Genmoji-Auswahl für diese Kategorie.
+            Button {
+                showGenmojiPicker = true
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(category.hasIcon ? Color.primary.opacity(0.06) : category.color)
+                        .frame(width: category.hasIcon ? 34 : 14,
+                               height: category.hasIcon ? 34 : 14)
+                    if category.hasIcon {
+                        CategoryIconView(category: category, size: 24)
+                    }
+                    Circle()
+                        .strokeBorder(Color.primary.opacity(0.08))
+                        .frame(width: category.hasIcon ? 36 : 16,
+                               height: category.hasIcon ? 36 : 16)
+                }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(localizer.localizedString(forKey: "genmoji_pick_title")))
 
             if editingCategory?.id == category.id {
                 TextField(
@@ -210,5 +223,13 @@ struct CategoryRow: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder((editingCategory?.id == category.id) ? Color.blue.opacity(0.25) : Color.clear, lineWidth: 1.2)
         )
+        .sheet(isPresented: $showGenmojiPicker) {
+            GenmojiPickerSheet(
+                categoryName: category.name,
+                currentIcon: category.iconData
+            ) { data, description in
+                todoStore.setCategoryIcon(category, iconData: data, description: description)
+            }
+        }
     }
 }

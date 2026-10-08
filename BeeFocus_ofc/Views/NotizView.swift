@@ -596,6 +596,7 @@ struct NotizEditorView: View {
 
     private var textContent: some View {
         TextEditor(text: $notiz.inhalt)
+            .beeWritingTools()
             .font(.system(size: 16))
             .foregroundStyle(.white.opacity(0.88))
             .scrollContentBackground(.hidden)

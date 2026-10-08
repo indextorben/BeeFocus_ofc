@@ -47,8 +47,11 @@ final class AIActionLog: ObservableObject {
 @available(iOS 26.0, *)
 @Generable
 nonisolated struct AICreateTodoArgs {
-    @Guide(description: "Kurzer Titel der Aufgabe im Imperativ, ohne Datumsangabe")
+    @Guide(description: "Kurzer Titel der Aufgabe im Imperativ, ohne Datumsangabe und ohne Aufzählung der Einzelteile")
     var title: String
+
+    @Guide(description: "Alles Zusätzliche, was der Nutzer zu dieser Aufgabe gesagt hat: Ort, Personen, Grund, Hinweise. Leer lassen, wenn es nichts gibt. Was als Unteraufgabe steht, hier nicht wiederholen.")
+    var details: String
 
     @Guide(description: "Fälligkeitsdatum als yyyy-MM-dd. Leer lassen, wenn kein Datum genannt wurde.")
     var dueDate: String
@@ -62,14 +65,18 @@ nonisolated struct AICreateTodoArgs {
     @Guide(description: "Name einer vorhandenen Kategorie. Leer lassen, wenn keine passt.")
     var category: String
 
-    @Guide(description: "Unteraufgaben, falls der Nutzer mehrere Schritte genannt hat. Sonst leer.", .maximumCount(8))
+    @Guide(description: "Die Einzelteile dieser einen Aufgabe: bei Einkaufs-, Besorgungs- oder Packlisten je genanntes Ding ein Eintrag mit dem Namen des Dings, sonst die genannten Arbeitsschritte. Sonst leer.", .maximumCount(20))
     var subtasks: [String]
 }
 
 @available(iOS 26.0, *)
 nonisolated struct AICreateTodoTool: Tool {
     let name = "aufgabe_anlegen"
-    let description = "Legt eine neue Aufgabe in BeeFocus an. Für jede genannte Aufgabe einmal aufrufen."
+    let description = """
+    Legt eine neue Aufgabe in BeeFocus an. Für jedes genannte Vorhaben einmal aufrufen. \
+    Zählt der Nutzer Dinge auf, die zu einem Vorhaben gehören (Einkauf, Besorgungen, \
+    Packliste), ist das ein einziger Aufruf mit diesen Dingen als Unteraufgaben.
+    """
 
     let log: AIActionLog
 
@@ -83,13 +90,15 @@ nonisolated struct AICreateTodoTool: Tool {
                 $0.name.localizedCaseInsensitiveCompare(arguments.category) == .orderedSame
             }
             let due = AIDateFormat.date(day: arguments.dueDate, time: arguments.dueTime)
-            let subTasks = arguments.subtasks
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .map { SubTask(title: $0) }
+            let tidied = QuickTodoDraft.tidyTitle(title)
+            let cleanTitle = tidied.isEmpty ? title : tidied
+            let items = QuickTodoDraft.tidyItems(arguments.subtasks, title: cleanTitle)
+            let details = QuickTodoDraft.tidyDetails(arguments.details, title: cleanTitle, items: items)
+            let subTasks = items.map { SubTask(title: $0) }
 
             let todo = TodoItem(
-                title: title,
+                title: cleanTitle,
+                description: details,
                 dueDate: due,
                 category: category,
                 categoryID: category?.id,
@@ -98,7 +107,7 @@ nonisolated struct AICreateTodoTool: Tool {
             )
             store.addTodo(todo)
 
-            var confirmation = "Aufgabe „\(title)“ angelegt"
+            var confirmation = "Aufgabe „\(cleanTitle)“ angelegt"
             if let due {
                 let f = DateFormatter()
                 f.locale = LocalizationManager.shared.currentLocale

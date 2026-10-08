@@ -6,6 +6,7 @@ struct MacTodoCard: View {
     let onDelete: () -> Void
     let onEdit: () -> Void
     let onToggleFavorite: () -> Void
+    var category: MacCategory? = nil
 
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("aktivePriorityStyle") private var aktivePriorityStyle: String = "standard"
@@ -86,8 +87,19 @@ struct MacTodoCard: View {
                         }
                         .foregroundStyle(todo.isOverdue ? .red : .secondary)
                     }
+
+                    if let category {
+                        HStack(spacing: 4) {
+                            Circle().fill(category.color).frame(width: 6, height: 6)
+                            Text(category.name).font(.system(size: 11)).lineLimit(1)
+                        }
+                        .foregroundStyle(.secondary)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { if !todo.isCompleted { onEdit() } }
 
             Spacer(minLength: 0)
 
@@ -130,7 +142,6 @@ struct MacTodoCard: View {
         .opacity(todo.isCompleted ? 0.6 : 1.0)
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
         .onHover { isHovered = $0 }
-        .onTapGesture { if !todo.isCompleted { onEdit() } }
     }
 
     @ViewBuilder

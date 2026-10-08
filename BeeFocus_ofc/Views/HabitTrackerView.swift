@@ -182,8 +182,10 @@ struct HabitTrackerView: View {
             HStack(spacing: 10) {
                 Image(systemName: atLimit ? "lock.fill" : "plus.circle.fill")
                     .font(.system(size: 16, weight: .semibold))
+                    .imageScale(.medium)
                 Text(atLimit ? localizer.localizedString(forKey: "habit_pro_button") : localizer.localizedString(forKey: "habit_add_button"))
                     .font(.system(size: 15, weight: .semibold))
+                    .fontDesign(.default)
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)

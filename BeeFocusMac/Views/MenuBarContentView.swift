@@ -82,6 +82,7 @@ struct MenuBarContentView: View {
     @State private var newHasDueDate   = false
     @State private var newDueDate      = Date()
     @State private var newReminderOffset: Int? = nil
+    @State private var newCategoryID: UUID? = nil
 
     // Settings panel
     @State private var showingSettings       = false
@@ -102,6 +103,7 @@ struct MenuBarContentView: View {
     // Tasks filters
     @State private var searchText      = ""
     @State private var timeFilter: MacTodoTimeFilter = .alle
+    @State private var categoryFilterID: UUID? = nil
     @State private var showCompleted   = false
 
     // Tasks: Today highlight
@@ -129,6 +131,9 @@ struct MenuBarContentView: View {
 
     // Command palette
     @State private var showingCommandPalette = false
+
+    // Quick-Add: Fokus direkt im Titelfeld (⌘N)
+    @FocusState private var quickAddTitleFocused: Bool
 
     // Hotkeys
     @ObservedObject private var hotkeyMgr = GlobalHotkeyManager.shared
@@ -298,6 +303,15 @@ struct MenuBarContentView: View {
                 withAnimation(.spring(response: 0.25)) { showingCommandPalette.toggle() }
             }
             .keyboardShortcut("k", modifiers: .command)
+            .opacity(0)
+
+            // Escape → Quick-Add / Einstellungen abbrechen
+            Button("") {
+                if showingAddForm { dismissAddForm() }
+                else if showingSettings { withAnimation(.spring(response: 0.28)) { showingSettings = false } }
+                else if showingCommandPalette { withAnimation(.spring(response: 0.22)) { showingCommandPalette = false } }
+            }
+            .keyboardShortcut(.escape, modifiers: [])
             .opacity(0)
 
             // ⌘1-4 → Tab switching
@@ -809,11 +823,13 @@ struct MenuBarContentView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 formLabel("Titel", icon: "pencil.line")
-                TextField("Aufgabenname", text: $newTitle)
+                TextField("Aufgabenname", text: $newTitle, onCommit: saveInlineTask)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15, weight: .medium))
+                    .focused($quickAddTitleFocused)
                     .padding(.horizontal, 12).padding(.vertical, 10)
                     .themeGlass(cornerRadius: 10)
+                    .onAppear { DispatchQueue.main.async { quickAddTitleFocused = true } }
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -840,6 +856,33 @@ struct MenuBarContentView: View {
                             .padding(.horizontal, 12).padding(.vertical, 8)
                     }
                 }
+                .themeGlass(cornerRadius: 10)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                formLabel("Kategorie", icon: "folder.fill")
+                Menu {
+                    Button("Keine") { newCategoryID = nil }
+                    if !todoStore.categories.isEmpty { Divider() }
+                    ForEach(todoStore.categories) { cat in
+                        Button(cat.name) { newCategoryID = cat.id }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if let cat = todoStore.category(for: newCategoryID) {
+                            Circle().fill(cat.color).frame(width: 11, height: 11)
+                            Text(cat.name).font(.system(size: 14, weight: .medium)).foregroundStyle(.primary)
+                        } else {
+                            Image(systemName: "folder").font(.system(size: 12)).foregroundStyle(.secondary)
+                            Text("Keine Kategorie").font(.system(size: 14)).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down").font(.system(size: 10)).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden)
                 .themeGlass(cornerRadius: 10)
             }
 
@@ -947,7 +990,8 @@ struct MenuBarContentView: View {
             dueDate:               newHasDueDate ? newDueDate : nil,
             priority:              newPriority,
             subTasks:              subTasks,
-            reminderOffsetMinutes: newReminderOffset
+            reminderOffsetMinutes: newReminderOffset,
+            categoryID:            newCategoryID
         ))
         dismissAddForm()
     }
@@ -962,7 +1006,7 @@ struct MenuBarContentView: View {
     private func dismissAddForm() {
         withAnimation(.spring(response: 0.3)) { showingAddForm = false }
         newTitle = ""; newPriority = .medium; newHasDueDate = false; newDueDate = Date()
-        newReminderOffset = nil
+        newReminderOffset = nil; newCategoryID = nil
         newSubTasks = []; newSubTaskInput = ""
     }
 
@@ -1187,6 +1231,29 @@ struct MenuBarContentView: View {
     }
 
     // MARK: Filtered tasks
+    @ViewBuilder
+    private func categoryFilterChip(id: UUID?, label: String, color: Color) -> some View {
+        let isSelected = categoryFilterID == id
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { categoryFilterID = id }
+        } label: {
+            HStack(spacing: 4) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(label).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(isSelected ? color.opacity(0.20) : Color.clear)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(
+                isSelected ? color.opacity(0.7) : Color.secondary.opacity(0.22),
+                lineWidth: 1.5
+            ))
+            .foregroundStyle(isSelected ? color : Color.primary.opacity(0.6))
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.25), value: isSelected)
+    }
+
     private var timeFilteredTasks: [MacTodoItem] {
         let cal = Calendar.current
         let now = Date()
@@ -1197,7 +1264,9 @@ struct MenuBarContentView: View {
         let weekEnd    = cal.date(byAdding: .day, value: 6, to: todayEnd) ?? now
 
         let base = todoStore.activeTodos
-        let searched = searchText.isEmpty ? base : base.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+        let textFiltered = searchText.isEmpty ? base : base.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+        // Optionaler Kategorie-Filter (nil = alle Kategorien)
+        let searched = categoryFilterID == nil ? textFiltered : textFiltered.filter { $0.categoryID == categoryFilterID }
 
         switch timeFilter {
         case .alle:
@@ -1628,7 +1697,21 @@ struct MenuBarContentView: View {
                 }
                 .padding(.horizontal, 14)
             }
-            .padding(.bottom, 10)
+            .padding(.bottom, todoStore.categories.isEmpty ? 10 : 6)
+
+            // Category filter chips (nur wenn Kategorien vorhanden)
+            if !todoStore.categories.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        categoryFilterChip(id: nil, label: "Alle", color: accent)
+                        ForEach(todoStore.categories) { cat in
+                            categoryFilterChip(id: cat.id, label: cat.name, color: cat.color)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                }
+                .padding(.bottom, 10)
+            }
 
             // Folder sections
             VStack(spacing: 8) {
@@ -1658,6 +1741,13 @@ struct MenuBarContentView: View {
 
             Spacer(minLength: 10)
         }
+    }
+
+    private func assignCategory(_ todo: MacTodoItem, _ categoryID: UUID?) {
+        var updated = todo
+        updated.categoryID = categoryID
+        updated.updatedAt = Date()
+        todoStore.update(updated)
     }
 
     private func taskRow(_ todo: MacTodoItem) -> some View {
@@ -1721,12 +1811,21 @@ struct MenuBarContentView: View {
                                 .strikethrough(todo.isCompleted, color: .secondary)
                                 .foregroundStyle(todo.isCompleted ? Color.secondary.opacity(0.5) : Color.primary)
                                 .lineLimit(1)
-                            if let due = todo.dueDate {
-                                HStack(spacing: 3) {
-                                    Image(systemName: "calendar").font(.system(size: 9))
-                                    Text(dueDateLabel(due)).font(.system(size: 10))
+                            HStack(spacing: 8) {
+                                if let due = todo.dueDate {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "calendar").font(.system(size: 9))
+                                        Text(dueDateLabel(due)).font(.system(size: 10))
+                                    }
+                                    .foregroundStyle(todo.isOverdue ? .red : .secondary)
                                 }
-                                .foregroundStyle(todo.isOverdue ? .red : .secondary)
+                                if let cat = todoStore.category(for: todo.categoryID) {
+                                    HStack(spacing: 3) {
+                                        Circle().fill(cat.color).frame(width: 6, height: 6)
+                                        Text(cat.name).font(.system(size: 10)).lineLimit(1)
+                                    }
+                                    .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         if totalCount > 0 {
@@ -1793,6 +1892,15 @@ struct MenuBarContentView: View {
                         Button("Allgemein") { todoStore.assignTodo(todo.id, toFolder: nil) }
                         ForEach(todoStore.customFolders, id: \.self) { folder in
                             Button(folder) { todoStore.assignTodo(todo.id, toFolder: folder) }
+                        }
+                    }
+                }
+                if !todoStore.categories.isEmpty {
+                    Menu("Kategorie") {
+                        Button("Keine") { assignCategory(todo, nil) }
+                        Divider()
+                        ForEach(todoStore.categories) { cat in
+                            Button(cat.name) { assignCategory(todo, cat.id) }
                         }
                     }
                 }

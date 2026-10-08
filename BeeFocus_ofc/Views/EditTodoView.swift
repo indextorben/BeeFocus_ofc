@@ -196,6 +196,21 @@ struct EditTodoView: View {
     private var formContent: some View {
         Form {
             basicInfoSection
+            if #available(iOS 26.0, *) {
+                AITodoAssistSection(
+                    title: $title,
+                    description: $description,
+                    // Hier ist die Kategorie nicht optional, darum ein Adapter.
+                    category: Binding(
+                        get: { category },
+                        set: { if let new = $0 { category = new } }
+                    ),
+                    priority: $priority,
+                    subTasks: $subTasks,
+                    dueDate: $dueDate,
+                    hasDueDate: $hasDueDate
+                )
+            }
             categoryAndPrioritySection
             dueDateSection
             recurrenceSection
@@ -291,6 +306,7 @@ struct EditTodoView: View {
             TextField(localizer.localizedString(forKey: "todo_title_placeholder"), text: $title)
             TextEditor(text: $description)
                 .frame(height: 100)
+                .beeWritingTools()
         }
     }
     
@@ -298,7 +314,15 @@ struct EditTodoView: View {
         Section(header: Text(localizer.localizedString(forKey: "category_priority_section"))) {
             Picker(localizer.localizedString(forKey: "category_picker_label"), selection: $category) {
                 ForEach(todoStore.categories, id: \.self) { category in
-                    Text(category.name).tag(category)
+                    // Genmoji direkt im Picker zeigen, sofern gesetzt.
+                    Label {
+                        Text(category.name)
+                    } icon: {
+                        if let icon = category.iconImage {
+                            Image(uiImage: icon).resizable().scaledToFit()
+                        }
+                    }
+                    .tag(category)
                 }
             }
             

@@ -156,7 +156,7 @@ struct NFCToastBanner: View {
 class AppDelegate: NSObject, UIApplicationDelegate {
     var window: UIWindow?
 
-    let todoStore = TodoStore()
+    let todoStore = TodoStore.shared
     let timerManager = TimerManager.shared
 
     func application(
@@ -175,6 +175,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
 
         CloudSettingsSync.shared.start()
+
+        // Apple Intelligence vorbereiten, damit die erste Antwort schnell kommt.
+        AIFeature.refresh()
+        AIFeature.prewarm()
 
         NotificationManager.shared.requestAuthorization { granted in
             if !granted {

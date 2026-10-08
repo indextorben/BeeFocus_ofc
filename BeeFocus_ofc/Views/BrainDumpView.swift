@@ -10,11 +10,21 @@ struct BrainDumpView: View {
     @State private var selectedTag: BrainDumpTag = .idee
     @State private var filterTag: BrainDumpTag? = nil
     @State private var showClearConfirm = false
+    @State private var showAIPlanner = false
 
     @ObservedObject private var localizer = LocalizationManager.shared
 
     private var accent: Color {
         aktivesThema.isEmpty ? Color(red: 0.55, green: 0.35, blue: 1.0) : appThemaFarben(aktivesThema).0
+    }
+
+    /// Alle noch nicht in Aufgaben umgewandelten Gedanken als ein Text.
+    /// Genau das Material, aus dem der KI-Planer einen Tag baut.
+    private var unconvertedText: String {
+        store.eintraege
+            .filter { !$0.isConverted }
+            .map(\.text)
+            .joined(separator: "\n")
     }
 
     private var filteredEntries: [BrainDumpEintrag] {
@@ -79,6 +89,37 @@ struct BrainDumpView: View {
                                 .foregroundStyle(.red.opacity(0.6))
                         }
                     }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                // Alle Gedanken auf einmal in einen Tagesplan verwandeln.
+                if !store.eintraege.isEmpty {
+                    Button {
+                        showAIPlanner = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                            Text(localizer.localizedString(forKey: "ai_plan_sort_button"))
+                        }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(AIPalette.gradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
+                    .background(.black.opacity(0.2))
+                }
+            }
+            .sheet(isPresented: $showAIPlanner) {
+                // Die noch nicht umgewandelten Gedanken als Ausgangstext übergeben.
+                // Ohne Apple Intelligence sortiert der regelbasierte Planer.
+                if #available(iOS 26.0, *), AIFeature.isReady {
+                    AIDayPlanSheet(initialText: unconvertedText)
+                } else {
+                    QuickDayPlanSheet(initialText: unconvertedText)
+                        .environmentObject(todoStore)
                 }
             }
             .confirmationDialog(localizer.localizedString(forKey: "brain_delete_all_title"), isPresented: $showClearConfirm, titleVisibility: .visible) {

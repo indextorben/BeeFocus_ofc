@@ -24,15 +24,25 @@ struct QuickCaptureSheet: View {
     @State private var drafts: [QuickTodoDraft] = []
     @FocusState private var inputFocused: Bool
 
+    /// Soll Apple Intelligence den Entwurf verfeinern? Auf Geräten ohne
+    /// Apple Intelligence hat der Schalter keine Wirkung.
+    @AppStorage("aiRefineCapture") private var refineWithAI: Bool = true
+
+    @State private var isRefining = false
+    @State private var refineError: String?
+    @State private var refineTask: Task<Void, Never>?
+    /// Eingabe, für die schon verfeinert wurde – verhindert Mehrfachanfragen.
+    @State private var refinedText = ""
+
     private var c1: Color { appThemaFarben(aktivesThema).0 }
     private var c2: Color { appThemaFarben(aktivesThema).1 }
 
-    /// Jede Zeile wird zu einer eigenen Aufgabe.
-    private var lines: [String] {
-        text.components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+    private var trimmedText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// Steht Apple Intelligence zum Verfeinern bereit?
+    private var canRefine: Bool { AIFeature.isReady }
 
     var body: some View {
         NavigationStack {
@@ -42,6 +52,10 @@ struct QuickCaptureSheet: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         inputCard
+
+                        if isRefining || refineError != nil {
+                            statusCard
+                        }
 
                         if drafts.isEmpty {
                             examplesCard
@@ -74,11 +88,13 @@ struct QuickCaptureSheet: View {
                 if text.isEmpty, !initialText.isEmpty {
                     text = initialText
                     recompute()
+                    scheduleRefine()
                 }
                 if text.isEmpty { inputFocused = true }
             }
             .onDisappear {
                 if speech.isRecording { speech.stopRecording() }
+                refineTask?.cancel()
             }
             // Diktat schreibt direkt ins Eingabefeld.
             .onChange(of: speech.liveText) { _, new in
@@ -86,7 +102,10 @@ struct QuickCaptureSheet: View {
                 text = new
                 recompute()
             }
-            .onChange(of: text) { _, _ in recompute() }
+            .onChange(of: text) { _, _ in
+                recompute()
+                scheduleRefine()
+            }
         }
     }
 
@@ -138,6 +157,8 @@ struct QuickCaptureSheet: View {
                 if speech.isRecording {
                     AIWaveform(level: speech.audioLevel, isActive: true, barCount: 14)
                         .frame(height: 24)
+                } else if canRefine {
+                    refineToggle
                 }
 
                 Spacer()
@@ -163,9 +184,27 @@ struct QuickCaptureSheet: View {
 
     private func resultCard(index: Int, draft: QuickTodoDraft) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(draft.title)
-                .font(.system(size: 17, weight: .semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(draft.title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if draft.isAIRefined {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(c1)
+                }
+            }
+
+            if !draft.details.isEmpty {
+                Text(draft.details)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !draft.subtasks.isEmpty {
+                subtaskList(index: index, items: draft.subtasks)
+            }
 
             HStack(spacing: 8) {
                 if let due = draft.dueDate {
@@ -230,6 +269,94 @@ struct QuickCaptureSheet: View {
         }
         .padding(16)
         .background(cardBackground)
+    }
+
+    /// Schalter: Soll Apple Intelligence den Entwurf verfeinern?
+    private var refineToggle: some View {
+        Button {
+            refineWithAI.toggle()
+            if refineWithAI {
+                refinedText = ""
+                scheduleRefine(immediately: true)
+            } else {
+                refineTask?.cancel()
+                isRefining = false
+                refineError = nil
+                recompute()
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12, weight: .semibold))
+                Text(localizer.localizedString(forKey: "quick_capture_refine"))
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(refineWithAI ? c1 : .secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Capsule().fill(refineWithAI ? c1.opacity(0.14) : Color.secondary.opacity(0.08))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var statusCard: some View {
+        HStack(spacing: 10) {
+            if isRefining {
+                ProgressView().controlSize(.small)
+                Text(localizer.localizedString(forKey: "quick_capture_refining"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            } else if let refineError {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.orange)
+                Text(refineError)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(cardBackground)
+    }
+
+    /// Die erkannten Einzelteile – z. B. die Dinge einer Einkaufsliste.
+    /// Jeder Eintrag lässt sich hier schon wieder entfernen.
+    private func subtaskList(index: Int, items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: "list.bullet.indent")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(localizer.localizedString(forKey: "quick_capture_steps_title"))
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(.secondary)
+
+            ForEach(Array(items.enumerated()), id: \.offset) { itemIndex, item in
+                HStack(spacing: 8) {
+                    Image(systemName: "circle")
+                        .font(.system(size: 9))
+                        .foregroundStyle(c1.opacity(0.7))
+                    Text(item)
+                        .font(.system(size: 14))
+                    Spacer()
+                    Button {
+                        guard drafts.indices.contains(index),
+                              drafts[index].subtasks.indices.contains(itemIndex) else { return }
+                        withAnimation { drafts[index].subtasks.remove(at: itemIndex) }
+                    } label: {
+                        Image(systemName: "minus.circle")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private var examplesCard: some View {
@@ -347,22 +474,65 @@ struct QuickCaptureSheet: View {
 
     // MARK: - Logik
 
-    /// Analysiert den Text neu, behält aber manuelle Korrekturen bei
-    /// unveränderten Zeilen bei.
+    /// Analysiert den Text neu, behält aber manuelle Korrekturen und bereits
+    /// verfeinerte Entwürfe bei, solange die zugehörige Eingabe gleich bleibt.
     private func recompute() {
-        let parsed = lines.map { QuickTodoParser.parse($0) }
+        let parsed = QuickTodoParser.drafts(from: text)
         guard parsed.count == drafts.count else {
             drafts = parsed
             return
         }
-        for (index, new) in parsed.enumerated() where new.title != drafts[index].title {
+        for (index, new) in parsed.enumerated() {
+            // Verfeinerte Entwürfe nur ersetzen, wenn sich ihre Eingabe geändert hat.
+            if drafts[index].isAIRefined, drafts[index].source == new.source { continue }
+            if drafts[index].source == new.source, drafts[index].title == new.title { continue }
             drafts[index] = new
+        }
+    }
+
+    /// Startet die Verfeinerung, sobald der Nutzer eine kurze Pause macht.
+    private func scheduleRefine(immediately: Bool = false) {
+        refineTask?.cancel()
+        refineError = nil
+        guard canRefine, refineWithAI, !speech.isRecording else { return }
+
+        let input = trimmedText
+        guard input.count >= 6, input != refinedText else { return }
+
+        refineTask = Task {
+            if !immediately {
+                try? await Task.sleep(for: .milliseconds(1200))
+            }
+            guard !Task.isCancelled, trimmedText == input else { return }
+            await runRefine(for: input)
+        }
+    }
+
+    private func runRefine(for input: String) async {
+        guard #available(iOS 26.0, *) else { return }
+        let base = drafts
+        guard !base.isEmpty else { return }
+
+        isRefining = true
+        defer { isRefining = false }
+
+        let refined = await AITodoIntelligence.shared.refine(base)
+        // Während der Anfrage darf der Nutzer weitergetippt haben.
+        guard !Task.isCancelled, trimmedText == input, drafts.count == refined.count else { return }
+
+        refinedText = input
+        withAnimation { drafts = refined }
+        if refined.allSatisfy({ !$0.isAIRefined }) {
+            refineError = localizer.localizedString(forKey: "quick_capture_refine_failed")
         }
     }
 
     private func toggleRecording() {
         if speech.isRecording {
             speech.stopRecording()
+            // Erst nach dem Diktat verfeinern – während des Sprechens wächst
+            // der Text ja noch Wort für Wort.
+            scheduleRefine(immediately: true)
         } else {
             inputFocused = false
             speech.liveText = ""
@@ -372,6 +542,7 @@ struct QuickCaptureSheet: View {
 
     private func save() {
         guard !drafts.isEmpty else { return }
+        refineTask?.cancel()
         for draft in drafts {
             todoStore.addTodo(draft.makeTodo())
         }

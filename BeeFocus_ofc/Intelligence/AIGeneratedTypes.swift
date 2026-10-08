@@ -14,10 +14,10 @@ import FoundationModels
 @available(iOS 26.0, *)
 @Generable(description: "Eine einzelne, konkrete Aufgabe, die aus Freitext extrahiert wurde")
 struct AIExtractedTodo: Equatable {
-    @Guide(description: "Kurzer, handlungsorientierter Titel im Imperativ, maximal 60 Zeichen. Ohne Datum, ohne Uhrzeit.")
+    @Guide(description: "Kurzer, handlungsorientierter Titel im Imperativ, maximal 60 Zeichen. Ohne Datum, ohne Uhrzeit und ohne Aufzählung der Einzelteile.")
     var title: String
 
-    @Guide(description: "Optionale zusätzliche Details. Leerer String, wenn es keine gibt.")
+    @Guide(description: "Alles Zusätzliche, was der Nutzer gesagt hat: Ort, Personen, Grund, Hinweise – in ganzen Sätzen. Leerer String, wenn es nichts gibt. Was als Unteraufgabe steht, hier nicht wiederholen.")
     var details: String
 
     @Guide(description: "Priorität der Aufgabe", .anyOf(["low", "medium", "high"]))
@@ -35,7 +35,7 @@ struct AIExtractedTodo: Equatable {
     @Guide(description: "Geschätzte Dauer in Minuten, realistisch zwischen 5 und 480", .range(5...480))
     var estimatedMinutes: Int
 
-    @Guide(description: "Unteraufgaben, falls die Aufgabe klar in Schritte zerfällt. Sonst leer.", .maximumCount(8))
+    @Guide(description: "Die Einzelteile der Aufgabe: bei Einkaufs-, Besorgungs- oder Packlisten je genanntes Ding ein Eintrag mit dem Namen des Dings (ohne \"kaufen\" davor), sonst die Arbeitsschritte mit einem Verb am Anfang. Leer, wenn die Aufgabe nur aus einer Sache besteht.", .maximumCount(20))
     var subtasks: [String]
 }
 
@@ -67,7 +67,7 @@ struct AITodoClassification {
 @available(iOS 26.0, *)
 @Generable(description: "Vorgeschlagene Unteraufgaben zur Zerlegung einer Aufgabe")
 struct AISubtaskSuggestions {
-    @Guide(description: "Konkrete, einzeln abhakbare Schritte in sinnvoller Reihenfolge. Jeder Schritt beginnt mit einem Verb.", .count(3...10))
+    @Guide(description: "Konkrete, einzeln abhakbare Einträge in sinnvoller Reihenfolge. Arbeitsschritte beginnen mit einem Verb; bei Einkaufs- oder Packlisten steht nur der Name des Dings.", .count(3...12))
     var subtasks: [String]
 }
 
@@ -212,6 +212,55 @@ enum AIDateFormat {
         let parts = hhmm.split(separator: ":").compactMap { Int($0) }
         guard parts.count == 2 else { return nil }
         return Calendar.current.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: day)
+    }
+}
+
+// MARK: - Modellantwort in einen Entwurf übersetzen
+
+@available(iOS 26.0, *)
+extension QuickTodoDraft {
+
+    /// Baut aus der Modellantwort einen Entwurf und bügelt die typischen
+    /// Schwächen aus: leerer oder geschwätziger Titel, Datum im Titel, doppelte
+    /// Einträge, Einzelteile, die zusätzlich in der Beschreibung stehen.
+    ///
+    /// `fallback` ist der regelbasierte Entwurf derselben Eingabe. Er springt
+    /// überall ein, wo das Modell nichts geliefert hat – und bei Datum und
+    /// Priorität geht er sogar vor, weil er sich an den Wortlaut hält.
+    init(model: AIExtractedTodo, fallback: QuickTodoDraft) {
+        var title = QuickTodoDraft.tidyTitle(model.title)
+        if title.count < 3 { title = fallback.title }
+
+        var items = QuickTodoDraft.tidyItems(model.subtasks, title: title)
+        if items.isEmpty { items = QuickTodoDraft.tidyItems(fallback.subtasks, title: title) }
+
+        var details = QuickTodoDraft.tidyDetails(model.details, title: title, items: items)
+        if details.isEmpty {
+            details = QuickTodoDraft.tidyDetails(fallback.details, title: title, items: items)
+        }
+
+        // Eine vom Nutzer wörtlich genannte Zeit schlägt die Rechnung des Modells.
+        let modelDue = model.mappedDueDate
+        let due = fallback.dueDate ?? modelDue
+        let hasTime: Bool
+        if fallback.dueDate != nil {
+            hasTime = fallback.hasTime
+        } else {
+            hasTime = !model.dueTime.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+
+        self.init(
+            title: title,
+            details: details,
+            subtasks: items,
+            dueDate: due,
+            hasTime: hasTime,
+            priority: fallback.priority == .medium ? model.mappedPriority : fallback.priority,
+            categoryName: model.category.trimmingCharacters(in: .whitespacesAndNewlines),
+            estimatedMinutes: max(5, min(480, model.estimatedMinutes)),
+            isAIRefined: true,
+            source: fallback.source
+        )
     }
 }
 
