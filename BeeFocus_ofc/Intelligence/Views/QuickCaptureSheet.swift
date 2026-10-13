@@ -226,6 +226,25 @@ struct QuickCaptureSheet: View {
                 Spacer()
             }
 
+            // Termine wandern zusätzlich in den Systemkalender – hier sichtbar
+            // und mit einem Tipp wieder abwählbar.
+            if draft.dueDate != nil {
+                Button {
+                    drafts[index].isAppointment.toggle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: draft.isAppointment
+                              ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(localizer.localizedString(forKey: "quick_capture_calendar"))
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                    }
+                    .foregroundStyle(draft.isAppointment ? c1 : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
             // Kleine Korrekturen ohne Umweg über den Editor.
             HStack(spacing: 10) {
                 if let due = draft.dueDate {

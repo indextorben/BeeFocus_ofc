@@ -96,14 +96,25 @@ nonisolated struct AICreateTodoTool: Tool {
             let details = QuickTodoDraft.tidyDetails(arguments.details, title: cleanTitle, items: items)
             let subTasks = items.map { SubTask(title: $0) }
 
+            // Termine ("Freitag 14:15 Termin mit der Hochschule") gehören
+            // zusätzlich in den Systemkalender – erkannt am Wortlaut, nicht
+            // am Urteil des Modells.
+            let isAppointment = due != nil
+                && !arguments.dueTime.trimmingCharacters(in: .whitespaces).isEmpty
+                && QuickTodoParser.looksLikeAppointment("\(cleanTitle) \(details)")
+
             let todo = TodoItem(
                 title: cleanTitle,
                 description: details,
                 dueDate: due,
+                reminderOffsetMinutes: due == nil ? nil : (isAppointment ? 15 : 0),
                 category: category,
                 categoryID: category?.id,
                 priority: TodoPriority(rawValue: arguments.priority.lowercased()) ?? .medium,
-                subTasks: subTasks
+                subTasks: subTasks,
+                focusTimeInMinutes: isAppointment ? 60 : nil,
+                calendarEnabled: isAppointment,
+                endDate: isAppointment ? due?.addingTimeInterval(3600) : nil
             )
             store.addTodo(todo)
 
@@ -117,6 +128,7 @@ nonisolated struct AICreateTodoTool: Tool {
             }
             if let category { confirmation += ", Kategorie \(category.name)" }
             if !subTasks.isEmpty { confirmation += ", \(subTasks.count) Schritte" }
+            if isAppointment { confirmation += ", auch im Kalender" }
 
             log.record(symbol: "checkmark.circle.fill", text: confirmation) {
                 TodoStore.shared.deleteTodo(todo)

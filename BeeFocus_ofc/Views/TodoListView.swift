@@ -361,6 +361,10 @@ struct TodoListView: View {
                         }
                     }
                 }
+                .onChange(of: todoStore.lastAddedTodo?.id) { _, newID in
+                    guard newID != nil, let todo = todoStore.lastAddedTodo else { return }
+                    revealNewTodo(todo)
+                }
                 .onReceive(NotificationCenter.default.publisher(for: .openTodayDueFromNotification)) { _ in
                     selectedCategory = nil
                     showOnlyTodayFromNotification = true
@@ -624,28 +628,7 @@ struct TodoListView: View {
             guard !todo.isCompleted else { return false }
 
             // Time filter chips
-            let matchesTimeFilter: Bool = {
-                let c = Calendar.current
-                switch timeFilter {
-                case .alle:
-                    return true
-                case .heute:
-                    guard let due = todo.dueDate else { return false }
-                    return due >= todayStart && due <= todayEnd
-                case .morgen:
-                    let tom    = c.date(byAdding: .day, value: 1, to: todayStart) ?? todayStart
-                    let tomEnd = c.date(bySettingHour: 23, minute: 59, second: 59, of: tom) ?? todayEnd
-                    guard let due = todo.dueDate else { return false }
-                    return due >= tom && due <= tomEnd
-                case .dieseWoche:
-                    let weekEnd = c.date(byAdding: .day, value: 6, to: todayEnd) ?? todayEnd
-                    guard let due = todo.dueDate else { return false }
-                    return due >= todayStart && due <= weekEnd
-                case .ueberfaellig:
-                    guard let due = todo.dueDate else { return false }
-                    return due < todayStart
-                }
-            }()
+            let matchesTimeFilter = Self.matches(filter: timeFilter, todo: todo)
 
             return matchesSearch && matchesCategory && matchesToday && matchesCurrentMonth && matchesTimeFilter
         }
@@ -660,6 +643,72 @@ struct TodoListView: View {
         }
     }
     
+    /// Passt eine Aufgabe zu einem Zeitfilter-Chip? Wird für die Liste selbst
+    /// und zum Aufdecken neu angelegter Aufgaben gebraucht.
+    static func matches(filter: TodoTimeFilter, todo: TodoItem) -> Bool {
+        let c = Calendar.current
+        let todayStart = c.startOfDay(for: Date())
+        let todayEnd = c.date(bySettingHour: 23, minute: 59, second: 59, of: todayStart) ?? Date()
+
+        switch filter {
+        case .alle:
+            return true
+        case .heute:
+            guard let due = todo.dueDate else { return false }
+            return due >= todayStart && due <= todayEnd
+        case .morgen:
+            let tom    = c.date(byAdding: .day, value: 1, to: todayStart) ?? todayStart
+            let tomEnd = c.date(bySettingHour: 23, minute: 59, second: 59, of: tom) ?? todayEnd
+            guard let due = todo.dueDate else { return false }
+            return due >= tom && due <= tomEnd
+        case .dieseWoche:
+            let weekEnd = c.date(byAdding: .day, value: 6, to: todayEnd) ?? todayEnd
+            guard let due = todo.dueDate else { return false }
+            return due >= todayStart && due <= weekEnd
+        case .ueberfaellig:
+            guard let due = todo.dueDate else { return false }
+            return due < todayStart
+        }
+    }
+
+    /// Sorgt dafür, dass eine gerade angelegte Aufgabe in der Liste auch
+    /// auftaucht. Ohne das landet z. B. ein Termin am Freitag hinter dem
+    /// voreingestellten "Heute"-Filter: Die Aufgabe ist gespeichert, aber
+    /// unsichtbar – und wirkt darum wie nicht erfasst.
+    private func revealNewTodo(_ todo: TodoItem) {
+        let cal = Calendar.current
+        let hiddenBySearch = !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+            && !todo.title.localizedCaseInsensitiveContains(searchText)
+            && !todo.description.localizedCaseInsensitiveContains(searchText)
+        let hiddenByCategory = selectedCategory != nil && todo.category != selectedCategory
+        let hiddenByToday = showOnlyTodayFromNotification
+            && !(todo.dueDate.map { $0 <= (cal.date(bySettingHour: 23, minute: 59, second: 59, of: cal.startOfDay(for: Date())) ?? Date()) } ?? false)
+        let hiddenByMonth: Bool = {
+            guard filterCurrentMonthOnly, let due = todo.dueDate else { return false }
+            let comps = cal.dateComponents([.year, .month], from: Date())
+            guard let monthStart = cal.date(from: comps),
+                  let monthEnd = cal.date(byAdding: DateComponents(month: 1, second: -1), to: monthStart)
+            else { return false }
+            return due < monthStart || due > monthEnd
+        }()
+        let hiddenByTimeFilter = !Self.matches(filter: timeFilter, todo: todo)
+
+        guard hiddenBySearch || hiddenByCategory || hiddenByToday
+                || hiddenByMonth || hiddenByTimeFilter else { return }
+
+        withAnimation {
+            if hiddenBySearch { searchText = "" }
+            if hiddenByCategory { selectedCategory = nil }
+            if hiddenByToday { showOnlyTodayFromNotification = false }
+            if hiddenByMonth { filterCurrentMonthOnly = false }
+            if hiddenByTimeFilter {
+                // Den engsten Chip wählen, in dem die neue Aufgabe steht.
+                timeFilter = [TodoTimeFilter.heute, .morgen, .dieseWoche]
+                    .first { Self.matches(filter: $0, todo: todo) } ?? .alle
+            }
+        }
+    }
+
     // MARK: - Main View
     private var highlightTodo: TodoItem? {
         guard !highlightIDStr.isEmpty, let uid = UUID(uuidString: highlightIDStr) else { return nil }

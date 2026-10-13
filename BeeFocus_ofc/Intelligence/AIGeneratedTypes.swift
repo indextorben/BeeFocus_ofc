@@ -258,6 +258,9 @@ extension QuickTodoDraft {
             priority: fallback.priority == .medium ? model.mappedPriority : fallback.priority,
             categoryName: model.category.trimmingCharacters(in: .whitespacesAndNewlines),
             estimatedMinutes: max(5, min(480, model.estimatedMinutes)),
+            // Ob es ein Termin ist, entscheidet der Wortlaut – nicht das Modell.
+            isAppointment: fallback.isAppointment
+                || (hasTime && QuickTodoParser.looksLikeAppointment(fallback.source)),
             isAIRefined: true,
             source: fallback.source
         )

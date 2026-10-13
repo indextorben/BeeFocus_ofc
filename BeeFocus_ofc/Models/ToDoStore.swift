@@ -37,6 +37,10 @@ class TodoStore: ObservableObject {
     @Published var deletedTodos: [TrashEntry] = []
     @Published var customFolders: [String] = []
 
+    /// Die zuletzt neu angelegte Aufgabe. Die Liste richtet ihre Filter daran
+    /// aus, damit eine frisch erfasste Aufgabe auch wirklich zu sehen ist.
+    @Published var lastAddedTodo: TodoItem?
+
     private let saveKey = "todos"
     private let categoriesKey = "categories"
     private let statsKey = "dailyStats"
@@ -579,6 +583,7 @@ class TodoStore: ObservableObject {
         todos.append(todo)
         saveTodos()
         pushUndo(.create(todo: todo))
+        lastAddedTodo = todo
 
         // CloudKit speichern
         CloudKitManager.shared.saveTodo(todo)
@@ -1112,9 +1117,16 @@ class TodoStore: ObservableObject {
     // MARK: - Kalender-Integration
     
     func requestCalendarAccess(completion: @escaping (Bool) -> Void) {
-        eventStore.requestAccess(to: .event) { granted, error in
-            DispatchQueue.main.async {
-                completion(granted)
+        // iOS 17 hat die Nachfrage getrennt: Schreiben allein braucht keinen
+        // Vollzugriff mehr. BeeFocus liest und löscht eigene Einträge auch
+        // wieder, darum hier der volle Zugriff.
+        if #available(iOS 17.0, *) {
+            eventStore.requestFullAccessToEvents { granted, _ in
+                DispatchQueue.main.async { completion(granted) }
+            }
+        } else {
+            eventStore.requestAccess(to: .event) { granted, _ in
+                DispatchQueue.main.async { completion(granted) }
             }
         }
     }
@@ -1123,11 +1135,26 @@ class TodoStore: ObservableObject {
         requestCalendarAccess { granted in
             guard granted else { return }
             
-            let event = EKEvent(eventStore: self.eventStore)
+            // Hat die Aufgabe schon einen Eintrag, wird dieser aktualisiert –
+            // sonst entsteht bei jeder Bearbeitung ein weiterer Kalendereintrag.
+            let event: EKEvent
+            if let existingID = todo.calendarEventIdentifier,
+               let existing = self.eventStore.event(withIdentifier: existingID) {
+                event = existing
+            } else {
+                event = EKEvent(eventStore: self.eventStore)
+            }
             event.title = todo.title
             event.notes = todo.description
             event.startDate = todo.dueDate ?? Date()
-            event.endDate = event.startDate.addingTimeInterval(60 * 60)
+            // Dauer aus der Aufgabe übernehmen, sonst eine Stunde.
+            if let end = todo.endDate, end > event.startDate {
+                event.endDate = end
+            } else if let minutes = todo.focusTimeInMinutes, minutes > 0 {
+                event.endDate = event.startDate.addingTimeInterval(minutes * 60)
+            } else {
+                event.endDate = event.startDate.addingTimeInterval(60 * 60)
+            }
             event.calendar = self.eventStore.defaultCalendarForNewEvents
             
             do {

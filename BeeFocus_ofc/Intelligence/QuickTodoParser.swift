@@ -28,6 +28,9 @@ struct QuickTodoDraft: Equatable {
     var categoryName: String = ""
     /// Geschätzte Dauer in Minuten, falls bekannt.
     var estimatedMinutes: Int?
+    /// Ist das ein Termin (feste Uhrzeit mit Gegenüber oder Anlass)? Dann
+    /// wandert er zusätzlich in den Systemkalender.
+    var isAppointment: Bool = false
     /// Hat Apple Intelligence den Entwurf verfeinert?
     var isAIRefined: Bool = false
     /// Der Text, aus dem dieser Entwurf entstanden ist – Grundlage für eine
@@ -43,17 +46,29 @@ struct QuickTodoDraft: Equatable {
     @MainActor
     func makeTodo(category: Category? = nil) -> TodoItem {
         let resolved = category ?? Self.matchedCategory(named: categoryName)
+        // Termine: 15 Minuten vorher erinnern – zur Minute selbst ist es für
+        // einen Termin zu spät. Alles andere bleibt punktgenau.
+        let reminderOffset: Int? = dueDate == nil ? nil : (isAppointment ? 15 : 0)
+        let minutes = estimatedMinutes ?? (isAppointment ? 60 : nil)
         return TodoItem(
             title: title,
             description: details,
             dueDate: dueDate,
-            reminderOffsetMinutes: dueDate != nil ? 0 : nil,
+            reminderOffsetMinutes: reminderOffset,
             category: resolved,
             categoryID: resolved?.id,
             priority: priority,
             subTasks: subTaskItems,
-            focusTimeInMinutes: estimatedMinutes.map(Double.init)
+            focusTimeInMinutes: minutes.map(Double.init),
+            calendarEnabled: isAppointment && dueDate != nil,
+            endDate: endDate
         )
+    }
+
+    /// Geplantes Ende – nur bei Terminen mit Uhrzeit sinnvoll.
+    var endDate: Date? {
+        guard isAppointment, hasTime, let start = dueDate else { return nil }
+        return start.addingTimeInterval(TimeInterval((estimatedMinutes ?? 60) * 60))
     }
 
     @MainActor
@@ -222,6 +237,10 @@ enum QuickTodoParser {
             title = cleanTitle(working, fallback: trimmed, trimEdges: trimEdges)
         }
 
+        // Ein Termin ist nur, was eine feste Uhrzeit und einen Termin-Anlass
+        // hat. "Um 23 Uhr schlafen gehen" gehört nicht in den Kalender.
+        let isAppointment = time != nil && looksLikeAppointment(trimmed)
+
         return QuickTodoDraft(
             title: QuickTodoDraft.tidyTitle(title),
             details: details,
@@ -229,8 +248,32 @@ enum QuickTodoParser {
             dueDate: dueDate(day: day, time: time, reference: reference),
             hasTime: time != nil,
             priority: priority,
+            estimatedMinutes: isAppointment ? 60 : nil,
+            isAppointment: isAppointment,
             source: trimmed
         )
+    }
+
+    /// Wörter, die einen Termin ankündigen – etwas, das zu einer festen
+    /// Uhrzeit mit anderen stattfindet und darum in den Kalender gehört.
+    private static let appointmentWords = [
+        "termin", "meeting", "besprechung", "sitzung", "konferenz", "sprechstunde",
+        "vorstellungsgespräch", "bewerbungsgespräch", "elterngespräch", "gespräch",
+        "arzt", "ärztin", "zahnarzt", "hausarzt", "physio", "friseur", "werkstatt",
+        "vorlesung", "seminar", "übung", "tutorium", "prüfung", "klausur", "test",
+        "treffen", "verabredet", "verabredung", "date", "beratung", "schulung",
+        "abholen vom", "flug", "zug ab", "zugfahrt", "anruf mit", "call mit",
+        "appointment", "interview", "lecture", "exam", "class", "consultation",
+        "checkup", "doctor", "dentist", "conference", "standup", "stand-up", "sync"
+    ]
+
+    /// Klingt der Satz nach einem Termin?
+    static func looksLikeAppointment(_ text: String) -> Bool {
+        let lower = text.localizedLowercase
+        if appointmentWords.contains(where: { lower.contains($0) }) { return true }
+        // "um 14:15 mit Frau Meier", "treffe mich mit …" – ein Gegenüber plus
+        // feste Uhrzeit ist ebenfalls ein Termin.
+        return firstMatch(#"\b(mit|bei)\s+(der|dem|den|frau|herr|herrn|dr\.?|prof\.?|my|with)\b"#, in: lower) != nil
     }
 
     /// Zerlegt einen mehrzeiligen Text in mehrere Entwürfe. Eine Zeile mit
@@ -579,8 +622,9 @@ enum QuickTodoParser {
             return TimeOfDay(hour: hour, minute: 0)
         }
 
-        // 1. "23:30", "8:05"
-        if let match = firstMatch(#"(?:um\s+)?(\d{1,2}):(\d{2})"#, in: text),
+        // 1. "23:30", "8:05", "um 14:15 Uhr" – das "Uhr" muss mit weg,
+        //    sonst steht es nachher im Titel.
+        if let match = firstMatch(#"(?:um\s+)?(\d{1,2}):(\d{2})(?:\s*uhr)?"#, in: text),
            let hour = match.int(1), let minute = match.int(2),
            hour <= 23, minute <= 59 {
             text = text.replacingCharacters(in: match.range, with: " ")
@@ -736,6 +780,9 @@ enum QuickTodoParser {
         "erstelle todo", "erstelle ein todo", "neue aufgabe", "aufgabe",
         "merk dir", "merke dir", "notiere", "ich möchte", "ich will",
         "ich muss noch", "ich muss", "ich sollte", "ich brauche", "brauche noch", "brauche",
+        // "Ich habe einen Termin mit …" → "Termin mit …"
+        "ich habe einen", "ich habe eine", "ich habe ein", "ich habe", "ich hab",
+        "i have an", "i have a", "i have",
         "remind me to", "remind me", "create a task", "new task", "add task",
         "i want to", "i need to", "i have to"
     ]
