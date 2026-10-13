@@ -185,6 +185,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 print("Benachrichtigungen nicht erlaubt")
             } else {
                 print("Benachrichtigungen erlaubt")
+                // Wiederholungen neu planen, damit sie in der aktuellen Sprache stehen.
+                NotificationManager.shared.refreshRecurringReminders()
             }
         }
 

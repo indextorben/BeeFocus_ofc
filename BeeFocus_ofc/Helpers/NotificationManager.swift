@@ -98,8 +98,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// isBreak == false → Pause gerade beendet, Fokus beginnt
     func sendCompletionNotification(isBreak: Bool) {
         let content = UNMutableNotificationContent()
-        content.title = isBreak ? "Focus time done! 🎉" : "Break's over!"
-        content.body  = isBreak ? "Take a short break." : "Time for the next focus block."
+        content.title = localizer.localizedString(forKey: isBreak ? "focus_done_title" : "break_over_title")
+        content.body  = localizer.localizedString(forKey: isBreak ? "focus_done_body" : "break_over_body")
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -235,8 +235,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         var index = 0
         while hour <= 20 && index < 13 {
             let content = UNMutableNotificationContent()
-            content.title = "✅ Habit Check"
-            content.body  = "Have you kept up with your habits today?"
+            content.title = localizer.localizedString(forKey: "habit_reminder_title")
+            content.body  = localizer.localizedString(forKey: "habit_reminder_body")
             content.sound = .default
             var comps = DateComponents(); comps.hour = hour; comps.minute = 0
             let request = UNNotificationRequest(
@@ -292,8 +292,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleOverdueAlert(hour: Int, minute: Int) {
         cancelOverdueAlert()
         let content = UNMutableNotificationContent()
-        content.title = "⚠️ Open Tasks"
-        content.body  = "You still have overdue tasks – a good moment to get them done."
+        content.title = localizer.localizedString(forKey: "overdue_alert_title")
+        content.body  = localizer.localizedString(forKey: "overdue_alert_body")
         content.sound = .default
         var comps = DateComponents(); comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -315,8 +315,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleWeeklyReview(weekday: Int = 1, hour: Int, minute: Int) {
         cancelWeeklyReview()
         let content = UNMutableNotificationContent()
-        content.title = "📋 Weekly Review"
-        content.body  = "Take a moment and review your weekly goals."
+        content.title = localizer.localizedString(forKey: "weekly_review_title")
+        content.body  = localizer.localizedString(forKey: "weekly_review_body")
         content.sound = .default
         var comps = DateComponents(); comps.weekday = weekday; comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -337,8 +337,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleMoodReminder(hour: Int, minute: Int) {
         cancelMoodReminder()
         let content = UNMutableNotificationContent()
-        content.title = "😊 Mood Check"
-        content.body  = "How are you feeling today? Log your mood."
+        content.title = localizer.localizedString(forKey: "mood_reminder_title")
+        content.body  = localizer.localizedString(forKey: "mood_reminder_body")
         content.sound = .default
         var comps = DateComponents(); comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -359,8 +359,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleEveningReminder(hour: Int, minute: Int) {
         cancelEveningReminder()
         let content = UNMutableNotificationContent()
-        content.title = "🌙 Evening Reflection"
-        content.body  = "Take 5 minutes for your daily journal or gratitude entry."
+        content.title = localizer.localizedString(forKey: "evening_reminder_title")
+        content.body  = localizer.localizedString(forKey: "evening_reminder_body")
         content.sound = .default
         var comps = DateComponents(); comps.hour = hour; comps.minute = minute
         let request = UNNotificationRequest(
@@ -374,12 +374,54 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             .removePendingNotificationRequests(withIdentifiers: [eveningReminderID])
     }
 
+    // MARK: - Reschedule
+
+    /// Plant alle aktiven wiederkehrenden Erinnerungen neu, damit Titel und Text
+    /// in der aktuellen Sprache stehen. Bereits eingeplante Wiederholungen behalten
+    /// sonst dauerhaft den Text, mit dem sie urspruenglich erstellt wurden.
+    func refreshRecurringReminders() {
+        let defaults = UserDefaults.standard
+
+        func time(_ key: String, default fallback: Double) -> (Int, Int) {
+            let seconds = Int(defaults.object(forKey: key) as? Double ?? fallback)
+            return (max(0, min(23, seconds / 3600)), max(0, min(59, (seconds % 3600) / 60)))
+        }
+
+        func interval(_ key: String) -> Int {
+            let value = defaults.object(forKey: key) as? Int ?? 2
+            return max(1, value)
+        }
+
+        if defaults.bool(forKey: "waterReminderEnabled") {
+            scheduleWaterReminders(intervalHours: interval("waterReminderInterval"))
+        }
+        if defaults.bool(forKey: "habitReminderEnabled") {
+            scheduleHabitReminders(intervalHours: interval("habitReminderInterval"))
+        }
+        if defaults.bool(forKey: "overdueAlertEnabled") {
+            let (hour, minute) = time("overdueAlertTime", default: 20 * 3600)
+            scheduleOverdueAlert(hour: hour, minute: minute)
+        }
+        if defaults.bool(forKey: "weeklyReviewEnabled") {
+            let (hour, minute) = time("weeklyReviewTime", default: 19 * 3600)
+            scheduleWeeklyReview(hour: hour, minute: minute)
+        }
+        if defaults.bool(forKey: "moodReminderEnabled") {
+            let (hour, minute) = time("moodReminderTime", default: 21 * 3600)
+            scheduleMoodReminder(hour: hour, minute: minute)
+        }
+        if defaults.bool(forKey: "eveningReminderEnabled") {
+            let (hour, minute) = time("eveningReminderTime", default: 21 * 3600 + 30 * 60)
+            scheduleEveningReminder(hour: hour, minute: minute)
+        }
+    }
+
     // MARK: - Test
 
     func sendTestNotification() {
         let content = UNMutableNotificationContent()
-        content.title = "Test Notification"
-        content.body  = "Notifications are working correctly."
+        content.title = localizer.localizedString(forKey: "test_notification_title")
+        content.body  = localizer.localizedString(forKey: "test_notification_body")
         content.sound = .default
 
         let request = UNNotificationRequest(

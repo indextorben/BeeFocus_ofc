@@ -597,6 +597,7 @@ struct EinstellungenView: View {
                 }
                 .pickerStyle(.menu)
                 .onChange(of: localizer.selectedLanguage) { _ in
+                    NotificationManager.shared.refreshRecurringReminders()
                     if morningSummaryEnabled {
                         scheduleMorningSummaryNow()
                         bannerColor = .green
