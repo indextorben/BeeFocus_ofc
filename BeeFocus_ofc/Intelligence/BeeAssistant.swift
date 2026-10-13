@@ -7,6 +7,7 @@
 //  aufrufen und liest die Bestätigung vor.
 //
 
+import Combine
 import Foundation
 import FoundationModels
 import SwiftUI
@@ -37,6 +38,16 @@ final class BeeAssistant: ObservableObject {
     private let speech = SpeechManager.shared
     private var session: LanguageModelSession?
     private var task: Task<Void, Never>?
+    /// Das Protokoll ist ein eigenes ObservableObject – seine Änderungen
+    /// müssen hier weitergemeldet werden, sonst bemerkt die Ansicht eine neue
+    /// Aktion nur zufällig, wenn sich gleichzeitig Antwort oder Phase ändern.
+    private var logObserver: AnyCancellable?
+
+    init() {
+        logObserver = log.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+    }
 
     var isBusy: Bool { phase == .thinking || phase == .answering }
 
@@ -128,35 +139,41 @@ final class BeeAssistant: ObservableObject {
             context
         }
         self.session = session
-
-        if speakReplies { speech.resetStream() }
+        speech.stopSpeaking()
 
         do {
-            let stream = session.streamResponse(to: command)
-            phase = .answering
-            var lastSpoken = ""
+            // Bewusst ohne Streaming: Erst wenn der Werkzeug-Durchlauf fertig
+            // ist, steht fest, was wirklich passiert ist. Nur das wird
+            // angezeigt und vorgelesen – und nicht eine Ankündigung, die das
+            // Modell danach doch nicht einlöst.
+            let response = try await session.respond(
+                to: command,
+                options: GenerationOptions(temperature: 0.3)
+            )
+            if Task.isCancelled { return }
+            var text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            for try await partial in stream {
-                if Task.isCancelled { return }
-                let full = partial.content
-                reply = full
-                if speakReplies, full.count > lastSpoken.count {
-                    let delta = String(full.dropFirst(lastSpoken.count))
-                    speech.appendToStream(delta, languageCode: languageCode)
-                    lastSpoken = full
+            // Hat das Modell kein Werkzeug aufgerufen, obwohl eine Aufgabe
+            // entstehen sollte, legt der Parser sie an – derselbe Weg wie bei
+            // "Schnell erfassen". Sonst bliebe nur eine Antwort, die etwas
+            // bestätigt, was nie passiert ist.
+            if log.entries.isEmpty, BeeAssistantFallback.looksLikeTodoRequest(command) {
+                let created = BeeAssistantFallback.createTodos(from: command, log: log)
+                if !created.isEmpty {
+                    text = created.joined(separator: ". ") + "."
                 }
             }
 
-            if speakReplies { speech.finishStream(languageCode: languageCode) }
-
-            // Kein Text zurück, aber Aktionen ausgeführt: Protokoll als Antwort nutzen.
-            if reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                reply = log.entries.isEmpty
+            // Kein Text zurück: Protokoll als Antwort nutzen.
+            if text.isEmpty {
+                text = log.entries.isEmpty
                     ? AIL("ai_voice_no_action")
                     : log.entries.map(\.text).joined(separator: ". ") + "."
-                if speakReplies { speech.speak(reply, languageCode: languageCode) }
             }
+
+            reply = text
             phase = .done
+            if speakReplies { speech.speak(text, languageCode: languageCode) }
         } catch is CancellationError {
             phase = .idle
         } catch {

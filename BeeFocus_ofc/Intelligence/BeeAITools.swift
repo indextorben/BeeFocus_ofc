@@ -42,6 +42,31 @@ final class AIActionLog: ObservableObject {
     }
 }
 
+// MARK: - Bestätigungstexte
+
+/// Formuliert die Quittung für eine neu angelegte Aufgabe. Liegt an einer
+/// Stelle, damit das Werkzeug des Modells und der regelbasierte Rückfallweg
+/// gleich klingen.
+@MainActor
+enum AITodoConfirmation {
+    static func text(for todo: TodoItem, hasTime: Bool) -> String {
+        var confirmation = "Aufgabe „\(todo.title)“ angelegt"
+        if let due = todo.dueDate {
+            let f = DateFormatter()
+            f.locale = LocalizationManager.shared.currentLocale
+            f.dateStyle = .medium
+            f.timeStyle = hasTime ? .short : .none
+            confirmation += ", fällig \(f.string(from: due))"
+        }
+        let categoryName = todo.category?.name
+            ?? TodoStore.shared.categories.first(where: { $0.id == todo.categoryID })?.name
+        if let categoryName { confirmation += ", Kategorie \(categoryName)" }
+        if !todo.subTasks.isEmpty { confirmation += ", \(todo.subTasks.count) Schritte" }
+        if todo.calendarEnabled { confirmation += ", auch im Kalender" }
+        return confirmation
+    }
+}
+
 // MARK: - Aufgabe anlegen
 
 @available(iOS 26.0, *)
@@ -118,17 +143,10 @@ nonisolated struct AICreateTodoTool: Tool {
             )
             store.addTodo(todo)
 
-            var confirmation = "Aufgabe „\(cleanTitle)“ angelegt"
-            if let due {
-                let f = DateFormatter()
-                f.locale = LocalizationManager.shared.currentLocale
-                f.dateStyle = .medium
-                f.timeStyle = arguments.dueTime.isEmpty ? .none : .short
-                confirmation += ", fällig \(f.string(from: due))"
-            }
-            if let category { confirmation += ", Kategorie \(category.name)" }
-            if !subTasks.isEmpty { confirmation += ", \(subTasks.count) Schritte" }
-            if isAppointment { confirmation += ", auch im Kalender" }
+            let confirmation = AITodoConfirmation.text(
+                for: todo,
+                hasTime: !arguments.dueTime.trimmingCharacters(in: .whitespaces).isEmpty
+            )
 
             log.record(symbol: "checkmark.circle.fill", text: confirmation) {
                 TodoStore.shared.deleteTodo(todo)

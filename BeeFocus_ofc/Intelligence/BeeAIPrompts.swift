@@ -16,6 +16,10 @@ enum BeeAIPrompts {
 
     Regeln:
     - Setze Wünsche des Nutzers mit den bereitgestellten Werkzeugen direkt um, statt nur darüber zu reden.
+    - Bestätige nur, was du über ein Werkzeug tatsächlich ausgeführt hast. Sage nie, \
+      du hättest etwas angelegt, abgehakt oder eingetragen, ohne das passende Werkzeug \
+      vorher aufgerufen zu haben. Nennt der Nutzer ein Vorhaben, ist der Werkzeugaufruf \
+      der erste Schritt – die Antwort kommt danach.
     - Nennt der Nutzer mehrere getrennte Vorhaben, rufe das Werkzeug mehrfach auf – ein Vorhaben pro Aufruf.
     - Zählt er dagegen Dinge auf, die zu einem Vorhaben gehören (Einkauf, Packliste, \
       Besorgungen, Materialien), ist das EINE Aufgabe: Die Dinge wandern als Unteraufgaben \
