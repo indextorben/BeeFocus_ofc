@@ -46,6 +46,81 @@ final class AITodoIntelligence: ObservableObject {
         return QuickTodoDraft(model: response.content, fallback: fallback)
     }
 
+    // MARK: - Mehrere Aufgaben aus einer Eingabe
+
+    /// Verfasst aus freiem Text **alle** Aufgaben, die darin stecken – der Weg
+    /// für "Schnell erfassen", Bee Voice und Siri, wenn der Nutzer in einem Zug
+    /// mehrere Sachen nennt.
+    ///
+    /// Grundlage ist wieder der regelbasierte Schnitt aus `QuickTodoParser`.
+    /// Das Modell darf **feiner** trennen als er – etwa bei Prosa, in der die
+    /// Vorhaben ohne Bindewort aneinanderhängen. Fasst es dagegen zusammen,
+    /// bleibt der regelbasierte Schnitt stehen und wird nur verfeinert: Eine
+    /// Aufgabe, die der Nutzer genannt hat, darf nie verschwinden.
+    func composeMany(from text: String, reference: Date = Date()) async throws -> [QuickTodoDraft] {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean.count >= 3 else { throw AIFeatureError.inputTooShort }
+
+        let fallback = QuickTodoParser.drafts(from: clean, reference: reference)
+        guard !fallback.isEmpty else { throw AIFeatureError.inputTooShort }
+        guard AIAvailability.shared.isAvailable else { throw AIFeatureError.unavailable }
+
+        let context = AIContext.dateContext + "\n" + AIContext.categoryContext
+        let session = LanguageModelSession {
+            BeeAIPrompts.extractionInstructions
+            context
+        }
+        let response = try await session.respond(
+            to: "Zerlege diese Eingabe in Aufgaben:\n\n\(AIContext.sanitizeInput(clean))",
+            generating: AIExtractedTodoBatch.self,
+            options: GenerationOptions(temperature: 0.3)
+        )
+
+        let todos = response.content.todos.filter {
+            !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        guard todos.count > fallback.count else { return await refine(fallback) }
+
+        var used = Set<Int>()
+        return todos.map { model in
+            let base = Self.matchingDraft(for: model, in: fallback, used: &used)
+                ?? QuickTodoParser.parse(model.title, reference: reference)
+            return QuickTodoDraft(model: model, fallback: base)
+        }
+    }
+
+    /// Ordnet eine Aufgabe des Modells dem regelbasierten Entwurf zu, aus dem
+    /// sie entstanden ist – über gemeinsame Wörter. Nur so erbt sie die
+    /// wörtlich genannte Uhrzeit ihres Satzteils und nicht die einer anderen.
+    private static func matchingDraft(
+        for model: AIExtractedTodo,
+        in drafts: [QuickTodoDraft],
+        used: inout Set<Int>
+    ) -> QuickTodoDraft? {
+        let needle = keywords(([model.title] + model.subtasks).joined(separator: " "))
+        guard !needle.isEmpty else { return nil }
+
+        var best: (index: Int, score: Int)?
+        for (index, draft) in drafts.enumerated() where !used.contains(index) {
+            let haystack = keywords(draft.source.isEmpty ? draft.title : draft.source)
+            let score = haystack.intersection(needle).count
+            if score > 0, score > (best?.score ?? 0) { best = (index, score) }
+        }
+        guard let best else { return nil }
+        used.insert(best.index)
+        return drafts[best.index]
+    }
+
+    /// Aussagekräftige Wörter eines Textes – kurze Füllwörter fallen weg.
+    private static func keywords(_ text: String) -> Set<String> {
+        Set(
+            QuickTodoDraft.normalizedKey(text)
+                .split(separator: " ")
+                .map(String.init)
+                .filter { $0.count >= 4 }
+        )
+    }
+
     /// Verfeinert mehrere Entwürfe nacheinander. Schlägt einer fehl, bleibt der
     /// regelbasierte Entwurf stehen – es gehen also nie Eingaben verloren.
     func refine(_ drafts: [QuickTodoDraft], limit: Int = 6) async -> [QuickTodoDraft] {

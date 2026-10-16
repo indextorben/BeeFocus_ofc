@@ -138,7 +138,10 @@ final class AIPlanner: ObservableObject {
         }
 
         if includeExistingTodos {
-            for todo in AIContext.todaysTodos() {
+            // Was schon als Kandidat drinsteht, nicht ein zweites Mal nennen –
+            // sonst plant das Modell dieselbe Aufgabe zweimal ein.
+            let known = Set(selectedCandidates.map { Self.titleKey($0.todo.title) })
+            for todo in AIContext.todaysTodos() where !known.contains(Self.titleKey(todo.title)) {
                 append(
                     title: todo.title,
                     priority: todo.priority.rawValue,

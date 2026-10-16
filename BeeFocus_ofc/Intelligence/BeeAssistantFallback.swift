@@ -65,8 +65,40 @@ enum BeeAssistantFallback {
     /// - Returns: Die Quittungen der angelegten Aufgaben, leer wenn nichts entstand.
     @discardableResult
     static func createTodos(from command: String, log: AIActionLog) -> [String] {
-        let drafts = QuickTodoParser.drafts(from: command)
-            .filter { $0.title.count >= 2 }
+        create(QuickTodoParser.drafts(from: command), log: log)
+    }
+
+    /// Trägt nach, was das Modell übersehen hat. Nennt der Nutzer drei
+    /// Vorhaben und das Modell ruft das Werkzeug nur einmal auf, wäre der Rest
+    /// verloren – und die Antwort behauptet trotzdem, alles sei erledigt.
+    /// Angelegt wird nur, was in keiner schon angelegten Aufgabe steckt.
+    /// - Returns: Die Quittungen der nachgetragenen Aufgaben.
+    @discardableResult
+    static func createMissingTodos(from command: String, log: AIActionLog) -> [String] {
+        let existing = log.createdTodoTitles.map(keywords)
+        guard !existing.isEmpty else { return [] }
+
+        let missing = QuickTodoParser.drafts(from: command).filter { draft in
+            let words = keywords(draft.title)
+            guard !words.isEmpty else { return false }
+            // Schon angelegt, wenn eine vorhandene Aufgabe denselben Kern hat.
+            return !existing.contains { !$0.intersection(words).isEmpty }
+        }
+        return create(missing, log: log)
+    }
+
+    /// Aussagekräftige Wörter eines Titels – kurze Füllwörter fallen weg.
+    private static func keywords(_ text: String) -> Set<String> {
+        Set(
+            QuickTodoDraft.normalizedKey(text)
+                .split(separator: " ")
+                .map(String.init)
+                .filter { $0.count >= 4 }
+        )
+    }
+
+    private static func create(_ drafts: [QuickTodoDraft], log: AIActionLog) -> [String] {
+        let drafts = drafts.filter { $0.title.count >= 2 }
         guard !drafts.isEmpty else { return [] }
 
         var confirmations: [String] = []
@@ -75,7 +107,11 @@ enum BeeAssistantFallback {
             TodoStore.shared.addTodo(todo)
             let confirmation = AITodoConfirmation.text(for: todo, hasTime: draft.hasTime)
             confirmations.append(confirmation)
-            log.record(symbol: "checkmark.circle.fill", text: confirmation) {
+            log.record(
+                symbol: "checkmark.circle.fill",
+                text: confirmation,
+                todoTitle: todo.title
+            ) {
                 TodoStore.shared.deleteTodo(todo)
             }
         }

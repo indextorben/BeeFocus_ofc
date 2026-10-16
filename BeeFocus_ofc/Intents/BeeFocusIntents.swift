@@ -41,34 +41,57 @@ struct AddTodoIntent: AppIntent {
 
         // Basis: der regelbasierte Parser. Er versteht "um 23 Uhr schlafen gehen"
         // und "ich brauche Milch, Brot und Eier" auch ohne Apple Intelligence,
-        // also auf jedem unterstützten Gerät.
-        var draft = QuickTodoParser.parse(clean)
+        // also auf jedem unterstützten Gerät – und trennt mehrere Vorhaben in
+        // einem Satz in mehrere Aufgaben.
+        var drafts = QuickTodoParser.drafts(from: clean)
+        if drafts.isEmpty { drafts = [QuickTodoParser.parse(clean)] }
 
-        // Ist Apple Intelligence da, verfasst es daraus eine saubere Aufgabe:
-        // ein Titel, der Rest als Beschreibung, Aufzählungen als Unteraufgaben.
+        // Ist Apple Intelligence da, verfasst es daraus saubere Aufgaben:
+        // ein Titel je Vorhaben, der Rest als Beschreibung, Aufzählungen als
+        // Unteraufgaben.
         if #available(iOS 26.0, *), AIAvailability.shared.isAvailable,
-           let refined = try? await AITodoIntelligence.shared.compose(from: clean) {
-            draft = refined
+           let refined = try? await AITodoIntelligence.shared.composeMany(from: clean),
+           !refined.isEmpty {
+            drafts = refined
         }
 
         // Ein im Kurzbefehl gesetztes Datum schlägt alles Erkannte.
         if let dueDate {
-            draft.dueDate = dueDate
-            draft.hasTime = true
+            for index in drafts.indices {
+                drafts[index].dueDate = dueDate
+                drafts[index].hasTime = true
+            }
         }
 
-        let todo = draft.makeTodo()
-        TodoStore.shared.addTodo(todo)
+        let todos = drafts.map { $0.makeTodo() }
+        for todo in todos { TodoStore.shared.addTodo(todo) }
 
-        let entity = TodoAppEntity(todo)
-        return .result(
-            value: entity,
-            dialog: IntentDialog(stringLiteral: Self.confirmation(
-                title: todo.title,
-                due: todo.dueDate,
-                steps: todo.subTasks.count
-            ))
-        )
+        guard let first = todos.first else {
+            throw $text.needsValueError("Was soll auf die Liste?")
+        }
+
+        let dialog = todos.count == 1
+            ? Self.confirmation(
+                title: first.title,
+                due: first.dueDate,
+                steps: first.subTasks.count
+            )
+            : Self.confirmation(for: todos)
+
+        return .result(value: TodoAppEntity(first), dialog: IntentDialog(stringLiteral: dialog))
+    }
+
+    /// Quittung für mehrere Aufgaben aus einem Satz – mit Namen, damit der
+    /// Nutzer hört, wie geschnitten wurde.
+    private static func confirmation(for todos: [TodoItem]) -> String {
+        let titles = todos.map { "„\($0.title)“" }
+        let list: String
+        if let last = titles.last, titles.count > 1 {
+            list = titles.dropLast().joined(separator: ", ") + " und " + last
+        } else {
+            list = titles.joined()
+        }
+        return "\(todos.count) Aufgaben wurden hinzugefügt: \(list)."
     }
 
     /// Sagt zurück, was wirklich eingetragen wurde – inklusive Uhrzeit

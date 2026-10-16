@@ -23,6 +23,9 @@ struct QuickTodoDraft: Equatable {
     var dueDate: Date?
     /// Wurde eine konkrete Uhrzeit genannt (und nicht nur ein Tag)?
     var hasTime: Bool = false
+    /// Wurde ein Tag ausdrücklich genannt ("morgen", "Freitag", "12.03.")?
+    /// Nur dann darf er auf die folgenden Aussagen derselben Zeile übergehen.
+    var hasExplicitDay: Bool = false
     var priority: TodoPriority = .medium
     /// Name einer Kategorie, die Apple Intelligence vorgeschlagen hat.
     var categoryName: String = ""
@@ -252,6 +255,7 @@ enum QuickTodoParser {
             subtasks: QuickTodoDraft.tidyItems(items, title: title),
             dueDate: dueDate(day: day, time: time, reference: reference),
             hasTime: time != nil,
+            hasExplicitDay: day != nil,
             priority: priority,
             estimatedMinutes: isAppointment ? 60 : nil,
             isAppointment: isAppointment,
@@ -324,7 +328,13 @@ enum QuickTodoParser {
             }
 
             if items.isEmpty {
-                result.append(parse(header, reference: reference))
+                // In einer gesprochenen Zeile können mehrere Vorhaben stecken:
+                // "morgen einkaufen gehen und um 18 Uhr zum Zahnarzt" sind zwei
+                // Aufgaben. Was zusammengehört, bleibt eine (siehe `statements`).
+                var lineDrafts = statements(in: header, reference: reference)
+                    .map { parse($0, reference: reference) }
+                inheritDay(in: &lineDrafts)
+                result.append(contentsOf: lineDrafts)
             } else {
                 var draft = parse(opensList ? String(header.dropLast()) : header, reference: reference)
                 draft.subtasks = QuickTodoDraft.tidyItems(draft.subtasks + items, title: draft.title)
@@ -335,6 +345,168 @@ enum QuickTodoParser {
         }
 
         return result
+    }
+
+    // MARK: - Mehrere Aufgaben in einem Satz
+
+    /// Wörter, die im Diktat unmissverständlich eine neue Aussage einleiten.
+    /// Hier wird immer getrennt.
+    private static let statementBreaks = [
+        #"\s+und\s+dann\s+"#, #"\s+dann\s+noch\s+"#, #"\s+und\s+außerdem\s+"#,
+        #"\s+außerdem\s+"#, #"\s+ausserdem\s+"#, #"\s+danach\s+"#,
+        #"\s+zusätzlich\s+"#, #"\s*;\s*"#,
+        #"\s+and\s+then\s+"#, #"\s+after\s+that\s+"#,
+        #"\s+also\s+(?=i\b)"#, #"\s+plus\s+(?=i\b)"#
+    ]
+
+    /// Trennstellen, die nur gelten, wenn **jede** Hälfte für sich nach einer
+    /// Aufgabe aussieht. Sonst bleibt "Milch und Brot" eine Aufzählung.
+    private static let weakStatementBreaks = [
+        #"\s+und\s+noch\s+"#, #"\s+und\s+"#, #"\s+sowie\s+"#, #"\s+and\s+"#,
+        // Vor einer Zahl trennt das Komma nicht – sonst zerfallen "Freitag, 14:30"
+        // und "12.03., 9 Uhr". Ausnahme: Es folgt eine ausdrückliche Uhrzeit mit
+        // "Uhr", wie in "8 Uhr Zahnarzt, 14 Uhr Meeting".
+        #",\s*(?=\d{1,2}(?::\d{2})?\s*uhr\b)"#, #",(?!\s*\d)\s*"#
+    ]
+
+    /// Zerlegt **eine** Zeile in die Aussagen, die darin stecken.
+    ///
+    ///     "morgen einkaufen gehen und um 18 Uhr zum Zahnarzt"
+    ///     → zwei Aufgaben
+    ///     "ich brauche Milch, Brot und Eier"
+    ///     → eine Aufgabe mit drei Unteraufgaben
+    ///
+    /// Im Zweifel bleibt es bei einer Aussage: Eine Aufgabe zu wenig zu
+    /// erkennen ist harmloser, als die Einkaufsliste in Einzelaufgaben zu
+    /// zerlegen.
+    static func statements(in line: String, reference: Date = Date()) -> [String] {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 10 else { return [trimmed] }
+
+        // Steckt eine Aufzählung von Dingen im Satz, gehört alles zu einer
+        // Aufgabe – `parse` macht daraus Unteraufgaben.
+        //
+        // Geprüft wird auf dem Satz **ohne** Zeitangaben, genau wie in `parse`.
+        // Sonst macht der Doppelpunkt in "Freitag 14:30 Termin …" aus dem Satz
+        // eine Liste.
+        var probe = " " + trimmed + " "
+        _ = extractPriority(from: &probe)
+        for _ in 0..<4 {
+            if extractTime(from: &probe) == nil { break }
+        }
+        for _ in 0..<4 {
+            if extractDay(from: &probe, reference: reference) == nil { break }
+        }
+        if extractList(in: probe) != nil { return [trimmed] }
+
+        var working = trimmed
+        for pattern in statementBreaks {
+            working = working.replacingOccurrences(
+                of: pattern,
+                with: "\n",
+                options: [.regularExpression, .caseInsensitive]
+            )
+        }
+
+        var result: [String] = []
+        for part in statementParts(in: working) {
+            // Innerhalb eines Teils noch an "und" und Komma trennen – aber nur,
+            // wenn jedes Stück danach eine eigene Aufgabe ist.
+            var candidate = part
+            for pattern in weakStatementBreaks {
+                candidate = candidate.replacingOccurrences(
+                    of: pattern,
+                    with: "\n",
+                    options: [.regularExpression, .caseInsensitive]
+                )
+            }
+            let pieces = statementParts(in: candidate)
+            if pieces.count >= 2,
+               pieces.allSatisfy({ looksLikeOwnTask($0, reference: reference) }) {
+                result.append(contentsOf: pieces)
+            } else {
+                result.append(part)
+            }
+        }
+
+        // Mehr als eine Handvoll Aufgaben aus einem Satz ist kein Diktat mehr,
+        // sondern ein Fehlschnitt.
+        guard !result.isEmpty, result.count <= 8 else { return [trimmed] }
+        return result
+    }
+
+    /// Räumt die Teile nach dem Trennen auf: Bindewort am Anfang weg,
+    /// Satzzeichen an den Rändern weg, leere Floskeln verwerfen.
+    private static func statementParts(in text: String) -> [String] {
+        text.components(separatedBy: "\n")
+            .map { part -> String in
+                let clean = part
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .replacingOccurrences(
+                        of: #"^(?:und|dann|noch|auch|sowie|außerdem|ausserdem|and|also|plus|then)\b[\s,]*"#,
+                        with: "",
+                        options: [.regularExpression, .caseInsensitive]
+                    )
+                    .replacingOccurrences(
+                        of: #"[\s,]*\b(?:und|sowie|dann|noch|auch|and|plus|then)$"#,
+                        with: "",
+                        options: [.regularExpression, .caseInsensitive]
+                    )
+                return clean.trimmingCharacters(in: CharacterSet(charactersIn: " \t,.;:-–—"))
+            }
+            .filter { $0.count >= 4 && !isFillerOnly($0) }
+    }
+
+    /// Steht dieser Satzteil für eine eigene Aufgabe – und nicht für ein Ding in
+    /// einer Aufzählung? Eine Tätigkeit, eine Uhrzeit oder ein Tag reichen.
+    private static func looksLikeOwnTask(_ text: String, reference: Date) -> Bool {
+        if containsActionWord(text) { return true }
+
+        // Ohne Tätigkeit braucht eine eigene Aussage mindestens zwei Wörter.
+        // Sonst wird aus "Freitag, 14:30 Uhr Termin" eine Aufgabe "Freitag".
+        let words = text.split(separator: " ")
+        guard words.count >= 2 else { return false }
+
+        var timeProbe = " " + text + " "
+        if extractTime(from: &timeProbe) != nil { return true }
+
+        var dayProbe = " " + text + " "
+        if extractDay(from: &dayProbe, reference: reference) != nil { return true }
+
+        // Ein Satzteil, der auf einen Infinitiv endet, ist eine Tätigkeit – auch
+        // wenn das Verb nicht in der Liste steht: "Keller entrümpeln",
+        // "Beet umgraben".
+        guard let last = words.last else { return false }
+        return String(last).range(
+            of: #"^\p{L}{4,}(?:en|eln|ern)$"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil
+    }
+
+    /// Ein einmal genannter Tag gilt für die folgenden Aussagen derselben
+    /// Zeile weiter: "morgen einkaufen gehen und um 18 Uhr zum Zahnarzt" heißt
+    /// beides morgen. Übertragen wird nur auf Aussagen mit eigener Uhrzeit –
+    /// ohne Uhrzeit bleibt eine Aufgabe lieber ganz ohne Datum, als ein
+    /// falsches zu bekommen.
+    private static func inheritDay(in drafts: inout [QuickTodoDraft]) {
+        let calendar = Calendar.current
+        var day: Date?
+
+        for index in drafts.indices {
+            if drafts[index].hasExplicitDay, let due = drafts[index].dueDate {
+                day = calendar.startOfDay(for: due)
+                continue
+            }
+            guard let day, drafts[index].hasTime, let due = drafts[index].dueDate else { continue }
+            let parts = calendar.dateComponents([.hour, .minute], from: due)
+            drafts[index].dueDate = calendar.date(
+                bySettingHour: parts.hour ?? 9,
+                minute: parts.minute ?? 0,
+                second: 0,
+                of: day
+            )
+            drafts[index].hasExplicitDay = true
+        }
     }
 
     private static func isBulletLine(_ line: String) -> Bool {
@@ -363,7 +535,7 @@ enum QuickTodoParser {
     // MARK: - Aufzählungen
 
     /// Wofür eine erkannte Aufzählung steht – bestimmt den Titel der Aufgabe.
-    private enum ListKind {
+    private enum ListKind: Equatable {
         case shopping
         case packing
         case todo
@@ -390,7 +562,9 @@ enum QuickTodoParser {
     private static let listFillers = [
         "ich muss noch", "ich muss", "ich sollte", "ich will noch", "ich will", "ich möchte",
         "wir müssen noch", "wir müssen", "wir brauchen", "noch", "auch noch", "auch", "bitte",
-        "unbedingt", "dringend", "heute noch", "ich", "wir", "für", "fuer",
+        "unbedingt", "dringend", "heute noch", "und zwar", "zwar",
+        "dann noch", "dann", "danach", "außerdem", "ausserdem", "zusätzlich",
+        "ich", "wir", "für", "fuer",
         "i have to", "i need to", "i must", "i should", "we need to", "we need", "please", "also",
         "i", "we", "for"
     ]
@@ -408,8 +582,14 @@ enum QuickTodoParser {
             let head = String(text[text.startIndex..<colon])
             let tail = String(text[text.index(after: colon)...])
             let items = splitItems(tail)
-            if items.count >= 2 {
-                return (items, head, true, kind(for: head)?.title ?? ListKind.todo.title)
+            // Nur Dinge werden Unteraufgaben. "Heute: Rechnung bezahlen und
+            // Versicherung kündigen" sind zwei Aufgaben – es sei denn, der Kopf
+            // sagt ausdrücklich Einkauf oder Packliste.
+            let headKind = kind(for: head)
+            let itemsAreThings = items.allSatisfy(looksLikeThing)
+                || headKind == .shopping || headKind == .packing
+            if items.count >= 2, itemsAreThings {
+                return (items, head, true, headKind?.title ?? ListKind.todo.title)
             }
         }
 

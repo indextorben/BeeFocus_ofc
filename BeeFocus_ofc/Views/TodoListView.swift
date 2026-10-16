@@ -112,6 +112,9 @@ struct TodoListView: View {
     @State private var showingDayPlanner = false
     @State private var showingQuickCapture = false
     @ObservedObject private var aiRouter = AIRouter.shared
+    /// Vorbelegung für den Tagesplaner, wenn er aus einer anderen Ansicht
+    /// heraus geöffnet wird.
+    @State private var dayPlannerSeed: String = ""
 
     // Intelligente Suche: Treffer, die nicht wörtlich im Titel stehen.
     @AppStorage("aiSemanticSearch") private var aiSemanticSearch: Bool = true
@@ -1382,7 +1385,7 @@ struct TodoListView: View {
                         onImport: { showingFileImporter = true },
                         onQuickCapture: { showingQuickCapture = true },
                         onVoice: AIFeature.isReady ? { showingBeeVoice = true } : nil,
-                        onPlanDay: { showingDayPlanner = true }
+                        onPlanDay: { dayPlannerSeed = ""; showingDayPlanner = true }
                     )
                     .presentationDetents([.height(AIFeature.isReady ? 500 : 420)])
                     .presentationDragIndicator(.hidden)
@@ -1401,9 +1404,9 @@ struct TodoListView: View {
                     // Mit Apple Intelligence plant das Sprachmodell, sonst die
                     // regelbasierte Variante – gleicher Ablauf, kein iOS 26 nötig.
                     if #available(iOS 26.0, *), AIFeature.isReady {
-                        AIDayPlanSheet()
+                        AIDayPlanSheet(initialText: dayPlannerSeed)
                     } else {
-                        QuickDayPlanSheet()
+                        QuickDayPlanSheet(initialText: dayPlannerSeed)
                             .environmentObject(todoStore)
                     }
                 }
@@ -1414,6 +1417,8 @@ struct TodoListView: View {
                         showingBeeVoice = true
                         aiRouter.clear()
                     case .planner:
+                        // "Schnell erfassen" schickt den eben gesprochenen Satz mit.
+                        dayPlannerSeed = aiRouter.plannerText
                         showingDayPlanner = true
                         aiRouter.clear()
                     case .quickCapture:

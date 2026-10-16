@@ -20,15 +20,26 @@ final class AIActionLog: ObservableObject {
         let id = UUID()
         let symbol: String
         let text: String
+        /// Titel der Aufgabe, falls durch diesen Eintrag eine entstanden ist.
+        /// Daran erkennt der Rückfallweg, was schon angelegt wurde.
+        let todoTitle: String?
         /// Wenn gesetzt, kann diese Aktion rückgängig gemacht werden.
         let undo: (@MainActor () -> Void)?
     }
 
     @Published private(set) var entries: [Entry] = []
 
-    func record(symbol: String, text: String, undo: (@MainActor () -> Void)? = nil) {
-        entries.append(Entry(symbol: symbol, text: text, undo: undo))
+    func record(
+        symbol: String,
+        text: String,
+        todoTitle: String? = nil,
+        undo: (@MainActor () -> Void)? = nil
+    ) {
+        entries.append(Entry(symbol: symbol, text: text, todoTitle: todoTitle, undo: undo))
     }
+
+    /// Die Titel der Aufgaben, die in diesem Durchlauf entstanden sind.
+    var createdTodoTitles: [String] { entries.compactMap(\.todoTitle) }
 
     func reset() { entries.removeAll() }
 
@@ -150,7 +161,11 @@ nonisolated struct AICreateTodoTool: Tool {
                 hasTime: !arguments.dueTime.trimmingCharacters(in: .whitespaces).isEmpty
             )
 
-            log.record(symbol: "checkmark.circle.fill", text: confirmation) {
+            log.record(
+                symbol: "checkmark.circle.fill",
+                text: confirmation,
+                todoTitle: cleanTitle
+            ) {
                 TodoStore.shared.deleteTodo(todo)
             }
             return confirmation + "."

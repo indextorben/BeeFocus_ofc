@@ -162,6 +162,14 @@ final class BeeAssistant: ObservableObject {
                 if !created.isEmpty {
                     text = created.joined(separator: ". ") + "."
                 }
+            } else if BeeAssistantFallback.looksLikeTodoRequest(command) {
+                // Das Modell hat angelegt – aber vielleicht nicht alles. Nennt der
+                // Nutzer drei Vorhaben und es ruft das Werkzeug nur einmal auf,
+                // wird der Rest hier nachgetragen.
+                let added = BeeAssistantFallback.createMissingTodos(from: command, log: log)
+                if !added.isEmpty {
+                    text += (text.isEmpty ? "" : " ") + added.joined(separator: ". ") + "."
+                }
             }
 
             // Kein Text zurück: Protokoll als Antwort nutzen.

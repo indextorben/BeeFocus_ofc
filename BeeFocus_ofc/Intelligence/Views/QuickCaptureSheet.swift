@@ -60,9 +60,13 @@ struct QuickCaptureSheet: View {
                         if drafts.isEmpty {
                             examplesCard
                         } else {
+                            if drafts.count > 1 { countRow }
+
                             ForEach(Array(drafts.enumerated()), id: \.offset) { index, draft in
                                 resultCard(index: index, draft: draft)
                             }
+
+                            planDayButton
                         }
                     }
                     .padding(20)
@@ -291,6 +295,47 @@ struct QuickCaptureSheet: View {
         .background(cardBackground)
     }
 
+    /// Hinweis, dass aus einem Satz mehrere Aufgaben geworden sind.
+    private var countRow: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "square.stack.3d.up.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(c1)
+            Text(AIL("quick_capture_count", drafts.count))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+    }
+
+    /// Legt die Aufgaben an und lässt den Tagesplaner sie gleich in den Tag
+    /// einsortieren – der zweite Schritt, der sonst von Hand kommt.
+    private var planDayButton: some View {
+        Button {
+            saveAndPlanDay()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.day.timeline.left")
+                    .font(.system(size: 14, weight: .semibold))
+                Text(localizer.localizedString(forKey: "quick_capture_plan_day"))
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundStyle(c1)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(c1.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(c1.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     /// Schalter: Soll Apple Intelligence den Entwurf verfeinern?
     private var refineToggle: some View {
         Button {
@@ -411,7 +456,8 @@ struct QuickCaptureSheet: View {
         [
             localizer.localizedString(forKey: "quick_capture_example_1"),
             localizer.localizedString(forKey: "quick_capture_example_2"),
-            localizer.localizedString(forKey: "quick_capture_example_3")
+            localizer.localizedString(forKey: "quick_capture_example_3"),
+            localizer.localizedString(forKey: "quick_capture_example_4")
         ]
     }
 
@@ -530,15 +576,16 @@ struct QuickCaptureSheet: View {
 
     private func runRefine(for input: String) async {
         guard #available(iOS 26.0, *) else { return }
-        let base = drafts
-        guard !base.isEmpty else { return }
+        guard !drafts.isEmpty else { return }
 
         isRefining = true
         defer { isRefining = false }
 
-        let refined = await AITodoIntelligence.shared.refine(base)
+        // `composeMany` darf mehr Aufgaben zurückgeben als der Parser gefunden
+        // hat – weniger nie. Die Anzahl darf sich also ändern.
+        let refined = (try? await AITodoIntelligence.shared.composeMany(from: input)) ?? []
         // Während der Anfrage darf der Nutzer weitergetippt haben.
-        guard !Task.isCancelled, trimmedText == input, drafts.count == refined.count else { return }
+        guard !Task.isCancelled, trimmedText == input, !refined.isEmpty else { return }
 
         refinedText = input
         withAnimation { drafts = refined }
@@ -568,5 +615,19 @@ struct QuickCaptureSheet: View {
         }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
+    }
+
+    /// Legt die Aufgaben an und öffnet danach den Tagesplaner mit demselben
+    /// Wortlaut. Der Planer wird erst nach dem Schließen dieses Sheets
+    /// angefordert – zwei Sheets gleichzeitig verträgt SwiftUI nicht.
+    private func saveAndPlanDay() {
+        guard !drafts.isEmpty else { return }
+        let seed = drafts
+            .map { $0.source.isEmpty ? $0.title : $0.source }
+            .joined(separator: "\n")
+        save()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            AIRouter.shared.requestPlanner(with: seed)
+        }
     }
 }

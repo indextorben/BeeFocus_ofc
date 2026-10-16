@@ -70,10 +70,13 @@ final class QuickDayPlanner: ObservableObject {
     // MARK: - Stufe 1: Freitext zerlegen
 
     /// Zerlegt den Wortsalat in einzelne Aufgaben. Jede Zeile, jeder
-    /// Aufzählungspunkt und jeder Satz wird für sich betrachtet.
+    /// Aufzählungspunkt und jeder Satz wird für sich betrachtet – und ein Satz
+    /// mit mehreren Vorhaben ("putzen und danach einkaufen") noch einmal
+    /// feiner, mit derselben Regel wie "Schnell erfassen".
     func extract(from text: String) {
         reset()
         let fragments = Self.fragments(in: text)
+            .flatMap { QuickTodoParser.statements(in: $0) }
         guard !fragments.isEmpty else {
             errorMessage = AIL("ai_plan_nothing_found")
             return
