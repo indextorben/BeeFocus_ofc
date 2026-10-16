@@ -29,8 +29,13 @@ struct QuickTodoDraft: Equatable {
     /// Geschätzte Dauer in Minuten, falls bekannt.
     var estimatedMinutes: Int?
     /// Ist das ein Termin (feste Uhrzeit mit Gegenüber oder Anlass)? Dann
-    /// wandert er zusätzlich in den Systemkalender.
+    /// bekommt er in BeeFocus eine Dauer, ein Ende und die Erinnerung
+    /// 15 Minuten vorher. In den Systemkalender wandert er dadurch **nicht**.
     var isAppointment: Bool = false
+    /// Soll der Eintrag zusätzlich im Systemkalender landen? Nur, wenn es
+    /// ausdrücklich gewünscht ist – Siri, Bee Voice und die Schnellerfassung
+    /// tragen von sich aus nur in BeeFocus ein.
+    var addToCalendar: Bool = false
     /// Hat Apple Intelligence den Entwurf verfeinert?
     var isAIRefined: Bool = false
     /// Der Text, aus dem dieser Entwurf entstanden ist – Grundlage für eine
@@ -60,7 +65,7 @@ struct QuickTodoDraft: Equatable {
             priority: priority,
             subTasks: subTaskItems,
             focusTimeInMinutes: minutes.map(Double.init),
-            calendarEnabled: isAppointment && dueDate != nil,
+            calendarEnabled: addToCalendar && dueDate != nil,
             endDate: endDate
         )
     }

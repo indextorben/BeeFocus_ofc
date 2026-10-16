@@ -121,9 +121,11 @@ nonisolated struct AICreateTodoTool: Tool {
             let details = QuickTodoDraft.tidyDetails(arguments.details, title: cleanTitle, items: items)
             let subTasks = items.map { SubTask(title: $0) }
 
-            // Termine ("Freitag 14:15 Termin mit der Hochschule") gehören
-            // zusätzlich in den Systemkalender – erkannt am Wortlaut, nicht
-            // am Urteil des Modells.
+            // Termine ("Freitag 14:15 Termin mit der Hochschule") bekommen
+            // eine Dauer, ein Ende und die Erinnerung 15 Minuten vorher –
+            // erkannt am Wortlaut, nicht am Urteil des Modells. Der Eintrag
+            // bleibt in BeeFocus; in den Systemkalender schreibt Bee Voice
+            // nichts.
             let isAppointment = due != nil
                 && !arguments.dueTime.trimmingCharacters(in: .whitespaces).isEmpty
                 && QuickTodoParser.looksLikeAppointment("\(cleanTitle) \(details)")
@@ -138,7 +140,7 @@ nonisolated struct AICreateTodoTool: Tool {
                 priority: TodoPriority(rawValue: arguments.priority.lowercased()) ?? .medium,
                 subTasks: subTasks,
                 focusTimeInMinutes: isAppointment ? 60 : nil,
-                calendarEnabled: isAppointment,
+                calendarEnabled: false,
                 endDate: isAppointment ? due?.addingTimeInterval(3600) : nil
             )
             store.addTodo(todo)

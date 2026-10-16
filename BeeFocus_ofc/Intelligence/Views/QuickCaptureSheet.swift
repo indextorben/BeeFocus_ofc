@@ -226,21 +226,22 @@ struct QuickCaptureSheet: View {
                 Spacer()
             }
 
-            // Termine wandern zusätzlich in den Systemkalender – hier sichtbar
-            // und mit einem Tipp wieder abwählbar.
+            // Erfasst wird grundsätzlich nur in BeeFocus. Wer den Eintrag
+            // zusätzlich im Systemkalender will, hakt es hier mit einem
+            // Tipp an – vorangekreuzt ist nichts.
             if draft.dueDate != nil {
                 Button {
-                    drafts[index].isAppointment.toggle()
+                    drafts[index].addToCalendar.toggle()
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: draft.isAppointment
+                        Image(systemName: draft.addToCalendar
                               ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 13, weight: .semibold))
                         Text(localizer.localizedString(forKey: "quick_capture_calendar"))
                             .font(.system(size: 13, weight: .medium))
                         Spacer()
                     }
-                    .foregroundStyle(draft.isAppointment ? c1 : .secondary)
+                    .foregroundStyle(draft.addToCalendar ? c1 : .secondary)
                 }
                 .buttonStyle(.plain)
             }

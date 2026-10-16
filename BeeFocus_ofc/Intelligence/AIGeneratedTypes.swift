@@ -261,6 +261,7 @@ extension QuickTodoDraft {
             // Ob es ein Termin ist, entscheidet der Wortlaut – nicht das Modell.
             isAppointment: fallback.isAppointment
                 || (hasTime && QuickTodoParser.looksLikeAppointment(fallback.source)),
+            addToCalendar: fallback.addToCalendar,
             isAIRefined: true,
             source: fallback.source
         )
